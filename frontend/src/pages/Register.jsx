@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
+import { DateField } from "@/components/DateField";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -104,7 +105,10 @@ export default function Register() {
               <Field label="Nama Lengkap" testid="input-reg-name" value={form.name} onChange={set("name")} placeholder="Nama sesuai identitas" />
               <Field label="Nomor HP" testid="input-reg-phone" type="tel" value={form.phone} onChange={set("phone")} placeholder="cth: 08xxxx" />
               <Field label="Email" testid="input-reg-email" type="email" value={form.email} onChange={set("email")} placeholder="nama@email.com" />
-              <Field label="Tanggal Lahir" testid="input-reg-dob" type="date" value={form.dob} onChange={set("dob")} />
+              <div>
+                <label className="block text-base font-semibold text-[#111827] mb-1.5">Tanggal Lahir</label>
+                <DateField testid="input-reg-dob" value={form.dob} onChange={(v) => setForm((f) => ({ ...f, dob: v }))} required />
+              </div>
               <Field label="Alamat" testid="input-reg-address" value={form.address} onChange={set("address")} placeholder="Alamat tempat tinggal" />
               <Field label="Kata Sandi" testid="input-reg-password" type="password" value={form.password} onChange={set("password")} placeholder="Minimal 6 karakter" minLength={6} />
 

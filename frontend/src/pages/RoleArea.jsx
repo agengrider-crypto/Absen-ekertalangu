@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
-import { ArrowLeft, Shield, Users, UserCheck, Trash2, QrCode, Copy, Loader2, ListPlus, UserPlus } from "lucide-react";
+import { ArrowLeft, Shield, Users, UserCheck, Trash2, QrCode, Copy, Loader2, ListPlus, UserPlus, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
+import { DateField } from "@/components/DateField";
 
 const META = {
   admin: { icon: Shield, title: "Area Admin", color: "#D97706" },
@@ -81,6 +82,7 @@ function AdminPanel() {
   const [qr, setQr] = useState(null);
   const [pendingNames, setPendingNames] = useState("");
   const [savingPending, setSavingPending] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [newAcc, setNewAcc] = useState({
     name: "", phone: "", email: "", dob: "", address: "", password: "",
     roles: { admin: false, pengurus: false, peserta: true },
@@ -115,21 +117,51 @@ function AdminPanel() {
 
   const submitPending = async (e) => {
     e.preventDefault();
-    const names = pendingNames.split("\n").map((n) => n.trim()).filter(Boolean);
-    if (names.length === 0) {
+    const entries = pendingNames
+      .split("\n")
+      .map((line) => {
+        const parts = line.split(/[,;]/);
+        const name = (parts[0] || "").trim();
+        const dob = (parts[1] || "").trim() || null;
+        return { name, dob };
+      })
+      .filter((en) => en.name);
+    if (entries.length === 0) {
       toast.error("Masukkan minimal satu nama");
       return;
     }
     setSavingPending(true);
     try {
-      const { data } = await api.post("/admin/users/pending", { names });
-      toast.success(`${data.count} nama peserta ditambahkan. Peserta dapat aktivasi mandiri.`);
+      const { data } = await api.post("/admin/users/pending", { entries });
+      const skip = data.skipped?.length ? `, ${data.skipped.length} dilewati (sudah ada)` : "";
+      toast.success(`${data.count} nama peserta ditambahkan${skip}. Peserta dapat aktivasi mandiri.`);
       setPendingNames("");
       load();
     } catch (e2) {
       toast.error(formatApiErrorDetail(e2.response?.data?.detail));
     } finally {
       setSavingPending(false);
+    }
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const { data } = await api.post("/admin/users/import", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const skip = data.skipped?.length ? `, ${data.skipped.length} dilewati (duplikat)` : "";
+      toast.success(`${data.count} peserta diimpor dari file${skip}.`);
+      load();
+    } catch (e2) {
+      toast.error(formatApiErrorDetail(e2.response?.data?.detail));
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -189,7 +221,7 @@ function AdminPanel() {
             <ListPlus size={18} /> Tambah Nama Peserta
           </div>
           <p className="text-sm text-[#6B7280] mb-3">
-            Satu nama per baris. Peserta melengkapi data sendiri lewat menu Aktivasi (tanpa kode).
+            Satu baris per peserta. Format: <span className="font-semibold">Nama</span> atau <span className="font-semibold">Nama, DD-MM-YYYY</span> (tanggal lahir sebagai verifikasi). Peserta melengkapi data sendiri lewat menu Aktivasi.
           </p>
           <form onSubmit={submitPending}>
             <textarea
@@ -197,7 +229,7 @@ function AdminPanel() {
               value={pendingNames}
               onChange={(e) => setPendingNames(e.target.value)}
               rows={5}
-              placeholder={"Budi Santoso\nSiti Aminah\nAhmad Fauzi"}
+              placeholder={"Budi Santoso, 17-08-1970\nSiti Aminah, 02-05-1965\nAhmad Fauzi"}
               className="w-full p-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] resize-y"
             />
             <button
@@ -210,6 +242,29 @@ function AdminPanel() {
               Tambahkan Nama
             </button>
           </form>
+
+          <div className="relative my-4">
+            <div className="border-t border-[#E5E7EB]" />
+            <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-white px-2 text-xs text-[#9CA3AF]">atau</span>
+          </div>
+          <p className="text-sm text-[#6B7280] mb-2">
+            Impor massal dari file. Kolom: <span className="font-semibold">Nama</span> (wajib), <span className="font-semibold">Tanggal Lahir</span> (opsional).
+          </p>
+          <label
+            data-testid="button-import-file"
+            className="w-full h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#E8F5EE] cursor-pointer"
+          >
+            {importing ? <Loader2 className="animate-spin" size={18} /> : <FileSpreadsheet size={18} />}
+            Impor Excel / CSV
+            <input
+              type="file"
+              accept=".xlsx,.xlsm,.csv,.txt"
+              onChange={handleImport}
+              disabled={importing}
+              className="hidden"
+              data-testid="input-import-file"
+            />
+          </label>
         </div>
       </div>
 
@@ -223,7 +278,7 @@ function AdminPanel() {
             <input data-testid="input-new-name" required value={newAcc.name} onChange={(e) => setNewAcc({ ...newAcc, name: e.target.value })} placeholder="Nama Lengkap *" className={inp} />
             <input data-testid="input-new-phone" value={newAcc.phone} onChange={(e) => setNewAcc({ ...newAcc, phone: e.target.value })} placeholder="Nomor HP" className={inp} />
             <input data-testid="input-new-email" type="email" value={newAcc.email} onChange={(e) => setNewAcc({ ...newAcc, email: e.target.value })} placeholder="Email" className={inp} />
-            <input data-testid="input-new-dob" type="date" value={newAcc.dob} onChange={(e) => setNewAcc({ ...newAcc, dob: e.target.value })} className={inp} />
+            <DateField testid="input-new-dob" value={newAcc.dob} onChange={(v) => setNewAcc({ ...newAcc, dob: v })} placeholder="Tanggal Lahir" className="h-[46px]" />
             <input data-testid="input-new-address" value={newAcc.address} onChange={(e) => setNewAcc({ ...newAcc, address: e.target.value })} placeholder="Alamat" className={`${inp} sm:col-span-2`} />
             <input data-testid="input-new-password" type="password" required minLength={6} value={newAcc.password} onChange={(e) => setNewAcc({ ...newAcc, password: e.target.value })} placeholder="Kata Sandi *" className={`${inp} sm:col-span-2`} />
             <div className="sm:col-span-2">

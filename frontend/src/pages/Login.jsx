@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
+import { DateField } from "@/components/DateField";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -193,14 +194,7 @@ function ResetDialog({ onClose }) {
           </div>
           <div>
             <label className="block text-base font-semibold text-[#111827] mb-1.5">Tanggal Lahir</label>
-            <input
-              data-testid="input-reset-dob"
-              type="date"
-              required
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A]"
-            />
+            <DateField testid="input-reset-dob" value={dob} onChange={setDob} required />
           </div>
           <div>
             <label className="block text-base font-semibold text-[#111827] mb-1.5">Kata Sandi Baru</label>

@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 3 full-stack test of E-KERTALANGU: CSV/XLSX bulk import, DD-MM-YYYY DateField picker, and activation second-factor (DOB). Backend: 23/23 pytest tests pass (/app/backend/tests/test_iteration3.py) covering CSV import (header skip, DOB normalization 17-08-1970 -> 1970-08-17, dedup via 'skipped'), xlsx import (string + real date cells), unsupported .pdf -> 400 Indonesian message, admin-only guard (401 anon), new {entries:[{name,dob}]} payload (old {names:[...]} correctly 422), activation/search requires_dob flag true/false, second factor 403 'Tanggal lahir tidak sesuai' on wrong DOB + 200/active+cookies with correct DOB (both ISO and DD-MM-YYYY accepted), pending-without-DOB activates with any DOB, invalid ObjectId -> 400, all 3 seeded logins, bcrypt $2b$ hash, httpOnly cookies, app-level CORS allow-credentials + explicit origin, brute-force lockout after 5 fails (429) and cleared by self-reset, self-reset blocked for multi-role (403), pending-account login 401 (not 500). Perf: 300-row CSV import completed in 0.35s. Frontend (Playwright, public URL): admin panel elements + DD-MM-YYYY hint, textarea add 'Uji Satu, 01-01-1980' -> success toast + 'Menunggu Aktivasi' badge, CSV file import via input-import-file -> toast + names in list, DateField opens calendar popover and displays 15-03-1975 / 01-01-1980 / 17-08-1970 correctly on Register / Activate / Login-reset, full public registration -> /roles, activation dob-verify-note shown, wrong DOB -> error toast and stays on /activate, correct DOB -> activated and logged in, self-reset via picker then login with new password works, role dashboard shows only owned roles. All test-created users deleted; seeded Peserta password restored to Peserta#2026 and all 3 seeded logins verified 200.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/admin/users/import", "issue": "Unparseable DOB strings (e.g. '17 Agustus 1970') are silently normalized to null - the row is created with no DOB and the response gives no 'invalid_dates' feedback, so the admin never learns the second factor was dropped."},
+      {"endpoint": "POST /api/admin/users", "issue": "dob is stored raw (body.dob.strip()) without normalize_dob(), unlike /pending and /import. An admin-created pending user with dob '17-08-1970' would store DD-MM-YYYY and then fail the activation second factor. Same for POST /api/auth/register (raw dob) and the fallback at /activation/complete (or body.dob.strip())."},
+      {"endpoint": "POST /api/admin/users/import & /pending", "issue": "Dedup only checks {name, status: 'pending'}; a name that already exists as an ACTIVE user is re-created as a new pending duplicate."},
+      {"endpoint": "POST /api/admin/users/import", "issue": "No upload size / row-count guard; whole file is read into memory and each row does an individual find_one+insert_one (N+1). Fine at 300 rows (0.35s) but unbounded."},
+      {"endpoint": "POST /api/auth/self-reset", "issue": "Lockout clear uses delete_many({'email': user['email']}); for users whose email is null this would delete login_attempts of unrelated null-email users."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "DateField calendar popover (all screens: input-reg-dob, input-act-dob, input-new-dob, input-reset-dob)", "issues": ["react-day-picker 'dropdown-buttons' caption is unstyled/duplicated: the caption label ('Agustus 1970') renders on top of the dropdowns, the a11y 'Month:'/'Year:' labels and the stray selected-value text ('Agustus', '1970') are visible, and the prev/next nav arrows overlap the two selects. Looks broken and is not elderly-friendly. Fix components/ui/calendar.jsx classNames (hide caption_label when captionLayout is dropdown, add caption_dropdowns/dropdown/vhidden styles) or use captionLayout='dropdown' with proper shadcn styling.", "Popover opens downward and covers the following form fields / submit button (e.g. covers 'Kata Sandi Baru' + Simpan in the reset dialog, and the 'Buat Akun' button in the admin panel) until a date is chosen; consider align/side collision handling."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration3.py",
+    "/app/backend/tests/cleanup_iteration3.py",
+    "/app/test_reports/pytest/iteration3.xml"
+  ],
+  "action_items": [
+    "Style the shadcn Calendar dropdown caption (hide duplicate caption label / a11y label text, stop nav-arrow overlap) - only user-visible defect found.",
+    "Apply normalize_dob() consistently in POST /api/admin/users, POST /api/auth/register and the /activation/complete fallback so stored DOBs are always ISO and the second factor cannot be bypassed/broken by a DD-MM-YYYY value.",
+    "Return invalid/unparseable date rows in the import response (e.g. 'invalid_dates') so the admin knows which rows lost their DOB.",
+    "Optionally dedupe imports against active users too, and add a row/size cap on the import upload."
+  ],
+  "critical_code_review_comments": [
+    "server.py: DOB normalization is applied in build_pending_doc/import/activation but NOT in admin_create_user or register - inconsistent write path for the same field used as an auth second factor.",
+    "admin_import_users performs per-row await find_one + insert_one; use a single $in lookup + insert_many for large files.",
+    "self_reset clears brute-force attempts by email while login locks by user id; works today only because attempt docs store both, and breaks for null-email users."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration3.py",
+    "/app/backend/tests/cleanup_iteration3.py"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Created and then deleted: Budi Test Import, Siti Test NoDob, Excel Test Satu/Dua, Tanggal Test Cell, Uji Entri Test, Cari Test Berdob/Tanpadob, Aktivasi Test Dob/Bebas, Pending Test Login, Uji Satu, Uji Impor UI, Uji Impor Dua, Uji Daftar Test, 300x 'Bulk Test NNN', BadDob Test. Final DB state: 3 seeded accounts + 6 pre-existing pending users (fawas, adi, wawan, supri, rendy, siti) that were NOT created by this run.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Admin ageng.rider@gmail.com/Admin#2026, Pengurus pengurus@ekertalangu.id/Pengurus#2026, Peserta peserta@ekertalangu.id (phone 081300000003, dob 1970-08-17)/Peserta#2026 - all verified working at end of run.",
+  "context_for_next_testing_agent": "Regression suites: /app/backend/tests/backend_test.py, test_iteration2.py, test_iteration3.py (run from /app/backend; pytest.ini forces xdist loadscope, do not pass -p no:xdist). CORS preflight through the public edge is answered by Cloudflare (no allow-credentials header) - assert app CORS against http://localhost:8001. /register?token=... renders the form directly (no button-open-register-form). Reset dialog testids: input-reset-phone, input-reset-dob, input-reset-newpassword, button-reset-submit. To pick a date: click the DateField button, select_option('select[name=\"years\"]'), select_option('select[name=\"months\"]', index=<0-based month>), then click get_by_role('gridcell', name='<day>'). Use /app/backend/tests/cleanup_iteration3.py to purge test users and restore Peserta#2026.",
+  "rca_of_the_issue": "No functional defect found in the three iteration-3 features. The single UI defect is in components/ui/calendar.jsx: with captionLayout='dropdown-buttons' react-day-picker renders caption_label + nav + caption_dropdowns (each dropdown wrapped with a visually-hidden label and the selected value text) but the shadcn classNames do not hide/position these, producing overlapping duplicated text in the popover header."
+}

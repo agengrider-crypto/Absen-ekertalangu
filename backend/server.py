@@ -18,7 +18,7 @@ import bcrypt
 import jwt
 import qrcode
 from bson import ObjectId
-from fastapi import FastAPI, APIRouter, Request, Response, HTTPException, Depends
+from fastapi import FastAPI, APIRouter, Request, Response, HTTPException, Depends, UploadFile, File
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
@@ -118,8 +118,12 @@ class AdminCreateUser(BaseModel):
     roles: List[str] = ["peserta"]
     password: Optional[str] = None
 
+class PendingEntry(BaseModel):
+    name: str
+    dob: Optional[str] = None
+
 class AdminPendingNames(BaseModel):
-    names: List[str]
+    entries: List[PendingEntry]
 
 class SelfResetInput(BaseModel):
     phone: str
@@ -156,6 +160,33 @@ async def require_admin(user: dict = Depends(get_current_user)) -> dict:
     if "admin" not in user.get("roles", []):
         raise HTTPException(status_code=403, detail="Akses khusus admin")
     return user
+
+def normalize_dob(value) -> Optional[str]:
+    """Return YYYY-MM-DD or None. Accepts date/datetime and common ID string formats."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d")
+    if hasattr(value, "strftime"):  # date object from openpyxl
+        return value.strftime("%Y-%m-%d")
+    s = str(value).strip()
+    if not s:
+        return None
+    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d", "%d.%m.%Y"):
+        try:
+            return datetime.strptime(s, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return None
+
+def build_pending_doc(name: str, dob: Optional[str]) -> dict:
+    return {
+        "name": name, "email": None, "username": None, "phone": None,
+        "dob": normalize_dob(dob), "address": None, "roles": ["peserta"],
+        "source": "admin_import", "avatar_gender": "male", "password_hash": None,
+        "status": "pending", "token_version": 0,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 # ---------------------------------------------------------------------------
 # QR helpers (server-side generated & cached)
@@ -271,7 +302,7 @@ async def register(body: RegisterInput, response: Response):
         "email": email,
         "username": None,
         "phone": phone,
-        "dob": body.dob.strip(),
+        "dob": normalize_dob(body.dob) or body.dob.strip(),
         "address": body.address.strip(),
         "password_hash": hash_password(body.password),
         "roles": ["peserta"],
@@ -295,13 +326,17 @@ async def activation_search(q: str = ""):
         {"status": "pending", "name": {"$regex": re.escape(q), "$options": "i"}}
     ).sort("name", 1).limit(20)
     results = await cur.to_list(20)
-    return [{"id": str(u["_id"]), "name": u["name"]} for u in results]
+    return [{"id": str(u["_id"]), "name": u["name"], "requires_dob": bool(u.get("dob"))} for u in results]
 
 @api_router.post("/activation/complete")
 async def activation_complete(body: ActivationComplete, response: Response):
     user = await db.users.find_one({"_id": parse_object_id(body.user_id)})
     if not user or user.get("status") != "pending":
         raise HTTPException(status_code=404, detail="Data peserta tidak ditemukan atau sudah aktif")
+
+    submitted_dob = normalize_dob(body.dob)
+    if user.get("dob") and submitted_dob != user["dob"]:
+        raise HTTPException(status_code=403, detail="Tanggal lahir tidak sesuai data yang didaftarkan pengurus.")
 
     email = body.email.strip().lower()
     phone = body.phone.strip()
@@ -313,7 +348,7 @@ async def activation_complete(body: ActivationComplete, response: Response):
         raise HTTPException(status_code=409, detail="Nomor HP sudah terdaftar")
 
     await db.users.update_one({"_id": user["_id"]}, {"$set": {
-        "phone": phone, "email": email, "dob": body.dob.strip(),
+        "phone": phone, "email": email, "dob": submitted_dob or body.dob.strip(),
         "address": body.address.strip(), "password_hash": hash_password(body.password),
         "status": "active", "avatar_gender": body.avatar_gender or "male"}})
     user = await db.users.find_one({"_id": user["_id"]})
@@ -323,7 +358,8 @@ async def activation_complete(body: ActivationComplete, response: Response):
 @api_router.post("/auth/self-reset")
 async def self_reset(body: SelfResetInput):
     phone = body.phone.strip()
-    user = await db.users.find_one({"phone": phone, "dob": body.dob.strip()})
+    dob = normalize_dob(body.dob) or body.dob.strip()
+    user = await db.users.find_one({"phone": phone, "dob": dob})
     if not user:
         raise HTTPException(status_code=404, detail="Data tidak cocok. Periksa Nomor HP & tanggal lahir Anda.")
     if set(user.get("roles", [])) != {"peserta"}:
@@ -383,7 +419,7 @@ async def admin_create_user(body: AdminCreateUser, admin: dict = Depends(require
 
     doc = {
         "name": name, "email": email, "username": None, "phone": phone,
-        "dob": body.dob.strip() if body.dob else None,
+        "dob": normalize_dob(body.dob),
         "address": body.address.strip() if body.address else None,
         "roles": roles, "source": "admin", "avatar_gender": "male",
         "token_version": 0, "created_at": datetime.now(timezone.utc).isoformat(),
@@ -401,24 +437,59 @@ async def admin_create_user(body: AdminCreateUser, admin: dict = Depends(require
 @api_router.post("/admin/users/pending")
 async def admin_create_pending(body: AdminPendingNames, admin: dict = Depends(require_admin)):
     created, skipped = [], []
-    for raw in body.names:
-        name = raw.strip()
+    for entry in body.entries:
+        name = entry.name.strip()
         if not name:
             continue
         existing = await db.users.find_one({"name": name, "status": "pending"})
         if existing:
             skipped.append(name)
             continue
-        doc = {
-            "name": name, "email": None, "username": None, "phone": None,
-            "dob": None, "address": None, "roles": ["peserta"], "source": "admin_import",
-            "avatar_gender": "male", "password_hash": None, "status": "pending",
-            "token_version": 0, "created_at": datetime.now(timezone.utc).isoformat(),
-        }
+        doc = build_pending_doc(name, entry.dob)
         res = await db.users.insert_one(doc)
         doc["_id"] = res.inserted_id
         created.append(public_user(doc))
     return {"created": created, "count": len(created), "skipped": skipped}
+
+@api_router.post("/admin/users/import")
+async def admin_import_users(file: UploadFile = File(...), admin: dict = Depends(require_admin)):
+    fname = (file.filename or "").lower()
+    data = await file.read()
+    rows = []  # list of (name, dob)
+    try:
+        if fname.endswith(".csv") or fname.endswith(".txt"):
+            import csv
+            text = data.decode("utf-8-sig", errors="ignore")
+            for cols in csv.reader(io.StringIO(text)):
+                if cols:
+                    rows.append((cols[0], cols[1] if len(cols) > 1 else None))
+        elif fname.endswith(".xlsx") or fname.endswith(".xlsm"):
+            import openpyxl
+            wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+            ws = wb.active
+            for r in ws.iter_rows(values_only=True):
+                if r and r[0] is not None:
+                    rows.append((r[0], r[1] if len(r) > 1 else None))
+            wb.close()
+        else:
+            raise HTTPException(status_code=400, detail="Format tidak didukung. Gunakan .xlsx atau .csv")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=400, detail="Gagal membaca file. Pastikan format .xlsx atau .csv benar.")
+
+    created, skipped = [], []
+    for name_val, dob_val in rows:
+        name = str(name_val).strip()
+        if not name or name.lower() in ("nama", "name", "nama lengkap", "nama peserta"):
+            continue
+        if await db.users.find_one({"name": name, "status": "pending"}):
+            skipped.append(name)
+            continue
+        doc = build_pending_doc(name, dob_val)
+        res = await db.users.insert_one(doc)
+        created.append(name)
+    return {"count": len(created), "skipped": skipped, "created_names": created}
 
 app.include_router(api_router)
 

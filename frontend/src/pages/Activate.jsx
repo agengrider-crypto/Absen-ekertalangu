@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
+import { DateField } from "@/components/DateField";
 
 export default function Activate() {
   const navigate = useNavigate();
@@ -139,7 +140,15 @@ export default function Activate() {
               <form onSubmit={submit} className="space-y-4" data-testid="activation-form">
                 <Field label="Nomor HP" testid="input-act-phone" type="tel" value={form.phone} onChange={set("phone")} placeholder="cth: 08xxxx" />
                 <Field label="Email" testid="input-act-email" type="email" value={form.email} onChange={set("email")} placeholder="nama@email.com" />
-                <Field label="Tanggal Lahir" testid="input-act-dob" type="date" value={form.dob} onChange={set("dob")} />
+                <div>
+                  <label className="block text-base font-semibold text-[#111827] mb-1.5">Tanggal Lahir</label>
+                  <DateField testid="input-act-dob" value={form.dob} onChange={(v) => setForm((f) => ({ ...f, dob: v }))} required />
+                  {selected?.requires_dob && (
+                    <p className="text-xs text-[#92400E] bg-[#FEF3C7] rounded-lg px-2.5 py-1.5 mt-1.5" data-testid="dob-verify-note">
+                      Tanggal lahir harus sesuai data yang didaftarkan pengurus untuk verifikasi.
+                    </p>
+                  )}
+                </div>
                 <Field label="Alamat" testid="input-act-address" value={form.address} onChange={set("address")} placeholder="Alamat tempat tinggal" />
                 <Field label="Kata Sandi" testid="input-act-password" type="password" value={form.password} onChange={set("password")} placeholder="Minimal 6 karakter" minLength={6} />
 
