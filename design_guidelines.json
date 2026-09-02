@@ -1,0 +1,150 @@
+{
+  "project_name": "E-KERTALANGU — Absensi Pengajian (Fase 1: Login & Role)",
+  "app_type": "hybrid_fullstack",
+  "theme": "Modern Minimalist (Clean White + Deep Forest Emerald Accents)",
+  "design_archetype": "ORGANIC & EARTHY / SWISS HYBRID",
+  "accessibility_target": "Elderly-Friendly (Jamaah Lansia)",
+  "colors": {
+    "background_primary": "#FAFBF9",
+    "background_card": "#FFFFFF",
+    "background_subtle": "#F2F5F2",
+    "brand_primary": "#0D5C3A",
+    "brand_primary_hover": "#094229",
+    "brand_primary_light": "#E8F5EE",
+    "brand_accent": "#10B981",
+    "brand_accent_hover": "#059669",
+    "text_primary": "#111827",
+    "text_secondary": "#4B5563",
+    "text_muted": "#6B7280",
+    "border_subtle": "#E5E7EB",
+    "border_focus": "#0D5C3A",
+    "role_badges": {
+      "admin": {
+        "bg": "#FEF3C7",
+        "text": "#92400E",
+        "border": "#FCD34D",
+        "accent": "#D97706"
+      },
+      "pengurus": {
+        "bg": "#E0F2FE",
+        "text": "#075985",
+        "border": "#7DD3FC",
+        "accent": "#0284C7"
+      },
+      "peserta": {
+        "bg": "#E8F5EE",
+        "text": "#065F46",
+        "border": "#A7F3D0",
+        "accent": "#0D5C3A"
+      }
+    }
+  },
+  "typography": {
+    "font_family_main": "Inter, system-ui, -apple-system, sans-serif",
+    "font_family_heading": "Plus Jakarta Sans, Inter, sans-serif",
+    "headline_hero": "text-3xl sm:text-4xl font-bold tracking-tight text-[#111827]",
+    "headline_section": "text-2xl sm:text-3xl font-semibold text-[#111827]",
+    "card_title": "text-xl font-bold text-[#111827]",
+    "body_large": "text-lg text-[#374151] leading-relaxed",
+    "body_regular": "text-base text-[#4B5563] leading-relaxed",
+    "label_elderly": "text-base font-semibold text-[#111827]",
+    "button_text": "text-lg font-bold tracking-wide"
+  },
+  "elderly_friendly_rules": {
+    "min_tap_target": "48px x 48px minimum height/width for buttons and input fields",
+    "font_scale": "Base body text min 16px/18px, section headings 24px+, high contrast against background (APCA / WCAG AA 4.5:1+)",
+    "input_padding": "p-4 or py-3.5 px-4 for generous touch target",
+    "icon_size": "min 24px for actionable icons with visible text labels next to them",
+    "visual_cues": "Always pair icons with clear text labels (e.g. 'Tampilkan Kata Sandi', 'Ganti Akun')",
+    "feedback": "Clear toast notifications using Sonner, high-visibility loading spinners and full screen/modal status messages"
+  },
+  "layout_and_spacing": {
+    "container_max_width": "max-w-md sm:max-w-xl md:max-w-4xl lg:max-w-5xl",
+    "card_padding": "p-6 sm:p-8",
+    "gap_grid": "gap-4 sm:gap-6",
+    "border_radius": "rounded-2xl",
+    "shadow_style": "shadow-[0_4px_20px_-2px_rgba(13,92,58,0.08)]",
+    "header_style": "sticky top-0 z-50 bg-[#FAFBF9]/90 backdrop-blur-md border-b border-[#E5E7EB] px-4 py-3.5"
+  },
+  "key_phase_1_features": {
+    "login_page": {
+      "identifier_field": "Flexible identifier input (Nomor HP / Email / Username)",
+      "password_field": "Password input with prominent show/hide eye toggle (data-testid='password-toggle')",
+      "forgot_password_link": "Link 'Lupa kata sandi? Hubungi administrator' opening modal/dialog",
+      "self_reset_password": "Mandiri Reset Password for Peserta using Tanggal Lahir + Nomor HP verification",
+      "activation_registration_buttons": "Two high-visibility secondary CTAs: 'Aktivasi Akun (QR)' & 'Daftar Baru (Scan QR)'"
+    },
+    "qr_pendaftaran_and_aktivasi": {
+      "qr_generator_display": "Client render server-side generated & cached QR code for public registration",
+      "qr_activation_flow": "Scan/Input code flow to activate new Peserta account",
+      "download_print_qr": "Button to copy link or save QR image for print/display"
+    },
+    "role_dashboard_page": {
+      "top_bar": {
+        "account_switcher": "Button 'Ganti Akun' on top-left (data-testid='account-switcher-button')",
+        "user_profile": "Avatar image + User full name + Current role tag on top-right"
+      },
+      "role_cards": [
+        {
+          "role_id": "admin",
+          "title": "Admin (Pengelola Sistem)",
+          "description": "Kelola pengguna, buat & atur jadwal pengajian, kelola QR code publik, dan lihat laporan presensi lengkap.",
+          "badge_text": "Akses Penuh",
+          "action_button": "Masuk sebagai Admin"
+        },
+        {
+          "role_id": "pengurus",
+          "title": "Pengurus (Petugas Sesi)",
+          "description": "Buka sesi presensi pengajian, verifikasi kehadiran jamaah, dan pantau rekap kehadiran harian.",
+          "badge_text": "Akses Operasional",
+          "action_button": "Masuk sebagai Pengurus"
+        },
+        {
+          "role_id": "peserta",
+          "title": "Peserta / Jamaah",
+          "description": "Lakukan presensi cepat via QR code, cek jadwal pengajian terkini, dan lihat riwayat kehadiran Anda.",
+          "badge_text": "Jamaah",
+          "action_button": "Masuk sebagai Peserta"
+        }
+      ]
+    }
+  },
+  "image_urls": {
+    "mosque_banner": "https://images.unsplash.com/photo-1724596314963-c71d1e58204d?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "modern_hall": "https://images.unsplash.com/photo-1761639935258-c74c0cd2fc3a?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "avatars": {
+      "default_male": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "default_female": "https://images.unsplash.com/photo-1527203561188-dae1bc1a417f?crop=entropy&cs=srgb&fm=jpg&q=85"
+    }
+  },
+  "testing_and_data_ids": {
+    "login_identifier_input": "input-login-identifier",
+    "login_password_input": "input-login-password",
+    "login_password_toggle": "button-password-toggle",
+    "login_submit_button": "button-login-submit",
+    "forgot_password_button": "button-forgot-password",
+    "self_reset_dob_input": "input-reset-dob",
+    "self_reset_phone_input": "input-reset-phone",
+    "self_reset_submit_button": "button-reset-submit",
+    "activation_qr_button": "button-activate-qr",
+    "register_qr_button": "button-register-qr",
+    "account_switcher_button": "button-account-switcher",
+    "user_avatar": "img-user-avatar",
+    "user_name_label": "text-user-name",
+    "role_card_admin": "card-role-admin",
+    "role_card_pengurus": "card-role-pengurus",
+    "role_card_peserta": "card-role-peserta",
+    "role_action_admin": "button-select-role-admin",
+    "role_action_pengurus": "button-select-role-pengurus",
+    "role_action_peserta": "button-select-role-peserta"
+  },
+  "instructions_to_main_agent": [
+    "Use clean Tailwind CSS with custom colors defined in color scale (#0D5C3A for primary brand).",
+    "Ensure input fields have minimum height of 48px and font size of text-base for elderly-friendliness.",
+    "Place clear data-testid attributes on all interactive elements as listed above.",
+    "Implement tab/modal switcher for self-service password reset with Date of Birth + Phone.",
+    "Use Lucide icons (Eye, EyeOff, QrCode, UserCheck, Shield, Users, LogOut, RefreshCw, Key, ChevronRight).",
+    "Use Sonner for toast notifications on success/error events.",
+    "Keep header sticky with ganti akun on top-left and user avatar + name on top-right for role dashboard."
+  ]
+}

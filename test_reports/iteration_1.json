@@ -1,0 +1,91 @@
+{
+  "summary": "Full Fase 1 (auth foundation) testing of E-KERTALANGU. Backend: 27 pytest cases against the public REACT_APP_BACKEND_URL covering login (email/username/phone), cookie/JWT behaviour, brute-force lockout, refresh, logout, bcrypt hash format, /qr/public caching, QR registration + duplicate handling, activation, self-reset, and admin user list/delete/role endpoints -> 25 passed (92.6%). Frontend: Playwright on desktop (1920x1080) and mobile (390x844) covering login for all 3 roles, password toggle, wrong-password toast, role-card visibility per role, /roles route protection, Ganti Akun logout, admin area (QR panel + user list + delete buttons), pengurus/peserta 'Segera Hadir' placeholder, reset dialog (change + restore password), QR registration via /register?token=, duplicate 409 toast and invalid activation code -> all flows passed. Seeded credentials verified intact after testing.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/auth/self-reset",
+        "issue": "ACCOUNT TAKEOVER: self-reset only checks that 'peserta' is present in user.roles. The seeded admin has roles [admin, pengurus, peserta], so posting {phone: 081100000001, dob: 1990-01-01, new_password: X} returned 200 and actually changed the ADMIN password (and bumped token_version, killing the admin session). Same hole applies to pengurus (roles include peserta). Fix: reject when roles intersect {admin, pengurus} (i.e. only allow when roles == ['peserta']), and consider rate-limiting self-reset by phone.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "DELETE /api/admin/users/{user_id}",
+        "issue": "Non-ObjectId path param raises bson.errors.InvalidId -> HTTP 500 Internal Server Error (traceback in backend.err.log). Should be 400/404. PATCH /api/admin/users/{id}/roles has the same unguarded ObjectId(user_id) call."
+      },
+      {
+        "endpoint": "POST /api/auth/register",
+        "issue": "No validation of email format, phone format or password strength (RegisterInput uses plain str). Also 'dob' and 'address' accept any string; a 1-char password is accepted."
+      },
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "Lockout is keyed on ip:identifier, so an attacker can bypass it by alternating identifier forms (email vs username vs phone) for the same account - each form gets its own 5-attempt budget. Consider keying on resolved user id."
+      },
+      {
+        "endpoint": "POST /api/auth/logout",
+        "issue": "Requires a valid access token (Depends(get_current_user)); once the 15-min access token expires, logout returns 401 and the refresh cookie is never cleared. Logout should be idempotent/unauthenticated-safe and should also invalidate token_version."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "RoleArea",
+        "issue": "React console error: 'Cannot update a component (BrowserRouter) while rendering a different component (RoleArea)' - a navigate()/setState is called during render (reproduced by opening /area/admin as a peserta account). Move the redirect into a useEffect or return <Navigate/>.",
+        "selector": "/area/admin",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Register form + Reset dialog",
+        "issues": [
+          "Date of birth uses the raw browser native date picker (<input type=date>) instead of a shadcn Calendar/date-picker; on mobile it renders as MM/DD/YYYY which is confusing for an Indonesian audience expecting DD-MM-YYYY."
+        ]
+      },
+      {
+        "screen": "RoleDashboard (mobile 390px)",
+        "issues": [
+          "User name block is hidden below sm breakpoint (text-user-name has 'hidden sm:block'), so on mobile only an avatar shows with no name/role text - the spec asks for name + avatar top-right."
+        ]
+      },
+      {
+        "screen": "Admin area",
+        "issues": [
+          "QR image testid is 'admin-qr-image' while the spec/handoff notes list 'img-public-qr' (that id only exists on /register). Not a bug, but testid naming is inconsistent across pages."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: restrict /api/auth/self-reset so accounts holding admin/pengurus roles cannot be reset (currently allows full admin account takeover with phone + dob).",
+    "Guard ObjectId(user_id) in DELETE /api/admin/users/{id} and PATCH /api/admin/users/{id}/roles to return 400/404 instead of 500.",
+    "Fix setState-during-render in RoleArea.jsx (unauthorized role redirect) to remove the React warning.",
+    "Add Pydantic validation (email/phone format, min password length) to RegisterInput and SelfResetInput.",
+    "Make POST /api/auth/logout work without a valid access token and clear both cookies.",
+    "Consider keying login lockout on the resolved user instead of the raw identifier string.",
+    "Optional UI: replace native date inputs with shadcn date picker; show user name on mobile header."
+  ],
+  "critical_code_review_comments": [
+    "self_reset(): the 'peserta' in roles check is insufficient for multi-role accounts - use set(roles) == {'peserta'}.",
+    "admin_delete_user/admin_update_roles: ObjectId(user_id) is called on unvalidated input -> 500.",
+    "login(): lock_key = f'{ip}:{ident}' means the same account has independent lockout counters per identifier variant.",
+    "server.py uses deprecated @app.on_event('startup'/'shutdown'); migrate to lifespan handlers.",
+    "public_user() correctly strips _id and password_hash - verified no _id/password_hash leaks in /admin/users or /auth/me responses."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "92.6% (25/27)", "frontend": "100% of tested flows (1 React console warning)"},
+  "seed_data_creation": "Created temporary QR-registered users with emails *@example.test and names TEST_* ; all deleted via admin API after testing. Verified only the 3 seeded accounts remain and all 3 seeded passwords still work (Admin#2026 / Pengurus#2026 / Peserta#2026).",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "/app/memory/test_credentials.md is present and accurate; all 3 accounts verified working after tests.",
+  "context_for_next_testing_agent": "Run `cd /app/backend && python -m pytest tests/backend_test.py -v`. Two tests are expected to fail until fixed: test_self_reset_cannot_target_admin_account (admin takeover) and test_admin_delete_invalid_objectid (500). NOTE: the self-reset test intentionally resets the admin password and restores it in a finally block; if that test is interrupted the admin password may be left as 'Xtemp#12345' - restart the backend (seed_users re-syncs the admin password from ADMIN_PASSWORD) to recover. Backend uses httpOnly cookies -> always use requests.Session(). Public QR token is cached in app_settings and persists across restarts.",
+  "rca_of_the_issue": "self_reset() gates on `'peserta' not in user.roles`. Because seeded admin/pengurus accounts include 'peserta' in their role list (multi-role design), the gate passes for privileged accounts, allowing anyone who knows the phone number and date of birth to set a new password for the admin account. Reproduction: POST /api/auth/self-reset {\"phone\":\"081100000001\",\"dob\":\"1990-01-01\",\"new_password\":\"X\"} -> 200 and admin login with the new password succeeds. Mitigation: require the account's role set to be exactly ['peserta'] (or add an explicit 'self_reset_allowed' flag)."
+}
