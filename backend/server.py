@@ -8,6 +8,7 @@ load_dotenv(ROOT_DIR / '.env')
 import logging
 import base64
 import io
+import re
 import secrets
 import hashlib
 from datetime import datetime, timezone, timedelta
@@ -99,9 +100,26 @@ class RegisterInput(BaseModel):
     password: str
     avatar_gender: Optional[str] = "male"
 
-class ActivateInput(BaseModel):
-    code: str
+class ActivationComplete(BaseModel):
+    user_id: str
+    phone: str
+    email: str
+    dob: str
+    address: str
     password: str
+    avatar_gender: Optional[str] = "male"
+
+class AdminCreateUser(BaseModel):
+    name: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    dob: Optional[str] = None
+    address: Optional[str] = None
+    roles: List[str] = ["peserta"]
+    password: Optional[str] = None
+
+class AdminPendingNames(BaseModel):
+    names: List[str]
 
 class SelfResetInput(BaseModel):
     phone: str
@@ -181,14 +199,13 @@ async def root():
 @api_router.post("/auth/login")
 async def login(body: LoginInput, request: Request, response: Response):
     ident = body.identifier.strip().lower()
-    ip = request.client.host if request.client else "unknown"
-    lock_key = f"{ip}:{ident}"
+    user = await db.users.find_one({"$or": [
+        {"email": ident}, {"username": ident}, {"phone": body.identifier.strip()}]})
+    lock_key = str(user["_id"]) if user else ident
     if await is_locked(lock_key):
         raise HTTPException(status_code=429, detail="Terlalu banyak percobaan. Coba lagi dalam 15 menit.")
 
-    user = await db.users.find_one({"$or": [
-        {"email": ident}, {"username": ident}, {"phone": body.identifier.strip()}]})
-    ok = user and verify_password(body.password, user["password_hash"])
+    ok = user and user.get("password_hash") and verify_password(body.password, user["password_hash"])
     if not ok:
         await db.login_attempts.insert_one({
             "identifier": lock_key, "email": user["email"] if user else ident,
@@ -269,16 +286,36 @@ async def register(body: RegisterInput, response: Response):
     set_auth_cookies(response, str(res.inserted_id), 0)
     return public_user(doc)
 
-@api_router.post("/auth/activate")
-async def activate(body: ActivateInput, response: Response):
-    user = await db.users.find_one({"activation_code": body.code.strip()})
-    if not user:
-        raise HTTPException(status_code=404, detail="Kode aktivasi tidak ditemukan")
-    if user.get("status") == "active":
-        raise HTTPException(status_code=400, detail="Akun sudah aktif, silakan login")
-    await db.users.update_one({"_id": user["_id"]}, {
-        "$set": {"password_hash": hash_password(body.password), "status": "active"},
-        "$unset": {"activation_code": ""}})
+@api_router.get("/activation/search")
+async def activation_search(q: str = ""):
+    q = q.strip()
+    if len(q) < 2:
+        return []
+    cur = db.users.find(
+        {"status": "pending", "name": {"$regex": re.escape(q), "$options": "i"}}
+    ).sort("name", 1).limit(20)
+    results = await cur.to_list(20)
+    return [{"id": str(u["_id"]), "name": u["name"]} for u in results]
+
+@api_router.post("/activation/complete")
+async def activation_complete(body: ActivationComplete, response: Response):
+    user = await db.users.find_one({"_id": parse_object_id(body.user_id)})
+    if not user or user.get("status") != "pending":
+        raise HTTPException(status_code=404, detail="Data peserta tidak ditemukan atau sudah aktif")
+
+    email = body.email.strip().lower()
+    phone = body.phone.strip()
+    dup_email = await db.users.find_one({"email": email, "_id": {"$ne": user["_id"]}})
+    if dup_email:
+        raise HTTPException(status_code=409, detail="Email sudah terdaftar")
+    dup_phone = await db.users.find_one({"phone": phone, "_id": {"$ne": user["_id"]}})
+    if dup_phone:
+        raise HTTPException(status_code=409, detail="Nomor HP sudah terdaftar")
+
+    await db.users.update_one({"_id": user["_id"]}, {"$set": {
+        "phone": phone, "email": email, "dob": body.dob.strip(),
+        "address": body.address.strip(), "password_hash": hash_password(body.password),
+        "status": "active", "avatar_gender": body.avatar_gender or "male"}})
     user = await db.users.find_one({"_id": user["_id"]})
     set_auth_cookies(response, str(user["_id"]), user.get("token_version", 0))
     return public_user(user)
@@ -331,6 +368,58 @@ async def admin_update_roles(user_id: str, body: RoleUpdate, admin: dict = Depen
     user = await db.users.find_one({"_id": oid})
     return public_user(user)
 
+@api_router.post("/admin/users")
+async def admin_create_user(body: AdminCreateUser, admin: dict = Depends(require_admin)):
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Nama wajib diisi")
+    roles = [r for r in body.roles if r in VALID_ROLES] or ["peserta"]
+    email = body.email.strip().lower() if body.email else None
+    phone = body.phone.strip() if body.phone else None
+    if email and await db.users.find_one({"email": email}):
+        raise HTTPException(status_code=409, detail="Email sudah terdaftar")
+    if phone and await db.users.find_one({"phone": phone}):
+        raise HTTPException(status_code=409, detail="Nomor HP sudah terdaftar")
+
+    doc = {
+        "name": name, "email": email, "username": None, "phone": phone,
+        "dob": body.dob.strip() if body.dob else None,
+        "address": body.address.strip() if body.address else None,
+        "roles": roles, "source": "admin", "avatar_gender": "male",
+        "token_version": 0, "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if body.password:
+        doc["password_hash"] = hash_password(body.password)
+        doc["status"] = "active"
+    else:
+        doc["password_hash"] = None
+        doc["status"] = "pending"
+    res = await db.users.insert_one(doc)
+    doc["_id"] = res.inserted_id
+    return public_user(doc)
+
+@api_router.post("/admin/users/pending")
+async def admin_create_pending(body: AdminPendingNames, admin: dict = Depends(require_admin)):
+    created, skipped = [], []
+    for raw in body.names:
+        name = raw.strip()
+        if not name:
+            continue
+        existing = await db.users.find_one({"name": name, "status": "pending"})
+        if existing:
+            skipped.append(name)
+            continue
+        doc = {
+            "name": name, "email": None, "username": None, "phone": None,
+            "dob": None, "address": None, "roles": ["peserta"], "source": "admin_import",
+            "avatar_gender": "male", "password_hash": None, "status": "pending",
+            "token_version": 0, "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        res = await db.users.insert_one(doc)
+        doc["_id"] = res.inserted_id
+        created.append(public_user(doc))
+    return {"created": created, "count": len(created), "skipped": skipped}
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -379,9 +468,17 @@ async def seed_users():
 
 @app.on_event("startup")
 async def startup():
-    await db.users.create_index("email", unique=True, sparse=True)
+    for idx in ["email_1", "username_1"]:
+        try:
+            await db.users.drop_index(idx)
+        except Exception:
+            pass
+    await db.users.create_index("email", unique=True,
+                                partialFilterExpression={"email": {"$type": "string"}})
+    await db.users.create_index("username", unique=True,
+                                partialFilterExpression={"username": {"$type": "string"}})
     await db.users.create_index("phone")
-    await db.users.create_index("username", sparse=True)
+    await db.users.create_index("name")
     await db.login_attempts.create_index("identifier")
     await db.login_attempts.create_index("email")
     await seed_users()

@@ -1,0 +1,89 @@
+{
+  "summary": "Iteration 2 testing of E-KERTALANGU (admin account creation + name-search activation). Backend: 28 new pytest cases in /app/backend/tests/test_iteration2.py covering POST /admin/users/pending, GET /activation/search, POST /activation/complete, POST /admin/users (active vs pending), delete, and regressions -> 26 passed / 2 failed (92.8%). Legacy suite /app/backend/tests/backend_test.py re-run -> 24 passed / 2 failed (both lockout tests, flaky, see RCA). Frontend: Playwright on desktop 1920x1080 and mobile 390x844 -> admin login, admin panel (QR + pending-names + full create form + user list with Aktif / Menunggu Aktivasi badges), add 2 pending names (toast '2 nama peserta ditambahkan'), full account creation (Aktif badge, pengurus role checkbox), activation flow (1-char search returns nothing, full-name search -> select -> identity form -> activated + logged in -> /roles shows only the Peserta card), duplicate-email activation shows 'Email sudah terdaftar' toast and stays on /activate, UI delete of pending+active users, self-delete blocked toast, peserta route guard (/area/admin -> /roles, no React console error now). All flows passed. Cleanup done: only the 3 seeded accounts remain and all 3 seeded passwords verified working.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/auth/login",
+        "issue": "500 Internal Server Error when the identifier resolves to a PENDING account (password_hash is None). verify_password(plain, None) -> AttributeError: 'NoneType' object has no attribute 'encode' (server.py:208 -> :46). Reproduce: admin creates a user with an email but no password, then POST /auth/login {identifier: that email, password: 'anything'} -> 500. Must return 401 (guard `user.get('password_hash')` before verify_password). Also leaks account existence via 500 vs 401.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "GET /api/activation/search",
+        "issue": "500 on regex metacharacters: q is injected raw into {'name': {'$regex': q}}. q='((' -> 500 (pymongo/regex compile error). Also a ReDoS/regex-injection surface on an unauthenticated public endpoint. Fix: re.escape(q).",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/auth/login (brute-force lockout)",
+        "issue": "Lockout key is f'{request.client.host}:{identifier}', but behind the k8s ingress request.client.host is the proxy pod IP which rotates (observed 10.211.12.130 and 10.211.11.204 for consecutive requests from the same client). The 5-attempt budget is therefore split per proxy IP, so lockout triggers unreliably (legacy tests test_login_wrong_password_401_then_lockout_429 and test_self_reset_clears_lockout failed on one run, passed on the next). Key the counter on the resolved user id (and/or X-Forwarded-For)."
+      },
+      {
+        "endpoint": "POST /api/admin/users/pending",
+        "issue": "No de-duplication: posting the same name repeatedly creates multiple identical pending records (the 'skipped' array is always empty and unused), which produces ambiguous multiple rows in the public activation search."
+      },
+      {
+        "endpoint": "GET /api/activation/search",
+        "issue": "Unauthenticated endpoint enumerates real member names (2-char query returns up to 20 pending names). Anyone can then complete activation for any pending name and impersonate that person. Consider adding a second factor (e.g. admin-provided DOB or a rate limit)."
+      },
+      {
+        "endpoint": "POST /api/activation/complete & POST /api/admin/users",
+        "issue": "No Pydantic validation of email/phone format or password strength (a 1-char password is accepted server-side; the UI enforces minLength=6 only client-side)."
+      },
+      {
+        "endpoint": "app startup",
+        "issue": "Still uses deprecated @app.on_event('startup'/'shutdown'); migrate to lifespan handlers."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Admin 'Buat Akun Baru' + Activation identity form",
+        "issues": [
+          "Date of birth still uses the raw native <input type=date> (renders mm/dd/yyyy) instead of a shadcn date picker / DD-MM-YYYY for the Indonesian audience."
+        ]
+      },
+      {
+        "screen": "Admin panel (desktop)",
+        "issues": [
+          "'Buat Akun Baru' has no explicit hint that leaving the password empty creates a pending account - the password field is marked required in the UI, so the backend's 'no password => pending' branch is unreachable from this form (only exercised via API)."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration2.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: guard password_hash None in login() -> return 401 instead of 500 for pending accounts.",
+    "HIGH: re.escape() the activation search query before using it in $regex (currently 500 on '((').",
+    "Key login lockout on resolved user id instead of proxy client IP + identifier (ingress IP rotates, lockout is bypassable/flaky).",
+    "De-duplicate names in POST /admin/users/pending (populate the unused 'skipped' list).",
+    "Add Pydantic validation (email/phone format, min password length) to ActivationComplete and AdminCreateUser.",
+    "Consider hardening the public /activation/search (name enumeration + impersonation risk) with a rate limit or extra verification field.",
+    "Optional UI: shadcn date picker for DOB; clarify password-optional behaviour in the admin create form."
+  ],
+  "critical_code_review_comments": [
+    "server.py:208 `verify_password(body.password, user['password_hash'])` crashes for pending users (password_hash None) - use `ok = user and user.get('password_hash') and verify_password(...)`.",
+    "server.py:295 `{'name': {'$regex': q, '$options': 'i'}}` - unescaped user input in a regex on a public endpoint (500 + ReDoS).",
+    "server.py:202 `lock_key = f'{ip}:{ident}'` - ip is the ingress pod IP and rotates, so brute-force protection is not reliable.",
+    "admin_create_pending() builds `skipped` but never appends to it - dead code and no duplicate handling.",
+    "Verified good: public_user() strips _id/password_hash, partial unique indexes let many null email/username coexist (5 bulk pending creates OK), self-reset now requires roles == {'peserta'} (admin takeover fixed), RoleArea uses <Navigate/> (React warning gone)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration2.py",
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "92.8% (26/28 new) + 92.3% (24/26 legacy)", "frontend": "100% of tested flows"},
+  "seed_data_creation": "Created and then deleted: TEST_* pending/active users via API, and 'Test Peserta Satu/Dua <uid>' + 'TEST_Full UI <uid>' via the admin UI. Final state verified: exactly 3 accounts (Administrator, Pak Pengurus, Ibu Jamaah), all seeded passwords working, login_attempts collection cleared to remove test lockouts.",
+  "should_call_test_agent_after_fix": true,
+  "should_main_agent_self_test": false,
+  "test_credentials": "/app/memory/test_credentials.md present and accurate; Admin#2026 / Pengurus#2026 / Peserta#2026 all verified after testing.",
+  "context_for_next_testing_agent": "Run `cd /app/backend && python -m pytest tests/ -v`. Expected failures until fixed: test_iteration2.py::TestActivationSearch::test_search_regex_metachar_not_500 (500) and TestAdminCreateUser::test_pending_account_cannot_login (500). backend_test.py's two lockout tests are FLAKY because the ingress client IP rotates - clear the login_attempts collection before/after running them, and note they can lock pengurus/peserta out for 15 min which breaks later login tests. Login testids are input-login-identifier / input-login-password / button-login-submit (NOT input-identifier). Activation is code-free: search by name (>=2 chars, pending only) -> click activation-result-<id> -> fill input-act-* -> button-activate-submit. Always clean up TEST_* / 'Test Peserta *' users via DELETE /api/admin/users/{id}.",
+  "rca_of_the_issue": "(1) Pending-account login 500: admin_create_user stores password_hash=None for accounts created without a password; login() passes that None straight into bcrypt.checkpw via verify_password, raising AttributeError before the status!='active' check is ever reached -> unhandled 500. (2) activation/search 500: the raw query string is used as a MongoDB $regex pattern; an unbalanced '(' is an invalid regex so the server errors out. (3) Lockout flakiness: is_locked() counts login_attempts keyed by '<request.client.host>:<identifier>'; behind the Kubernetes ingress request.client.host is the ingress pod IP, and consecutive requests from the same external client arrive from different pod IPs, splitting the 5-failure budget across keys."
+}

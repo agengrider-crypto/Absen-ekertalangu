@@ -128,7 +128,7 @@ export default function Login() {
               onClick={() => navigate("/activate")}
               className="w-full h-[52px] rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] text-base font-bold flex items-center justify-center gap-2 hover:bg-[#F2F5F2] transition-colors"
             >
-              <UserPlus size={22} /> Aktivasi Akun (QR)
+              <UserPlus size={22} /> Aktivasi Akun (Cari Nama)
             </button>
           </div>
         </div>

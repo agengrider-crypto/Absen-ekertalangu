@@ -196,9 +196,8 @@ def test_register_missing_fields_422(qr_token):
 
 
 # --- activation ---
-def test_activate_invalid_code_404():
-    r = new_session().post(f"{BASE}/auth/activate", json={"code": "NOPE-0000", "password": "Test#2026"})
-    assert r.status_code == 404, r.status_code
+# NOTE (iteration 2): /auth/activate (code-based) was removed. The new name-search
+# activation flow is covered in tests/test_iteration2.py.
 
 
 # --- self reset (peserta) ---

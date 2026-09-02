@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
-import { ArrowLeft, Shield, Users, UserCheck, Trash2, QrCode, Copy, Loader2 } from "lucide-react";
+import { ArrowLeft, Shield, Users, UserCheck, Trash2, QrCode, Copy, Loader2, ListPlus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -79,8 +79,16 @@ function Placeholder({ role }) {
 function AdminPanel() {
   const [users, setUsers] = useState(null);
   const [qr, setQr] = useState(null);
+  const [pendingNames, setPendingNames] = useState("");
+  const [savingPending, setSavingPending] = useState(false);
+  const [newAcc, setNewAcc] = useState({
+    name: "", phone: "", email: "", dob: "", address: "", password: "",
+    roles: { admin: false, pengurus: false, peserta: true },
+  });
+  const [savingAcc, setSavingAcc] = useState(false);
 
-  const load = () => api.get("/admin/users").then(({ data }) => setUsers(data)).catch((e) => toast.error(formatApiErrorDetail(e.response?.data?.detail)));
+  const load = () =>
+    api.get("/admin/users").then(({ data }) => setUsers(data)).catch((e) => toast.error(formatApiErrorDetail(e.response?.data?.detail)));
 
   useEffect(() => {
     load();
@@ -105,17 +113,65 @@ function AdminPanel() {
     }
   };
 
+  const submitPending = async (e) => {
+    e.preventDefault();
+    const names = pendingNames.split("\n").map((n) => n.trim()).filter(Boolean);
+    if (names.length === 0) {
+      toast.error("Masukkan minimal satu nama");
+      return;
+    }
+    setSavingPending(true);
+    try {
+      const { data } = await api.post("/admin/users/pending", { names });
+      toast.success(`${data.count} nama peserta ditambahkan. Peserta dapat aktivasi mandiri.`);
+      setPendingNames("");
+      load();
+    } catch (e2) {
+      toast.error(formatApiErrorDetail(e2.response?.data?.detail));
+    } finally {
+      setSavingPending(false);
+    }
+  };
+
+  const submitAccount = async (e) => {
+    e.preventDefault();
+    const roles = Object.entries(newAcc.roles).filter(([, v]) => v).map(([k]) => k);
+    if (roles.length === 0) {
+      toast.error("Pilih minimal satu peran");
+      return;
+    }
+    setSavingAcc(true);
+    try {
+      const payload = {
+        name: newAcc.name, phone: newAcc.phone || null, email: newAcc.email || null,
+        dob: newAcc.dob || null, address: newAcc.address || null,
+        password: newAcc.password, roles,
+      };
+      const { data } = await api.post("/admin/users", payload);
+      toast.success(`Akun "${data.name}" dibuat & aktif.`);
+      setNewAcc({ name: "", phone: "", email: "", dob: "", address: "", password: "", roles: { admin: false, pengurus: false, peserta: true } });
+      load();
+    } catch (e2) {
+      toast.error(formatApiErrorDetail(e2.response?.data?.detail));
+    } finally {
+      setSavingAcc(false);
+    }
+  };
+
+  const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A]";
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-1">
+      {/* Left column */}
+      <div className="lg:col-span-1 space-y-6">
         <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB] text-center" data-testid="admin-qr-panel">
           <div className="inline-flex items-center gap-2 text-[#065F46] font-semibold mb-3">
             <QrCode size={18} /> QR Pendaftaran Publik
           </div>
           {qr ? (
-            <img src={qr.image} alt="QR Publik" className="mx-auto w-44 h-44 rounded-xl border border-[#E5E7EB] p-2" data-testid="admin-qr-image" />
+            <img src={qr.image} alt="QR Publik" className="mx-auto w-40 h-40 rounded-xl border border-[#E5E7EB] p-2" data-testid="admin-qr-image" />
           ) : (
-            <div className="mx-auto w-44 h-44 rounded-xl bg-[#F2F5F2] flex items-center justify-center">
+            <div className="mx-auto w-40 h-40 rounded-xl bg-[#F2F5F2] flex items-center justify-center">
               <Loader2 className="animate-spin text-[#0D5C3A]" size={28} />
             </div>
           )}
@@ -127,9 +183,72 @@ function AdminPanel() {
             <Copy size={16} /> Salin Link Daftar
           </button>
         </div>
+
+        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB]" data-testid="admin-pending-panel">
+          <div className="inline-flex items-center gap-2 text-[#0D5C3A] font-bold mb-1">
+            <ListPlus size={18} /> Tambah Nama Peserta
+          </div>
+          <p className="text-sm text-[#6B7280] mb-3">
+            Satu nama per baris. Peserta melengkapi data sendiri lewat menu Aktivasi (tanpa kode).
+          </p>
+          <form onSubmit={submitPending}>
+            <textarea
+              data-testid="input-pending-names"
+              value={pendingNames}
+              onChange={(e) => setPendingNames(e.target.value)}
+              rows={5}
+              placeholder={"Budi Santoso\nSiti Aminah\nAhmad Fauzi"}
+              className="w-full p-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] resize-y"
+            />
+            <button
+              data-testid="button-save-pending"
+              type="submit"
+              disabled={savingPending}
+              className="mt-3 w-full h-11 rounded-xl bg-[#0D5C3A] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60"
+            >
+              {savingPending ? <Loader2 className="animate-spin" size={18} /> : <ListPlus size={18} />}
+              Tambahkan Nama
+            </button>
+          </form>
+        </div>
       </div>
 
-      <div className="lg:col-span-2">
+      {/* Right column */}
+      <div className="lg:col-span-2 space-y-6">
+        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB]" data-testid="admin-create-panel">
+          <div className="inline-flex items-center gap-2 text-[#0D5C3A] font-bold mb-4">
+            <UserPlus size={18} /> Buat Akun Baru (Lengkap)
+          </div>
+          <form onSubmit={submitAccount} className="grid sm:grid-cols-2 gap-3">
+            <input data-testid="input-new-name" required value={newAcc.name} onChange={(e) => setNewAcc({ ...newAcc, name: e.target.value })} placeholder="Nama Lengkap *" className={inp} />
+            <input data-testid="input-new-phone" value={newAcc.phone} onChange={(e) => setNewAcc({ ...newAcc, phone: e.target.value })} placeholder="Nomor HP" className={inp} />
+            <input data-testid="input-new-email" type="email" value={newAcc.email} onChange={(e) => setNewAcc({ ...newAcc, email: e.target.value })} placeholder="Email" className={inp} />
+            <input data-testid="input-new-dob" type="date" value={newAcc.dob} onChange={(e) => setNewAcc({ ...newAcc, dob: e.target.value })} className={inp} />
+            <input data-testid="input-new-address" value={newAcc.address} onChange={(e) => setNewAcc({ ...newAcc, address: e.target.value })} placeholder="Alamat" className={`${inp} sm:col-span-2`} />
+            <input data-testid="input-new-password" type="password" required minLength={6} value={newAcc.password} onChange={(e) => setNewAcc({ ...newAcc, password: e.target.value })} placeholder="Kata Sandi *" className={`${inp} sm:col-span-2`} />
+            <div className="sm:col-span-2">
+              <div className="text-sm font-semibold text-[#111827] mb-2">Peran</div>
+              <div className="flex flex-wrap gap-2">
+                {["admin", "pengurus", "peserta"].map((r) => (
+                  <label key={r} data-testid={`checkbox-role-${r}`} className={`inline-flex items-center gap-2 px-3.5 h-10 rounded-xl border-2 cursor-pointer capitalize font-semibold text-sm transition-colors ${newAcc.roles[r] ? "border-[#0D5C3A] bg-[#E8F5EE] text-[#065F46]" : "border-[#E5E7EB] text-[#6B7280]"}`}>
+                    <input type="checkbox" className="accent-[#0D5C3A]" checked={newAcc.roles[r]} onChange={(e) => setNewAcc({ ...newAcc, roles: { ...newAcc.roles, [r]: e.target.checked } })} />
+                    {r}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <button
+              data-testid="button-create-account"
+              type="submit"
+              disabled={savingAcc}
+              className="sm:col-span-2 h-12 rounded-xl bg-[#0D5C3A] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60"
+            >
+              {savingAcc ? <Loader2 className="animate-spin" size={20} /> : <UserPlus size={20} />}
+              Buat Akun
+            </button>
+          </form>
+        </div>
+
         <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid="admin-users-panel">
           <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
             <h2 className="font-heading font-bold text-[#111827] text-lg">Daftar Pengguna</h2>
@@ -143,13 +262,20 @@ function AdminPanel() {
                 <li key={u.id} data-testid={`user-row-${u.id}`} className="px-6 py-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-semibold text-[#111827] truncate">{u.name}</div>
-                    <div className="text-sm text-[#6B7280] truncate">{u.phone} · {u.email}</div>
+                    <div className="text-sm text-[#6B7280] truncate">
+                      {u.status === "pending" ? "Belum melengkapi data" : `${u.phone || "-"} · ${u.email || "-"}`}
+                    </div>
                     <div className="flex gap-1.5 mt-1 flex-wrap">
+                      {u.status === "pending" ? (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]">Menunggu Aktivasi</span>
+                      ) : (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E8F5EE] text-[#065F46]">Aktif</span>
+                      )}
                       {u.roles.map((r) => (
-                        <span key={r} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E8F5EE] text-[#065F46] capitalize">{r}</span>
+                        <span key={r} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F2F5F2] text-[#4B5563] capitalize">{r}</span>
                       ))}
                       {u.source === "qr_public" && (
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]">via QR</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E0F2FE] text-[#075985]">via QR</span>
                       )}
                     </div>
                   </div>
