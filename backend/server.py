@@ -20,6 +20,7 @@ import qrcode
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, Request, Response, HTTPException, Depends, UploadFile, File
 from starlette.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
 
@@ -436,7 +437,7 @@ async def admin_create_user(body: AdminCreateUser, admin: dict = Depends(require
 
 @api_router.post("/admin/users/pending")
 async def admin_create_pending(body: AdminPendingNames, admin: dict = Depends(require_admin)):
-    created, skipped = [], []
+    created, skipped, invalid_dates = [], [], []
     for entry in body.entries:
         name = entry.name.strip()
         if not name:
@@ -445,11 +446,34 @@ async def admin_create_pending(body: AdminPendingNames, admin: dict = Depends(re
         if existing:
             skipped.append(name)
             continue
+        if entry.dob and str(entry.dob).strip() and normalize_dob(entry.dob) is None:
+            invalid_dates.append({"name": name, "value": str(entry.dob).strip()})
         doc = build_pending_doc(name, entry.dob)
         res = await db.users.insert_one(doc)
         doc["_id"] = res.inserted_id
         created.append(public_user(doc))
-    return {"created": created, "count": len(created), "skipped": skipped}
+    return {"created": created, "count": len(created), "skipped": skipped, "invalid_dates": invalid_dates}
+
+@api_router.get("/admin/import-template")
+async def import_template(admin: dict = Depends(require_admin)):
+    import openpyxl
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Peserta"
+    ws.append(["Nama", "Tanggal Lahir"])
+    ws.append(["Budi Santoso", "17-08-1970"])
+    ws.append(["Siti Aminah", "02-05-1965"])
+    ws.append(["Ahmad Fauzi", ""])
+    ws.column_dimensions["A"].width = 32
+    ws.column_dimensions["B"].width = 18
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=template_peserta_ekertalangu.xlsx"},
+    )
 
 @api_router.post("/admin/users/import")
 async def admin_import_users(file: UploadFile = File(...), admin: dict = Depends(require_admin)):
@@ -478,7 +502,7 @@ async def admin_import_users(file: UploadFile = File(...), admin: dict = Depends
     except Exception:
         raise HTTPException(status_code=400, detail="Gagal membaca file. Pastikan format .xlsx atau .csv benar.")
 
-    created, skipped = [], []
+    created, skipped, invalid_dates = [], [], []
     for name_val, dob_val in rows:
         name = str(name_val).strip()
         if not name or name.lower() in ("nama", "name", "nama lengkap", "nama peserta"):
@@ -486,10 +510,12 @@ async def admin_import_users(file: UploadFile = File(...), admin: dict = Depends
         if await db.users.find_one({"name": name, "status": "pending"}):
             skipped.append(name)
             continue
+        if dob_val is not None and str(dob_val).strip() and normalize_dob(dob_val) is None:
+            invalid_dates.append({"name": name, "value": str(dob_val).strip()})
         doc = build_pending_doc(name, dob_val)
         res = await db.users.insert_one(doc)
         created.append(name)
-    return {"count": len(created), "skipped": skipped, "created_names": created}
+    return {"count": len(created), "skipped": skipped, "created_names": created, "invalid_dates": invalid_dates}
 
 app.include_router(api_router)
 

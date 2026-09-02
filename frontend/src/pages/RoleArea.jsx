@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
-import { ArrowLeft, Shield, Users, UserCheck, Trash2, QrCode, Copy, Loader2, ListPlus, UserPlus, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Shield, Users, UserCheck, Trash2, QrCode, Copy, Loader2, ListPlus, UserPlus, FileSpreadsheet, Download, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -83,6 +83,7 @@ function AdminPanel() {
   const [pendingNames, setPendingNames] = useState("");
   const [savingPending, setSavingPending] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [importInfo, setImportInfo] = useState(null);
   const [newAcc, setNewAcc] = useState({
     name: "", phone: "", email: "", dob: "", address: "", password: "",
     roles: { admin: false, pengurus: false, peserta: true },
@@ -134,7 +135,9 @@ function AdminPanel() {
     try {
       const { data } = await api.post("/admin/users/pending", { entries });
       const skip = data.skipped?.length ? `, ${data.skipped.length} dilewati (sudah ada)` : "";
-      toast.success(`${data.count} nama peserta ditambahkan${skip}. Peserta dapat aktivasi mandiri.`);
+      const bad = data.invalid_dates?.length ? `, ${data.invalid_dates.length} tanggal tak terbaca` : "";
+      toast.success(`${data.count} nama peserta ditambahkan${skip}${bad}.`);
+      setImportInfo(data.invalid_dates?.length ? { invalid_dates: data.invalid_dates, source: "manual" } : null);
       setPendingNames("");
       load();
     } catch (e2) {
@@ -144,11 +147,28 @@ function AdminPanel() {
     }
   };
 
+  const downloadTemplate = async () => {
+    try {
+      const res = await api.get("/admin/import-template", { responseType: "blob" });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "template_peserta_ekertalangu.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Gagal mengunduh template");
+    }
+  };
+
   const handleImport = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     setImporting(true);
+    setImportInfo(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -156,7 +176,9 @@ function AdminPanel() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       const skip = data.skipped?.length ? `, ${data.skipped.length} dilewati (duplikat)` : "";
-      toast.success(`${data.count} peserta diimpor dari file${skip}.`);
+      const bad = data.invalid_dates?.length ? `, ${data.invalid_dates.length} tanggal tak terbaca` : "";
+      toast.success(`${data.count} peserta diimpor dari file${skip}${bad}.`);
+      setImportInfo({ invalid_dates: data.invalid_dates || [], skipped: data.skipped || [], count: data.count, source: "file" });
       load();
     } catch (e2) {
       toast.error(formatApiErrorDetail(e2.response?.data?.detail));
@@ -250,6 +272,13 @@ function AdminPanel() {
           <p className="text-sm text-[#6B7280] mb-2">
             Impor massal dari file. Kolom: <span className="font-semibold">Nama</span> (wajib), <span className="font-semibold">Tanggal Lahir</span> (opsional).
           </p>
+          <button
+            data-testid="button-download-template"
+            onClick={downloadTemplate}
+            className="w-full h-10 rounded-xl text-[#0D5C3A] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#E8F5EE] mb-2"
+          >
+            <Download size={16} /> Unduh Contoh Excel
+          </button>
           <label
             data-testid="button-import-file"
             className="w-full h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#E8F5EE] cursor-pointer"
@@ -265,6 +294,39 @@ function AdminPanel() {
               data-testid="input-import-file"
             />
           </label>
+
+          {importInfo && (importInfo.invalid_dates?.length > 0 || importInfo.skipped?.length > 0) && (
+            <div className="mt-3 rounded-xl border border-[#FCD34D] bg-[#FFFBEB] p-3" data-testid="import-report">
+              {importInfo.count != null && (
+                <p className="text-sm font-semibold text-[#065F46] mb-1">{importInfo.count} peserta berhasil ditambahkan.</p>
+              )}
+              {importInfo.invalid_dates?.length > 0 && (
+                <div className="text-sm text-[#92400E]">
+                  <div className="flex items-center gap-1.5 font-semibold">
+                    <AlertTriangle size={15} /> {importInfo.invalid_dates.length} baris: tanggal lahir tak terbaca (dikosongkan)
+                  </div>
+                  <ul className="mt-1 ml-1 list-disc list-inside max-h-28 overflow-auto">
+                    {importInfo.invalid_dates.map((r, i) => (
+                      <li key={i} data-testid={`invalid-date-row-${i}`}>
+                        <span className="font-medium">{r.name}</span> — "{r.value}"
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-[#B45309] mt-1">Gunakan format DD-MM-YYYY (cth: 17-08-1970), lalu impor ulang baris ini.</p>
+                </div>
+              )}
+              {importInfo.skipped?.length > 0 && (
+                <p className="text-xs text-[#6B7280] mt-2">{importInfo.skipped.length} dilewati karena sudah terdaftar.</p>
+              )}
+              <button
+                data-testid="button-dismiss-import-report"
+                onClick={() => setImportInfo(null)}
+                className="mt-2 text-xs font-semibold text-[#0D5C3A] hover:underline"
+              >
+                Tutup
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
