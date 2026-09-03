@@ -4,12 +4,34 @@ import {
   ListPlus, X, Eye, AlertTriangle, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
-import { api, formatApiErrorDetail } from "@/lib/api";
+import { api, API, formatApiErrorDetail } from "@/lib/api";
 import { DateField } from "@/components/DateField";
 import PesertaDetailModal from "./PesertaDetailModal";
 import { formatTanggal, genderLabel, statusBadge } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white";
+
+function PesertaAvatar({ user }) {
+  const [err, setErr] = useState(false);
+  const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  if (user?.has_photo && !err) {
+    return (
+      <img
+        src={`${API}/admin/users/${user.id}/photo`}
+        alt={user.name}
+        loading="lazy"
+        onError={() => setErr(true)}
+        className="h-10 w-10 rounded-full object-cover border border-[#E5E7EB]"
+        data-testid={`peserta-photo-${user.id}`}
+      />
+    );
+  }
+  return (
+    <div className="h-10 w-10 rounded-full bg-[#E8F5EE] text-[#0D5C3A] flex items-center justify-center font-bold text-xs">
+      {initials}
+    </div>
+  );
+}
 
 export default function Peserta() {
   const [users, setUsers] = useState(null);
@@ -162,6 +184,7 @@ export default function Peserta() {
                   <th className="px-4 py-3 w-10">
                     <input type="checkbox" className="accent-[#0D5C3A] w-4 h-4" checked={allChecked} onChange={toggleAll} data-testid="checkbox-all" />
                   </th>
+                  <th className="px-4 py-3 font-semibold w-14">Foto</th>
                   <th className="px-4 py-3 font-semibold">Nama</th>
                   <th className="px-4 py-3 font-semibold hidden sm:table-cell">Jenis Kelamin</th>
                   <th className="px-4 py-3 font-semibold hidden md:table-cell">Tempat Lahir</th>
@@ -178,6 +201,9 @@ export default function Peserta() {
                     <tr key={u.id} data-testid={`peserta-row-${u.id}`} className={selected.has(u.id) ? "bg-[#F0FAF4]" : ""}>
                       <td className="px-4 py-3">
                         <input type="checkbox" className="accent-[#0D5C3A] w-4 h-4" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} data-testid={`checkbox-${u.id}`} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <PesertaAvatar user={u} />
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-[#111827] flex items-center gap-1.5">

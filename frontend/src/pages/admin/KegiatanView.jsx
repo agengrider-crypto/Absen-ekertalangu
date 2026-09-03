@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays, Plus, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
   QrCode, Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
-  Clock, MapPin, User, BookOpen,
+  Clock, MapPin, User, BookOpen, ScanLine, MessageSquareText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -27,6 +27,7 @@ export default function KegiatanView() {
   const [showAdd, setShowAdd] = useState(false);
   const [detailId, setDetailId] = useState(null);
   const [qrModal, setQrModal] = useState(null);
+  const [absenQr, setAbsenQr] = useState(null);
 
   const load = useCallback(() => {
     setItems(null);
@@ -105,6 +106,12 @@ export default function KegiatanView() {
           {filtered.map((k) => (
             <KegiatanCard key={k.id} k={k}
               onDetail={() => setDetailId(k.id)}
+              onAbsenQr={async () => {
+                try {
+                  const { data } = await api.post(`/admin/kegiatan/${k.id}/absen-qr`);
+                  setAbsenQr({ ...data, name: k.name });
+                } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+              }}
               onQr={async () => {
                 try {
                   const { data } = await api.get(`/admin/kegiatan/${k.id}/qr`);
@@ -141,11 +148,12 @@ export default function KegiatanView() {
       {showAdd && <AddKegiatanModal onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
       {detailId && <AbsensiModal kegiatanId={detailId} onClose={() => setDetailId(null)} onChanged={load} />}
       {qrModal && <QrModal data={qrModal} onClose={() => setQrModal(null)} />}
+      {absenQr && <AbsenQrModal data={absenQr} onClose={() => setAbsenQr(null)} />}
     </div>
   );
 }
 
-function KegiatanCard({ k, onDetail, onQr, onShare, onToggleStatus, onDelete }) {
+function KegiatanCard({ k, onDetail, onAbsenQr, onQr, onShare, onToggleStatus, onDelete }) {
   const c = k.counts || {};
   const closed = k.status === "closed";
   return (
@@ -172,6 +180,7 @@ function KegiatanCard({ k, onDetail, onQr, onShare, onToggleStatus, onDelete }) 
       </div>
       <div className="flex items-center gap-2 mt-3 flex-wrap">
         <button data-testid={`button-absensi-${k.id}`} onClick={onDetail} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229]"><CheckCircle2 size={15} /> Absensi</button>
+        <button data-testid={`button-absen-qr-${k.id}`} onClick={onAbsenQr} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]"><ScanLine size={15} /> Absen QR</button>
         <button onClick={onQr} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]"><QrCode size={15} /> QR</button>
         <button onClick={onShare} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]"><Share2 size={15} /> Share</button>
         <button onClick={onToggleStatus} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
@@ -311,11 +320,15 @@ function AbsensiModal({ kegiatanId, onClose, onChanged }) {
   const [data, setData] = useState(null);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(null);
+  const [feedback, setFeedback] = useState([]);
 
   const load = useCallback(() => {
     api.get(`/admin/kegiatan/${kegiatanId}/rekap`)
       .then(({ data: d }) => setData(d))
       .catch((e) => toast.error(formatApiErrorDetail(e.response?.data?.detail)));
+    api.get(`/admin/kegiatan/${kegiatanId}/feedback`)
+      .then(({ data: f }) => setFeedback(f || []))
+      .catch(() => {});
   }, [kegiatanId]);
 
   useEffect(() => { load(); }, [load]);
@@ -389,6 +402,30 @@ function AbsensiModal({ kegiatanId, onClose, onChanged }) {
               </div>
             ))}
           </div>
+
+          {/* Kesan & Pesan */}
+          <div className="mt-4">
+            <div className="text-sm font-semibold text-[#111827] mb-2 flex items-center gap-1.5">
+              <MessageSquareText size={15} /> Kesan &amp; Pesan {feedback.length > 0 && <span className="text-xs font-normal text-[#9CA3AF]">({feedback.length})</span>}
+            </div>
+            {feedback.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-[#E5E7EB] bg-[#FAFBF9] p-4 text-center text-sm text-[#9CA3AF]">
+                Belum ada kesan &amp; pesan dari peserta.
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-[#E5E7EB] bg-white divide-y divide-[#F1F2F0] max-h-[30vh] overflow-y-auto" data-testid="feedback-list">
+                {feedback.map((f) => (
+                  <div key={f.id} className="px-4 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-semibold text-[#111827] text-sm">{f.name}</div>
+                      <div className="text-xs text-[#9CA3AF]">{f.created_at ? hhmm(f.created_at) : ""}</div>
+                    </div>
+                    <p className="text-sm text-[#4B5563] mt-0.5 whitespace-pre-wrap break-words">{f.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </ModalShell>
@@ -417,3 +454,34 @@ function QrModal({ data, onClose }) {
     </ModalShell>
   );
 }
+
+function AbsenQrModal({ data, onClose }) {
+  const download = () => {
+    const a = document.createElement("a");
+    a.href = data.image;
+    a.download = `absen_${(data.name || "kegiatan").replace(/\s+/g, "_")}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  const copy = () => { navigator.clipboard.writeText(data.link); toast.success("Link absen disalin"); };
+  return (
+    <ModalShell title="QR Absen Mandiri" onClose={onClose} testid="modal-absen-qr">
+      <div className="text-center">
+        <img src={data.image} alt="QR Absen" className="mx-auto w-56 h-56 rounded-xl border border-[#E5E7EB] p-2" data-testid="absen-qr-image" />
+        <div className="mt-3 bg-[#F0FAF4] border border-[#CDEBD9] rounded-xl p-3 text-left">
+          <p className="text-sm font-semibold text-[#065F46] flex items-center gap-1.5"><ScanLine size={15} /> Cara absen mandiri</p>
+          <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
+            Scan QR ini dengan kamera HP. Jamaah/peserta cukup <b>cari nama sendiri</b> lalu tekan
+            <b> Konfirmasi Hadir</b>. Bisa juga menuliskan <b>kesan &amp; pesan</b> untuk kegiatan ini.
+            QR hanya berfungsi selama kegiatan <b>masih berlangsung</b> (belum diselesaikan).
+          </p>
+        </div>
+        <p className="text-xs text-[#9CA3AF] mt-2 break-all px-2">{data.link}</p>
+        <div className="flex gap-2 mt-4">
+          <button onClick={copy} className="flex-1 h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold flex items-center justify-center gap-2 hover:bg-[#E8F5EE]"><Copy size={16} /> Salin Link</button>
+          <button onClick={download} className="flex-1 h-11 rounded-xl bg-[#0D5C3A] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#094229]"><Download size={16} /> Unduh QR</button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+

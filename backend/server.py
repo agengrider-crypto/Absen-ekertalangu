@@ -205,6 +205,20 @@ class PesertaUpdate(BaseModel):
 
 class MoveInput(BaseModel):
     kelompok_id: Optional[str] = None
+    keterangan: Optional[str] = None
+
+
+class PhotoInput(BaseModel):
+    photo: Optional[str] = None
+
+
+class FeedbackInput(BaseModel):
+    name: Optional[str] = None
+    message: str
+
+
+class SelfAbsenInput(BaseModel):
+    user_id: str
 
 # ---------------------------------------------------------------------------
 # Auth dependency
@@ -370,6 +384,20 @@ def parse_object_id(value: str) -> ObjectId:
 async def me(user: dict = Depends(get_current_user)):
     return public_user(user)
 
+
+@api_router.get("/me/photo")
+async def get_my_photo(user: dict = Depends(get_current_user)):
+    return {"photo": user.get("photo")}
+
+
+@api_router.post("/me/photo")
+async def set_my_photo(body: PhotoInput, user: dict = Depends(get_current_user)):
+    photo = (body.photo or "").strip() or None
+    if photo and not photo.startswith("data:image/"):
+        raise HTTPException(status_code=400, detail="Format foto tidak valid (harus JPG/PNG).")
+    await db.users.update_one({"_id": user["_id"]}, {"$set": {"photo": photo}})
+    return {"has_photo": bool(photo)}
+
 @api_router.post("/auth/refresh")
 async def refresh(request: Request, response: Response):
     token = request.cookies.get("refresh_token")
@@ -496,6 +524,24 @@ async def public_qr():
 async def admin_users(admin: dict = Depends(require_admin)):
     users = await db.users.find().sort("created_at", -1).to_list(1000)
     return [public_user(u) for u in users]
+
+
+@api_router.get("/admin/users/{user_id}/photo")
+async def admin_user_photo(user_id: str, admin: dict = Depends(require_admin)):
+    user = await db.users.find_one({"_id": parse_object_id(user_id)})
+    photo = (user or {}).get("photo")
+    if not user or not photo or not isinstance(photo, str) or "," not in photo:
+        raise HTTPException(status_code=404, detail="Foto tidak ditemukan")
+    try:
+        header, b64 = photo.split(",", 1)
+        media = "image/jpeg"
+        if header.startswith("data:") and ";" in header:
+            media = header[5:].split(";", 1)[0] or media
+        raw = base64.b64decode(b64)
+    except Exception:
+        raise HTTPException(status_code=404, detail="Foto tidak valid")
+    return Response(content=raw, media_type=media,
+                    headers={"Cache-Control": "private, max-age=60"})
 
 @api_router.delete("/admin/users/{user_id}")
 async def admin_delete_user(user_id: str, admin: dict = Depends(require_admin)):
@@ -850,8 +896,13 @@ async def admin_move_kelompok(user_id: str, body: MoveInput, admin: dict = Depen
             raise HTTPException(status_code=404, detail="Kelompok tujuan tidak ditemukan")
         kname = k.get("name")
     await db.users.update_one({"_id": oid}, {"$set": {"kelompok_id": body.kelompok_id or None}})
-    await log_activity(admin, "pindah_sambung", f"Pindah '{user.get('name')}' ke kelompok {kname or '-'}", user_id)
-    return {"message": "Pindah sambung berhasil", "kelompok_id": body.kelompok_id or None, "kelompok_name": kname}
+    ket = (body.keterangan or "").strip()
+    detail = f"Pindah '{user.get('name')}' ke kelompok {kname or '-'}"
+    if ket:
+        detail += f" — Ket: {ket}"
+    await log_activity(admin, "pindah_sambung", detail, user_id)
+    return {"message": "Pindah sambung berhasil", "kelompok_id": body.kelompok_id or None,
+            "kelompok_name": kname, "keterangan": ket or None}
 
 # ---------------------------------------------------------------------------
 # Fase 2: Log Aktivitas
@@ -1247,6 +1298,103 @@ async def public_rekap(token: str):
         "gender": gender,
         "rows": rows,
     }
+
+
+# ------------------------- QR Absen Mandiri + Kesan & Pesan -------------------------
+async def ensure_absen_token(kegiatan_id: str) -> dict:
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    token = k.get("absen_token")
+    if not token:
+        token = secrets.token_urlsafe(10)
+        await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": {"absen_token": token}})
+    link = f"{FRONTEND_URL}/absen/{token}"
+    return {"token": token, "link": link, "kegiatan": k}
+
+
+@api_router.post("/admin/kegiatan/{kegiatan_id}/absen-qr")
+async def absen_qr(kegiatan_id: str, admin: dict = Depends(require_admin)):
+    info = await ensure_absen_token(kegiatan_id)
+    return {"token": info["token"], "link": info["link"],
+            "image": make_qr_data_url(info["link"])}
+
+
+@api_router.get("/absen/{token}")
+async def public_absen_info(token: str):
+    k = await db.kegiatans.find_one({"absen_token": token})
+    if not k:
+        raise HTTPException(status_code=404, detail="Tautan absen tidak ditemukan")
+    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(5000)
+    kmap = {km["_id"]: km.get("name") async for km in db.kelompoks.find()}
+    absens = await db.absensis.find({"kegiatan_id": k["_id"]}).to_list(10000)
+    amap = {a["user_id"]: a for a in absens}
+    rows = []
+    for p in peserta:
+        pid = str(p["_id"])
+        a = amap.get(pid)
+        rows.append({
+            "id": pid, "name": p.get("name"),
+            "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
+            "status": a["status"] if a else "alpha",
+            "arrival_time": a.get("arrival_time") if a else None,
+        })
+    return {
+        "kegiatan": {
+            "name": k.get("name"), "type": k.get("type"), "location": k.get("location"),
+            "date": k.get("date"), "start_time": k.get("start_time"),
+            "end_time": k.get("end_time"), "teacher": k.get("teacher"),
+            "material": k.get("material"), "status": k.get("status", "open"),
+        },
+        "peserta": rows,
+    }
+
+
+@api_router.post("/absen/{token}/mark")
+async def public_absen_mark(token: str, body: SelfAbsenInput):
+    k = await db.kegiatans.find_one({"absen_token": token})
+    if not k:
+        raise HTTPException(status_code=404, detail="Tautan absen tidak ditemukan")
+    if k.get("status", "open") != "open":
+        raise HTTPException(status_code=403, detail="Kegiatan sudah ditutup. Absen mandiri dinonaktifkan.")
+    u = await db.users.find_one({"_id": ObjectId(body.user_id)}) if ObjectId.is_valid(body.user_id) else None
+    if not u or "peserta" not in (u.get("roles") or []):
+        raise HTTPException(status_code=404, detail="Nama peserta tidak ditemukan")
+    pid = str(u["_id"])
+    existing = await db.absensis.find_one({"kegiatan_id": k["_id"], "user_id": pid})
+    if existing and existing.get("status") == "hadir":
+        return {"name": u.get("name"), "status": "hadir",
+                "arrival_time": existing.get("arrival_time"), "already": True}
+    arrival = now_wita().isoformat()
+    await db.absensis.update_one(
+        {"kegiatan_id": k["_id"], "user_id": pid},
+        {"$set": {"kegiatan_id": k["_id"], "user_id": pid, "status": "hadir",
+                  "arrival_time": arrival, "marked_by": "Mandiri (QR)",
+                  "marked_by_id": None, "updated_at": arrival}},
+        upsert=True)
+    return {"name": u.get("name"), "status": "hadir", "arrival_time": arrival, "already": False}
+
+
+@api_router.post("/absen/{token}/feedback")
+async def public_absen_feedback(token: str, body: FeedbackInput):
+    k = await db.kegiatans.find_one({"absen_token": token})
+    if not k:
+        raise HTTPException(status_code=404, detail="Tautan absen tidak ditemukan")
+    msg = (body.message or "").strip()
+    if not msg:
+        raise HTTPException(status_code=400, detail="Pesan tidak boleh kosong.")
+    doc = {"_id": str(uuid.uuid4()), "kegiatan_id": k["_id"],
+           "name": (body.name or "").strip() or "Anonim", "message": msg[:1000],
+           "created_at": now_wita().isoformat()}
+    await db.feedbacks.insert_one(doc)
+    return {"message": "Terima kasih atas kesan & pesan Anda."}
+
+
+@api_router.get("/admin/kegiatan/{kegiatan_id}/feedback")
+async def admin_kegiatan_feedback(kegiatan_id: str, admin: dict = Depends(require_admin)):
+    items = await db.feedbacks.find({"kegiatan_id": kegiatan_id}).sort("created_at", -1).to_list(1000)
+    return [{"id": f["_id"], "name": f.get("name"), "message": f.get("message"),
+             "created_at": f.get("created_at")} for f in items]
 
 
 # ------------------------- Dashboard -------------------------

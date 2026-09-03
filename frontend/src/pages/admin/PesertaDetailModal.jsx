@@ -18,6 +18,9 @@ export default function PesertaDetailModal({ userId, kelompokList, onClose, onCh
   const [busy, setBusy] = useState("");
   const [resetConfirm, setResetConfirm] = useState(false);
   const [resetResult, setResetResult] = useState(null);
+  const [moveTarget, setMoveTarget] = useState(undefined);
+  const [moveConfirm, setMoveConfirm] = useState(false);
+  const [moveKeterangan, setMoveKeterangan] = useState("");
   const fileRef = useRef(null);
 
   const load = () =>
@@ -102,11 +105,18 @@ export default function PesertaDetailModal({ userId, kelompokList, onClose, onCh
     }
   };
 
-  const move = async (kid) => {
+  const doMove = async () => {
+    const kid = moveTarget !== undefined ? moveTarget : (form.kelompok_id || "");
+    setMoveConfirm(false);
     setBusy("move");
     try {
-      await api.post(`/admin/users/${userId}/move`, { kelompok_id: kid || null });
+      await api.post(`/admin/users/${userId}/move`, {
+        kelompok_id: kid || null,
+        keterangan: moveKeterangan.trim() || null,
+      });
       set("kelompok_id", kid || null);
+      setMoveKeterangan("");
+      setMoveTarget(undefined);
       toast.success("Pindah sambung berhasil");
       onChanged?.();
     } catch (e) {
@@ -229,17 +239,70 @@ export default function PesertaDetailModal({ userId, kelompokList, onClose, onCh
             {/* Pindah sambung */}
             <div className="bg-white rounded-2xl p-4 border border-[#E5E7EB]">
               <div className="text-sm font-semibold text-[#111827] mb-2 flex items-center gap-1.5"><ArrowRightLeft size={15} /> Pindah Sambung (Kelompok)</div>
-              <select
-                data-testid="detail-kelompok"
-                value={form.kelompok_id || ""}
-                onChange={(e) => move(e.target.value)}
-                disabled={busy === "move"}
-                className={inp}
-              >
-                <option value="">- Tanpa Kelompok -</option>
-                {kelompokList.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
-              </select>
+              <div className="flex gap-2">
+                <select
+                  data-testid="detail-kelompok"
+                  value={moveTarget !== undefined ? moveTarget : (form.kelompok_id || "")}
+                  onChange={(e) => setMoveTarget(e.target.value)}
+                  disabled={busy === "move"}
+                  className={inp}
+                >
+                  <option value="">- Tanpa Kelompok -</option>
+                  {kelompokList.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+                </select>
+                <button
+                  data-testid="button-open-move-confirm"
+                  onClick={() => setMoveConfirm(true)}
+                  disabled={busy === "move" || (moveTarget === undefined || moveTarget === (form.kelompok_id || ""))}
+                  className="shrink-0 h-[46px] px-4 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm flex items-center gap-2 hover:bg-[#094229] disabled:opacity-40"
+                >
+                  {busy === "move" ? <Loader2 className="animate-spin" size={16} /> : <ArrowRightLeft size={16} />} Pindah
+                </button>
+              </div>
+              <p className="text-xs text-[#9CA3AF] mt-1.5">Pilih kelompok tujuan lalu tekan Pindah untuk konfirmasi.</p>
             </div>
+
+            {/* Konfirmasi pindah sambung */}
+            {moveConfirm && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={() => setMoveConfirm(false)}>
+                <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="move-confirm-dialog">
+                  <div className="text-base font-bold text-[#111827] mb-1">Konfirmasi Pindah Sambung</div>
+                  <p className="text-sm text-[#4B5563] mb-3">
+                    Pindahkan <b>{data?.name}</b> ke{" "}
+                    <b>{(() => {
+                      const kid = moveTarget !== undefined ? moveTarget : (form.kelompok_id || "");
+                      if (!kid) return "Tanpa Kelompok";
+                      return kelompokList.find((k) => k.id === kid)?.name || "kelompok terpilih";
+                    })()}</b>?
+                  </p>
+                  <label className={lbl}>Keterangan (opsional)</label>
+                  <textarea
+                    data-testid="move-keterangan"
+                    value={moveKeterangan}
+                    onChange={(e) => setMoveKeterangan(e.target.value)}
+                    rows={3}
+                    placeholder="cth: pindah domisili, ikut keluarga, dsb."
+                    className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white resize-none"
+                  />
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    <button
+                      data-testid="button-move-no"
+                      onClick={() => setMoveConfirm(false)}
+                      className="h-11 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:bg-[#F2F5F2]"
+                    >
+                      Tidak
+                    </button>
+                    <button
+                      data-testid="button-move-yes"
+                      onClick={doMove}
+                      className="h-11 rounded-xl bg-[#0D5C3A] text-white font-bold text-sm hover:bg-[#094229]"
+                    >
+                      Ya, Pindahkan
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="grid sm:grid-cols-3 gap-3">

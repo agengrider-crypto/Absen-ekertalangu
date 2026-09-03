@@ -1,7 +1,7 @@
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { ArrowLeft, Shield, Users, UserCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { Logo } from "@/components/Logo";
+import ProfileMenu from "@/components/ProfileMenu";
 import AdminLayout from "@/pages/admin/AdminLayout";
 
 const META = {
@@ -39,7 +39,7 @@ export default function RoleArea() {
           >
             <ArrowLeft size={18} /> Pilih Peran
           </button>
-          <Logo size={36} showText={false} />
+          <ProfileMenu subtitle={meta.title} />
         </div>
       </header>
 

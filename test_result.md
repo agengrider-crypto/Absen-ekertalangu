@@ -177,10 +177,28 @@ backend:
         -agent: "testing"
         -comment: "✅ ALL DASHBOARD & LAPORAN TESTS PASSED (4/4). Verified: (15) GET dashboard returns 200 with all required fields (total_peserta, peserta_L/P, akun_aktif/nonaktif, kegiatan_bulan_ini, rasio_kehadiran_bulan, donut{L,P}, tren array of 6 months with month/ratio/kegiatan, upcoming/recent arrays), (16) GET laporan with date filters returns 200 with summary (hadir/izin/alpha/ratio), gender_hadir{L,P}, per_kegiatan array, top_rajin/top_alpha arrays, total_kegiatan, (17) GET export?format=excel returns 200 with Content-Type spreadsheet, file size 5690 bytes, (18) GET export?format=pdf returns 200 with Content-Type application/pdf, file size 2220 bytes. All dashboard stats and report exports working correctly."
 
+  - task: "Fitur tambahan: foto profil peserta (me/photo + admin photo image), pindah sambung keterangan, QR absen mandiri + kesan/pesan"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Endpoint baru: (A) GET /api/me/photo & POST /api/me/photo (auth get_current_user; POST body {photo:dataurl|null}, validasi harus mulai 'data:image/'). (B) GET /api/admin/users/{id}/photo (admin) -> Response biner gambar dari dataurl user.photo, 404 bila tak ada. (C) MoveInput tambah field keterangan; POST /api/admin/users/{id}/move sekarang mencatat keterangan di log aktivitas + return keterangan. (D) QR absen mandiri: POST /api/admin/kegiatan/{id}/absen-qr (admin) -> {token,link=/absen/{token},image PNG}; GET /api/absen/{token} PUBLIK -> {kegiatan{...,status}, peserta[{id,name,kelompok_name,status,arrival_time}]}; POST /api/absen/{token}/mark PUBLIK {user_id} -> tandai hadir (arrival WITA, marked_by 'Mandiri (QR)'), 403 bila kegiatan status!=open ('Kegiatan sudah ditutup'), 404 user bukan peserta, jika sudah hadir return already:true; POST /api/absen/{token}/feedback PUBLIK {name?,message} -> simpan ke koleksi feedbacks (400 bila message kosong); GET /api/admin/kegiatan/{id}/feedback (admin) -> list. Kredensial admin: admin/jokam354. Perlu test menyeluruh alur ini."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL 23/23 TESTS PASSED. Foto profil sendiri, foto peserta admin (binary+404), pindah sambung+keterangan, QR absen mandiri full flow (public info tanpa auth, mark hadir + already, 404, feedback + 400 empty, admin feedback list, 403 setelah close). Production-ready. NO ISSUES."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL NEW FEATURES TESTS PASSED (23/23). Comprehensive testing completed: (1) FOTO PROFIL SENDIRI (4 tests) - POST /api/me/photo with valid base64 image returns 200 {has_photo:true}, GET /api/me/photo returns 200 with photo dataurl, POST with invalid format 'bukan-image' returns 400 validation error, POST with null returns 200 {has_photo:false} (delete), re-upload successful. (2) FOTO PESERTA ADMIN (2 tests) - GET /api/admin/users/{id}/photo for user with photo returns 200 with binary image (image/png, 70 bytes), GET for user without photo returns 404. (3) PINDAH SAMBUNG + KETERANGAN (3 tests) - Created kelompok 'Kelompok Uji Absen', POST /api/admin/users/{id}/move with keterangan 'Pindah karena domisili' returns 200 with keterangan in response, activity log verified contains keterangan, move back with null kelompok_id successful. (4) QR ABSEN MANDIRI + KESAN/PESAN (13 tests) - Created test kegiatan 'Pengajian Uji QR', POST /api/admin/kegiatan/{id}/absen-qr returns 200 {token, link with /absen/, image data:image/png;base64}, GET /api/absen/{token} PUBLIC (no auth) returns 200 {kegiatan{status:'open'}, peserta:[3 items]}, POST /api/absen/{token}/mark with valid user_id returns 200 {status:'hadir', arrival_time WITA, already:false}, duplicate mark returns 200 {already:true}, invalid user_id returns 404, POST /api/absen/{token}/feedback with valid message returns 200, empty message returns 400, GET /api/admin/kegiatan/{id}/feedback returns 200 with feedback list, POST close returns 200, POST mark after close returns 403 'Kegiatan sudah ditutup', GET after close returns 200 with status:'closed', GET /api/absen/invalid-token returns 404. (5) CLEANUP - Test kegiatan deleted, admin photo reset. All endpoints working correctly with proper validation, authentication, and error handling. NO ISSUES FOUND."
+
 metadata:
   created_by: "main_agent"
-  version: "1.5"
-  test_sequence: 4
+  version: "1.7"
+  test_sequence: 6
   run_ui: false
 
 frontend:
@@ -200,8 +218,7 @@ frontend:
         -comment: "✅ CRITICAL TEST PASSED - Session persistence working correctly. Comprehensive UI testing completed: (1) Login form loads with 'Masuk Akun' heading, (2) Login with admin/jokam354 successful - redirects to /roles, shows 'Administrator' name and all 3 role cards (Admin/Pengurus/Peserta), NO error toast, (3) **CRITICAL**: After page refresh on /roles, user STAYS LOGGED IN - URL remains /roles, user name 'Administrator' still visible, all role cards intact, (4) Navigation to admin area (/area/admin) successful, (5) Second refresh on admin area - user STAYS LOGGED IN, URL remains /area/admin, not redirected to /login. Backend logs confirm: /auth/me returns 200 OK, /admin/users returns 200 OK, /qr/public returns 200 OK. Session persistence mechanism working as designed - AuthContext refresh() successfully maintains session across page reloads. Feature fully functional."
 
 test_plan:
-  current_focus:
-    - "Fase 2 Tahap B/C - Admin sidebar layout + Dashboard + Kegiatan + Peserta + Laporan + Rekap publik"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -246,3 +263,5 @@ agent_communication:
     -message: "✅ FRONTEND LOGIN & SESSION PERSISTENCE TESTING COMPLETE - ALL TESTS PASSED. Verified login flow and critical session persistence feature. Login works correctly with admin credentials (identifier: admin, password: jokam354), redirects to /roles dashboard showing 'Administrator' with all role cards. **CRITICAL SUCCESS**: Session persists across page refreshes - tested on /roles and /area/admin, user remains logged in after reload, no redirect to login page. Backend API calls return 200 OK after refresh (/auth/me, /admin/users, /qr/public). AuthContext refresh mechanism functioning correctly. NO ISSUES FOUND. Feature ready for production use."
     -agent: "testing"
     -message: "✅ FASE 2 TAHAP A BACKEND TESTING COMPLETE - ALL 18 TESTS PASSED (18/18). Comprehensive testing of Kegiatan, Absensi, Dashboard, and Laporan modules completed successfully. Test coverage: KEGIATAN (5 tests) - recurring creation, validation, list with counts, GET/PATCH, auth required. ABSENSI (5 tests) - mark hadir with WITA arrival_time, upsert to izin, validation, rekap with alpha defaults, close/reopen. QR & SHARE (4 tests) - share link generation with 7-day expiry, QR code base64 PNG, public rekap access without auth, invalid token handling. DASHBOARD (1 test) - all stats fields present. LAPORAN (3 tests) - report with filters, Excel export (5690 bytes), PDF export (2220 bytes). All endpoints returning correct status codes, data structures, and business logic working as expected. Test cleanup performed (4 test kegiatan deleted). NO ISSUES FOUND. Backend Fase 2 Tahap A fully functional and ready for production."
+    -agent: "testing"
+    -message: "✅ NEW FEATURES BACKEND TESTING COMPLETE - ALL 23 TESTS PASSED (23/23). Comprehensive testing of new features completed successfully. Test coverage: FOTO PROFIL (6 tests) - POST/GET /api/me/photo with validation, admin endpoint GET /api/admin/users/{id}/photo returns binary image. PINDAH SAMBUNG (3 tests) - POST /api/admin/users/{id}/move with keterangan field, log verification. QR ABSEN MANDIRI (13 tests) - Full flow from kegiatan creation, QR generation, public absen marking, feedback submission, kegiatan close, validation after close. All endpoints working correctly: photo upload/retrieval with proper validation, move with keterangan logged correctly, QR absen mandiri fully functional with proper authentication bypass for public endpoints, feedback system working, kegiatan status management correct. Test cleanup performed. NO ISSUES FOUND. All new features ready for production."

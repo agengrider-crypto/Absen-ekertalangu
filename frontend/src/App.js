@@ -9,6 +9,7 @@ import Activate from "@/pages/Activate";
 import RoleDashboard from "@/pages/RoleDashboard";
 import RoleArea from "@/pages/RoleArea";
 import PublicRekap from "@/pages/PublicRekap";
+import PublicAbsen from "@/pages/PublicAbsen";
 
 function Loading() {
   return (
@@ -39,6 +40,7 @@ function AppRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/activate" element={<Activate />} />
       <Route path="/rekap/:token" element={<PublicRekap />} />
+      <Route path="/absen/:token" element={<PublicAbsen />} />
       <Route path="/roles" element={<Protected><RoleDashboard /></Protected>} />
       <Route path="/area/:role" element={<Protected><RoleArea /></Protected>} />
       <Route path="*" element={<Navigate to="/roles" replace />} />

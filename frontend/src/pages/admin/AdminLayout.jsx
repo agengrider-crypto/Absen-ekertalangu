@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
+import ProfileMenu from "@/components/ProfileMenu";
 import DashboardView from "./DashboardView";
 import Peserta from "./Peserta";
 import KegiatanView from "./KegiatanView";
@@ -86,8 +87,6 @@ export default function AdminLayout({ user }) {
     navigate("/login");
   };
 
-  const initials = (user?.name || "A").split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
-
   return (
     <div className="min-h-screen bg-[#F5F7F4]">
       {/* Sidebar desktop */}
@@ -123,13 +122,7 @@ export default function AdminLayout({ user }) {
               <Logo size={32} />
             </div>
             <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block leading-tight">
-                <div className="font-semibold text-[#111827] text-sm">{user?.name}</div>
-                <div className="text-xs text-[#6B7280]">Administrator</div>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-[#0D5C3A] text-white flex items-center justify-center font-bold text-sm">
-                {initials}
-              </div>
+              <ProfileMenu subtitle="Administrator" />
             </div>
           </div>
         </header>
