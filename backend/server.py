@@ -133,10 +133,11 @@ class RegisterInput(BaseModel):
 class ActivationComplete(BaseModel):
     user_id: str
     phone: str
-    email: str
+    email: Optional[str] = None
     dob: str
-    address: str
+    address: Optional[str] = None
     password: str
+    gender: Optional[str] = None
     avatar_gender: Optional[str] = "male"
 
 class AdminCreateUser(BaseModel):
@@ -441,19 +442,29 @@ async def activation_complete(body: ActivationComplete, response: Response):
     if user.get("dob") and submitted_dob != user["dob"]:
         raise HTTPException(status_code=403, detail="Tanggal lahir tidak sesuai data yang didaftarkan pengurus.")
 
-    email = body.email.strip().lower()
+    gender = normalize_gender(body.gender)
+    if not gender:
+        raise HTTPException(status_code=400, detail="Jenis kelamin wajib diisi (Laki-laki / Perempuan).")
+
     phone = body.phone.strip()
-    dup_email = await db.users.find_one({"email": email, "_id": {"$ne": user["_id"]}})
-    if dup_email:
-        raise HTTPException(status_code=409, detail="Email sudah terdaftar")
+    if not phone:
+        raise HTTPException(status_code=400, detail="Nomor HP wajib diisi.")
+    email = (body.email or "").strip().lower() or None
+    address = (body.address or "").strip() or None
+
+    if email:
+        dup_email = await db.users.find_one({"email": email, "_id": {"$ne": user["_id"]}})
+        if dup_email:
+            raise HTTPException(status_code=409, detail="Email sudah terdaftar")
     dup_phone = await db.users.find_one({"phone": phone, "_id": {"$ne": user["_id"]}})
     if dup_phone:
         raise HTTPException(status_code=409, detail="Nomor HP sudah terdaftar")
 
     await db.users.update_one({"_id": user["_id"]}, {"$set": {
         "phone": phone, "email": email, "dob": submitted_dob or body.dob.strip(),
-        "address": body.address.strip(), "password_hash": hash_password(body.password),
-        "status": "active", "avatar_gender": body.avatar_gender or "male"}})
+        "address": address, "password_hash": hash_password(body.password),
+        "status": "active", "gender": gender,
+        "avatar_gender": "female" if gender == "P" else "male"}})
     user = await db.users.find_one({"_id": user["_id"]})
     set_auth_cookies(response, str(user["_id"]), user.get("token_version", 0))
     await log_activity(user, "aktivasi_akun", "Akun diaktivasi & data dilengkapi")

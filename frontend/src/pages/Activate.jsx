@@ -17,7 +17,7 @@ export default function Activate() {
   const [selected, setSelected] = useState(null); // {id, name}
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
-    phone: "", email: "", dob: "", address: "", password: "", avatar_gender: "male",
+    phone: "", email: "", dob: "", address: "", password: "", gender: "",
   });
 
   useEffect(() => {
@@ -45,6 +45,10 @@ export default function Activate() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!form.gender) {
+      toast.error("Jenis kelamin wajib diisi");
+      return;
+    }
     setLoading(true);
     try {
       const { data } = await api.post("/activation/complete", { user_id: selected.id, ...form });
@@ -139,7 +143,21 @@ export default function Activate() {
 
               <form onSubmit={submit} className="space-y-4" data-testid="activation-form">
                 <Field label="Nomor HP" testid="input-act-phone" type="tel" value={form.phone} onChange={set("phone")} placeholder="cth: 08xxxx" />
-                <Field label="Email" testid="input-act-email" type="email" value={form.email} onChange={set("email")} placeholder="nama@email.com" />
+                <div>
+                  <label className="block text-base font-semibold text-[#111827] mb-1.5">Jenis Kelamin</label>
+                  <select
+                    data-testid="input-act-gender"
+                    value={form.gender}
+                    onChange={set("gender")}
+                    required
+                    className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white"
+                  >
+                    <option value="">-- Pilih Jenis Kelamin --</option>
+                    <option value="L">Laki-laki</option>
+                    <option value="P">Perempuan</option>
+                  </select>
+                </div>
+                <Field label="Email (opsional)" testid="input-act-email" type="email" value={form.email} onChange={set("email")} placeholder="nama@email.com (boleh kosong)" optional />
                 <div>
                   <label className="block text-base font-semibold text-[#111827] mb-1.5">Tanggal Lahir</label>
                   <DateField testid="input-act-dob" value={form.dob} onChange={(v) => setForm((f) => ({ ...f, dob: v }))} required />
@@ -149,7 +167,7 @@ export default function Activate() {
                     </p>
                   )}
                 </div>
-                <Field label="Alamat" testid="input-act-address" value={form.address} onChange={set("address")} placeholder="Alamat tempat tinggal" />
+                <Field label="Alamat (opsional)" testid="input-act-address" value={form.address} onChange={set("address")} placeholder="Alamat tempat tinggal (boleh kosong)" optional />
                 <Field label="Kata Sandi" testid="input-act-password" type="password" value={form.password} onChange={set("password")} placeholder="Minimal 6 karakter" minLength={6} />
 
                 <button
@@ -170,14 +188,14 @@ export default function Activate() {
   );
 }
 
-function Field({ label, testid, type = "text", value, onChange, placeholder, minLength }) {
+function Field({ label, testid, type = "text", value, onChange, placeholder, minLength, optional = false }) {
   return (
     <div>
       <label className="block text-base font-semibold text-[#111827] mb-1.5">{label}</label>
       <input
         data-testid={testid}
         type={type}
-        required
+        required={!optional}
         minLength={minLength}
         value={value}
         onChange={onChange}

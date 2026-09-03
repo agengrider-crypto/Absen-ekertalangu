@@ -16,6 +16,8 @@ export default function PesertaDetailModal({ userId, kelompokList, onClose, onCh
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState("");
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [resetResult, setResetResult] = useState(null);
   const fileRef = useRef(null);
 
   const load = () =>
@@ -68,12 +70,14 @@ export default function PesertaDetailModal({ userId, kelompokList, onClose, onCh
     }
   };
 
-  const resetPassword = async () => {
-    if (!window.confirm("Reset kata sandi ke format tanggal lahir (ddmmyyyy)?")) return;
+  const resetPassword = () => setResetConfirm(true);
+
+  const doReset = async () => {
+    setResetConfirm(false);
     setBusy("reset");
     try {
       const { data } = await api.post(`/admin/users/${userId}/reset-password`);
-      toast.success(`Sandi baru: ${data.password}`, { duration: 8000 });
+      setResetResult(data.password);
       onChanged?.();
       load();
     } catch (e) {
@@ -255,6 +259,38 @@ export default function PesertaDetailModal({ userId, kelompokList, onClose, onCh
           </div>
         )}
       </div>
+
+      {resetConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={() => setResetConfirm(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center" onClick={(e) => e.stopPropagation()} data-testid="modal-reset-confirm">
+            <div className="mx-auto h-12 w-12 rounded-full bg-[#FEF3C7] text-[#B45309] flex items-center justify-center mb-3"><KeyRound size={24} /></div>
+            <h3 className="font-heading font-bold text-[#111827] text-lg">Reset Kata Sandi?</h3>
+            <p className="text-sm text-[#6B7280] mt-1.5">
+              Apakah Anda yakin mereset password <b className="text-[#111827]">{data?.name}</b>? Kata sandi akan diganti menjadi tanggal lahir (format DDMMYYYY).
+            </p>
+            <div className="grid grid-cols-2 gap-3 mt-5">
+              <button data-testid="button-reset-cancel" onClick={() => setResetConfirm(false)}
+                className="h-11 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold hover:bg-[#F2F5F2]">Tidak</button>
+              <button data-testid="button-reset-confirm" onClick={doReset}
+                className="h-11 rounded-xl bg-[#D97706] text-white font-bold hover:bg-[#B45309]">Ya, Reset</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {resetResult && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={() => setResetResult(null)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center" onClick={(e) => e.stopPropagation()} data-testid="modal-reset-result">
+            <div className="mx-auto h-12 w-12 rounded-full bg-[#E8F5EE] text-[#065F46] flex items-center justify-center mb-3"><KeyRound size={24} /></div>
+            <h3 className="font-heading font-bold text-[#111827] text-lg">Kata Sandi Direset</h3>
+            <p className="text-sm text-[#6B7280] mt-1.5">Kata sandi baru untuk <b className="text-[#111827]">{data?.name}</b>:</p>
+            <div className="my-3 py-3 rounded-xl bg-[#F2F5F2] font-mono text-2xl font-bold tracking-widest text-[#0D5C3A]" data-testid="reset-result-password">{resetResult}</div>
+            <p className="text-xs text-[#9CA3AF]">Sampaikan kata sandi ini kepada peserta. Format: DDMMYYYY.</p>
+            <button data-testid="button-reset-result-close" onClick={() => setResetResult(null)}
+              className="mt-4 w-full h-11 rounded-xl bg-[#0D5C3A] text-white font-bold hover:bg-[#094229]">Tutup</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
