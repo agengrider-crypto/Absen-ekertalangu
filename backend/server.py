@@ -858,6 +858,575 @@ async def admin_logs(admin: dict = Depends(require_admin), limit: int = 100, act
         "at": l.get("at"),
     } for l in logs]
 
+# ===========================================================================
+# FASE 2 — KEGIATAN + ABSENSI + DASHBOARD + LAPORAN (Admin)
+# ===========================================================================
+import asyncio
+
+WITA = timezone(timedelta(hours=8))
+KEGIATAN_TYPES = ["rutin", "khusus", "asad"]
+ABSEN_STATUS = ["hadir", "izin", "alpha"]
+PESERTA_QUERY = {"roles": "peserta", "status": "active"}
+SHARE_EXPIRE_DAYS = 7
+
+
+def now_wita() -> datetime:
+    return datetime.now(WITA)
+
+
+def kegiatan_end_dt(date_str: str, end_time: str):
+    try:
+        return datetime.strptime(f"{date_str} {end_time}", "%Y-%m-%d %H:%M").replace(tzinfo=WITA)
+    except Exception:
+        return None
+
+
+class KegiatanInput(BaseModel):
+    name: str
+    type: str = "rutin"
+    date: str  # YYYY-MM-DD (WITA)
+    start_time: str  # HH:MM (WITA, 24h)
+    end_time: str
+    teacher: Optional[str] = None
+    material: Optional[str] = None
+    location: Optional[str] = None
+    recurring: bool = False
+
+
+class KegiatanUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    date: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    teacher: Optional[str] = None
+    material: Optional[str] = None
+    location: Optional[str] = None
+
+
+class AbsenInput(BaseModel):
+    user_id: str
+    status: str  # hadir | izin | alpha
+
+
+def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
+    d = {
+        "id": k["_id"],
+        "name": k.get("name"),
+        "type": k.get("type", "rutin"),
+        "date": k.get("date"),
+        "start_time": k.get("start_time"),
+        "end_time": k.get("end_time"),
+        "teacher": k.get("teacher"),
+        "material": k.get("material"),
+        "location": k.get("location"),
+        "recurring": bool(k.get("recurring")),
+        "status": k.get("status", "open"),
+        "closed_at": k.get("closed_at"),
+        "auto_closed": bool(k.get("auto_closed", False)),
+        "share_token": k.get("share_token"),
+        "share_expires_at": k.get("share_expires_at"),
+        "created_at": k.get("created_at"),
+    }
+    if counts is not None:
+        d["counts"] = counts
+    return d
+
+
+async def count_peserta_total() -> int:
+    return await db.users.count_documents(PESERTA_QUERY)
+
+
+async def kegiatan_counts(kegiatan_id: str, total: Optional[int] = None) -> dict:
+    if total is None:
+        total = await count_peserta_total()
+    hadir = await db.absensis.count_documents({"kegiatan_id": kegiatan_id, "status": "hadir"})
+    izin = await db.absensis.count_documents({"kegiatan_id": kegiatan_id, "status": "izin"})
+    alpha = max(total - hadir - izin, 0)
+    ratio = round((hadir / total) * 100, 1) if total else 0.0
+    return {"total": total, "hadir": hadir, "izin": izin, "alpha": alpha, "ratio": ratio}
+
+
+async def auto_close_kegiatan():
+    """Tutup otomatis kegiatan (per-kegiatan) saat jam selesai WITA sudah lewat."""
+    now = now_wita()
+    async for k in db.kegiatans.find({"status": "open"}):
+        end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
+        if end and now >= end:
+            await db.kegiatans.update_one(
+                {"_id": k["_id"]},
+                {"$set": {"status": "closed", "closed_at": now.isoformat(), "auto_closed": True}})
+
+
+async def auto_close_loop():
+    while True:
+        try:
+            await auto_close_kegiatan()
+        except Exception as exc:  # pragma: no cover
+            logger.warning("auto_close_loop error: %s", exc)
+        await asyncio.sleep(60)
+
+
+# ------------------------- Kegiatan CRUD -------------------------
+@api_router.post("/admin/kegiatan")
+async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_admin)):
+    if body.type not in KEGIATAN_TYPES:
+        raise HTTPException(status_code=400, detail="Jenis kegiatan tidak valid")
+    try:
+        base_date = datetime.strptime(body.date, "%Y-%m-%d")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Format tanggal harus YYYY-MM-DD")
+    if kegiatan_end_dt(body.date, body.start_time) is None or kegiatan_end_dt(body.date, body.end_time) is None:
+        raise HTTPException(status_code=400, detail="Format waktu harus HH:MM")
+
+    occurrences = 4 if body.recurring else 1
+    group_id = str(uuid.uuid4()) if body.recurring else None
+    now_iso = datetime.now(timezone.utc).isoformat()
+    docs = []
+    for i in range(occurrences):
+        d = base_date + timedelta(weeks=i)
+        docs.append({
+            "_id": str(uuid.uuid4()),
+            "name": body.name.strip(),
+            "type": body.type,
+            "date": d.strftime("%Y-%m-%d"),
+            "start_time": body.start_time,
+            "end_time": body.end_time,
+            "teacher": (body.teacher or "").strip() or None,
+            "material": (body.material or "").strip() or None,
+            "location": (body.location or "").strip() or None,
+            "recurring": body.recurring,
+            "recurring_group_id": group_id,
+            "status": "open",
+            "closed_at": None,
+            "auto_closed": False,
+            "share_token": None,
+            "share_expires_at": None,
+            "created_at": now_iso,
+            "created_by": str(admin["_id"]),
+        })
+    await db.kegiatans.insert_many(docs)
+    await log_activity(admin, "buat_kegiatan",
+                       f"Membuat kegiatan '{body.name}'" + (f" (berulang {occurrences}x)" if body.recurring else ""))
+    total = await count_peserta_total()
+    return [serialize_kegiatan(d, await kegiatan_counts(d["_id"], total)) for d in docs]
+
+
+@api_router.get("/admin/kegiatan")
+async def list_kegiatan(admin: dict = Depends(require_admin),
+                        month: str = "", date_from: str = "", date_to: str = ""):
+    query = {}
+    if month.strip():
+        query["date"] = {"$regex": f"^{re.escape(month.strip())}"}
+    elif date_from.strip() or date_to.strip():
+        rng = {}
+        if date_from.strip():
+            rng["$gte"] = date_from.strip()
+        if date_to.strip():
+            rng["$lte"] = date_to.strip()
+        query["date"] = rng
+    kegiatans = await db.kegiatans.find(query).sort([("date", -1), ("start_time", -1)]).to_list(1000)
+    total = await count_peserta_total()
+    return [serialize_kegiatan(k, await kegiatan_counts(k["_id"], total)) for k in kegiatans]
+
+
+@api_router.get("/admin/kegiatan/{kegiatan_id}")
+async def get_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    total = await count_peserta_total()
+    return serialize_kegiatan(k, await kegiatan_counts(k["_id"], total))
+
+
+@api_router.patch("/admin/kegiatan/{kegiatan_id}")
+async def update_kegiatan(kegiatan_id: str, body: KegiatanUpdate, admin: dict = Depends(require_admin)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    updates = {}
+    for field in ["name", "type", "date", "start_time", "end_time", "teacher", "material", "location"]:
+        val = getattr(body, field)
+        if val is not None:
+            if field == "type" and val not in KEGIATAN_TYPES:
+                raise HTTPException(status_code=400, detail="Jenis kegiatan tidak valid")
+            updates[field] = val.strip() if isinstance(val, str) else val
+    if updates:
+        await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": updates})
+        await log_activity(admin, "ubah_kegiatan", f"Mengubah kegiatan '{k.get('name')}'")
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    return serialize_kegiatan(k, await kegiatan_counts(kegiatan_id))
+
+
+@api_router.delete("/admin/kegiatan/{kegiatan_id}")
+async def delete_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    await db.kegiatans.delete_one({"_id": kegiatan_id})
+    await db.absensis.delete_many({"kegiatan_id": kegiatan_id})
+    await log_activity(admin, "hapus_kegiatan", f"Menghapus kegiatan '{k.get('name')}'")
+    return {"message": "Kegiatan dihapus"}
+
+
+@api_router.post("/admin/kegiatan/{kegiatan_id}/close")
+async def close_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": {
+        "status": "closed", "closed_at": now_wita().isoformat(), "auto_closed": False}})
+    await log_activity(admin, "selesaikan_kegiatan", f"Menyelesaikan kegiatan '{k.get('name')}'")
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    return serialize_kegiatan(k, await kegiatan_counts(kegiatan_id))
+
+
+@api_router.post("/admin/kegiatan/{kegiatan_id}/reopen")
+async def reopen_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": {
+        "status": "open", "closed_at": None, "auto_closed": False}})
+    await log_activity(admin, "buka_kegiatan", f"Membuka kembali kegiatan '{k.get('name')}' untuk absen susulan")
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    return serialize_kegiatan(k, await kegiatan_counts(kegiatan_id))
+
+
+# ------------------------- Absensi -------------------------
+@api_router.post("/admin/kegiatan/{kegiatan_id}/absen")
+async def mark_absen(kegiatan_id: str, body: AbsenInput, admin: dict = Depends(require_admin)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    if body.status not in ABSEN_STATUS:
+        raise HTTPException(status_code=400, detail="Status absensi tidak valid")
+    u = await db.users.find_one({"_id": ObjectId(body.user_id)}) if ObjectId.is_valid(body.user_id) else None
+    if not u:
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+    arrival = now_wita().isoformat() if body.status == "hadir" else None
+    await db.absensis.update_one(
+        {"kegiatan_id": kegiatan_id, "user_id": body.user_id},
+        {"$set": {
+            "kegiatan_id": kegiatan_id, "user_id": body.user_id, "status": body.status,
+            "arrival_time": arrival, "marked_by": admin.get("name"),
+            "marked_by_id": str(admin["_id"]), "updated_at": now_wita().isoformat()}},
+        upsert=True)
+    return {"user_id": body.user_id, "status": body.status, "arrival_time": arrival}
+
+
+@api_router.get("/admin/kegiatan/{kegiatan_id}/rekap")
+async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(5000)
+    absens = await db.absensis.find({"kegiatan_id": kegiatan_id}).to_list(10000)
+    amap = {a["user_id"]: a for a in absens}
+    rows, hadir, izin, alpha = [], 0, 0, 0
+    gender = {"L": {"hadir": 0, "total": 0}, "P": {"hadir": 0, "total": 0}}
+    for p in peserta:
+        pid = str(p["_id"])
+        a = amap.get(pid)
+        status = a["status"] if a else "alpha"
+        g = _derive_gender(p) or "L"
+        if g not in gender:
+            g = "L"
+        gender[g]["total"] += 1
+        if status == "hadir":
+            hadir += 1
+            gender[g]["hadir"] += 1
+        elif status == "izin":
+            izin += 1
+        else:
+            alpha += 1
+        rows.append({
+            "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
+            "status": status,
+            "arrival_time": a.get("arrival_time") if a else None,
+            "marked_by": a.get("marked_by") if a else None,
+        })
+    total = len(peserta)
+    return {
+        "kegiatan": serialize_kegiatan(k),
+        "counts": {"total": total, "hadir": hadir, "izin": izin, "alpha": alpha,
+                   "ratio": round((hadir / total) * 100, 1) if total else 0.0},
+        "gender": gender,
+        "rows": rows,
+    }
+
+
+# ------------------------- QR + Share (public rekap) -------------------------
+async def ensure_share(kegiatan_id: str) -> dict:
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    now = datetime.now(timezone.utc)
+    token = k.get("share_token")
+    exp = k.get("share_expires_at")
+    need_new = not token or not exp
+    if exp:
+        try:
+            if datetime.fromisoformat(exp) <= now:
+                need_new = True
+        except Exception:
+            need_new = True
+    if need_new:
+        token = secrets.token_urlsafe(10)
+        exp = (now + timedelta(days=SHARE_EXPIRE_DAYS)).isoformat()
+        await db.kegiatans.update_one({"_id": kegiatan_id},
+                                      {"$set": {"share_token": token, "share_expires_at": exp}})
+    link = f"{FRONTEND_URL}/rekap/{token}"
+    return {"token": token, "link": link, "expires_at": exp}
+
+
+@api_router.post("/admin/kegiatan/{kegiatan_id}/share")
+async def share_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+    info = await ensure_share(kegiatan_id)
+    return info
+
+
+@api_router.get("/admin/kegiatan/{kegiatan_id}/qr")
+async def qr_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+    info = await ensure_share(kegiatan_id)
+    return {"link": info["link"], "expires_at": info["expires_at"],
+            "image": make_qr_data_url(info["link"])}
+
+
+@api_router.get("/rekap/{token}")
+async def public_rekap(token: str):
+    k = await db.kegiatans.find_one({"share_token": token})
+    if not k:
+        raise HTTPException(status_code=404, detail="Tautan rekap tidak ditemukan")
+    exp = k.get("share_expires_at")
+    if exp:
+        try:
+            if datetime.fromisoformat(exp) <= datetime.now(timezone.utc):
+                raise HTTPException(status_code=410, detail="Tautan rekap sudah kadaluarsa")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(5000)
+    absens = await db.absensis.find({"kegiatan_id": k["_id"]}).to_list(10000)
+    amap = {a["user_id"]: a for a in absens}
+    rows, hadir, izin, alpha = [], 0, 0, 0
+    gender = {"L": 0, "P": 0}
+    for p in peserta:
+        a = amap.get(str(p["_id"]))
+        status = a["status"] if a else "alpha"
+        if status == "hadir":
+            hadir += 1
+            g = _derive_gender(p)
+            if g in gender:
+                gender[g] += 1
+        elif status == "izin":
+            izin += 1
+        else:
+            alpha += 1
+        rows.append({"name": p.get("name"), "status": status,
+                     "arrival_time": a.get("arrival_time") if a else None})
+    total = len(peserta)
+    return {
+        "name": k.get("name"), "type": k.get("type"), "location": k.get("location"),
+        "date": k.get("date"), "start_time": k.get("start_time"), "end_time": k.get("end_time"),
+        "teacher": k.get("teacher"), "material": k.get("material"),
+        "counts": {"total": total, "hadir": hadir, "izin": izin, "alpha": alpha,
+                   "ratio": round((hadir / total) * 100, 1) if total else 0.0},
+        "gender": gender,
+        "rows": rows,
+    }
+
+
+# ------------------------- Dashboard -------------------------
+@api_router.get("/admin/dashboard")
+async def admin_dashboard(admin: dict = Depends(require_admin)):
+    peserta = await db.users.find(PESERTA_QUERY).to_list(10000)
+    total_peserta = len(peserta)
+    lk = sum(1 for p in peserta if _derive_gender(p) == "L")
+    pr = sum(1 for p in peserta if _derive_gender(p) == "P")
+    akun_aktif = await db.users.count_documents({"status": "active"})
+    akun_nonaktif = await db.users.count_documents({"status": {"$ne": "active"}})
+
+    now = now_wita()
+    this_month = now.strftime("%Y-%m")
+    keg_this_month = await db.kegiatans.find({"date": {"$regex": f"^{this_month}"}}).to_list(1000)
+    kegiatan_bulan_ini = len(keg_this_month)
+
+    # rasio kehadiran bulan ini (rata-rata per kegiatan)
+    ratios = []
+    for k in keg_this_month:
+        c = await kegiatan_counts(k["_id"], total_peserta)
+        if c["total"]:
+            ratios.append(c["ratio"])
+    rasio_bulan = round(sum(ratios) / len(ratios), 1) if ratios else 0.0
+
+    # tren 6 bulan terakhir
+    tren = []
+    for i in range(5, -1, -1):
+        m = (now.replace(day=1) - timedelta(days=1)).replace(day=1) if False else None
+        # hitung bulan target
+        year = now.year
+        month = now.month - i
+        while month <= 0:
+            month += 12
+            year -= 1
+        key = f"{year:04d}-{month:02d}"
+        kegs = await db.kegiatans.find({"date": {"$regex": f"^{key}"}}).to_list(1000)
+        rs = []
+        for k in kegs:
+            c = await kegiatan_counts(k["_id"], total_peserta)
+            if c["total"]:
+                rs.append(c["ratio"])
+        tren.append({"month": key, "ratio": round(sum(rs) / len(rs), 1) if rs else 0.0,
+                     "kegiatan": len(kegs)})
+
+    today = now.strftime("%Y-%m-%d")
+    upcoming = await db.kegiatans.find({"date": {"$gte": today}}).sort([("date", 1), ("start_time", 1)]).to_list(5)
+    recent = await db.kegiatans.find({"date": {"$lt": today}}).sort([("date", -1)]).to_list(5)
+    tot = total_peserta
+    return {
+        "total_peserta": total_peserta, "peserta_L": lk, "peserta_P": pr,
+        "akun_aktif": akun_aktif, "akun_nonaktif": akun_nonaktif,
+        "kegiatan_bulan_ini": kegiatan_bulan_ini,
+        "rasio_kehadiran_bulan": rasio_bulan,
+        "donut": {"L": lk, "P": pr},
+        "tren": tren,
+        "upcoming": [serialize_kegiatan(k, await kegiatan_counts(k["_id"], tot)) for k in upcoming],
+        "recent": [serialize_kegiatan(k, await kegiatan_counts(k["_id"], tot)) for k in recent],
+    }
+
+
+# ------------------------- Laporan + Export -------------------------
+async def build_laporan(date_from: str, date_to: str) -> dict:
+    if not date_from or not date_to:
+        now = now_wita()
+        first = now.replace(day=1).strftime("%Y-%m-%d")
+        date_from = date_from or first
+        date_to = date_to or now.strftime("%Y-%m-%d")
+    query = {"date": {"$gte": date_from, "$lte": date_to}}
+    kegiatans = await db.kegiatans.find(query).sort([("date", 1)]).to_list(2000)
+    keg_ids = [k["_id"] for k in kegiatans]
+    peserta = await db.users.find(PESERTA_QUERY).to_list(10000)
+    total_peserta = len(peserta)
+    absens = await db.absensis.find({"kegiatan_id": {"$in": keg_ids}}).to_list(100000) if keg_ids else []
+
+    # per-user tally
+    tally = {str(p["_id"]): {"name": p.get("name"), "gender": _derive_gender(p),
+                             "hadir": 0, "izin": 0, "alpha": 0} for p in peserta}
+    per_keg_status = {}  # kegiatan_id -> {uid: status}
+    for a in absens:
+        per_keg_status.setdefault(a["kegiatan_id"], {})[a["user_id"]] = a["status"]
+
+    total_hadir = total_izin = total_alpha = 0
+    gender_hadir = {"L": 0, "P": 0}
+    rows = []
+    for k in kegiatans:
+        statuses = per_keg_status.get(k["_id"], {})
+        h = sum(1 for s in statuses.values() if s == "hadir")
+        iz = sum(1 for s in statuses.values() if s == "izin")
+        al = max(total_peserta - h - iz, 0)
+        total_hadir += h
+        total_izin += iz
+        total_alpha += al
+        rows.append({"id": k["_id"], "name": k.get("name"), "date": k.get("date"),
+                     "type": k.get("type"), "hadir": h, "izin": iz, "alpha": al,
+                     "ratio": round((h / total_peserta) * 100, 1) if total_peserta else 0.0})
+        # per-user tally
+        for p in peserta:
+            uid = str(p["_id"])
+            s = statuses.get(uid, "alpha")
+            tally[uid][s] += 1
+            if s == "hadir":
+                g = _derive_gender(p)
+                if g in gender_hadir:
+                    gender_hadir[g] += 1
+
+    tvals = list(tally.values())
+    top_rajin = sorted(tvals, key=lambda x: x["hadir"], reverse=True)[:5]
+    top_alpha = sorted(tvals, key=lambda x: x["alpha"], reverse=True)[:5]
+    n_keg = len(kegiatans)
+    denom = n_keg * total_peserta
+    return {
+        "date_from": date_from, "date_to": date_to,
+        "total_kegiatan": n_keg, "total_peserta": total_peserta,
+        "summary": {
+            "hadir": total_hadir, "izin": total_izin, "alpha": total_alpha,
+            "ratio": round((total_hadir / denom) * 100, 1) if denom else 0.0,
+        },
+        "gender_hadir": gender_hadir,
+        "per_kegiatan": rows,
+        "top_rajin": top_rajin, "top_alpha": top_alpha,
+    }
+
+
+@api_router.get("/admin/laporan")
+async def admin_laporan(admin: dict = Depends(require_admin), date_from: str = "", date_to: str = ""):
+    return await build_laporan(date_from.strip(), date_to.strip())
+
+
+@api_router.get("/admin/laporan/export")
+async def admin_laporan_export(admin: dict = Depends(require_admin),
+                               date_from: str = "", date_to: str = "", format: str = "excel"):
+    data = await build_laporan(date_from.strip(), date_to.strip())
+    fname_base = f"laporan_kehadiran_{data['date_from']}_sd_{data['date_to']}"
+    if format == "pdf":
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.units import cm
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.5 * cm, bottomMargin=1.5 * cm)
+        styles = getSampleStyleSheet()
+        elems = [Paragraph("Laporan Kehadiran — E-KERTALANGU", styles["Title"]),
+                 Paragraph(f"Periode: {data['date_from']} s/d {data['date_to']}", styles["Normal"]),
+                 Paragraph(f"Total Kegiatan: {data['total_kegiatan']} · Total Peserta: {data['total_peserta']} · "
+                           f"Kehadiran: {data['summary']['ratio']}%", styles["Normal"]),
+                 Spacer(1, 12)]
+        tdata = [["Tanggal", "Kegiatan", "Hadir", "Izin", "Alpha", "%"]]
+        for r in data["per_kegiatan"]:
+            tdata.append([r["date"], r["name"], r["hadir"], r["izin"], r["alpha"], f"{r['ratio']}%"])
+        t = Table(tdata, repeatRows=1)
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0D5C3A")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTSIZE", (0, 0), (-1, -1), 9),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F2F5F2")]),
+        ]))
+        elems.append(t)
+        doc.build(elems)
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="application/pdf",
+                                 headers={"Content-Disposition": f'attachment; filename="{fname_base}.pdf"'})
+
+    # default: Excel
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Per Kegiatan"
+    ws.append(["Tanggal", "Kegiatan", "Jenis", "Hadir", "Izin", "Alpha", "Kehadiran %"])
+    for r in data["per_kegiatan"]:
+        ws.append([r["date"], r["name"], r["type"], r["hadir"], r["izin"], r["alpha"], r["ratio"]])
+    ws2 = wb.create_sheet("Ringkasan")
+    ws2.append(["Periode", f"{data['date_from']} s/d {data['date_to']}"])
+    ws2.append(["Total Kegiatan", data["total_kegiatan"]])
+    ws2.append(["Total Peserta", data["total_peserta"]])
+    ws2.append(["Hadir", data["summary"]["hadir"]])
+    ws2.append(["Izin", data["summary"]["izin"]])
+    ws2.append(["Alpha", data["summary"]["alpha"]])
+    ws2.append(["Kehadiran %", data["summary"]["ratio"]])
+    ws2.append(["Hadir L", data["gender_hadir"]["L"]])
+    ws2.append(["Hadir P", data["gender_hadir"]["P"]])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(
+        buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{fname_base}.xlsx"'})
+
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -938,6 +1507,12 @@ async def startup():
     await seed_users()
     await seed_kelompok()
     await get_or_create_public_qr()
+    await db.kegiatans.create_index("date")
+    await db.kegiatans.create_index("status")
+    await db.kegiatans.create_index("share_token")
+    await db.absensis.create_index([("kegiatan_id", 1), ("user_id", 1)], unique=True)
+    await db.absensis.create_index("kegiatan_id")
+    asyncio.create_task(auto_close_loop())
 
 @app.on_event("shutdown")
 async def shutdown():

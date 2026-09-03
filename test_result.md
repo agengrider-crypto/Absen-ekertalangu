@@ -120,10 +120,67 @@ backend:
         -agent: "testing"
         -comment: "✅ ALL AUTHENTICATION TESTS PASSED (8/8). Verified: (1) Admin login via email (ageng.rider@gmail.com) -> 200 + cookies + user data with all roles, (2) Admin login via username (admin) -> 200 + cookies, (3) Admin login via phone (081100000001) -> 200 + cookies, (4) Wrong password -> 401 with correct error message 'Akun atau kata sandi salah', (5) GET /auth/me with cookies -> 200 returns user data, (6) POST /auth/logout -> 200 clears session, (7) Pengurus login (pengurus@ekertalangu.id) -> 200 with pengurus+peserta roles, (8) Peserta login (peserta@ekertalangu.id) -> 200 with peserta role. All endpoints working correctly. Backend authentication fully functional after recovery."
 
+  - task: "Fase 2 Tahap A - Kegiatan CRUD + recurring 4 minggu"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Endpoint admin (require_admin cookie): POST /api/admin/kegiatan (name,type[rutin/khusus/asad],date YYYY-MM-DD,start_time/end_time HH:MM WITA,teacher,material,location,recurring). recurring=true membuat 4 kegiatan mingguan. GET /api/admin/kegiatan?month=YYYY-MM atau date_from/date_to (return + counts hadir/izin/alpha/ratio). GET/PATCH/DELETE /api/admin/kegiatan/{id}. Smoke test curl OK (buat 4 recurring, list, patch)."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL KEGIATAN TESTS PASSED (5/5). Verified: (1) POST recurring kegiatan creates 4 weekly instances (2026-10-01, 10-08, 10-15, 10-22) with 200 status, (2) Validation works - invalid type returns 400, invalid date format returns 400, (3) GET list with month filter returns kegiatan with counts field (total/hadir/izin/alpha/ratio), (4) GET single kegiatan returns 200, PATCH updates location successfully, (5) Admin endpoints require authentication - returns 401 without cookies. All CRUD operations working correctly."
+  - task: "Fase 2 Tahap A - Absensi (Hadir/Izin/Alpha) + rekap + close/reopen + auto-close scheduler"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "POST /api/admin/kegiatan/{id}/absen {user_id,status} upsert; status hadir mengisi arrival_time (WITA +08:00). GET /api/admin/kegiatan/{id}/rekap: counts + gender + rows per peserta (status default alpha bila belum diabsen). POST .../close (selesaikan) & .../reopen (absen susulan). Scheduler auto_close_loop tiap 60s menutup kegiatan yang jam selesai WITA-nya sudah lewat (per-kegiatan). Smoke test curl OK (absen hadir->izin, rekap akurat, close/reopen 200)."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL ABSENSI & CLOSE/REOPEN TESTS PASSED (5/5). Verified: (6) POST absen with status 'hadir' returns 200, arrival_time populated with WITA timezone (+08:00), (7) POST absen same user with 'izin' performs upsert - arrival_time becomes null, status updated, (8) Validation works - invalid status returns 400, invalid user_id returns 404, (9) GET rekap returns 200 with counts/gender/rows, unattended users default to 'alpha' status, (10) POST close changes status to 'closed', POST reopen changes status to 'open'. All absensi operations and status management working correctly."
+  - task: "Fase 2 Tahap A - QR kegiatan + Share link rekap publik (kadaluarsa 7 hari)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "POST /api/admin/kegiatan/{id}/share -> token+link {FRONTEND_URL}/rekap/{token}, expires 7 hari. GET /api/admin/kegiatan/{id}/qr -> data URL PNG (server-side) berisi link rekap. GET /api/rekap/{token} PUBLIK (tanpa auth) -> rekap read-only (nama,lokasi,tgl,waktu,counts,gender,rows); 410 bila kadaluarsa, 404 bila token salah. Smoke test curl OK."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL QR & SHARE TESTS PASSED (4/4). Verified: (11) POST share returns 200 with token/link/expires_at, link contains '/rekap/', expires in ~7 days (SHARE_EXPIRE_DAYS=7), (12) GET qr returns 200 with base64 PNG image (data:image/png;base64,...), link, and expires_at, (13) GET /api/rekap/{token} WITHOUT authentication returns 200 with public rekap (name/location/counts/gender/rows), (14) GET /api/rekap/invalid-token returns 404. All QR generation and public sharing features working correctly."
+  - task: "Fase 2 Tahap A - Dashboard stats + Laporan + export Excel/PDF"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "GET /api/admin/dashboard: total_peserta+L/P, akun aktif/nonaktif, kegiatan_bulan_ini, rasio_kehadiran_bulan, donut L/P, tren 6 bulan, upcoming/recent. GET /api/admin/laporan?date_from&date_to: summary hadir/izin/alpha+ratio, gender_hadir, per_kegiatan rows, top_rajin/top_alpha (default bulan berjalan). GET /api/admin/laporan/export?format=excel|pdf&date_from&date_to -> file (openpyxl / reportlab). Smoke test curl OK (dashboard 200, laporan 200, excel 5700B, pdf 2240B)."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL DASHBOARD & LAPORAN TESTS PASSED (4/4). Verified: (15) GET dashboard returns 200 with all required fields (total_peserta, peserta_L/P, akun_aktif/nonaktif, kegiatan_bulan_ini, rasio_kehadiran_bulan, donut{L,P}, tren array of 6 months with month/ratio/kegiatan, upcoming/recent arrays), (16) GET laporan with date filters returns 200 with summary (hadir/izin/alpha/ratio), gender_hadir{L,P}, per_kegiatan array, top_rajin/top_alpha arrays, total_kegiatan, (17) GET export?format=excel returns 200 with Content-Type spreadsheet, file size 5690 bytes, (18) GET export?format=pdf returns 200 with Content-Type application/pdf, file size 2220 bytes. All dashboard stats and report exports working correctly."
+
 metadata:
   created_by: "main_agent"
-  version: "1.3"
-  test_sequence: 2
+  version: "1.5"
+  test_sequence: 4
   run_ui: false
 
 frontend:
@@ -143,7 +200,11 @@ frontend:
         -comment: "✅ CRITICAL TEST PASSED - Session persistence working correctly. Comprehensive UI testing completed: (1) Login form loads with 'Masuk Akun' heading, (2) Login with admin/jokam354 successful - redirects to /roles, shows 'Administrator' name and all 3 role cards (Admin/Pengurus/Peserta), NO error toast, (3) **CRITICAL**: After page refresh on /roles, user STAYS LOGGED IN - URL remains /roles, user name 'Administrator' still visible, all role cards intact, (4) Navigation to admin area (/area/admin) successful, (5) Second refresh on admin area - user STAYS LOGGED IN, URL remains /area/admin, not redirected to /login. Backend logs confirm: /auth/me returns 200 OK, /admin/users returns 200 OK, /qr/public returns 200 OK. Session persistence mechanism working as designed - AuthContext refresh() successfully maintains session across page reloads. Feature fully functional."
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Fase 2 Tahap A - Kegiatan CRUD + recurring 4 minggu"
+    - "Fase 2 Tahap A - Absensi (Hadir/Izin/Alpha) + rekap + close/reopen + auto-close scheduler"
+    - "Fase 2 Tahap A - QR kegiatan + Share link rekap publik (kadaluarsa 7 hari)"
+    - "Fase 2 Tahap A - Dashboard stats + Laporan + export Excel/PDF"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -155,3 +216,5 @@ agent_communication:
     -message: "✅ Backend authentication testing COMPLETE. All 8 test scenarios passed successfully. Created /app/backend_test.py for comprehensive auth testing. Results: Admin login works via all 3 identifiers (email/username/phone), wrong password returns correct 401 error, /auth/me returns user data with cookies, /auth/logout clears session properly, pengurus and peserta seed accounts login successfully. Backend fully recovered and operational. NO ISSUES FOUND."
     -agent: "testing"
     -message: "✅ FRONTEND LOGIN & SESSION PERSISTENCE TESTING COMPLETE - ALL TESTS PASSED. Verified login flow and critical session persistence feature. Login works correctly with admin credentials (identifier: admin, password: jokam354), redirects to /roles dashboard showing 'Administrator' with all role cards. **CRITICAL SUCCESS**: Session persists across page refreshes - tested on /roles and /area/admin, user remains logged in after reload, no redirect to login page. Backend API calls return 200 OK after refresh (/auth/me, /admin/users, /qr/public). AuthContext refresh mechanism functioning correctly. NO ISSUES FOUND. Feature ready for production use."
+    -agent: "testing"
+    -message: "✅ FASE 2 TAHAP A BACKEND TESTING COMPLETE - ALL 18 TESTS PASSED (18/18). Comprehensive testing of Kegiatan, Absensi, Dashboard, and Laporan modules completed successfully. Test coverage: KEGIATAN (5 tests) - recurring creation, validation, list with counts, GET/PATCH, auth required. ABSENSI (5 tests) - mark hadir with WITA arrival_time, upsert to izin, validation, rekap with alpha defaults, close/reopen. QR & SHARE (4 tests) - share link generation with 7-day expiry, QR code base64 PNG, public rekap access without auth, invalid token handling. DASHBOARD (1 test) - all stats fields present. LAPORAN (3 tests) - report with filters, Excel export (5690 bytes), PDF export (2220 bytes). All endpoints returning correct status codes, data structures, and business logic working as expected. Test cleanup performed (4 test kegiatan deleted). NO ISSUES FOUND. Backend Fase 2 Tahap A fully functional and ready for production."
