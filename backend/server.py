@@ -34,6 +34,9 @@ db = client[os.environ['DB_NAME']]
 
 JWT_ALGORITHM = "HS256"
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+# Session lifetime (masa percobaan): sesi bertahan 365 hari agar tetap login saat refresh web
+SESSION_DAYS = 365
+SESSION_MAX_AGE = SESSION_DAYS * 24 * 60 * 60  # detik
 VALID_ROLES = ["admin", "pengurus", "peserta"]
 EDUCATION_OPTIONS = ["TK", "SD", "SMP", "SMA", "D1", "D2", "D3", "D4", "S1", "S2", "S3"]
 MUBALIGH_OPTIONS = ["belum", "sudah"]
@@ -56,19 +59,19 @@ def get_jwt_secret() -> str:
 
 def create_access_token(user_id: str, ver: int = 0) -> str:
     payload = {"sub": user_id, "ver": ver, "type": "access",
-               "exp": datetime.now(timezone.utc) + timedelta(minutes=15)}
+               "exp": datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)}
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
 def create_refresh_token(user_id: str, ver: int = 0) -> str:
     payload = {"sub": user_id, "ver": ver, "type": "refresh",
-               "exp": datetime.now(timezone.utc) + timedelta(days=7)}
+               "exp": datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)}
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
 def set_auth_cookies(response: Response, user_id: str, ver: int):
     response.set_cookie("access_token", create_access_token(user_id, ver), httponly=True,
-                        secure=True, samesite="none", max_age=900, path="/")
+                        secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
     response.set_cookie("refresh_token", create_refresh_token(user_id, ver), httponly=True,
-                        secure=True, samesite="none", max_age=604800, path="/")
+                        secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
 
 # ---------------------------------------------------------------------------
 # Models
@@ -381,7 +384,7 @@ async def refresh(request: Request, response: Response):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token tidak valid")
     response.set_cookie("access_token", create_access_token(str(user["_id"]), user.get("token_version", 0)),
-                        httponly=True, secure=True, samesite="none", max_age=900, path="/")
+                        httponly=True, secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
     return public_user(user)
 
 @api_router.post("/auth/register")

@@ -12,8 +12,16 @@ export function AuthProvider({ children }) {
       setUser(data);
       return data;
     } catch {
-      setUser(false);
-      return false;
+      // Fallback: coba perpanjang sesi via refresh token (tetap login saat refresh web)
+      try {
+        await api.post("/auth/refresh");
+        const { data } = await api.get("/auth/me");
+        setUser(data);
+        return data;
+      } catch {
+        setUser(false);
+        return false;
+      }
     }
   }, []);
 

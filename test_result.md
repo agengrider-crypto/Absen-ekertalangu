@@ -122,13 +122,26 @@ backend:
 
 metadata:
   created_by: "main_agent"
-  version: "1.2"
+  version: "1.3"
   test_sequence: 2
   run_ui: false
 
+frontend:
+  - task: "Session lifetime 365 hari + tetap login saat refresh web"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py, frontend/src/context/AuthContext.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Fitur diminta user: sesi bertahan 365 hari & tetap login saat refresh web. Backend: access & refresh token JWT diperpanjang ke 365 hari (SESSION_DAYS), cookie max_age=31536000. AuthContext: fallback -> jika /auth/me gagal coba /auth/refresh lalu /auth/me sebelum logout. Curl end-to-end OK (login/me/refresh=200, cookie Max-Age=31536000). Perlu verifikasi browser: setelah login lalu REFRESH halaman, user tetap login."
+
 test_plan:
   current_focus:
-    - "Auth Login (fleksibel email/username/phone) + admin password jokam354"
+    - "Session lifetime 365 hari + tetap login saat refresh web"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
