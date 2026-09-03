@@ -20,9 +20,9 @@ export default function RoleArea() {
     return <Navigate to="/roles" replace />;
   }
 
-  // Admin: full-screen panel with sidebar navigation (Fase 2)
-  if (role === "admin") {
-    return <AdminLayout user={user} />;
+  // Admin & Pengurus: full-screen panel with sidebar navigation
+  if (role === "admin" || role === "pengurus") {
+    return <AdminLayout user={user} role={role} />;
   }
 
   const meta = META[role] || META.peserta;

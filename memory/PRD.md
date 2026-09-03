@@ -52,3 +52,18 @@ Web app absensi pengajian. Fase 1: fondasi autentikasi — Login fleksibel (HP/E
 - QR/Share: POST `/api/admin/kegiatan/{id}/share`, GET `/api/admin/kegiatan/{id}/qr`, publik GET `/api/rekap/{token}`.
 - Dashboard: GET `/api/admin/dashboard`. Laporan: GET `/api/admin/laporan?date_from&date_to`, export GET `/api/admin/laporan/export?format=excel|pdf&date_from&date_to` (blob).
 - Peserta/User/Kelompok/Logs sudah ada dari Fase 1 (lihat daftar route admin).
+
+## Update (Fitur Tambahan + Fase 3A)
+- Foto profil peserta: upload sendiri via menu Profil (resize 320px), thumbnail di tabel Peserta.
+- Menu profil pojok kanan (semua area): Profil, Ganti Peran (disembunyikan utk role tunggal), Keluar.
+- Pindah sambung: konfirmasi Ya/Tidak + keterangan (tercatat di Log).
+- QR Absen Mandiri per kegiatan (/absen/{token}): peserta cari nama sendiri -> Konfirmasi Hadir (hanya saat kegiatan buka). Keterangan panduan di bawah barcode.
+- Kotak Pesan / Saran: input di halaman scan (di balik tombol, terpisah dari alur absen); admin baca via kartu Kegiatan > Opsi > Kotak Pesan/Saran. Ucapan sukses: "Alhamdulillah, jazakumullahu khoiro".
+- Kartu Kegiatan: menu Opsi (Share, Edit Kegiatan, Rekap Absen, Kotak Pesan/Saran) + Edit Kegiatan (PATCH).
+- Fase 3A: role Pengurus dapat akses area (require_staff) dgn sidebar Dashboard/Peserta/Kegiatan/Laporan; admin-only: hapus user, ubah role, kelola kelompok, hapus massal.
+
+## Keputusan Fase 3/4 (disetujui user)
+- Delegasi absensi otomatis dicabut saat kegiatan Selesai/ditutup.
+- QR pribadi peserta: rotating (berbasis durasi waktu).
+- Maks pengumuman di-pin: 3.
+- Tech: tetap React JSX (tidak migrasi TS).

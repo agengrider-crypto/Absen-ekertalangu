@@ -33,7 +33,8 @@ function PesertaAvatar({ user }) {
   );
 }
 
-export default function Peserta() {
+export default function Peserta({ role = "admin" }) {
+  const isAdmin = role === "admin";
   const [users, setUsers] = useState(null);
   const [kelompok, setKelompok] = useState([]);
   const [q, setQ] = useState("");
@@ -162,7 +163,7 @@ export default function Peserta() {
             className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white"
           />
         </div>
-        {selected.size > 0 && (
+        {isAdmin && selected.size > 0 && (
           <button data-testid="button-bulk-delete" onClick={bulkDelete}
             className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#DC2626] text-white font-semibold text-sm hover:bg-[#B91C1C]">
             <Trash2 size={16} /> Hapus Terpilih ({selected.size})
@@ -238,6 +239,7 @@ export default function Peserta() {
         <PesertaDetailModal
           userId={detailId}
           kelompokList={kelompok}
+          canManageRoles={isAdmin}
           onClose={() => setDetailId(null)}
           onChanged={load}
         />

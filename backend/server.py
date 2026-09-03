@@ -251,6 +251,15 @@ async def require_admin(user: dict = Depends(get_current_user)) -> dict:
         raise HTTPException(status_code=403, detail="Akses khusus admin")
     return user
 
+async def require_staff(user: dict = Depends(get_current_user)) -> dict:
+    roles = user.get("roles", [])
+    if "admin" not in roles and "pengurus" not in roles:
+        raise HTTPException(status_code=403, detail="Akses khusus admin/pengurus")
+    return user
+
+def is_admin(user: dict) -> bool:
+    return "admin" in (user.get("roles", []) or [])
+
 def normalize_dob(value) -> Optional[str]:
     """Return YYYY-MM-DD or None. Accepts date/datetime and common ID string formats."""
     if value is None:
@@ -521,13 +530,13 @@ async def public_qr():
 
 # ---- Admin ----
 @api_router.get("/admin/users")
-async def admin_users(admin: dict = Depends(require_admin)):
+async def admin_users(admin: dict = Depends(require_staff)):
     users = await db.users.find().sort("created_at", -1).to_list(1000)
     return [public_user(u) for u in users]
 
 
 @api_router.get("/admin/users/{user_id}/photo")
-async def admin_user_photo(user_id: str, admin: dict = Depends(require_admin)):
+async def admin_user_photo(user_id: str, admin: dict = Depends(require_staff)):
     user = await db.users.find_one({"_id": parse_object_id(user_id)})
     photo = (user or {}).get("photo")
     if not user or not photo or not isinstance(photo, str) or "," not in photo:
@@ -568,7 +577,7 @@ async def admin_update_roles(user_id: str, body: RoleUpdate, admin: dict = Depen
     return public_user(user)
 
 @api_router.post("/admin/users")
-async def admin_create_user(body: AdminCreateUser, admin: dict = Depends(require_admin)):
+async def admin_create_user(body: AdminCreateUser, admin: dict = Depends(require_staff)):
     name = body.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="Nama wajib diisi")
@@ -606,7 +615,7 @@ async def admin_create_user(body: AdminCreateUser, admin: dict = Depends(require
     return public_user(doc)
 
 @api_router.post("/admin/users/pending")
-async def admin_create_pending(body: AdminPendingNames, admin: dict = Depends(require_admin)):
+async def admin_create_pending(body: AdminPendingNames, admin: dict = Depends(require_staff)):
     created, skipped, invalid_dates = [], [], []
     for entry in body.entries:
         name = entry.name.strip()
@@ -625,7 +634,7 @@ async def admin_create_pending(body: AdminPendingNames, admin: dict = Depends(re
     return {"created": created, "count": len(created), "skipped": skipped, "invalid_dates": invalid_dates}
 
 @api_router.get("/admin/import-template")
-async def import_template(admin: dict = Depends(require_admin)):
+async def import_template(admin: dict = Depends(require_staff)):
     import openpyxl
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -646,7 +655,7 @@ async def import_template(admin: dict = Depends(require_admin)):
     )
 
 @api_router.post("/admin/users/import")
-async def admin_import_users(file: UploadFile = File(...), admin: dict = Depends(require_admin)):
+async def admin_import_users(file: UploadFile = File(...), admin: dict = Depends(require_staff)):
     fname = (file.filename or "").lower()
     data = await file.read()
     rows = []  # list of (name, dob)
@@ -696,7 +705,7 @@ async def admin_import_users(file: UploadFile = File(...), admin: dict = Depends
 # Fase 2: Kelompok / Majelis
 # ---------------------------------------------------------------------------
 @api_router.get("/admin/kelompok")
-async def list_kelompok(admin: dict = Depends(require_admin)):
+async def list_kelompok(admin: dict = Depends(require_staff)):
     items = await db.kelompoks.find().sort("name", 1).to_list(500)
     counts = await db.users.aggregate([
         {"$match": {"kelompok_id": {"$ne": None}}},
@@ -749,7 +758,7 @@ async def delete_kelompok(kelompok_id: str, admin: dict = Depends(require_admin)
 # Fase 2: Peserta detail + update + bulk + reset + move
 # ---------------------------------------------------------------------------
 @api_router.get("/admin/users/{user_id}")
-async def admin_user_detail(user_id: str, admin: dict = Depends(require_admin)):
+async def admin_user_detail(user_id: str, admin: dict = Depends(require_staff)):
     user = await db.users.find_one({"_id": parse_object_id(user_id)})
     if not user:
         raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan")
@@ -760,7 +769,7 @@ async def admin_user_detail(user_id: str, admin: dict = Depends(require_admin)):
     return data
 
 @api_router.patch("/admin/users/{user_id}")
-async def admin_update_user(user_id: str, body: PesertaUpdate, admin: dict = Depends(require_admin)):
+async def admin_update_user(user_id: str, body: PesertaUpdate, admin: dict = Depends(require_staff)):
     oid = parse_object_id(user_id)
     user = await db.users.find_one({"_id": oid})
     if not user:
@@ -819,7 +828,7 @@ async def admin_update_user(user_id: str, body: PesertaUpdate, admin: dict = Dep
     return public_user(user, include_photo=True)
 
 @api_router.post("/admin/users/bulk")
-async def admin_bulk_create(body: BulkCreateInput, admin: dict = Depends(require_admin)):
+async def admin_bulk_create(body: BulkCreateInput, admin: dict = Depends(require_staff)):
     created, invalid_dates, flagged = [], [], []
     for entry in body.entries:
         name = (entry.name or "").strip()
@@ -866,7 +875,7 @@ async def admin_bulk_delete(body: BulkDeleteInput, admin: dict = Depends(require
     return {"deleted": res.deleted_count}
 
 @api_router.post("/admin/users/{user_id}/reset-password")
-async def admin_reset_password(user_id: str, admin: dict = Depends(require_admin)):
+async def admin_reset_password(user_id: str, admin: dict = Depends(require_staff)):
     oid = parse_object_id(user_id)
     user = await db.users.find_one({"_id": oid})
     if not user:
@@ -884,7 +893,7 @@ async def admin_reset_password(user_id: str, admin: dict = Depends(require_admin
     return {"password": new_pw, "message": "Kata sandi direset ke format tanggal lahir (ddmmyyyy)."}
 
 @api_router.post("/admin/users/{user_id}/move")
-async def admin_move_kelompok(user_id: str, body: MoveInput, admin: dict = Depends(require_admin)):
+async def admin_move_kelompok(user_id: str, body: MoveInput, admin: dict = Depends(require_staff)):
     oid = parse_object_id(user_id)
     user = await db.users.find_one({"_id": oid})
     if not user:
@@ -908,7 +917,7 @@ async def admin_move_kelompok(user_id: str, body: MoveInput, admin: dict = Depen
 # Fase 2: Log Aktivitas
 # ---------------------------------------------------------------------------
 @api_router.get("/admin/logs")
-async def admin_logs(admin: dict = Depends(require_admin), limit: int = 100, action: str = ""):
+async def admin_logs(admin: dict = Depends(require_staff), limit: int = 100, action: str = ""):
     query = {}
     if action.strip():
         query["action"] = action.strip()
@@ -1031,7 +1040,7 @@ async def auto_close_loop():
 
 # ------------------------- Kegiatan CRUD -------------------------
 @api_router.post("/admin/kegiatan")
-async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_admin)):
+async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_staff)):
     if body.type not in KEGIATAN_TYPES:
         raise HTTPException(status_code=400, detail="Jenis kegiatan tidak valid")
     try:
@@ -1075,7 +1084,7 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_adm
 
 
 @api_router.get("/admin/kegiatan")
-async def list_kegiatan(admin: dict = Depends(require_admin),
+async def list_kegiatan(admin: dict = Depends(require_staff),
                         month: str = "", date_from: str = "", date_to: str = ""):
     query = {}
     if month.strip():
@@ -1093,7 +1102,7 @@ async def list_kegiatan(admin: dict = Depends(require_admin),
 
 
 @api_router.get("/admin/kegiatan/{kegiatan_id}")
-async def get_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+async def get_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff)):
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
@@ -1102,7 +1111,7 @@ async def get_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
 
 
 @api_router.patch("/admin/kegiatan/{kegiatan_id}")
-async def update_kegiatan(kegiatan_id: str, body: KegiatanUpdate, admin: dict = Depends(require_admin)):
+async def update_kegiatan(kegiatan_id: str, body: KegiatanUpdate, admin: dict = Depends(require_staff)):
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
@@ -1121,7 +1130,7 @@ async def update_kegiatan(kegiatan_id: str, body: KegiatanUpdate, admin: dict = 
 
 
 @api_router.delete("/admin/kegiatan/{kegiatan_id}")
-async def delete_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+async def delete_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff)):
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
@@ -1132,7 +1141,7 @@ async def delete_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)
 
 
 @api_router.post("/admin/kegiatan/{kegiatan_id}/close")
-async def close_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+async def close_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff)):
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
@@ -1144,7 +1153,7 @@ async def close_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin))
 
 
 @api_router.post("/admin/kegiatan/{kegiatan_id}/reopen")
-async def reopen_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+async def reopen_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff)):
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
@@ -1157,7 +1166,7 @@ async def reopen_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)
 
 # ------------------------- Absensi -------------------------
 @api_router.post("/admin/kegiatan/{kegiatan_id}/absen")
-async def mark_absen(kegiatan_id: str, body: AbsenInput, admin: dict = Depends(require_admin)):
+async def mark_absen(kegiatan_id: str, body: AbsenInput, admin: dict = Depends(require_staff)):
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
@@ -1178,7 +1187,7 @@ async def mark_absen(kegiatan_id: str, body: AbsenInput, admin: dict = Depends(r
 
 
 @api_router.get("/admin/kegiatan/{kegiatan_id}/rekap")
-async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff)):
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
@@ -1243,13 +1252,13 @@ async def ensure_share(kegiatan_id: str) -> dict:
 
 
 @api_router.post("/admin/kegiatan/{kegiatan_id}/share")
-async def share_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+async def share_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff)):
     info = await ensure_share(kegiatan_id)
     return info
 
 
 @api_router.get("/admin/kegiatan/{kegiatan_id}/qr")
-async def qr_kegiatan(kegiatan_id: str, admin: dict = Depends(require_admin)):
+async def qr_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff)):
     info = await ensure_share(kegiatan_id)
     return {"link": info["link"], "expires_at": info["expires_at"],
             "image": make_qr_data_url(info["link"])}
@@ -1314,7 +1323,7 @@ async def ensure_absen_token(kegiatan_id: str) -> dict:
 
 
 @api_router.post("/admin/kegiatan/{kegiatan_id}/absen-qr")
-async def absen_qr(kegiatan_id: str, admin: dict = Depends(require_admin)):
+async def absen_qr(kegiatan_id: str, admin: dict = Depends(require_staff)):
     info = await ensure_absen_token(kegiatan_id)
     return {"token": info["token"], "link": info["link"],
             "image": make_qr_data_url(info["link"])}
@@ -1387,11 +1396,11 @@ async def public_absen_feedback(token: str, body: FeedbackInput):
            "name": (body.name or "").strip() or "Anonim", "message": msg[:1000],
            "created_at": now_wita().isoformat()}
     await db.feedbacks.insert_one(doc)
-    return {"message": "Terima kasih atas kesan & pesan Anda."}
+    return {"message": "Alhamdulillah, jazakumullahu khoiro."}
 
 
 @api_router.get("/admin/kegiatan/{kegiatan_id}/feedback")
-async def admin_kegiatan_feedback(kegiatan_id: str, admin: dict = Depends(require_admin)):
+async def admin_kegiatan_feedback(kegiatan_id: str, admin: dict = Depends(require_staff)):
     items = await db.feedbacks.find({"kegiatan_id": kegiatan_id}).sort("created_at", -1).to_list(1000)
     return [{"id": f["_id"], "name": f.get("name"), "message": f.get("message"),
              "created_at": f.get("created_at")} for f in items]
@@ -1399,7 +1408,7 @@ async def admin_kegiatan_feedback(kegiatan_id: str, admin: dict = Depends(requir
 
 # ------------------------- Dashboard -------------------------
 @api_router.get("/admin/dashboard")
-async def admin_dashboard(admin: dict = Depends(require_admin)):
+async def admin_dashboard(admin: dict = Depends(require_staff)):
     peserta = await db.users.find(PESERTA_QUERY).to_list(10000)
     total_peserta = len(peserta)
     lk = sum(1 for p in peserta if _derive_gender(p) == "L")
@@ -1520,12 +1529,12 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
 
 
 @api_router.get("/admin/laporan")
-async def admin_laporan(admin: dict = Depends(require_admin), date_from: str = "", date_to: str = ""):
+async def admin_laporan(admin: dict = Depends(require_staff), date_from: str = "", date_to: str = ""):
     return await build_laporan(date_from.strip(), date_to.strip())
 
 
 @api_router.get("/admin/laporan/export")
-async def admin_laporan_export(admin: dict = Depends(require_admin),
+async def admin_laporan_export(admin: dict = Depends(require_staff),
                                date_from: str = "", date_to: str = "", format: str = "excel"):
     data = await build_laporan(date_from.strip(), date_to.strip())
     fname_base = f"laporan_kehadiran_{data['date_from']}_sd_{data['date_to']}"

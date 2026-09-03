@@ -20,6 +20,7 @@ export default function PublicAbsen() {
   const [fbMsg, setFbMsg] = useState("");
   const [fbSending, setFbSending] = useState(false);
   const [fbDone, setFbDone] = useState(false);
+  const [showFb, setShowFb] = useState(false);
 
   const load = () =>
     api.get(`/absen/${token}`)
@@ -61,7 +62,7 @@ export default function PublicAbsen() {
       await api.post(`/absen/${token}/feedback`, { name: fbName.trim() || null, message: fbMsg.trim() });
       setFbDone(true);
       setFbName(""); setFbMsg("");
-      toast.success("Terima kasih atas kesan & pesan Anda!");
+      toast.success("Alhamdulillah, jazakumullahu khoiro 🤲");
     } catch (e) {
       toast.error(formatApiErrorDetail(e.response?.data?.detail));
     } finally {
@@ -182,15 +183,25 @@ export default function PublicAbsen() {
           </div>
         )}
 
-        {/* Kesan & Pesan */}
+        {/* Kotak Pesan / Saran (opsi terpisah, tidak menempel di alur absen) */}
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 mt-4">
-          <div className="flex items-center gap-2 text-[#0D5C3A] font-bold"><MessageSquareText size={18} /> Kesan &amp; Pesan</div>
-          <p className="text-sm text-[#6B7280] mt-1">Sampaikan kesan &amp; pesan Anda untuk kegiatan ini (opsional).</p>
+          <div className="flex items-center gap-2 text-[#0D5C3A] font-bold"><MessageSquareText size={18} /> Kotak Pesan / Saran</div>
           {fbDone ? (
             <div className="mt-3 rounded-xl bg-[#E8F5EE] text-[#065F46] p-4 text-center text-sm font-semibold" data-testid="feedback-done">
-              Terima kasih! Kesan &amp; pesan Anda sudah terkirim. 🙏
-              <button onClick={() => setFbDone(false)} className="block mx-auto mt-2 text-[#0D5C3A] underline text-xs font-normal">Kirim lagi</button>
+              Alhamdulillah, jazakumullahu khoiro 🤲
+              <button onClick={() => { setFbDone(false); setShowFb(false); }} className="block mx-auto mt-2 text-[#0D5C3A] underline text-xs font-normal">Kirim lagi</button>
             </div>
+          ) : !showFb ? (
+            <>
+              <p className="text-sm text-[#6B7280] mt-1">Ingin menyampaikan pesan atau saran untuk kegiatan ini? (opsional)</p>
+              <button
+                data-testid="button-open-feedback"
+                onClick={() => setShowFb(true)}
+                className="mt-3 w-full h-12 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-bold flex items-center justify-center gap-2 hover:bg-[#E8F5EE]"
+              >
+                <MessageSquareText size={18} /> Tulis Pesan / Saran
+              </button>
+            </>
           ) : (
             <div className="mt-3 space-y-2">
               <input
@@ -205,17 +216,26 @@ export default function PublicAbsen() {
                 value={fbMsg}
                 onChange={(e) => setFbMsg(e.target.value)}
                 rows={3}
-                placeholder="Tulis kesan & pesan Anda..."
+                placeholder="Tulis pesan / saran Anda..."
                 className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E5E7EB] outline-none focus:border-[#0D5C3A] bg-white resize-none"
               />
-              <button
-                data-testid="button-send-feedback"
-                onClick={sendFeedback}
-                disabled={fbSending}
-                className="w-full h-12 rounded-xl bg-[#0D5C3A] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60"
-              >
-                {fbSending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />} Kirim Kesan &amp; Pesan
-              </button>
+              <div className="flex gap-2">
+                <button
+                  data-testid="button-cancel-feedback"
+                  onClick={() => setShowFb(false)}
+                  className="h-12 px-4 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold hover:bg-[#F2F5F2]"
+                >
+                  Batal
+                </button>
+                <button
+                  data-testid="button-send-feedback"
+                  onClick={sendFeedback}
+                  disabled={fbSending}
+                  className="flex-1 h-12 rounded-xl bg-[#0D5C3A] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60"
+                >
+                  {fbSending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />} Kirim
+                </button>
+              </div>
             </div>
           )}
         </div>

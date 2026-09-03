@@ -207,7 +207,7 @@ function KegiatanCard({ k, onAbsenQr, onShare, onEdit, onRekap, onFeedback, onTo
               <button data-testid={`opsi-share-${k.id}`} onClick={() => { setOpsi(false); onShare(); }} className={opsiItem}><Share2 size={16} className="text-[#0D5C3A]" /> Share</button>
               <button data-testid={`opsi-edit-${k.id}`} onClick={() => { setOpsi(false); onEdit(); }} className={opsiItem}><Pencil size={16} className="text-[#0D5C3A]" /> Edit Kegiatan</button>
               <button data-testid={`opsi-rekap-${k.id}`} onClick={() => { setOpsi(false); onRekap(); }} className={opsiItem}><FileBarChart2 size={16} className="text-[#0D5C3A]" /> Rekap Absen</button>
-              <button data-testid={`opsi-feedback-${k.id}`} onClick={() => { setOpsi(false); onFeedback(); }} className={opsiItem}><MessageSquareText size={16} className="text-[#0D5C3A]" /> Kesan &amp; Pesan</button>
+              <button data-testid={`opsi-feedback-${k.id}`} onClick={() => { setOpsi(false); onFeedback(); }} className={opsiItem}><MessageSquareText size={16} className="text-[#0D5C3A]" /> Kotak Pesan / Saran</button>
             </div>
           )}
         </div>
@@ -452,15 +452,15 @@ function FeedbackModal({ kegiatan, onClose }) {
   }, [kegiatan.id]);
 
   return (
-    <ModalShell title="Kesan & Pesan" onClose={onClose} testid="modal-feedback">
+    <ModalShell title="Kotak Pesan / Saran" onClose={onClose} testid="modal-feedback">
       <div className="text-sm text-[#6B7280] mb-3">
-        Masukan dari peserta untuk <b className="text-[#111827]">{kegiatan.name}</b>.
+        Pesan &amp; saran dari peserta untuk <b className="text-[#111827]">{kegiatan.name}</b>.
       </div>
       {items === null ? (
         <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>
       ) : items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[#E5E7EB] bg-[#FAFBF9] p-8 text-center text-sm text-[#9CA3AF]">
-          Belum ada kesan &amp; pesan dari peserta.
+          Belum ada pesan / saran dari peserta.
         </div>
       ) : (
         <div className="rounded-2xl border border-[#E5E7EB] bg-white divide-y divide-[#F1F2F0] max-h-[60vh] overflow-y-auto" data-testid="feedback-list">

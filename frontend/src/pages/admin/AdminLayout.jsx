@@ -15,26 +15,26 @@ import LogAktivitas from "./LogAktivitas";
 import HakAkses from "./HakAkses";
 
 const MENU = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { key: "peserta", label: "Peserta", icon: Users },
-  { key: "kegiatan", label: "Kegiatan", icon: CalendarDays },
-  { key: "laporan", label: "Laporan", icon: FileBarChart2 },
-  { key: "log", label: "Log Aktivitas", icon: ScrollText },
-  { key: "hakakses", label: "Hak Akses", icon: ShieldCheck },
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "pengurus"] },
+  { key: "peserta", label: "Peserta", icon: Users, roles: ["admin", "pengurus"] },
+  { key: "kegiatan", label: "Kegiatan", icon: CalendarDays, roles: ["admin", "pengurus"] },
+  { key: "laporan", label: "Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"] },
+  { key: "log", label: "Log Aktivitas", icon: ScrollText, roles: ["admin"] },
+  { key: "hakakses", label: "Hak Akses", icon: ShieldCheck, roles: ["admin"] },
 ];
 
-function SidebarInner({ active, onNav, onSwitch, onLogout }) {
+function SidebarInner({ active, onNav, onSwitch, onLogout, role, menu }) {
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-5 flex items-center gap-2 border-b border-white/10">
         <div className="h-9 w-9 rounded-xl bg-white/15 flex items-center justify-center text-white font-bold">EK</div>
         <div className="leading-tight">
           <div className="text-white font-bold font-heading">E-KERTALANGU</div>
-          <div className="text-white/60 text-xs">Panel Admin</div>
+          <div className="text-white/60 text-xs">{role === "pengurus" ? "Panel Pengurus" : "Panel Admin"}</div>
         </div>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {MENU.map((m) => {
+        {menu.map((m) => {
           const Icon = m.icon;
           const on = active === m.key;
           return (
@@ -71,13 +71,15 @@ function SidebarInner({ active, onNav, onSwitch, onLogout }) {
   );
 }
 
-export default function AdminLayout({ user }) {
+export default function AdminLayout({ user, role = "admin" }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const menu = MENU.filter((m) => m.roles.includes(role));
   const [active, setActive] = useState("dashboard");
   const [drawer, setDrawer] = useState(false);
 
   const go = (key) => {
+    if (!menu.some((m) => m.key === key)) return;
     setActive(key);
     setDrawer(false);
   };
@@ -91,7 +93,7 @@ export default function AdminLayout({ user }) {
     <div className="min-h-screen bg-[#F5F7F4]">
       {/* Sidebar desktop */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 bg-[#0D5C3A] flex-col z-30">
-        <SidebarInner active={active} onNav={go} onSwitch={() => navigate("/roles")} onLogout={doLogout} />
+        <SidebarInner active={active} onNav={go} onSwitch={() => navigate("/roles")} onLogout={doLogout} role={role} menu={menu} />
       </aside>
 
       {/* Drawer mobile */}
@@ -102,7 +104,7 @@ export default function AdminLayout({ user }) {
             <button onClick={() => setDrawer(false)} className="absolute top-4 right-3 text-white/80 h-8 w-8 flex items-center justify-center">
               <X size={20} />
             </button>
-            <SidebarInner active={active} onNav={go} onSwitch={() => navigate("/roles")} onLogout={doLogout} />
+            <SidebarInner active={active} onNav={go} onSwitch={() => navigate("/roles")} onLogout={doLogout} role={role} menu={menu} />
           </aside>
         </div>
       )}
@@ -122,18 +124,18 @@ export default function AdminLayout({ user }) {
               <Logo size={32} />
             </div>
             <div className="flex items-center gap-3">
-              <ProfileMenu subtitle="Administrator" />
+              <ProfileMenu subtitle={role === "pengurus" ? "Pengurus" : "Administrator"} />
             </div>
           </div>
         </header>
 
         <main className="px-4 sm:px-6 py-6 max-w-6xl mx-auto">
           {active === "dashboard" && <DashboardView user={user} onGoto={go} />}
-          {active === "peserta" && <Peserta />}
+          {active === "peserta" && <Peserta role={role} />}
           {active === "kegiatan" && <KegiatanView />}
           {active === "laporan" && <LaporanView />}
-          {active === "log" && <LogAktivitas />}
-          {active === "hakakses" && <HakAkses currentUserId={user?.id} />}
+          {active === "log" && role === "admin" && <LogAktivitas />}
+          {active === "hakakses" && role === "admin" && <HakAkses currentUserId={user?.id} />}
         </main>
       </div>
     </div>

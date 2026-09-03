@@ -11,7 +11,7 @@ import { EDUCATION_OPTIONS, MUBALIGH_OPTIONS, genderLabel, statusBadge } from ".
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white";
 const lbl = "text-xs font-semibold text-[#6B7280] mb-1 block";
 
-export default function PesertaDetailModal({ userId, kelompokList, onClose, onChanged }) {
+export default function PesertaDetailModal({ userId, kelompokList, canManageRoles = true, onClose, onChanged }) {
   const [data, setData] = useState(null);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -219,6 +219,7 @@ export default function PesertaDetailModal({ userId, kelompokList, onClose, onCh
             </div>
 
             {/* Roles */}
+            {canManageRoles && (
             <div className="bg-white rounded-2xl p-4 border border-[#E5E7EB]">
               <div className="text-sm font-semibold text-[#111827] mb-2">Peran</div>
               <div className="flex flex-wrap gap-2">
@@ -235,6 +236,7 @@ export default function PesertaDetailModal({ userId, kelompokList, onClose, onCh
                 )}
               </div>
             </div>
+            )}
 
             {/* Pindah sambung */}
             <div className="bg-white rounded-2xl p-4 border border-[#E5E7EB]">
