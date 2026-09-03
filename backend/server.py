@@ -1542,12 +1542,20 @@ async def admin_laporan_export(admin: dict = Depends(require_staff),
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
         from reportlab.lib.units import cm
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
         from reportlab.lib.styles import getSampleStyleSheet
         buf = io.BytesIO()
-        doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.5 * cm, bottomMargin=1.5 * cm)
+        doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.2 * cm, bottomMargin=1.5 * cm)
         styles = getSampleStyleSheet()
-        elems = [Paragraph("Laporan Kehadiran — E-KERTALANGU", styles["Title"]),
+        elems = []
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+        if os.path.exists(logo_path):
+            _lw = 3.6 * cm
+            logo_img = RLImage(logo_path, width=_lw, height=_lw * 452 / 467)
+            logo_img.hAlign = "CENTER"
+            elems.append(logo_img)
+            elems.append(Spacer(1, 8))
+        elems += [Paragraph("Laporan Kehadiran — E-KERTALANGU", styles["Title"]),
                  Paragraph(f"Periode: {data['date_from']} s/d {data['date_to']}", styles["Normal"]),
                  Paragraph(f"Total Kegiatan: {data['total_kegiatan']} · Total Peserta: {data['total_peserta']} · "
                            f"Kehadiran: {data['summary']['ratio']}%", styles["Normal"]),

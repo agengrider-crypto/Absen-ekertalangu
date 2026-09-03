@@ -27,7 +27,7 @@ function SidebarInner({ active, onNav, onSwitch, onLogout, role, menu }) {
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-5 flex items-center gap-2 border-b border-white/10">
-        <div className="h-9 w-9 rounded-xl bg-white/15 flex items-center justify-center text-white font-bold">EK</div>
+        <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" /></div>
         <div className="leading-tight">
           <div className="text-white font-bold font-heading">E-KERTALANGU</div>
           <div className="text-white/60 text-xs">{role === "pengurus" ? "Panel Pengurus" : "Panel Admin"}</div>
