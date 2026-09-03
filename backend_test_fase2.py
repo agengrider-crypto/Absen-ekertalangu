@@ -9,7 +9,7 @@ from typing import Dict, Optional, List
 import json
 
 # Backend URL
-BACKEND_URL = "https://4ecf94c8-0d05-4218-9260-e0af7cd0337b.preview.emergentagent.com/api"
+BACKEND_URL = "https://lanjutan-next.preview.emergentagent.com/api"
 
 # Admin credentials
 ADMIN_IDENTIFIER = "admin"

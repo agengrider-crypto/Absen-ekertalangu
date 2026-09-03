@@ -8,7 +8,7 @@ import sys
 from typing import Dict, Optional
 
 # Read backend URL from frontend/.env
-BACKEND_URL = "https://4ecf94c8-0d05-4218-9260-e0af7cd0337b.preview.emergentagent.com/api"
+BACKEND_URL = "https://lanjutan-next.preview.emergentagent.com/api"
 
 # Test credentials from /app/memory/test_credentials.md
 ADMIN_EMAIL = "ageng.rider@gmail.com"
