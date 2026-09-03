@@ -101,3 +101,40 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Melanjutkan project E-KERTALANGU. User melaporkan login gagal/error saat dicoba. Root cause: backend mati karena file .env hilang (MONGO_URL/DB_NAME/JWT_SECRET) dan module qrcode belum terpasang. Fix: recreate .env, install qrcode+openpyxl, restart. Admin password direset ke 'jokam354' (password sementara masa percobaan)."
+
+backend:
+  - task: "Auth Login (fleksibel email/username/phone) + admin password jokam354"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Backend dipulihkan setelah .env hilang. .env dibuat ulang (MONGO_URL, DB_NAME=ekertalangu, JWT_SECRET, FRONTEND_URL, ADMIN_EMAIL=ageng.rider@gmail.com, ADMIN_PASSWORD=jokam354). qrcode+openpyxl diinstall. Perlu verifikasi login berhasil (200) untuk admin dengan jokam354 via email/username/phone, dan /auth/me, /auth/logout berfungsi. Curl manual sudah 200 tapi butuh verifikasi menyeluruh."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL AUTHENTICATION TESTS PASSED (8/8). Verified: (1) Admin login via email (ageng.rider@gmail.com) -> 200 + cookies + user data with all roles, (2) Admin login via username (admin) -> 200 + cookies, (3) Admin login via phone (081100000001) -> 200 + cookies, (4) Wrong password -> 401 with correct error message 'Akun atau kata sandi salah', (5) GET /auth/me with cookies -> 200 returns user data, (6) POST /auth/logout -> 200 clears session, (7) Pengurus login (pengurus@ekertalangu.id) -> 200 with pengurus+peserta roles, (8) Peserta login (peserta@ekertalangu.id) -> 200 with peserta role. All endpoints working correctly. Backend authentication fully functional after recovery."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.2"
+  test_sequence: 2
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Auth Login (fleksibel email/username/phone) + admin password jokam354"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+    -agent: "main"
+    -message: "Verifikasi alur autentikasi setelah pemulihan backend. Gunakan kredensial dari /app/memory/test_credentials.md. Admin: ageng.rider@gmail.com / username 'admin' / phone 081100000001, password 'jokam354'. Test: (1) login sukses via ketiga identifier -> 200 + cookie di-set + return public_user, (2) login password salah -> 401, (3) /auth/me setelah login -> 200, (4) /auth/logout -> 200, (5) login pengurus & peserta seed masih berfungsi. Jangan test frontend dulu."
+    -agent: "testing"
+    -message: "✅ Backend authentication testing COMPLETE. All 8 test scenarios passed successfully. Created /app/backend_test.py for comprehensive auth testing. Results: Admin login works via all 3 identifiers (email/username/phone), wrong password returns correct 401 error, /auth/me returns user data with cookies, /auth/logout clears session properly, pengurus and peserta seed accounts login successfully. Backend fully recovered and operational. NO ISSUES FOUND."
