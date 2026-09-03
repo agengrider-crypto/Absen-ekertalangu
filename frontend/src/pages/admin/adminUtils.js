@@ -59,6 +59,11 @@ export const ACTION_LABELS = {
   impor_peserta: "Impor Peserta",
   buat_kelompok: "Buat Kelompok",
   hapus_kelompok: "Hapus Kelompok",
+  buat_kegiatan: "Buat Kegiatan",
+  ubah_kegiatan: "Ubah Kegiatan",
+  hapus_kegiatan: "Hapus Kegiatan",
+  selesaikan_kegiatan: "Selesaikan Kegiatan",
+  buka_kegiatan: "Buka Kegiatan",
   selesai_kegiatan: "Selesaikan Kegiatan",
 };
 

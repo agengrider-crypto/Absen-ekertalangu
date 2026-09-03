@@ -1,0 +1,164 @@
+import { useEffect, useState } from "react";
+import {
+  Users, UserCheck, UserX, CalendarDays, TrendingUp, Loader2, QrCode, Copy, CalendarPlus,
+} from "lucide-react";
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
+} from "recharts";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { todayIndo } from "./adminUtils";
+import { MONTH_SHORT, TYPE_LABEL, tanggalSingkat, hhmm } from "./kegiatanUtils";
+
+function StatCard({ icon: Icon, label, value, sub, color }) {
+  return (
+    <div className="bg-white rounded-2xl p-5 border border-[#E5E7EB]" data-testid={`stat-${label}`}>
+      <div className="flex items-center gap-3">
+        <div className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${color}1a`, color }}>
+          <Icon size={22} />
+        </div>
+        <div className="min-w-0">
+          <div className="text-2xl font-bold text-[#111827] leading-none">{value}</div>
+          <div className="text-sm text-[#6B7280] mt-1 truncate">{label}</div>
+        </div>
+      </div>
+      {sub && <div className="mt-3 text-sm text-[#6B7280]">{sub}</div>}
+    </div>
+  );
+}
+
+export default function DashboardView({ user, onGoto }) {
+  const [d, setD] = useState(null);
+  const [qr, setQr] = useState(null);
+
+  useEffect(() => {
+    api.get("/admin/dashboard").then(({ data }) => setD(data)).catch(() => setD(false));
+    api.get("/qr/public").then(({ data }) => setQr(data)).catch(() => {});
+  }, []);
+
+  if (d === null) {
+    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={32} /></div>;
+  }
+  if (d === false) {
+    return <div className="p-10 text-center text-[#6B7280]">Gagal memuat data dashboard.</div>;
+  }
+
+  const pieData = [
+    { name: "Laki-laki", value: d.peserta_L, color: "#0D5C3A" },
+    { name: "Perempuan", value: d.peserta_P, color: "#D97706" },
+    { name: "Belum diisi", value: Math.max(d.total_peserta - d.peserta_L - d.peserta_P, 0), color: "#CBD5E1" },
+  ].filter((x) => x.value > 0);
+
+  const trend = (d.tren || []).map((t) => {
+    const m = parseInt(t.month.slice(5, 7), 10);
+    return { name: MONTH_SHORT[m - 1] || t.month, ratio: t.ratio, kegiatan: t.kegiatan };
+  });
+
+  const copyLink = () => {
+    if (qr?.link) {
+      navigator.clipboard.writeText(qr.link);
+      toast.success("Link pendaftaran disalin");
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="font-heading text-2xl font-bold text-[#111827]">
+          Selamat Datang, {user?.name?.split(" ")[0] || "Admin"}
+        </h1>
+        <p className="text-[#6B7280] flex items-center gap-1.5 mt-1"><CalendarDays size={16} /> {todayIndo()}</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+        <StatCard icon={Users} label="Total Peserta" value={d.total_peserta} color="#0D5C3A"
+          sub={`${d.peserta_L} Laki-laki · ${d.peserta_P} Perempuan`} />
+        <StatCard icon={CalendarDays} label="Kegiatan Bulan Ini" value={d.kegiatan_bulan_ini} color="#0284C7" />
+        <StatCard icon={UserCheck} label="Akun Aktif" value={d.akun_aktif} color="#059669"
+          sub={`${d.akun_nonaktif} nonaktif/menunggu`} />
+        <StatCard icon={TrendingUp} label="Rasio Kehadiran (bln ini)" value={`${d.rasio_kehadiran_bulan}%`} color="#D97706" />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2 mb-6">
+        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB]" data-testid="chart-gender">
+          <h2 className="font-heading font-bold text-[#111827] mb-2">Komposisi Jenis Kelamin</h2>
+          {pieData.length === 0 ? (
+            <p className="text-[#6B7280] py-10 text-center">Belum ada data peserta.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={95} paddingAngle={3}>
+                  {pieData.map((x) => <Cell key={x.name} fill={x.color} />)}
+                </Pie>
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB]" data-testid="chart-trend">
+          <h2 className="font-heading font-bold text-[#111827] mb-2">Tren Kehadiran (6 bulan)</h2>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={trend} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EEF2EE" />
+              <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#6B7280" }} />
+              <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} domain={[0, 100]} />
+              <Tooltip formatter={(v) => `${v}%`} />
+              <Bar dataKey="ratio" fill="#0D5C3A" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-[#E5E7EB]" data-testid="upcoming-activities">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-heading font-bold text-[#111827]">Kegiatan Mendatang</h2>
+            <button onClick={() => onGoto && onGoto("kegiatan")} className="text-sm font-semibold text-[#0D5C3A] hover:underline inline-flex items-center gap-1">
+              <CalendarPlus size={15} /> Kelola
+            </button>
+          </div>
+          {(!d.upcoming || d.upcoming.length === 0) ? (
+            <div className="rounded-xl bg-[#F8FAF8] border border-dashed border-[#CBD5E1] p-6 text-center text-[#6B7280] text-sm">
+              Belum ada kegiatan mendatang. Tambahkan lewat menu Kegiatan.
+            </div>
+          ) : (
+            <ul className="divide-y divide-[#E5E7EB]">
+              {d.upcoming.map((k) => (
+                <li key={k.id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-[#111827] truncate">{k.name}</div>
+                    <div className="text-xs text-[#6B7280]">
+                      {TYPE_LABEL[k.type]} · {tanggalSingkat(k.date)} · {k.start_time}–{k.end_time} WITA
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E8F5EE] text-[#065F46]">
+                    {k.counts?.hadir ?? 0}/{k.counts?.total ?? 0} hadir
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB] text-center" data-testid="dashboard-qr">
+          <div className="inline-flex items-center gap-2 text-[#065F46] font-semibold mb-3">
+            <QrCode size={18} /> QR Pendaftaran
+          </div>
+          {qr ? (
+            <img src={qr.image} alt="QR Publik" className="mx-auto w-36 h-36 rounded-xl border border-[#E5E7EB] p-2" />
+          ) : (
+            <div className="mx-auto w-36 h-36 rounded-xl bg-[#F2F5F2] flex items-center justify-center">
+              <Loader2 className="animate-spin text-[#0D5C3A]" size={24} />
+            </div>
+          )}
+          <p className="text-xs text-[#6B7280] mt-2">Bagikan untuk pendaftaran mandiri jamaah.</p>
+          <button onClick={copyLink} className="mt-3 w-full h-10 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#E8F5EE]">
+            <Copy size={15} /> Salin Link
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

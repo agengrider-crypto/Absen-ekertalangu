@@ -201,13 +201,41 @@ frontend:
 
 test_plan:
   current_focus:
-    - "Fase 2 Tahap A - Kegiatan CRUD + recurring 4 minggu"
-    - "Fase 2 Tahap A - Absensi (Hadir/Izin/Alpha) + rekap + close/reopen + auto-close scheduler"
-    - "Fase 2 Tahap A - QR kegiatan + Share link rekap publik (kadaluarsa 7 hari)"
-    - "Fase 2 Tahap A - Dashboard stats + Laporan + export Excel/PDF"
+    - "Fase 2 Tahap B/C - Admin sidebar layout + Dashboard + Kegiatan + Peserta + Laporan + Rekap publik"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+frontend:
+  - task: "Session lifetime 365 hari + tetap login saat refresh web"
+    implemented: true
+    working: true
+    file: "backend/server.py, frontend/src/context/AuthContext.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: true
+        -agent: "testing"
+        -comment: "Session persistence verified working across refresh (sebelumnya)."
+  - task: "Fase 2 Tahap B/C - Admin sidebar layout + Dashboard + Kegiatan + Peserta + Laporan + Rekap publik"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/pages/admin/AdminLayout.jsx, DashboardView.jsx, KegiatanView.jsx, LaporanView.jsx, Peserta.jsx, HakAkses.jsx, LogAktivitas.jsx, frontend/src/pages/PublicRekap.jsx, frontend/src/pages/RoleArea.jsx, frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "Tahap B/C UI. Login admin -> /area/admin sekarang render AdminLayout (sidebar hijau: Dashboard, Peserta, Kegiatan, Laporan, Log, Hak Akses). Dashboard: kartu stats + donut L/P + tren 6 bulan (recharts) + kegiatan mendatang + QR pendaftaran. Kegiatan: list + kalender (dot penanda, klik filter tanggal) + tambah (jenis, tanggal, waktu WITA interval 10mnt, berulang) + Absensi modal (quick Hadir/Izin/Alpha per peserta + search + jam datang) + QR (download) + Share (salin link) + Selesai/Buka. Peserta: tabel kolom lengkap + live search + multi-select hapus massal + tambah/bulk/import + detail modal (PesertaDetailModal: biodata, foto, role, reset ddmmyyyy, pindah sambung, aktif/nonaktif). Laporan: tab harian/bulanan/rentang + summary + gender + per-kegiatan + top rajin/alpha + export Excel/PDF. Rekap publik /rekap/{token} read-only. Frontend compiled OK, lint clean, no console runtime errors saat login. BUTUH verifikasi UI menyeluruh oleh testing agent. Kredensial admin: admin/jokam354."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.5"
+  test_sequence: 3
+  run_ui: false
+
 
 agent_communication:
     -agent: "main"
