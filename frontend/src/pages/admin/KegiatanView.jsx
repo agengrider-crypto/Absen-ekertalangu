@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays, Plus, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
-  QrCode, Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
-  Clock, MapPin, User, BookOpen, ScanLine, MessageSquareText,
+  Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
+  Clock, MapPin, User, ScanLine, MessageSquareText,
+  MoreHorizontal, Pencil, FileBarChart2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -28,6 +29,8 @@ export default function KegiatanView() {
   const [detailId, setDetailId] = useState(null);
   const [qrModal, setQrModal] = useState(null);
   const [absenQr, setAbsenQr] = useState(null);
+  const [editItem, setEditItem] = useState(null);
+  const [feedbackItem, setFeedbackItem] = useState(null);
 
   const load = useCallback(() => {
     setItems(null);
@@ -105,26 +108,21 @@ export default function KegiatanView() {
         <div className="grid gap-3">
           {filtered.map((k) => (
             <KegiatanCard key={k.id} k={k}
-              onDetail={() => setDetailId(k.id)}
               onAbsenQr={async () => {
                 try {
                   const { data } = await api.post(`/admin/kegiatan/${k.id}/absen-qr`);
                   setAbsenQr({ ...data, name: k.name });
                 } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
               }}
-              onQr={async () => {
+              onShare={async () => {
                 try {
                   const { data } = await api.get(`/admin/kegiatan/${k.id}/qr`);
                   setQrModal({ ...data, name: k.name });
                 } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
               }}
-              onShare={async () => {
-                try {
-                  const { data } = await api.post(`/admin/kegiatan/${k.id}/share`);
-                  navigator.clipboard.writeText(data.link);
-                  toast.success("Link rekap disalin (berlaku 7 hari)");
-                } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-              }}
+              onEdit={() => setEditItem(k)}
+              onRekap={() => setDetailId(k.id)}
+              onFeedback={() => setFeedbackItem(k)}
               onToggleStatus={async () => {
                 try {
                   await api.post(`/admin/kegiatan/${k.id}/${k.status === "open" ? "close" : "reopen"}`);
@@ -145,17 +143,27 @@ export default function KegiatanView() {
         </div>
       )}
 
-      {showAdd && <AddKegiatanModal onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
+      {showAdd && <KegiatanFormModal onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
+      {editItem && <KegiatanFormModal initial={editItem} onClose={() => setEditItem(null)} onDone={() => { setEditItem(null); load(); }} />}
       {detailId && <AbsensiModal kegiatanId={detailId} onClose={() => setDetailId(null)} onChanged={load} />}
+      {feedbackItem && <FeedbackModal kegiatan={feedbackItem} onClose={() => setFeedbackItem(null)} />}
       {qrModal && <QrModal data={qrModal} onClose={() => setQrModal(null)} />}
       {absenQr && <AbsenQrModal data={absenQr} onClose={() => setAbsenQr(null)} />}
     </div>
   );
 }
 
-function KegiatanCard({ k, onDetail, onAbsenQr, onQr, onShare, onToggleStatus, onDelete }) {
+function KegiatanCard({ k, onAbsenQr, onShare, onEdit, onRekap, onFeedback, onToggleStatus, onDelete }) {
   const c = k.counts || {};
   const closed = k.status === "closed";
+  const [opsi, setOpsi] = useState(false);
+  const opsiRef = useRef(null);
+  useEffect(() => {
+    const h = (e) => { if (opsiRef.current && !opsiRef.current.contains(e.target)) setOpsi(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+  const opsiItem = "w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-[#111827] hover:bg-[#F0FAF4] text-left";
   return (
     <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4" data-testid={`kegiatan-card-${k.id}`}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -179,14 +187,32 @@ function KegiatanCard({ k, onDetail, onAbsenQr, onQr, onShare, onToggleStatus, o
         </div>
       </div>
       <div className="flex items-center gap-2 mt-3 flex-wrap">
-        <button data-testid={`button-absensi-${k.id}`} onClick={onDetail} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229]"><CheckCircle2 size={15} /> Absensi</button>
+        <button data-testid={`button-absensi-${k.id}`} onClick={onRekap} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229]"><CheckCircle2 size={15} /> Absensi</button>
         <button data-testid={`button-absen-qr-${k.id}`} onClick={onAbsenQr} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]"><ScanLine size={15} /> Absen QR</button>
-        <button onClick={onQr} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]"><QrCode size={15} /> QR</button>
-        <button onClick={onShare} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]"><Share2 size={15} /> Share</button>
-        <button onClick={onToggleStatus} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
+        <button data-testid={`button-toggle-status-${k.id}`} onClick={onToggleStatus} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
           {closed ? <><RotateCcw size={15} /> Buka</> : <><CheckCircle2 size={15} /> Selesai</>}
         </button>
-        <button onClick={onDelete} className="ml-auto h-9 w-9 flex items-center justify-center rounded-lg text-[#DC2626] hover:bg-red-50"><Trash2 size={16} /></button>
+
+        {/* Opsi dropdown */}
+        <div className="relative" ref={opsiRef}>
+          <button
+            data-testid={`button-opsi-${k.id}`}
+            onClick={() => setOpsi((v) => !v)}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+          >
+            <MoreHorizontal size={16} /> Opsi
+          </button>
+          {opsi && (
+            <div className="absolute left-0 mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-[#E5E7EB] overflow-hidden z-30" data-testid={`opsi-menu-${k.id}`}>
+              <button data-testid={`opsi-share-${k.id}`} onClick={() => { setOpsi(false); onShare(); }} className={opsiItem}><Share2 size={16} className="text-[#0D5C3A]" /> Share</button>
+              <button data-testid={`opsi-edit-${k.id}`} onClick={() => { setOpsi(false); onEdit(); }} className={opsiItem}><Pencil size={16} className="text-[#0D5C3A]" /> Edit Kegiatan</button>
+              <button data-testid={`opsi-rekap-${k.id}`} onClick={() => { setOpsi(false); onRekap(); }} className={opsiItem}><FileBarChart2 size={16} className="text-[#0D5C3A]" /> Rekap Absen</button>
+              <button data-testid={`opsi-feedback-${k.id}`} onClick={() => { setOpsi(false); onFeedback(); }} className={opsiItem}><MessageSquareText size={16} className="text-[#0D5C3A]" /> Kesan &amp; Pesan</button>
+            </div>
+          )}
+        </div>
+
+        <button data-testid={`button-delete-${k.id}`} onClick={onDelete} className="ml-auto h-9 w-9 flex items-center justify-center rounded-lg text-[#DC2626] hover:bg-red-50"><Trash2 size={16} /></button>
       </div>
     </div>
   );
@@ -245,10 +271,13 @@ function ModalShell({ title, children, onClose, testid, wide }) {
   );
 }
 
-function AddKegiatanModal({ onClose, onDone }) {
+function KegiatanFormModal({ onClose, onDone, initial }) {
+  const editing = Boolean(initial?.id);
   const [f, setF] = useState({
-    name: "", type: "rutin", date: todayYmd(), start_time: "20:00",
-    end_time: "21:30", teacher: "", material: "", location: "", recurring: false,
+    name: initial?.name || "", type: initial?.type || "rutin",
+    date: initial?.date || todayYmd(), start_time: initial?.start_time || "20:00",
+    end_time: initial?.end_time || "21:30", teacher: initial?.teacher || "",
+    material: initial?.material || "", location: initial?.location || "", recurring: false,
   });
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -258,8 +287,14 @@ function AddKegiatanModal({ onClose, onDone }) {
     if (!f.name.trim()) { toast.error("Nama kegiatan wajib diisi"); return; }
     setSaving(true);
     try {
-      const { data } = await api.post("/admin/kegiatan", f);
-      toast.success(`Kegiatan dibuat${f.recurring ? ` (${data.length}x berulang)` : ""}.`);
+      if (editing) {
+        const { recurring, ...payload } = f;
+        await api.patch(`/admin/kegiatan/${initial.id}`, payload);
+        toast.success("Kegiatan diperbarui.");
+      } else {
+        const { data } = await api.post("/admin/kegiatan", f);
+        toast.success(`Kegiatan dibuat${f.recurring ? ` (${data.length}x berulang)` : ""}.`);
+      }
       onDone();
     } catch (e2) {
       toast.error(formatApiErrorDetail(e2.response?.data?.detail));
@@ -267,7 +302,7 @@ function AddKegiatanModal({ onClose, onDone }) {
   };
 
   return (
-    <ModalShell title="Tambah Kegiatan" onClose={onClose} testid="modal-add-kegiatan">
+    <ModalShell title={editing ? "Edit Kegiatan" : "Tambah Kegiatan"} onClose={onClose} testid={editing ? "modal-edit-kegiatan" : "modal-add-kegiatan"}>
       <form onSubmit={submit} className="grid sm:grid-cols-2 gap-3">
         <input data-testid="keg-name" required value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Nama Kegiatan *" className={`${inp} sm:col-span-2`} />
         <div className="sm:col-span-2">
@@ -297,13 +332,15 @@ function AddKegiatanModal({ onClose, onDone }) {
         <input data-testid="keg-teacher" value={f.teacher} onChange={(e) => set("teacher", e.target.value)} placeholder="Pengajar" className={inp} />
         <input data-testid="keg-material" value={f.material} onChange={(e) => set("material", e.target.value)} placeholder="Materi" className={inp} />
         <input data-testid="keg-location" value={f.location} onChange={(e) => set("location", e.target.value)} placeholder="Lokasi" className={`${inp} sm:col-span-2`} />
-        <label className="sm:col-span-2 flex items-center gap-2.5 px-3.5 h-12 rounded-xl border-2 border-[#E5E7EB] cursor-pointer bg-white">
-          <input data-testid="keg-recurring" type="checkbox" className="accent-[#0D5C3A] w-4 h-4" checked={f.recurring} onChange={(e) => set("recurring", e.target.checked)} />
-          <span className="text-sm font-semibold text-[#111827]">Kegiatan berulang (4 minggu, mingguan)</span>
-        </label>
+        {!editing && (
+          <label className="sm:col-span-2 flex items-center gap-2.5 px-3.5 h-12 rounded-xl border-2 border-[#E5E7EB] cursor-pointer bg-white">
+            <input data-testid="keg-recurring" type="checkbox" className="accent-[#0D5C3A] w-4 h-4" checked={f.recurring} onChange={(e) => set("recurring", e.target.checked)} />
+            <span className="text-sm font-semibold text-[#111827]">Kegiatan berulang (4 minggu, mingguan)</span>
+          </label>
+        )}
         <button data-testid="button-submit-kegiatan" type="submit" disabled={saving}
           className="sm:col-span-2 h-12 rounded-xl bg-[#0D5C3A] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60">
-          {saving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />} Simpan Kegiatan
+          {saving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />} {editing ? "Simpan Perubahan" : "Simpan Kegiatan"}
         </button>
       </form>
     </ModalShell>
@@ -320,15 +357,11 @@ function AbsensiModal({ kegiatanId, onClose, onChanged }) {
   const [data, setData] = useState(null);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(null);
-  const [feedback, setFeedback] = useState([]);
 
   const load = useCallback(() => {
     api.get(`/admin/kegiatan/${kegiatanId}/rekap`)
       .then(({ data: d }) => setData(d))
       .catch((e) => toast.error(formatApiErrorDetail(e.response?.data?.detail)));
-    api.get(`/admin/kegiatan/${kegiatanId}/feedback`)
-      .then(({ data: f }) => setFeedback(f || []))
-      .catch(() => {});
   }, [kegiatanId]);
 
   useEffect(() => { load(); }, [load]);
@@ -403,29 +436,43 @@ function AbsensiModal({ kegiatanId, onClose, onChanged }) {
             ))}
           </div>
 
-          {/* Kesan & Pesan */}
-          <div className="mt-4">
-            <div className="text-sm font-semibold text-[#111827] mb-2 flex items-center gap-1.5">
-              <MessageSquareText size={15} /> Kesan &amp; Pesan {feedback.length > 0 && <span className="text-xs font-normal text-[#9CA3AF]">({feedback.length})</span>}
+          {/* Kesan & Pesan dipindah ke modal terpisah via menu Opsi */}
+        </div>
+      )}
+    </ModalShell>
+  );
+}
+
+function FeedbackModal({ kegiatan, onClose }) {
+  const [items, setItems] = useState(null);
+  useEffect(() => {
+    api.get(`/admin/kegiatan/${kegiatan.id}/feedback`)
+      .then(({ data }) => setItems(data || []))
+      .catch((e) => { toast.error(formatApiErrorDetail(e.response?.data?.detail)); setItems([]); });
+  }, [kegiatan.id]);
+
+  return (
+    <ModalShell title="Kesan & Pesan" onClose={onClose} testid="modal-feedback">
+      <div className="text-sm text-[#6B7280] mb-3">
+        Masukan dari peserta untuk <b className="text-[#111827]">{kegiatan.name}</b>.
+      </div>
+      {items === null ? (
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>
+      ) : items.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-[#E5E7EB] bg-[#FAFBF9] p-8 text-center text-sm text-[#9CA3AF]">
+          Belum ada kesan &amp; pesan dari peserta.
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-[#E5E7EB] bg-white divide-y divide-[#F1F2F0] max-h-[60vh] overflow-y-auto" data-testid="feedback-list">
+          {items.map((f) => (
+            <div key={f.id} className="px-4 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="font-semibold text-[#111827] text-sm">{f.name}</div>
+                <div className="text-xs text-[#9CA3AF]">{f.created_at ? hhmm(f.created_at) : ""}</div>
+              </div>
+              <p className="text-sm text-[#4B5563] mt-0.5 whitespace-pre-wrap break-words">{f.message}</p>
             </div>
-            {feedback.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-[#E5E7EB] bg-[#FAFBF9] p-4 text-center text-sm text-[#9CA3AF]">
-                Belum ada kesan &amp; pesan dari peserta.
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-[#E5E7EB] bg-white divide-y divide-[#F1F2F0] max-h-[30vh] overflow-y-auto" data-testid="feedback-list">
-                {feedback.map((f) => (
-                  <div key={f.id} className="px-4 py-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="font-semibold text-[#111827] text-sm">{f.name}</div>
-                      <div className="text-xs text-[#9CA3AF]">{f.created_at ? hhmm(f.created_at) : ""}</div>
-                    </div>
-                    <p className="text-sm text-[#4B5563] mt-0.5 whitespace-pre-wrap break-words">{f.message}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          ))}
         </div>
       )}
     </ModalShell>
@@ -471,8 +518,7 @@ function AbsenQrModal({ data, onClose }) {
           <p className="text-sm font-semibold text-[#065F46] flex items-center gap-1.5"><ScanLine size={15} /> Cara absen mandiri</p>
           <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
             Scan QR ini dengan kamera HP. Jamaah/peserta cukup <b>cari nama sendiri</b> lalu tekan
-            <b> Konfirmasi Hadir</b>. Bisa juga menuliskan <b>kesan &amp; pesan</b> untuk kegiatan ini.
-            QR hanya berfungsi selama kegiatan <b>masih berlangsung</b> (belum diselesaikan).
+            <b> Konfirmasi Hadir</b>. QR hanya berfungsi selama kegiatan <b>masih berlangsung</b> (belum diselesaikan).
           </p>
         </div>
         <p className="text-xs text-[#9CA3AF] mt-2 break-all px-2">{data.link}</p>

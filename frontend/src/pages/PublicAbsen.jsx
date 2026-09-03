@@ -26,7 +26,10 @@ export default function PublicAbsen() {
       .then(({ data: d }) => setData(d))
       .catch(() => setErr("Tautan absen tidak ditemukan."));
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [token]);
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const k = data?.kegiatan;
   const closed = k?.status && k.status !== "open";
