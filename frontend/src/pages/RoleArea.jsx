@@ -3,6 +3,7 @@ import { ArrowLeft, Shield, Users, UserCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import ProfileMenu from "@/components/ProfileMenu";
 import AdminLayout from "@/pages/admin/AdminLayout";
+import PesertaArea from "@/pages/PesertaArea";
 
 const META = {
   admin: { icon: Shield, title: "Area Admin", color: "#D97706" },
@@ -23,6 +24,11 @@ export default function RoleArea() {
   // Admin & Pengurus: full-screen panel with sidebar navigation
   if (role === "admin" || role === "pengurus") {
     return <AdminLayout user={user} role={role} />;
+  }
+
+  // Peserta: mobile-first area with bottom navigation
+  if (role === "peserta") {
+    return <PesertaArea user={user} />;
   }
 
   const meta = META[role] || META.peserta;

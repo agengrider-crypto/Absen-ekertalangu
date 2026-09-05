@@ -11,6 +11,8 @@ import {
   KEGIATAN_TYPES, TYPE_LABEL, TYPE_COLOR, timeOptions,
   tanggalPanjang, tanggalSingkat, hhmm, MONTH_SHORT,
 } from "./kegiatanUtils";
+import { ReminderModal, DelegasiModal, ScanPesertaModal } from "./KegiatanExtras";
+import { Send as SendIcon, ShieldCheck as ShieldIcon, ScanLine as ScanIcon } from "lucide-react";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white";
 const TIMES = timeOptions();
@@ -31,6 +33,9 @@ export default function KegiatanView() {
   const [absenQr, setAbsenQr] = useState(null);
   const [editItem, setEditItem] = useState(null);
   const [feedbackItem, setFeedbackItem] = useState(null);
+  const [reminderItem, setReminderItem] = useState(null);
+  const [delegasiItem, setDelegasiItem] = useState(null);
+  const [scanItem, setScanItem] = useState(null);
 
   const load = useCallback(() => {
     setItems(null);
@@ -123,6 +128,9 @@ export default function KegiatanView() {
               onEdit={() => setEditItem(k)}
               onRekap={() => setDetailId(k.id)}
               onFeedback={() => setFeedbackItem(k)}
+              onReminder={() => setReminderItem(k)}
+              onDelegasi={() => setDelegasiItem(k)}
+              onScanPeserta={() => setScanItem(k)}
               onToggleStatus={async () => {
                 try {
                   await api.post(`/admin/kegiatan/${k.id}/${k.status === "open" ? "close" : "reopen"}`);
@@ -149,11 +157,14 @@ export default function KegiatanView() {
       {feedbackItem && <FeedbackModal kegiatan={feedbackItem} onClose={() => setFeedbackItem(null)} />}
       {qrModal && <QrModal data={qrModal} onClose={() => setQrModal(null)} />}
       {absenQr && <AbsenQrModal data={absenQr} onClose={() => setAbsenQr(null)} />}
+      {reminderItem && <ReminderModal kegiatan={reminderItem} onClose={() => setReminderItem(null)} />}
+      {delegasiItem && <DelegasiModal kegiatan={delegasiItem} onClose={() => setDelegasiItem(null)} />}
+      {scanItem && <ScanPesertaModal kegiatan={scanItem} onClose={() => setScanItem(null)} onChanged={load} />}
     </div>
   );
 }
 
-function KegiatanCard({ k, onAbsenQr, onShare, onEdit, onRekap, onFeedback, onToggleStatus, onDelete }) {
+function KegiatanCard({ k, onAbsenQr, onShare, onEdit, onRekap, onFeedback, onReminder, onDelegasi, onScanPeserta, onToggleStatus, onDelete }) {
   const c = k.counts || {};
   const closed = k.status === "closed";
   const [opsi, setOpsi] = useState(false);
@@ -205,6 +216,9 @@ function KegiatanCard({ k, onAbsenQr, onShare, onEdit, onRekap, onFeedback, onTo
           {opsi && (
             <div className="absolute left-0 mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-[#E5E7EB] overflow-hidden z-30" data-testid={`opsi-menu-${k.id}`}>
               <button data-testid={`opsi-share-${k.id}`} onClick={() => { setOpsi(false); onShare(); }} className={opsiItem}><Share2 size={16} className="text-[#0D5C3A]" /> Share</button>
+              <button data-testid={`opsi-reminder-${k.id}`} onClick={() => { setOpsi(false); onReminder(); }} className={opsiItem}><SendIcon size={16} className="text-[#0D5C3A]" /> Pengingat WA</button>
+              <button data-testid={`opsi-scan-peserta-${k.id}`} onClick={() => { setOpsi(false); onScanPeserta(); }} className={opsiItem}><ScanIcon size={16} className="text-[#0D5C3A]" /> Scan QR Peserta</button>
+              <button data-testid={`opsi-delegasi-${k.id}`} onClick={() => { setOpsi(false); onDelegasi(); }} className={opsiItem}><ShieldIcon size={16} className="text-[#0D5C3A]" /> Delegasi Absen</button>
               <button data-testid={`opsi-edit-${k.id}`} onClick={() => { setOpsi(false); onEdit(); }} className={opsiItem}><Pencil size={16} className="text-[#0D5C3A]" /> Edit Kegiatan</button>
               <button data-testid={`opsi-rekap-${k.id}`} onClick={() => { setOpsi(false); onRekap(); }} className={opsiItem}><FileBarChart2 size={16} className="text-[#0D5C3A]" /> Rekap Absen</button>
               <button data-testid={`opsi-feedback-${k.id}`} onClick={() => { setOpsi(false); onFeedback(); }} className={opsiItem}><MessageSquareText size={16} className="text-[#0D5C3A]" /> Kotak Pesan / Saran</button>

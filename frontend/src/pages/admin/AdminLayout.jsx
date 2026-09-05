@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
-  ShieldCheck, Menu, X, LogOut, ArrowLeftRight,
+  ShieldCheck, Menu, X, LogOut, ArrowLeftRight, MessagesSquare, Megaphone,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
@@ -13,11 +13,15 @@ import KegiatanView from "./KegiatanView";
 import LaporanView from "./LaporanView";
 import LogAktivitas from "./LogAktivitas";
 import HakAkses from "./HakAkses";
+import MusyawarahView from "./MusyawarahView";
+import PengumumanView from "./PengumumanView";
 
 const MENU = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "pengurus"] },
   { key: "peserta", label: "Peserta", icon: Users, roles: ["admin", "pengurus"] },
   { key: "kegiatan", label: "Kegiatan", icon: CalendarDays, roles: ["admin", "pengurus"] },
+  { key: "musyawarah", label: "Musyawarah", icon: MessagesSquare, roles: ["admin", "pengurus"] },
+  { key: "pengumuman", label: "Pengumuman", icon: Megaphone, roles: ["admin", "pengurus"] },
   { key: "laporan", label: "Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"] },
   { key: "log", label: "Log Aktivitas", icon: ScrollText, roles: ["admin"] },
   { key: "hakakses", label: "Hak Akses", icon: ShieldCheck, roles: ["admin"] },
@@ -133,6 +137,8 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "dashboard" && <DashboardView user={user} onGoto={go} />}
           {active === "peserta" && <Peserta role={role} />}
           {active === "kegiatan" && <KegiatanView />}
+          {active === "musyawarah" && <MusyawarahView />}
+          {active === "pengumuman" && <PengumumanView />}
           {active === "laporan" && <LaporanView />}
           {active === "log" && role === "admin" && <LogAktivitas />}
           {active === "hakakses" && role === "admin" && <HakAkses currentUserId={user?.id} />}

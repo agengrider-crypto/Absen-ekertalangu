@@ -11,6 +11,7 @@ import io
 import re
 import secrets
 import hashlib
+import hmac
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Annotated
@@ -1027,6 +1028,7 @@ async def auto_close_kegiatan():
             await db.kegiatans.update_one(
                 {"_id": k["_id"]},
                 {"$set": {"status": "closed", "closed_at": now.isoformat(), "auto_closed": True}})
+            await revoke_delegations_for_kegiatan(k["_id"], "Kegiatan ditutup otomatis")
 
 
 async def auto_close_loop():
@@ -1147,6 +1149,7 @@ async def close_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
     await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": {
         "status": "closed", "closed_at": now_wita().isoformat(), "auto_closed": False}})
+    await revoke_delegations_for_kegiatan(kegiatan_id, "Kegiatan diselesaikan")
     await log_activity(admin, "selesaikan_kegiatan", f"Menyelesaikan kegiatan '{k.get('name')}'")
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     return serialize_kegiatan(k, await kegiatan_counts(kegiatan_id))
@@ -1404,6 +1407,570 @@ async def admin_kegiatan_feedback(kegiatan_id: str, admin: dict = Depends(requir
     items = await db.feedbacks.find({"kegiatan_id": kegiatan_id}).sort("created_at", -1).to_list(1000)
     return [{"id": f["_id"], "name": f.get("name"), "message": f.get("message"),
              "created_at": f.get("created_at")} for f in items]
+
+
+# ===========================================================================
+# FASE 3 (Pengurus) & FASE 4 (Peserta)
+# ===========================================================================
+MUSY_CATEGORIES = ["4S", "tim7"]
+MAX_PINNED = 3
+PERSONAL_QR_ROTATE = 60  # detik
+
+
+def wa_number(phone: Optional[str]) -> Optional[str]:
+    if not phone:
+        return None
+    digits = re.sub(r"\D", "", phone)
+    if not digits:
+        return None
+    if digits.startswith("0"):
+        digits = "62" + digits[1:]
+    elif digits.startswith("62"):
+        pass
+    elif digits.startswith("8"):
+        digits = "62" + digits
+    return digits
+
+
+# ------------------------- Musyawarah -------------------------
+class MusyawarahInput(BaseModel):
+    category: str
+    date: Optional[str] = None
+    content: Optional[str] = ""
+
+
+class MusyawarahUpdate(BaseModel):
+    date: Optional[str] = None
+    content: Optional[str] = None
+
+
+def serialize_musyawarah(m: dict) -> dict:
+    return {"id": m["_id"], "category": m.get("category"), "date": m.get("date"),
+            "content": m.get("content", ""), "created_by": m.get("created_by_name"),
+            "created_at": m.get("created_at"), "updated_at": m.get("updated_at")}
+
+
+@api_router.get("/staff/musyawarah")
+async def list_musyawarah(category: str = "", staff: dict = Depends(require_staff)):
+    q = {}
+    if category in MUSY_CATEGORIES:
+        q["category"] = category
+    items = await db.musyawarahs.find(q).sort("date", -1).to_list(2000)
+    return [serialize_musyawarah(m) for m in items]
+
+
+@api_router.post("/staff/musyawarah")
+async def create_musyawarah(body: MusyawarahInput, staff: dict = Depends(require_staff)):
+    if body.category not in MUSY_CATEGORIES:
+        raise HTTPException(status_code=400, detail="Kategori tidak valid")
+    now = now_wita().isoformat()
+    doc = {"_id": str(uuid.uuid4()), "category": body.category,
+           "date": body.date or now_wita().strftime("%Y-%m-%d"),
+           "content": body.content or "", "created_by_id": str(staff["_id"]),
+           "created_by_name": staff.get("name"), "created_at": now, "updated_at": now}
+    await db.musyawarahs.insert_one(doc)
+    return serialize_musyawarah(doc)
+
+
+@api_router.patch("/staff/musyawarah/{musy_id}")
+async def update_musyawarah(musy_id: str, body: MusyawarahUpdate, staff: dict = Depends(require_staff)):
+    m = await db.musyawarahs.find_one({"_id": musy_id})
+    if not m:
+        raise HTTPException(status_code=404, detail="Catatan tidak ditemukan")
+    updates = {"updated_at": now_wita().isoformat()}
+    if body.date is not None:
+        updates["date"] = body.date
+    if body.content is not None:
+        updates["content"] = body.content
+    await db.musyawarahs.update_one({"_id": musy_id}, {"$set": updates})
+    m = await db.musyawarahs.find_one({"_id": musy_id})
+    return serialize_musyawarah(m)
+
+
+@api_router.delete("/staff/musyawarah/{musy_id}")
+async def delete_musyawarah(musy_id: str, staff: dict = Depends(require_staff)):
+    res = await db.musyawarahs.delete_one({"_id": musy_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Catatan tidak ditemukan")
+    return {"ok": True}
+
+
+@api_router.get("/staff/musyawarah/{musy_id}/pdf")
+async def musyawarah_pdf(musy_id: str, staff: dict = Depends(require_staff)):
+    m = await db.musyawarahs.find_one({"_id": musy_id})
+    if not m:
+        raise HTTPException(status_code=404, detail="Catatan tidak ditemukan")
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=2 * cm, bottomMargin=2 * cm,
+                            leftMargin=2 * cm, rightMargin=2 * cm)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#0D5C3A")
+    cat_label = "Musyawarah 4S" if m.get("category") == "4S" else "Musyawarah Tim 7"
+    body_style = ParagraphStyle("b", parent=styles["Normal"], fontSize=11, leading=17)
+    elems = [Paragraph("E-KERTALANGU", title_style),
+             Paragraph(cat_label, styles["Heading2"]),
+             Paragraph(f"Tanggal: {m.get('date', '-')}", styles["Normal"]),
+             Spacer(1, 0.4 * cm)]
+    content = (m.get("content") or "").replace("\n", "<br/>")
+    elems.append(Paragraph(content or "(kosong)", body_style))
+    doc.build(elems)
+    buf.seek(0)
+    fname = f"musyawarah_{m.get('category')}_{m.get('date')}.pdf"
+    return StreamingResponse(buf, media_type="application/pdf",
+                             headers={"Content-Disposition": f"attachment; filename={fname}"})
+
+
+# ------------------------- Pengumuman -------------------------
+class PengumumanInput(BaseModel):
+    title: str
+    body: str = ""
+    kegiatan_id: Optional[str] = None
+    pengajar: Optional[str] = None
+    important: bool = False
+    pinned: bool = False
+    pin_roles: List[str] = []
+
+
+class PengumumanUpdate(BaseModel):
+    title: Optional[str] = None
+    body: Optional[str] = None
+    kegiatan_id: Optional[str] = None
+    pengajar: Optional[str] = None
+    important: Optional[bool] = None
+    pinned: Optional[bool] = None
+    pin_roles: Optional[List[str]] = None
+
+
+def serialize_pengumuman(p: dict) -> dict:
+    return {"id": p["_id"], "title": p.get("title"), "body": p.get("body", ""),
+            "kegiatan_id": p.get("kegiatan_id"), "kegiatan_name": p.get("kegiatan_name"),
+            "pengajar": p.get("pengajar"), "important": bool(p.get("important")),
+            "pinned": bool(p.get("pinned")), "pin_roles": p.get("pin_roles", []),
+            "created_by": p.get("created_by_name"), "created_at": p.get("created_at")}
+
+
+async def _count_pinned(exclude_id: Optional[str] = None) -> int:
+    q = {"pinned": True}
+    if exclude_id:
+        q["_id"] = {"$ne": exclude_id}
+    return await db.pengumumans.count_documents(q)
+
+
+@api_router.get("/staff/pengumuman")
+async def list_pengumuman(staff: dict = Depends(require_staff)):
+    items = await db.pengumumans.find().sort([("pinned", -1), ("created_at", -1)]).to_list(2000)
+    return [serialize_pengumuman(p) for p in items]
+
+
+@api_router.post("/staff/pengumuman")
+async def create_pengumuman(body: PengumumanInput, staff: dict = Depends(require_staff)):
+    title = (body.title or "").strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Judul wajib diisi")
+    if body.pinned and await _count_pinned() >= MAX_PINNED:
+        raise HTTPException(status_code=400, detail=f"Maksimal {MAX_PINNED} pengumuman yang bisa di-pin")
+    pin_roles = [r for r in (body.pin_roles or []) if r in VALID_ROLES]
+    keg_name = None
+    if body.kegiatan_id:
+        k = await db.kegiatans.find_one({"_id": body.kegiatan_id})
+        keg_name = k.get("name") if k else None
+    doc = {"_id": str(uuid.uuid4()), "title": title, "body": body.body or "",
+           "kegiatan_id": body.kegiatan_id, "kegiatan_name": keg_name,
+           "pengajar": body.pengajar, "important": bool(body.important),
+           "pinned": bool(body.pinned), "pin_roles": pin_roles if body.pinned else [],
+           "created_by_id": str(staff["_id"]), "created_by_name": staff.get("name"),
+           "created_at": now_wita().isoformat()}
+    await db.pengumumans.insert_one(doc)
+    await log_activity(staff, "buat_pengumuman", f"Membuat pengumuman '{title}'")
+    return serialize_pengumuman(doc)
+
+
+@api_router.patch("/staff/pengumuman/{peng_id}")
+async def update_pengumuman(peng_id: str, body: PengumumanUpdate, staff: dict = Depends(require_staff)):
+    p = await db.pengumumans.find_one({"_id": peng_id})
+    if not p:
+        raise HTTPException(status_code=404, detail="Pengumuman tidak ditemukan")
+    updates = {}
+    want_pinned = body.pinned if body.pinned is not None else p.get("pinned")
+    if body.pinned is True and not p.get("pinned"):
+        if await _count_pinned(exclude_id=peng_id) >= MAX_PINNED:
+            raise HTTPException(status_code=400, detail=f"Maksimal {MAX_PINNED} pengumuman yang bisa di-pin")
+    for field in ["title", "body", "pengajar", "important"]:
+        val = getattr(body, field)
+        if val is not None:
+            updates[field] = val
+    if body.kegiatan_id is not None:
+        updates["kegiatan_id"] = body.kegiatan_id
+        k = await db.kegiatans.find_one({"_id": body.kegiatan_id}) if body.kegiatan_id else None
+        updates["kegiatan_name"] = k.get("name") if k else None
+    if body.pinned is not None:
+        updates["pinned"] = bool(body.pinned)
+    if body.pin_roles is not None:
+        updates["pin_roles"] = [r for r in body.pin_roles if r in VALID_ROLES]
+    if not want_pinned:
+        updates["pin_roles"] = []
+    await db.pengumumans.update_one({"_id": peng_id}, {"$set": updates})
+    p = await db.pengumumans.find_one({"_id": peng_id})
+    return serialize_pengumuman(p)
+
+
+@api_router.delete("/staff/pengumuman/{peng_id}")
+async def delete_pengumuman(peng_id: str, staff: dict = Depends(require_staff)):
+    res = await db.pengumumans.delete_one({"_id": peng_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Pengumuman tidak ditemukan")
+    return {"ok": True}
+
+
+@api_router.get("/me/announcements")
+async def my_announcements(role: str = "", user: dict = Depends(get_current_user)):
+    roles = user.get("roles", [])
+    target = role if role in roles else (roles[0] if roles else "peserta")
+    items = await db.pengumumans.find({"pinned": True, "pin_roles": target}) \
+        .sort("created_at", -1).to_list(MAX_PINNED)
+    return [serialize_pengumuman(p) for p in items[:MAX_PINNED]]
+
+
+# ------------------------- Pengingat Kegiatan (WA) -------------------------
+def build_reminder_text(k: dict) -> str:
+    lines = [f"*Undangan Pengajian - {k.get('name', '')}*", ""]
+    lines.append(f"Hari/Tanggal : {k.get('date', '-')}")
+    lines.append(f"Waktu : {k.get('start_time', '')} - {k.get('end_time', '')} WITA")
+    if k.get("location"):
+        lines.append(f"Tempat : {k.get('location')}")
+    if k.get("teacher"):
+        lines.append(f"Pengajar : {k.get('teacher')}")
+    if k.get("material"):
+        lines.append(f"Materi : {k.get('material')}")
+    lines.append("")
+    lines.append("Mohon kehadiran dan doa restunya. Jazakumullahu khoiro.")
+    return "\n".join(lines)
+
+
+@api_router.get("/staff/kegiatan/{kegiatan_id}/reminder")
+async def kegiatan_reminder(kegiatan_id: str, staff: dict = Depends(require_staff)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(5000)
+    recipients = []
+    for p in peserta:
+        wa = wa_number(p.get("whatsapp") or p.get("phone"))
+        if wa:
+            recipients.append({"id": str(p["_id"]), "name": p.get("name"),
+                               "phone": p.get("whatsapp") or p.get("phone"), "wa": wa})
+    return {"text": build_reminder_text(k), "recipients": recipients}
+
+
+# ------------------------- Delegasi Absensi -------------------------
+class DelegationInput(BaseModel):
+    grantee_id: str
+    reason: str
+
+
+def serialize_delegation(d: dict) -> dict:
+    return {"id": d["_id"], "kegiatan_id": d.get("kegiatan_id"),
+            "kegiatan_name": d.get("kegiatan_name"), "granted_by": d.get("granted_by_name"),
+            "grantee_id": d.get("grantee_id"), "grantee_name": d.get("grantee_name"),
+            "reason": d.get("reason"), "active": bool(d.get("active")),
+            "created_at": d.get("created_at"), "revoked_at": d.get("revoked_at"),
+            "revoked_reason": d.get("revoked_reason")}
+
+
+async def revoke_delegations_for_kegiatan(kegiatan_id: str, reason: str = "Kegiatan ditutup"):
+    now = now_wita().isoformat()
+    await db.delegations.update_many(
+        {"kegiatan_id": kegiatan_id, "active": True},
+        {"$set": {"active": False, "revoked_at": now, "revoked_reason": reason}})
+
+
+@api_router.post("/staff/kegiatan/{kegiatan_id}/delegate")
+async def create_delegation(kegiatan_id: str, body: DelegationInput, staff: dict = Depends(require_staff)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    if k.get("status", "open") != "open":
+        raise HTTPException(status_code=400, detail="Kegiatan sudah ditutup, tidak bisa delegasi")
+    reason = (body.reason or "").strip()
+    if not reason:
+        raise HTTPException(status_code=400, detail="Catatan alasan wajib diisi")
+    g = await db.users.find_one({"_id": ObjectId(body.grantee_id)}) if ObjectId.is_valid(body.grantee_id) else None
+    if not g:
+        raise HTTPException(status_code=404, detail="Penerima delegasi tidak ditemukan")
+    # cabut delegasi aktif sebelumnya utk kegiatan+penerima yang sama
+    await db.delegations.update_many(
+        {"kegiatan_id": kegiatan_id, "grantee_id": body.grantee_id, "active": True},
+        {"$set": {"active": False, "revoked_at": now_wita().isoformat(),
+                  "revoked_reason": "Diganti delegasi baru"}})
+    now = now_wita().isoformat()
+    doc = {"_id": str(uuid.uuid4()), "kegiatan_id": kegiatan_id,
+           "kegiatan_name": k.get("name"), "granted_by_id": str(staff["_id"]),
+           "granted_by_name": staff.get("name"), "grantee_id": body.grantee_id,
+           "grantee_name": g.get("name"), "reason": reason, "active": True,
+           "created_at": now, "revoked_at": None, "revoked_reason": None}
+    await db.delegations.insert_one(doc)
+    await log_activity(staff, "delegasi_absen",
+                       f"Delegasi absen '{k.get('name')}' kepada {g.get('name')} — alasan: {reason}",
+                       body.grantee_id)
+    return serialize_delegation(doc)
+
+
+@api_router.get("/staff/kegiatan/{kegiatan_id}/delegations")
+async def list_delegations(kegiatan_id: str, staff: dict = Depends(require_staff)):
+    items = await db.delegations.find({"kegiatan_id": kegiatan_id}).sort("created_at", -1).to_list(500)
+    return [serialize_delegation(d) for d in items]
+
+
+@api_router.post("/staff/delegation/{deleg_id}/revoke")
+async def revoke_delegation(deleg_id: str, staff: dict = Depends(require_staff)):
+    d = await db.delegations.find_one({"_id": deleg_id})
+    if not d:
+        raise HTTPException(status_code=404, detail="Delegasi tidak ditemukan")
+    await db.delegations.update_one({"_id": deleg_id}, {"$set": {
+        "active": False, "revoked_at": now_wita().isoformat(),
+        "revoked_reason": f"Dicabut oleh {staff.get('name')}"}})
+    await log_activity(staff, "cabut_delegasi",
+                       f"Mencabut delegasi absen '{d.get('kegiatan_name')}' dari {d.get('grantee_name')}",
+                       d.get("grantee_id"))
+    d = await db.delegations.find_one({"_id": deleg_id})
+    return serialize_delegation(d)
+
+
+async def _active_delegation(kegiatan_id: str, user_id: str):
+    return await db.delegations.find_one(
+        {"kegiatan_id": kegiatan_id, "grantee_id": user_id, "active": True})
+
+
+@api_router.get("/me/delegations")
+async def my_delegations(user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    items = await db.delegations.find({"grantee_id": uid, "active": True}) \
+        .sort("created_at", -1).to_list(200)
+    result = []
+    for d in items:
+        k = await db.kegiatans.find_one({"_id": d.get("kegiatan_id")})
+        if not k or k.get("status", "open") != "open":
+            continue
+        out = serialize_delegation(d)
+        out["kegiatan"] = serialize_kegiatan(k)
+        result.append(out)
+    return result
+
+
+@api_router.get("/delegate/kegiatan/{kegiatan_id}")
+async def delegate_kegiatan_info(kegiatan_id: str, user: dict = Depends(get_current_user)):
+    deleg = await _active_delegation(kegiatan_id, str(user["_id"]))
+    if not deleg:
+        raise HTTPException(status_code=403, detail="Anda tidak memiliki hak delegasi untuk kegiatan ini")
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(5000)
+    kmap = {km["_id"]: km.get("name") async for km in db.kelompoks.find()}
+    absens = await db.absensis.find({"kegiatan_id": kegiatan_id}).to_list(10000)
+    amap = {a["user_id"]: a for a in absens}
+    rows = []
+    for p in peserta:
+        pid = str(p["_id"])
+        a = amap.get(pid)
+        rows.append({"id": pid, "name": p.get("name"),
+                     "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
+                     "status": a["status"] if a else "alpha",
+                     "arrival_time": a.get("arrival_time") if a else None})
+    return {"kegiatan": serialize_kegiatan(k), "peserta": rows,
+            "delegation": serialize_delegation(deleg)}
+
+
+@api_router.post("/delegate/kegiatan/{kegiatan_id}/absen")
+async def delegate_mark_absen(kegiatan_id: str, body: AbsenInput, user: dict = Depends(get_current_user)):
+    deleg = await _active_delegation(kegiatan_id, str(user["_id"]))
+    if not deleg:
+        raise HTTPException(status_code=403, detail="Anda tidak memiliki hak delegasi untuk kegiatan ini")
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    if k.get("status", "open") != "open":
+        raise HTTPException(status_code=403, detail="Kegiatan sudah ditutup")
+    if body.status not in ABSEN_STATUS:
+        raise HTTPException(status_code=400, detail="Status absensi tidak valid")
+    u = await db.users.find_one({"_id": ObjectId(body.user_id)}) if ObjectId.is_valid(body.user_id) else None
+    if not u:
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+    arrival = now_wita().isoformat() if body.status == "hadir" else None
+    await db.absensis.update_one(
+        {"kegiatan_id": kegiatan_id, "user_id": body.user_id},
+        {"$set": {"kegiatan_id": kegiatan_id, "user_id": body.user_id, "status": body.status,
+                  "arrival_time": arrival, "marked_by": f"Delegasi: {user.get('name')}",
+                  "marked_by_id": str(user["_id"]), "updated_at": now_wita().isoformat()}},
+        upsert=True)
+    return {"user_id": body.user_id, "status": body.status, "arrival_time": arrival}
+
+
+# ------------------------- Peserta: QR pribadi rotating -------------------------
+def _current_window() -> int:
+    return int(datetime.now(timezone.utc).timestamp() // PERSONAL_QR_ROTATE)
+
+
+def make_personal_token(user_id: str, window: int) -> str:
+    msg = f"{user_id}.{window}"
+    sig = hmac.new(get_jwt_secret().encode(), msg.encode(), hashlib.sha256).hexdigest()[:16]
+    raw = f"{user_id}.{window}.{sig}"
+    return base64.urlsafe_b64encode(raw.encode()).decode()
+
+
+def verify_personal_token(token: str) -> Optional[str]:
+    try:
+        raw = base64.urlsafe_b64decode(token.encode()).decode()
+        user_id, window_s, sig = raw.split(".")
+        window = int(window_s)
+    except Exception:
+        return None
+    now_w = _current_window()
+    if window not in (now_w, now_w - 1):
+        return None
+    expected = hmac.new(get_jwt_secret().encode(), f"{user_id}.{window}".encode(),
+                        hashlib.sha256).hexdigest()[:16]
+    if not hmac.compare_digest(expected, sig):
+        return None
+    return user_id
+
+
+@api_router.get("/me/qr")
+async def my_personal_qr(user: dict = Depends(get_current_user)):
+    window = _current_window()
+    token = make_personal_token(str(user["_id"]), window)
+    content = f"EKP:{token}"
+    now_ts = datetime.now(timezone.utc).timestamp()
+    expires_in = int((window + 1) * PERSONAL_QR_ROTATE - now_ts)
+    return {"content": content, "image": make_qr_data_url(content),
+            "rotate_seconds": PERSONAL_QR_ROTATE, "expires_in": max(expires_in, 1)}
+
+
+class ScanPersonalInput(BaseModel):
+    content: str
+
+
+@api_router.post("/staff/kegiatan/{kegiatan_id}/scan-personal")
+async def scan_personal_qr(kegiatan_id: str, body: ScanPersonalInput, staff: dict = Depends(require_staff)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    if k.get("status", "open") != "open":
+        raise HTTPException(status_code=403, detail="Kegiatan sudah ditutup")
+    content = (body.content or "").strip()
+    if content.startswith("EKP:"):
+        content = content[4:]
+    user_id = verify_personal_token(content)
+    if not user_id:
+        raise HTTPException(status_code=400, detail="QR pribadi tidak valid atau sudah kadaluarsa")
+    u = await db.users.find_one({"_id": ObjectId(user_id)}) if ObjectId.is_valid(user_id) else None
+    if not u or "peserta" not in (u.get("roles") or []):
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+    existing = await db.absensis.find_one({"kegiatan_id": kegiatan_id, "user_id": user_id})
+    if existing and existing.get("status") == "hadir":
+        return {"name": u.get("name"), "status": "hadir",
+                "arrival_time": existing.get("arrival_time"), "already": True}
+    arrival = now_wita().isoformat()
+    await db.absensis.update_one(
+        {"kegiatan_id": kegiatan_id, "user_id": user_id},
+        {"$set": {"kegiatan_id": kegiatan_id, "user_id": user_id, "status": "hadir",
+                  "arrival_time": arrival, "marked_by": f"Dibantu: {staff.get('name')}",
+                  "marked_by_id": str(staff["_id"]), "updated_at": arrival}},
+        upsert=True)
+    return {"name": u.get("name"), "status": "hadir", "arrival_time": arrival, "already": False}
+
+
+# ------------------------- Peserta: dashboard / kegiatan / profil -------------------------
+async def _my_attendance_ratio(user_id: str) -> dict:
+    today = now_wita().strftime("%Y-%m-%d")
+    kids = await db.kegiatans.find({"date": {"$lte": today}}).to_list(10000)
+    kid_set = [k["_id"] for k in kids]
+    total = len(kid_set)
+    hadir = 0
+    if kid_set:
+        hadir = await db.absensis.count_documents(
+            {"user_id": user_id, "status": "hadir", "kegiatan_id": {"$in": kid_set}})
+    ratio = round((hadir / total) * 100, 1) if total else 0.0
+    return {"total": total, "hadir": hadir, "ratio": ratio}
+
+
+@api_router.get("/me/dashboard")
+async def peserta_dashboard(user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    today = now_wita().strftime("%Y-%m-%d")
+    upcoming_docs = await db.kegiatans.find({"date": {"$gte": today}}) \
+        .sort([("date", 1), ("start_time", 1)]).to_list(20)
+    upcoming = [serialize_kegiatan(k) for k in upcoming_docs[:5]]
+    ann = await db.pengumumans.find({"pinned": True, "pin_roles": "peserta"}) \
+        .sort("created_at", -1).to_list(MAX_PINNED)
+    return {"name": user.get("name"), "gender": _derive_gender(user),
+            "attendance": await _my_attendance_ratio(uid),
+            "upcoming": upcoming,
+            "announcements": [serialize_pengumuman(p) for p in ann[:MAX_PINNED]]}
+
+
+@api_router.get("/me/kegiatan")
+async def peserta_kegiatan(month: str = "", user: dict = Depends(get_current_user)):
+    q = {}
+    if month:
+        q["date"] = {"$regex": f"^{month}"}
+    docs = await db.kegiatans.find(q).sort([("date", -1), ("start_time", -1)]).to_list(2000)
+    uid = str(user["_id"])
+    absens = await db.absensis.find({"user_id": uid}).to_list(10000)
+    amap = {a["kegiatan_id"]: a for a in absens}
+    result = []
+    for k in docs:
+        item = serialize_kegiatan(k)
+        a = amap.get(k["_id"])
+        item["my_status"] = a["status"] if a else "alpha"
+        item["my_arrival"] = a.get("arrival_time") if a else None
+        result.append(item)
+    return result
+
+
+@api_router.get("/me/kegiatan/{kegiatan_id}")
+async def peserta_kegiatan_detail(kegiatan_id: str, user: dict = Depends(get_current_user)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    uid = str(user["_id"])
+    a = await db.absensis.find_one({"kegiatan_id": kegiatan_id, "user_id": uid})
+    item = serialize_kegiatan(k)
+    item["my_status"] = a["status"] if a else "alpha"
+    item["my_arrival"] = a.get("arrival_time") if a else None
+    return item
+
+
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    dob: Optional[str] = None
+    birthplace: Optional[str] = None
+    address: Optional[str] = None
+    gender: Optional[str] = None
+    education: Optional[str] = None
+
+
+@api_router.patch("/me/profile")
+async def update_my_profile(body: ProfileUpdate, user: dict = Depends(get_current_user)):
+    updates = {}
+    for field in ["name", "phone", "whatsapp", "birthplace", "address", "education"]:
+        val = getattr(body, field)
+        if val is not None:
+            updates[field] = val
+    if body.dob is not None:
+        updates["dob"] = normalize_dob(body.dob)
+    if body.gender is not None:
+        updates["gender"] = normalize_gender(body.gender)
+    if updates:
+        await db.users.update_one({"_id": user["_id"]}, {"$set": updates})
+    u = await db.users.find_one({"_id": user["_id"]})
+    return public_user(u)
 
 
 # ------------------------- Dashboard -------------------------
@@ -1688,6 +2255,12 @@ async def startup():
     await db.kegiatans.create_index("share_token")
     await db.absensis.create_index([("kegiatan_id", 1), ("user_id", 1)], unique=True)
     await db.absensis.create_index("kegiatan_id")
+    await db.absensis.create_index("user_id")
+    await db.musyawarahs.create_index([("category", 1), ("date", -1)])
+    await db.pengumumans.create_index("pinned")
+    await db.pengumumans.create_index("pin_roles")
+    await db.delegations.create_index([("kegiatan_id", 1), ("grantee_id", 1), ("active", 1)])
+    await db.delegations.create_index("grantee_id")
     asyncio.create_task(auto_close_loop())
 
 @app.on_event("shutdown")

@@ -67,3 +67,18 @@ Web app absensi pengajian. Fase 1: fondasi autentikasi — Login fleksibel (HP/E
 - QR pribadi peserta: rotating (berbasis durasi waktu).
 - Maks pengumuman di-pin: 3.
 - Tech: tetap React JSX (tidak migrasi TS).
+
+## Fase 3 (Pengurus) & Fase 4 (Peserta) — SELESAI & TERUJI backend (41/41)
+### Fase 3 (require_staff; admin+pengurus)
+- Musyawarah: kategori 4S/Tim 7, auto-save PATCH, PDF (reportlab), Share WA (wa.me), riwayat per tanggal. Endpoints /api/staff/musyawarah[...] + /pdf.
+- Pengumuman: CRUD, Penting/Non-penting, Pin ke role (maks 3 global), feed dashboard via GET /api/me/announcements?role=. Endpoints /api/staff/pengumuman[...].
+- Pengingat WA: GET /api/staff/kegiatan/{id}/reminder -> text + recipients (wa 62...). Frontend build link wa.me, tap kirim per chat (jalur gratis).
+- Delegasi Absensi: POST /api/staff/kegiatan/{id}/delegate (reason wajib, audit log), /delegations, /delegation/{id}/revoke. AUTO-REVOKE saat kegiatan close/auto-close. Peserta terdelegasi: GET /api/me/delegations, GET/POST /api/delegate/kegiatan/{id}[/absen].
+- Kegiatan card (Opsi): + Pengingat WA, Scan QR Peserta, Delegasi Absen.
+### Fase 4 (Peserta, mobile-first, bottom-nav)
+- Dashboard: sapaan + pengumuman ter-pin + jadwal mendatang + ring % kehadiran. GET /api/me/dashboard.
+- Kegiatan: lihat detail saja (my_status, tanpa rekap orang lain). GET /api/me/kegiatan[/{id}].
+- Scan Barcode Mandiri: kamera (html5-qrcode) baca QR kegiatan -> /absen/{token}.
+- QR Pribadi rotating: GET /api/me/qr (EKP:<token> hmac, window 60s, grace 2 window); staff scan via POST /api/staff/kegiatan/{id}/scan-personal. Bisa download.
+- Profil: GET/PATCH /api/me/profile + foto /api/me/photo.
+- Koleksi baru: musyawarahs, pengumumans, delegations. Dep frontend: html5-qrcode, qrcode.react.

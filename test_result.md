@@ -213,10 +213,100 @@ backend:
         -agent: "testing"
         -comment: "✅ ALL FASE 3A TESTS PASSED (26/26). Comprehensive testing of require_staff (admin OR pengurus) access control and feedback wording completed successfully. TEST 1 - PENGURUS CAN ACCESS (11 tests): ✅ GET /admin/dashboard returns 200 with all stats fields, ✅ GET /admin/kegiatan?month=YYYY-MM returns 200 with kegiatan list, ✅ GET /admin/users returns 200 with 61 users, ✅ GET /admin/laporan returns 200, ✅ GET /admin/kelompok returns 200 with 4 kelompok, ✅ POST /admin/kegiatan creates kegiatan successfully (returns list format), ✅ POST /admin/kegiatan/{id}/absen marks attendance successfully, ✅ GET /admin/kegiatan/{id}/rekap returns 200, ✅ POST /admin/kegiatan/{id}/absen-qr generates QR token successfully, ✅ GET /admin/kegiatan/{id}/feedback returns 200, ✅ POST /admin/users/{id}/move with keterangan returns 200. TEST 2 - PENGURUS FORBIDDEN (4 tests): ✅ DELETE /admin/users/{id} returns 403 (correctly forbidden), ✅ PATCH /admin/users/{id}/roles returns 403 (correctly forbidden), ✅ POST /admin/kelompok returns 403 (correctly forbidden), ✅ POST /admin/users/bulk-delete returns 403 (correctly forbidden). TEST 3 - ADMIN REGRESSION (3 tests): ✅ GET /admin/dashboard returns 200, ✅ GET /admin/users returns 200, ✅ POST /admin/kelompok returns 200 (admin-only endpoint still works). TEST 4 - PESERTA FORBIDDEN (3 tests): ✅ GET /admin/dashboard returns 403 (correctly forbidden), ✅ GET /admin/kegiatan returns 403 (correctly forbidden), ✅ GET /admin/users returns 403 (correctly forbidden). TEST 5 - FEEDBACK WORDING (2 tests): ✅ GET /absen/{token} public endpoint returns 200, ✅ POST /absen/{token}/feedback returns 200 with correct message 'Alhamdulillah, jazakumullahu khoiro.' TEST 6 - CLEANUP (1 test): ✅ DELETE /admin/kegiatan/{id} using pengurus returns 200. All access control rules working correctly: require_staff allows both admin and pengurus, admin-only endpoints properly restricted, peserta correctly forbidden from all admin endpoints. Feedback wording verified correct. NO ISSUES FOUND. Fase 3A fully functional and ready for production."
 
+  - task: "Fase 3 - Musyawarah (CRUD + auto-save PATCH + PDF)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "require_staff. GET /api/staff/musyawarah?category=4S|tim7. POST /api/staff/musyawarah {category,date?,content?} -> create. PATCH /api/staff/musyawarah/{id} {content?,date?} (auto-save). DELETE /api/staff/musyawarah/{id}. GET /api/staff/musyawarah/{id}/pdf -> StreamingResponse PDF (reportlab). Kategori valid hanya 4S/tim7 (400 lain). Smoke curl OK (create/patch/list/pdf 1763B)."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL MUSYAWARAH TESTS PASSED (7/7). Comprehensive testing completed as pengurus: (1) POST /api/staff/musyawarah with category=4S returns 200 with id, (2) POST with invalid category returns 400 validation error, (3) PATCH /api/staff/musyawarah/{id} auto-save updates content and date successfully (200), (4) GET /api/staff/musyawarah?category=4S returns 200 with filtered list, (5) GET /api/staff/musyawarah?category=tim7 returns 200 with separate category list, (6) GET /api/staff/musyawarah/{id}/pdf returns 200 with Content-Type application/pdf and non-empty body (1750 bytes), (7) DELETE /api/staff/musyawarah/{id} returns 200. All CRUD operations, category validation, auto-save, and PDF generation working correctly. NO ISSUES."
+
+  - task: "Fase 3 - Pengumuman (CRUD + pin max 3 + feed per-role)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "require_staff. GET/POST/PATCH/DELETE /api/staff/pengumuman. Field: title(wajib),body,kegiatan_id(auto isi kegiatan_name),pengajar,important,pinned,pin_roles(subset admin/pengurus/peserta). Maks 3 pinned global -> 400 bila lewat (di create & patch saat menaikkan pinned). List pinned dulu lalu created_at desc. GET /api/me/announcements?role= (get_current_user) -> pinned & pin_roles memuat role (maks 3). Smoke curl OK."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL PENGUMUMAN TESTS PASSED (8/8). Comprehensive testing completed: (1) POST with empty title returns 400 validation error, (2) Successfully created pinned announcements up to max 3 total (accounting for existing pinned), (3) Attempting to create 4th pinned when at max 3 returns 400 'Maksimal 3 pengumuman yang bisa di-pin', (4) Creating 4th announcement with pinned=false returns 200 successfully, (5) GET /api/staff/pengumuman returns 200 with pinned items appearing first in list, (6) PATCH one pinned to pinned=false returns 200, then creating new pinned succeeds (slot freed), (7) GET /api/me/announcements?role=peserta (as peserta) returns 200 with max 3 pinned announcements, all have 'peserta' in pin_roles, (8) Created pinned announcement with pin_roles=['admin'] only, verified peserta does NOT see it in their feed (role filtering working). All CRUD operations, max 3 pinned enforcement, role-based filtering, and feed endpoints working correctly. NO ISSUES."
+
+  - task: "Fase 3 - Pengingat Kegiatan WA (recipients + text)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "GET /api/staff/kegiatan/{id}/reminder (require_staff) -> {text (template undangan), recipients:[{id,name,phone,wa}]} untuk peserta aktif yang punya whatsapp/phone. wa dinormalisasi ke 62. Frontend membangun link wa.me."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL REMINDER WA TESTS PASSED (1/1). Created test kegiatan and verified GET /api/staff/kegiatan/{id}/reminder returns 200 with: (1) 'text' field containing non-empty reminder template (225 chars), (2) 'recipients' array with 3 recipients, (3) Each recipient has required fields: id, name, phone, wa, (4) All 'wa' numbers normalized to start with '62' (Indonesian country code). Reminder text generation and WhatsApp number normalization working correctly. NO ISSUES."
+
+  - task: "Fase 3 - Delegasi Absensi (grant/revoke + audit + auto-revoke + peserta terdelegasi)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "POST /api/staff/kegiatan/{id}/delegate {grantee_id,reason(wajib)} (require_staff; kegiatan harus open; cabut delegasi lama utk penerima sama; log_activity 'delegasi_absen'). GET /api/staff/kegiatan/{id}/delegations. POST /api/staff/delegation/{id}/revoke (log 'cabut_delegasi'). Auto-revoke saat close_kegiatan & auto_close (revoke_delegations_for_kegiatan). Peserta: GET /api/me/delegations (aktif & kegiatan open, sertakan kegiatan). GET /api/delegate/kegiatan/{id} (get_current_user, 403 tanpa delegasi aktif) -> peserta+status. POST /api/delegate/kegiatan/{id}/absen {user_id,status} (marked_by 'Delegasi: nama'). Smoke curl OK: delegate 200, me/delegations 1, absen 200, close -> me/delegations 0 (auto-revoke)."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL DELEGASI ABSENSI TESTS PASSED (10/10). Comprehensive full-flow testing completed: (1) Created OPEN kegiatan today (00:00-23:59), (2) Retrieved seed peserta user_id from rekap, (3) POST /api/staff/kegiatan/{id}/delegate with empty reason returns 400 'Catatan alasan wajib diisi', (4) POST delegate with valid reason 'Pengurus tidak di lokasi' returns 200 with active=true, (5) GET /api/staff/kegiatan/{id}/delegations returns 200 with delegation in list, (6) GET /api/me/delegations (as peserta) returns 200 with 1 delegation including this kegiatan, (7) GET /api/delegate/kegiatan/{id} (as peserta with delegation) returns 200 with peserta list (3 peserta), (8) POST /api/delegate/kegiatan/{id}/absen (as peserta) with status=izin returns 200 successfully, (9) POST /api/admin/kegiatan/{id}/close returns 200, then GET /api/me/delegations (as peserta) returns 0 delegations for this kegiatan (AUTO-REVOKE working), (10) GET /api/delegate/kegiatan/{id} after close returns 403 'Anda tidak memiliki hak delegasi'. All delegation grant/revoke, peserta access, absen marking, and auto-revoke on close working correctly. NO ISSUES."
+
+  - task: "Fase 4 - Peserta QR pribadi rotating + scan-personal oleh staff"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "GET /api/me/qr (get_current_user) -> {content 'EKP:<token>', image PNG, rotate_seconds=60, expires_in}. Token = base64(user_id.window.hmac_sha256[:16]) window=epoch//60, valid window & window-1 (grace ~2mnt). POST /api/staff/kegiatan/{id}/scan-personal {content} (require_staff; kegiatan open; strip EKP:; verify token; peserta -> tandai hadir marked_by 'Dibantu: nama'; already:true bila sudah hadir; 400 token invalid). Smoke curl OK: scan hadir, scan lagi already, invalid 400."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL QR PRIBADI TESTS PASSED (6/6). Comprehensive testing of rotating personal QR and scan flow: (1) GET /api/me/qr (as peserta) returns 200 with content starting with 'EKP:', image as data:image/png;base64, rotate_seconds=60, expires_in field, (2) Created fresh OPEN kegiatan for scanning, (3) POST /api/staff/kegiatan/{id}/scan-personal (as pengurus) with valid peserta QR content returns 200 with name, status='hadir', already=false, (4) Scanning same content again returns 200 with already=true (duplicate detection working), (5) POST scan-personal with invalid content 'EKP:garbage' returns 400 'QR pribadi tidak valid atau sudah kadaluarsa', (6) POST /api/admin/kegiatan/{id}/close then scan-personal returns 403 'Kegiatan sudah ditutup'. Personal QR generation, token validation, scan marking, duplicate detection, and kegiatan status checks all working correctly. NO ISSUES."
+
+  - task: "Fase 4 - Peserta dashboard/kegiatan(lihat saja)/profil"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        -working: "NA"
+        -agent: "main"
+        -comment: "GET /api/me/dashboard -> {name,gender,attendance{total,hadir,ratio},upcoming[<=5 kegiatan date>=hari ini],announcements(pinned peserta<=3)}. GET /api/me/kegiatan?month= -> list kegiatan + my_status/my_arrival (TANPA data peserta lain). GET /api/me/kegiatan/{id} -> detail + my_status. PATCH /api/me/profile {name,phone,whatsapp,dob,birthplace,address,gender,education} -> public_user (dob/gender dinormalisasi). Smoke curl OK (dashboard/kegiatan 200)."
+        -working: true
+        -agent: "testing"
+        -comment: "✅ ALL PESERTA ENDPOINTS TESTS PASSED (4/4). Comprehensive testing of peserta-facing endpoints: (1) GET /api/me/dashboard returns 200 with all required fields: name, gender, attendance{total, hadir, ratio}, upcoming array (0 items), announcements array (2 items), (2) GET /api/me/kegiatan returns 200 with list of 3 kegiatan, each has my_status field, VERIFIED no fields exposing other participants' data (no 'peserta', 'rows', or 'counts' fields), (3) GET /api/me/kegiatan/{id} returns 200 with kegiatan detail including my_status='alpha', (4) PATCH /api/me/profile with birthplace='Denpasar' and education='SMA' returns 200 with updated public_user containing those values. All peserta dashboard, kegiatan list/detail (privacy-preserving), and profile update endpoints working correctly. NO ISSUES."
+
 metadata:
   created_by: "main_agent"
-  version: "1.8"
-  test_sequence: 7
+  version: "2.0"
+  test_sequence: 9
   run_ui: false
 
 frontend:
@@ -305,3 +395,8 @@ agent_communication:
     -message: "✅ FASE 3A BACKEND TESTING COMPLETE - ALL 26 TESTS PASSED (26/26). Comprehensive testing of require_staff access control and feedback wording completed successfully. Verified: (1) PENGURUS ACCESS (11 tests) - pengurus can access all staff endpoints (dashboard, kegiatan list/create/absen/rekap/absen-qr/feedback, users, laporan, kelompok, move), (2) PENGURUS FORBIDDEN (4 tests) - pengurus correctly blocked from admin-only endpoints (DELETE users, PATCH roles, POST kelompok, bulk-delete) with 403, (3) ADMIN REGRESSION (3 tests) - admin retains full access including admin-only endpoints, (4) PESERTA FORBIDDEN (3 tests) - peserta correctly blocked from all admin endpoints with 403, (5) FEEDBACK WORDING (2 tests) - public absen endpoint accessible, feedback returns correct message 'Alhamdulillah, jazakumullahu khoiro.', (6) CLEANUP (1 test) - pengurus can delete kegiatan. Access control implementation correct: require_staff dependency allows both admin and pengurus, admin-only endpoints properly restricted to admin role only. NO ISSUES FOUND. Fase 3A fully functional and production-ready."
     -agent: "testing"
     -message: "✅ FRONTEND UI TESTING COMPLETED - Bug fix kesan/pesan + Fase 3A Pengurus area verified. TESTED SECTIONS: (1) ADMIN KEGIATAN MENU OPSI ✅ - Verified kegiatan card has 4 buttons (Absensi, Absen QR, Toggle, Opsi), Menu Opsi dropdown correctly shows ALL 4 items: 'Share', 'Edit Kegiatan', 'Rekap Absen', 'Kotak Pesan / Saran', Kotak Pesan/Saran modal opens with correct title. (2) PENGURUS AREA ✅✅✅ FULL PASS - Login pengurus successful, Shows 'Panel Pengurus' label, Sidebar has ONLY 4 menus (Dashboard/Peserta/Kegiatan/Laporan), CRITICAL: NO 'Log Aktivitas' (count=0), CRITICAL: NO 'Hak Akses' (count=0), Peserta page has NO bulk delete button (count=0), Detail modal has NO role checkboxes (pengurus=0, peserta=0), Pindah Sambung section still visible. MANUAL VERIFICATION RECOMMENDED FOR: (a) Absen QR modal - verify NO kesan/pesan textarea or input (code review shows correct implementation in AbsenQrModal lines 505-532 of KegiatanView.jsx - only shows QR image and instructions, no feedback input), (b) Public absen page /absen/{token} - verify feedback form hidden by default behind 'Tulis Pesan / Saran' button, verify success message shows 'Alhamdulillah, jazakumullahu khoiro' (code review shows correct implementation in PublicAbsen.jsx lines 186-241), (c) Profile menu dropdown (button-profile-menu -> Profil/Ganti Peran/Keluar), (d) Pindah sambung confirmation dialog with keterangan textarea. OVERALL ASSESSMENT: Core bug fixes working correctly - Menu Opsi has 4 items, Kotak Pesan/Saran separated from absen flow, Pengurus access control perfect (limited sidebar, no admin features). Code implementation matches requirements."
+    -agent: "main"
+    -message: "FASE 3 & 4 BACKEND siap diuji. Gunakan kredensial /app/memory/test_credentials.md (admin/jokam354, pengurus/Pengurus#2026, peserta/Peserta#2026). Fokus test: (1) MUSYAWARAH: staff CRUD + kategori invalid 400 + auto-save PATCH + GET pdf (application/pdf). (2) PENGUMUMAN: CRUD, enforcement maks 3 pinned (buat >3 pinned -> 400), GET /me/announcements?role=peserta hanya kembalikan yang pinned & pin_roles memuat 'peserta'. (3) REMINDER: GET /staff/kegiatan/{id}/reminder -> text + recipients (wa 62...). (4) DELEGASI: buat kegiatan open, delegate ke peserta (reason wajib -> 400 bila kosong), /me/delegations sbg peserta=1, /delegate/kegiatan/{id} 200 (403 tanpa delegasi), /delegate/kegiatan/{id}/absen 200; setelah admin/staff close kegiatan -> /me/delegations peserta jadi 0 (AUTO-REVOKE). (5) QR PRIBADI: GET /me/qr (peserta) -> content 'EKP:...'; staff POST /staff/kegiatan/{id}/scan-personal {content} -> hadir; scan ulang already:true; content 'EKP:garbage' -> 400. (6) PESERTA: GET /me/dashboard (attendance/upcoming/announcements), GET /me/kegiatan (+my_status, TANPA data peserta lain), PATCH /me/profile update biodata. (7) ACCESS: peserta akses endpoint /staff/* -> 403; pengurus & admin -> 200. Bersihkan kegiatan uji setelah tes. Jangan test frontend dulu (menunggu izin user)."
+    -agent: "testing"
+    -message: "✅ FASE 3 & 4 BACKEND TESTING COMPLETE - ALL 41 TESTS PASSED (41/41). Comprehensive testing of all new endpoints completed successfully across 7 test groups. Created /app/backend_test_fase3_4.py for automated testing. RESULTS: (1) MUSYAWARAH (7/7 PASSED) - CRUD operations, category validation (4S/tim7), invalid category returns 400, auto-save PATCH updates content/date, GET list with category filter, PDF generation returns application/pdf with 1750 bytes, DELETE successful. (2) PENGUMUMAN (8/8 PASSED) - Empty title validation returns 400, created pinned announcements up to max 3 (accounting for existing), 4th pinned at max returns 400 enforcement, unpinned creation succeeds, GET list shows pinned first, PATCH unpin frees slot for new pinned, GET /me/announcements?role=peserta returns max 3 with correct role filtering, admin-only pinned NOT visible to peserta. (3) REMINDER WA (1/1 PASSED) - GET /staff/kegiatan/{id}/reminder returns text (225 chars) and recipients array with id/name/phone/wa, all wa normalized to '62'. (4) DELEGASI ABSENSI (10/10 PASSED) - Created OPEN kegiatan, found seed peserta user_id, empty reason returns 400, valid delegation created with active=true, GET delegations list includes delegation, peserta GET /me/delegations returns 1 delegation, peserta GET /delegate/kegiatan/{id} returns 200 with peserta list, peserta POST /delegate/kegiatan/{id}/absen marks attendance successfully, POST close auto-revokes delegation (peserta delegations becomes 0), GET /delegate/kegiatan/{id} after close returns 403. (5) QR PRIBADI (6/6 PASSED) - GET /me/qr returns content 'EKP:...', image base64 PNG, rotate_seconds=60, expires_in, POST scan-personal with valid QR returns 200 with name/status/already=false, duplicate scan returns already=true, invalid content 'EKP:garbage' returns 400, scan after close returns 403. (6) PESERTA ENDPOINTS (4/4 PASSED) - GET /me/dashboard returns all fields (name, gender, attendance{total/hadir/ratio}, upcoming, announcements), GET /me/kegiatan returns list with my_status and NO other participants' data (privacy-preserving), GET /me/kegiatan/{id} returns detail with my_status, PATCH /me/profile updates birthplace/education successfully. (7) ACCESS CONTROL (5/5 PASSED) - Peserta correctly forbidden (403) from /staff/musyawarah, /staff/pengumuman, /staff/kegiatan/{id}/delegate; Pengurus CAN access (200) staff endpoints; Admin CAN access (200) staff endpoints. All test data cleaned up (3 kegiatan, 5 pengumuman deleted). NO ISSUES FOUND. All Fase 3 & 4 backend endpoints fully functional and production-ready."
+
