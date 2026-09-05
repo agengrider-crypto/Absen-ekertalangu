@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Loader2, Pin, AlertCircle, CalendarDays, Clock, MapPin, ShieldCheck, X, Search } from "lucide-react";
 import { toast } from "sonner";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+} from "recharts";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { TYPE_LABEL, TYPE_COLOR, tanggalPanjang } from "@/pages/admin/kegiatanUtils";
 
@@ -94,10 +97,12 @@ export default function Beranda({ user, onGoto }) {
   const [data, setData] = useState(null);
   const [delegs, setDelegs] = useState([]);
   const [fill, setFill] = useState(null);
+  const [history, setHistory] = useState(null);
 
   useEffect(() => {
     api.get("/me/dashboard").then(({ data }) => setData(data)).catch(() => setData(false));
     api.get("/me/delegations").then(({ data }) => setDelegs(data || [])).catch(() => {});
+    api.get("/me/attendance-history?months=6").then(({ data }) => setHistory(data)).catch(() => {});
   }, []);
 
   const greeting = (() => {
@@ -146,6 +151,44 @@ export default function Beranda({ user, onGoto }) {
           <div className="text-lg font-bold text-[#111827] mt-1">{data?.attendance?.hadir ?? 0} / {data?.attendance?.total ?? 0}</div>
           <div className="text-xs text-[#9CA3AF]">pengajian dihadiri</div>
         </div>
+      </div>
+
+      {/* Riwayat kehadiran per bulan */}
+      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5" data-testid="riwayat-kehadiran">
+        <h2 className="font-heading font-bold text-[#111827] mb-1">Riwayat Kehadiran</h2>
+        <p className="text-xs text-[#9CA3AF] mb-3">Ringkasan hadir/izin/alpha 6 bulan terakhir</p>
+        {history === null ? (
+          <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={22} /></div>
+        ) : (
+          <>
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="rounded-xl bg-[#E8F5EE] px-3 py-2 text-center">
+                <div className="text-lg font-bold text-[#065F46]" data-testid="riwayat-hadir">{history.current?.hadir ?? 0}</div>
+                <div className="text-[11px] text-[#4B5563]">Hadir (bln ini)</div>
+              </div>
+              <div className="rounded-xl bg-[#FEF3C7] px-3 py-2 text-center">
+                <div className="text-lg font-bold text-[#92400E]">{history.current?.izin ?? 0}</div>
+                <div className="text-[11px] text-[#4B5563]">Izin</div>
+              </div>
+              <div className="rounded-xl bg-[#FEE2E2] px-3 py-2 text-center">
+                <div className="text-lg font-bold text-[#991B1B]">{history.current?.alpha ?? 0}</div>
+                <div className="text-[11px] text-[#4B5563]">Alpha</div>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={history.months || []} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EEF2EE" />
+                <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#6B7280" }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} />
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="hadir" name="Hadir" stackId="a" fill="#0D5C3A" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="izin" name="Izin" stackId="a" fill="#F59E0B" />
+                <Bar dataKey="alpha" name="Alpha" stackId="a" fill="#DC2626" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </>
+        )}
       </div>
 
       {/* Upcoming */}

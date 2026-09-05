@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut } from "lucide-react";
+import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 import Beranda from "./peserta/Beranda";
 import KegiatanList from "./peserta/KegiatanList";
 import ScanTab from "./peserta/ScanTab";
@@ -20,7 +21,29 @@ export default function PesertaArea({ user }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [tab, setTab] = useState("beranda");
+  const [hasNew, setHasNew] = useState(false);
   const multiRole = (user?.roles?.length || 0) > 1;
+  const seenKey = `ann_seen_${user?.id || "me"}`;
+
+  useEffect(() => {
+    api.get("/me/announcements?role=peserta").then(({ data }) => {
+      const important = (data || []).filter((a) => a.important && a.created_at);
+      if (!important.length) { setHasNew(false); return; }
+      const latest = important.map((a) => a.created_at).sort().slice(-1)[0];
+      const seen = localStorage.getItem(seenKey);
+      setHasNew(!seen || latest > seen);
+    }).catch(() => {});
+    // eslint-disable-next-line
+  }, []);
+
+  const openBell = () => {
+    setTab("beranda");
+    api.get("/me/announcements?role=peserta").then(({ data }) => {
+      const stamps = (data || []).map((a) => a.created_at).filter(Boolean).sort();
+      if (stamps.length) localStorage.setItem(seenKey, stamps.slice(-1)[0]);
+      setHasNew(false);
+    }).catch(() => setHasNew(false));
+  };
 
   const doLogout = async () => { await logout(); navigate("/login"); };
 
@@ -36,6 +59,10 @@ export default function PesertaArea({ user }) {
             <span className="font-heading font-bold text-sm">E-KERTALANGU</span>
           </div>
           <div className="flex items-center gap-1">
+            <button data-testid="peserta-bell" onClick={openBell} className="relative h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white/10" title="Pengumuman">
+              <Bell size={18} />
+              {hasNew && <span data-testid="peserta-bell-dot" className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#0D5C3A]" />}
+            </button>
             {multiRole && (
               <button data-testid="peserta-switch-role" onClick={() => navigate("/roles")} className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white/10" title="Ganti Peran">
                 <ArrowLeftRight size={18} />

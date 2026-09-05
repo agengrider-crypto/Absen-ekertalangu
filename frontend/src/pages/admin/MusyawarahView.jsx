@@ -26,6 +26,8 @@ export default function MusyawarahView() {
   const [content, setContent] = useState("");
   const [date, setDate] = useState(todayYmd());
   const [saveState, setSaveState] = useState("idle"); // idle | saving | saved
+  const [exFrom, setExFrom] = useState(() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-01`; });
+  const [exTo, setExTo] = useState(todayYmd());
   const timer = useRef(null);
 
   const load = useCallback(async (selectFirst = true) => {
@@ -102,6 +104,19 @@ export default function MusyawarahView() {
     } catch (e) { toast.error("Gagal mengunduh PDF"); }
   };
 
+  const exportPeriod = async () => {
+    try {
+      const res = await api.get(`/staff/musyawarah-export-pdf?category=${cat}&date_from=${exFrom}&date_to=${exTo}`, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `rekap_musyawarah_${cat}_${exFrom}_${exTo}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Rekap PDF diunduh");
+    } catch (e) { toast.error("Gagal mengekspor rekap"); }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
@@ -124,6 +139,19 @@ export default function MusyawarahView() {
             {c.label}
           </button>
         ))}
+      </div>
+
+      {/* Export periode gabungan */}
+      <div className="bg-white rounded-xl border border-[#E5E7EB] p-3 mb-5 flex items-end gap-3 flex-wrap">
+        <div>
+          <label className="block text-xs font-semibold text-[#6B7280] mb-1">Ekspor rekap dari</label>
+          <input data-testid="musy-export-from" type="date" value={exFrom} onChange={(e) => setExFrom(e.target.value)} className="h-10 px-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A]" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-[#6B7280] mb-1">sampai</label>
+          <input data-testid="musy-export-to" type="date" value={exTo} onChange={(e) => setExTo(e.target.value)} className="h-10 px-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A]" />
+        </div>
+        <button data-testid="musy-export-period" onClick={exportPeriod} className="h-10 px-4 rounded-xl border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE] inline-flex items-center gap-2"><Download size={16} /> Ekspor PDF ({cat === "4S" ? "4S" : "Tim 7"})</button>
       </div>
 
       <div className="grid lg:grid-cols-[300px_1fr] gap-4">

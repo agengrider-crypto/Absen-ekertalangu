@@ -82,3 +82,14 @@ Web app absensi pengajian. Fase 1: fondasi autentikasi — Login fleksibel (HP/E
 - QR Pribadi rotating: GET /api/me/qr (EKP:<token> hmac, window 60s, grace 2 window); staff scan via POST /api/staff/kegiatan/{id}/scan-personal. Bisa download.
 - Profil: GET/PATCH /api/me/profile + foto /api/me/photo.
 - Koleksi baru: musyawarahs, pengumumans, delegations. Dep frontend: html5-qrcode, qrcode.react.
+
+## Fase 3.1 — Perbaikan & Tambahan (SELESAI, backend 4/4 & frontend PASS)
+- FIX BUG scan QR runtime error (html5-qrcode + React StrictMode removeChild) -> QrScanner ditulis ulang: delayed-start guard + reader div tanpa child React. Terverifikasi tidak crash.
+- FIX pengingat WA (path salah /admin -> /staff/kegiatan/{id}/reminder).
+- Delegasi: catatan alasan jadi OPSIONAL (backend & UI).
+- Sidebar Pengurus/Admin: tambah menu "Penjaga Absen" (PenjagaAbsenView) untuk kelola delegasi terpusat.
+- Dashboard: komposisi jenis kelamin kini tampilkan angka + persentase (Tooltip + legend gender-legend).
+- Laporan: tombol "Share WA" (button-share-wa) dgn salam otomatis (harian: kegiatan hari ini; bulanan: rekap sebulan) + penutup "Alhamdulillah jazakumullahu khoiro".
+- Musyawarah: Ekspor PDF gabungan per periode (GET /api/staff/musyawarah-export-pdf).
+- Peserta Beranda: kartu Riwayat Kehadiran (grafik batang 6 bulan hadir/izin/alpha) via GET /api/me/attendance-history + lonceng notifikasi pengumuman penting (red dot, localStorage lastSeen).
+- Responsif: Admin & Pengurus pakai drawer/hamburger di mobile (sudah responsif); Peserta mobile-first bottom-nav.

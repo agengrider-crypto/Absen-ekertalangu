@@ -3,7 +3,7 @@ import {
   Users, UserCheck, UserX, CalendarDays, TrendingUp, Loader2, QrCode, Copy, CalendarPlus,
 } from "lucide-react";
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, Legend,
+  PieChart, Pie, Cell, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { toast } from "sonner";
@@ -86,14 +86,40 @@ export default function DashboardView({ user, onGoto }) {
           {pieData.length === 0 ? (
             <p className="text-[#6B7280] py-10 text-center">Belum ada data peserta.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={62} outerRadius={95} paddingAngle={3}>
-                  {pieData.map((x) => <Cell key={x.name} fill={x.color} />)}
-                </Pie>
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={58}
+                    outerRadius={92}
+                    paddingAngle={3}
+                    label={({ value }) => `${value}`}
+                    labelLine={false}
+                  >
+                    {pieData.map((x) => <Cell key={x.name} fill={x.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v, n) => [`${v} orang`, n]} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2" data-testid="gender-legend">
+                {pieData.map((x) => {
+                  const pct = d.total_peserta ? Math.round((x.value / d.total_peserta) * 100) : 0;
+                  return (
+                    <div key={x.name} className="flex items-center gap-2 rounded-lg bg-[#F8FAF8] px-3 py-2">
+                      <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: x.color }} />
+                      <span className="text-sm text-[#4B5563] min-w-0 truncate">{x.name}</span>
+                      <span className="ml-auto text-sm font-bold text-[#111827]">{x.value}</span>
+                      <span className="text-xs text-[#9CA3AF]">({pct}%)</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 

@@ -1524,7 +1524,56 @@ async def musyawarah_pdf(musy_id: str, staff: dict = Depends(require_staff)):
                              headers={"Content-Disposition": f"attachment; filename={fname}"})
 
 
-# ------------------------- Pengumuman -------------------------
+@api_router.get("/staff/musyawarah-export-pdf")
+async def musyawarah_export_pdf(category: str = "", date_from: str = "", date_to: str = "",
+                                staff: dict = Depends(require_staff)):
+    q = {}
+    if category in MUSY_CATEGORIES:
+        q["category"] = category
+    if date_from or date_to:
+        dr = {}
+        if date_from:
+            dr["$gte"] = date_from
+        if date_to:
+            dr["$lte"] = date_to
+        q["date"] = dr
+    items = await db.musyawarahs.find(q).sort([("category", 1), ("date", 1)]).to_list(5000)
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=2 * cm, bottomMargin=2 * cm,
+                            leftMargin=2 * cm, rightMargin=2 * cm)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#0D5C3A")
+    body_style = ParagraphStyle("b", parent=styles["Normal"], fontSize=11, leading=17)
+    cat_label = ("Musyawarah 4S" if category == "4S" else
+                 "Musyawarah Tim 7" if category == "tim7" else "Musyawarah 4S & Tim 7")
+    periode = ""
+    if date_from or date_to:
+        periode = f"Periode: {date_from or '...'} s/d {date_to or '...'}"
+    elems = [Paragraph("E-KERTALANGU", title_style),
+             Paragraph(f"Rekap {cat_label}", styles["Heading2"])]
+    if periode:
+        elems.append(Paragraph(periode, styles["Normal"]))
+    elems.append(Spacer(1, 0.4 * cm))
+    if not items:
+        elems.append(Paragraph("Tidak ada catatan pada periode ini.", body_style))
+    for m in items:
+        lbl = "4S" if m.get("category") == "4S" else "Tim 7"
+        elems.append(Paragraph(f"<b>[{lbl}] {m.get('date', '-')}</b>", styles["Heading3"]))
+        content = (m.get("content") or "(kosong)").replace("\n", "<br/>")
+        elems.append(Paragraph(content, body_style))
+        elems.append(Spacer(1, 0.25 * cm))
+        elems.append(HRFlowable(width="100%", thickness=0.5, color="#D1D5DB"))
+        elems.append(Spacer(1, 0.25 * cm))
+    doc.build(elems)
+    buf.seek(0)
+    tag = category if category in MUSY_CATEGORIES else "semua"
+    fname = f"rekap_musyawarah_{tag}.pdf"
+    return StreamingResponse(buf, media_type="application/pdf",
+                             headers={"Content-Disposition": f"attachment; filename={fname}"})
 class PengumumanInput(BaseModel):
     title: str
     body: str = ""
@@ -1669,7 +1718,7 @@ async def kegiatan_reminder(kegiatan_id: str, staff: dict = Depends(require_staf
 # ------------------------- Delegasi Absensi -------------------------
 class DelegationInput(BaseModel):
     grantee_id: str
-    reason: str
+    reason: Optional[str] = ""
 
 
 def serialize_delegation(d: dict) -> dict:
@@ -1696,8 +1745,6 @@ async def create_delegation(kegiatan_id: str, body: DelegationInput, staff: dict
     if k.get("status", "open") != "open":
         raise HTTPException(status_code=400, detail="Kegiatan sudah ditutup, tidak bisa delegasi")
     reason = (body.reason or "").strip()
-    if not reason:
-        raise HTTPException(status_code=400, detail="Catatan alasan wajib diisi")
     g = await db.users.find_one({"_id": ObjectId(body.grantee_id)}) if ObjectId.is_valid(body.grantee_id) else None
     if not g:
         raise HTTPException(status_code=404, detail="Penerima delegasi tidak ditemukan")
@@ -1714,7 +1761,7 @@ async def create_delegation(kegiatan_id: str, body: DelegationInput, staff: dict
            "created_at": now, "revoked_at": None, "revoked_reason": None}
     await db.delegations.insert_one(doc)
     await log_activity(staff, "delegasi_absen",
-                       f"Delegasi absen '{k.get('name')}' kepada {g.get('name')} — alasan: {reason}",
+                       f"Delegasi absen '{k.get('name')}' kepada {g.get('name')} — alasan: {reason or '(tanpa catatan)'}",
                        body.grantee_id)
     return serialize_delegation(doc)
 
@@ -1896,6 +1943,42 @@ async def _my_attendance_ratio(user_id: str) -> dict:
             {"user_id": user_id, "status": "hadir", "kegiatan_id": {"$in": kid_set}})
     ratio = round((hadir / total) * 100, 1) if total else 0.0
     return {"total": total, "hadir": hadir, "ratio": ratio}
+
+
+@api_router.get("/me/attendance-history")
+async def my_attendance_history(months: int = 6, user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    months = max(1, min(months, 12))
+    now = now_wita()
+    # build list of last N months (oldest -> newest)
+    ym_list = []
+    y, m = now.year, now.month
+    for _ in range(months):
+        ym_list.append(f"{y:04d}-{m:02d}")
+        m -= 1
+        if m == 0:
+            m = 12
+            y -= 1
+    ym_list.reverse()
+    id_label = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
+    today = now.strftime("%Y-%m-%d")
+    result = []
+    cur = {"hadir": 0, "izin": 0, "alpha": 0, "total": 0}
+    for ym in ym_list:
+        kids = await db.kegiatans.find({"date": {"$regex": f"^{ym}", "$lte": today}}).to_list(5000)
+        kid_set = [k["_id"] for k in kids]
+        total = len(kid_set)
+        hadir = izin = 0
+        if kid_set:
+            hadir = await db.absensis.count_documents({"user_id": uid, "status": "hadir", "kegiatan_id": {"$in": kid_set}})
+            izin = await db.absensis.count_documents({"user_id": uid, "status": "izin", "kegiatan_id": {"$in": kid_set}})
+        alpha = max(total - hadir - izin, 0)
+        mi = int(ym[5:7]) - 1
+        row = {"month": ym, "label": id_label[mi], "hadir": hadir, "izin": izin, "alpha": alpha, "total": total}
+        result.append(row)
+        if ym == ym_list[-1]:
+            cur = {"hadir": hadir, "izin": izin, "alpha": alpha, "total": total}
+    return {"months": result, "current": cur}
 
 
 @api_router.get("/me/dashboard")

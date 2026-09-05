@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  FileBarChart2, Loader2, FileSpreadsheet, FileText, TrendingUp, Award, AlertTriangle,
+  FileBarChart2, Loader2, FileSpreadsheet, FileText, TrendingUp, Award, AlertTriangle, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -54,6 +54,37 @@ export default function LaporanView() {
     } finally { setExporting(""); }
   };
 
+  const shareWa = () => {
+    if (!data || !data.summary) { toast.error("Data belum siap"); return; }
+    const s2 = data.summary || {};
+    const lines = [];
+    if (tab === "harian") {
+      const tgl = tanggalSingkat(to);
+      lines.push("Assalamualaikum");
+      lines.push(`Berikut laporan kehadiran hari ini (${tgl}):`);
+      lines.push("");
+      (data.per_kegiatan || []).forEach((r) => {
+        lines.push(`• ${r.name}: Hadir ${r.hadir}, Izin ${r.izin}, Alpha ${r.alpha} (${r.ratio}%)`);
+      });
+      if (!(data.per_kegiatan || []).length) lines.push("(Belum ada kegiatan hari ini)");
+      lines.push("");
+      lines.push(`Total: Hadir ${s2.hadir}, Izin ${s2.izin}, Alpha ${s2.alpha} — Rasio ${s2.ratio}%`);
+    } else {
+      const monthName = new Date(from + "T00:00:00").toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+      lines.push("Assalamualaikum");
+      lines.push(`Berikut laporan total kehadiran bulan ${monthName}:`);
+      lines.push("");
+      lines.push(`Total Hadir: ${s2.hadir}`);
+      lines.push(`Total Izin: ${s2.izin}`);
+      lines.push(`Total Alpha: ${s2.alpha}`);
+      lines.push(`Rasio Kehadiran: ${s2.ratio}%`);
+      lines.push(`Jumlah Kegiatan: ${data.total_kegiatan}`);
+    }
+    lines.push("");
+    lines.push("Alhamdulillah jazakumullahu khoiro");
+    window.open(`https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
+  };
+
   const s = data?.summary || {};
 
   return (
@@ -63,6 +94,10 @@ export default function LaporanView() {
           <FileBarChart2 size={20} /> Laporan Kehadiran
         </div>
         <div className="flex items-center gap-2">
+          <button data-testid="button-share-wa" onClick={shareWa}
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#25D366] text-white font-semibold text-sm hover:brightness-95">
+            <Send size={16} /> Share WA
+          </button>
           <button data-testid="button-export-excel" onClick={() => doExport("excel")} disabled={!!exporting}
             className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE] disabled:opacity-50">
             {exporting === "excel" ? <Loader2 className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} Excel

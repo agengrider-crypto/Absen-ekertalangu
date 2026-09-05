@@ -35,7 +35,7 @@ export function ReminderModal({ kegiatan, onClose }) {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get(`/admin/kegiatan/${kegiatan.id}/reminder`);
+        const { data } = await api.get(`/staff/kegiatan/${kegiatan.id}/reminder`);
         setData(data);
         setText(data.text || "");
       } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
@@ -148,7 +148,6 @@ export function DelegasiModal({ kegiatan, onClose }) {
 
   const submit = async () => {
     if (!granteeId) { toast.error("Pilih penerima delegasi"); return; }
-    if (!reason.trim()) { toast.error("Catatan alasan wajib diisi"); return; }
     setSaving(true);
     try {
       await api.post(`/staff/kegiatan/${kegiatan.id}/delegate`, { grantee_id: granteeId, reason: reason.trim() });
@@ -209,7 +208,7 @@ export function DelegasiModal({ kegiatan, onClose }) {
               </div>
             )}
             <div>
-              <label className="text-sm font-semibold text-[#374151]">Catatan alasan (wajib)</label>
+              <label className="text-sm font-semibold text-[#374151]">Catatan alasan (opsional)</label>
               <textarea
                 data-testid="delegasi-reason"
                 value={reason}
