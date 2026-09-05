@@ -38,6 +38,7 @@ export default function Peserta({ role = "admin" }) {
   const [users, setUsers] = useState(null);
   const [kelompok, setKelompok] = useState([]);
   const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // all | pending | active
   const [selected, setSelected] = useState(new Set());
   const [detailId, setDetailId] = useState(null);
   const [modal, setModal] = useState(null); // "add" | "bulk" | null
@@ -54,15 +55,27 @@ export default function Peserta({ role = "admin" }) {
     api.get("/admin/kelompok").then(({ data }) => setKelompok(data)).catch(() => {});
   }, []);
 
+  const counts = useMemo(() => {
+    const all = users || [];
+    return {
+      all: all.length,
+      pending: all.filter((u) => u.status === "pending").length,
+      active: all.filter((u) => u.status === "active").length,
+    };
+  }, [users]);
+
   const filtered = useMemo(() => {
     if (!users) return [];
+    let list = users;
+    if (statusFilter === "pending") list = list.filter((u) => u.status === "pending");
+    else if (statusFilter === "active") list = list.filter((u) => u.status === "active");
     const t = q.trim().toLowerCase();
-    if (!t) return users;
-    return users.filter((u) =>
+    if (!t) return list;
+    return list.filter((u) =>
       (u.name || "").toLowerCase().includes(t) ||
       (u.phone || "").toLowerCase().includes(t) ||
       (u.birthplace || "").toLowerCase().includes(t));
-  }, [users, q]);
+  }, [users, q, statusFilter]);
 
   const allChecked = filtered.length > 0 && filtered.every((u) => selected.has(u.id));
   const toggleAll = () => {
@@ -168,6 +181,34 @@ export default function Peserta({ role = "admin" }) {
             className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#DC2626] text-white font-semibold text-sm hover:bg-[#B91C1C]">
             <Trash2 size={16} /> Hapus Terpilih ({selected.size})
           </button>
+        )}
+      </div>
+
+      {/* Filter status aktivasi */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap" data-testid="status-filter">
+        {[
+          { key: "all", label: "Semua", count: counts.all, cls: "bg-[#0D5C3A] text-white border-[#0D5C3A]" },
+          { key: "pending", label: "Belum Aktivasi", count: counts.pending, cls: "bg-[#D97706] text-white border-[#D97706]" },
+          { key: "active", label: "Sudah Aktif", count: counts.active, cls: "bg-[#059669] text-white border-[#059669]" },
+        ].map((f) => {
+          const on = statusFilter === f.key;
+          return (
+            <button
+              key={f.key}
+              data-testid={`filter-${f.key}`}
+              onClick={() => setStatusFilter(f.key)}
+              className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-full border-2 text-sm font-semibold transition-colors ${on ? f.cls : "bg-white text-[#4B5563] border-[#E5E7EB] hover:border-[#0D5C3A]"}`}
+            >
+              {f.key === "pending" && <AlertTriangle size={14} className={on ? "text-white" : "text-[#D97706]"} />}
+              {f.label}
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${on ? "bg-white/25" : "bg-[#F3F4F6] text-[#374151]"}`}>{f.count}</span>
+            </button>
+          );
+        })}
+        {counts.pending > 0 && statusFilter !== "pending" && (
+          <span className="text-xs text-[#92400E] bg-[#FEF3C7] px-2.5 py-1 rounded-full">
+            {counts.pending} peserta belum mengaktifkan akun — bagikan QR Aktivasi untuk menindaklanjuti
+          </span>
         )}
       </div>
 
