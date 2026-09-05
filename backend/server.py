@@ -1715,6 +1715,13 @@ async def kegiatan_reminder(kegiatan_id: str, staff: dict = Depends(require_staf
     return {"text": build_reminder_text(k), "recipients": recipients}
 
 
+# ------------------------- QR Aktivasi Akun (publik) -------------------------
+@api_router.get("/staff/activation-qr")
+async def activation_qr(staff: dict = Depends(require_staff)):
+    url = f"{FRONTEND_URL}/activate"
+    return {"url": url, "image": make_qr_data_url(url)}
+
+
 # ------------------------- Delegasi Absensi -------------------------
 class DelegationInput(BaseModel):
     grantee_id: str

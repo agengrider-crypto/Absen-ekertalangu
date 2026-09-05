@@ -93,3 +93,7 @@ Web app absensi pengajian. Fase 1: fondasi autentikasi — Login fleksibel (HP/E
 - Musyawarah: Ekspor PDF gabungan per periode (GET /api/staff/musyawarah-export-pdf).
 - Peserta Beranda: kartu Riwayat Kehadiran (grafik batang 6 bulan hadir/izin/alpha) via GET /api/me/attendance-history + lonceng notifikasi pengumuman penting (red dot, localStorage lastSeen).
 - Responsif: Admin & Pengurus pakai drawer/hamburger di mobile (sudah responsif); Peserta mobile-first bottom-nav.
+
+## Tambahan — QR Aktivasi Akun + Pintasan Dashboard (SELESAI, terverifikasi)
+- QR Aktivasi Akun (publik): GET /api/staff/activation-qr (require_staff) -> {url: FRONTEND_URL/activate, image PNG}. Peserta scan -> halaman /activate (Activate.jsx, pencarian nama sudah ada) -> aktivasi akun sendiri. Bisa di-Download & Salin Link dari modal di dashboard. Akses: staff 200, peserta 403, no-auth 401.
+- Pintasan Cepat di dashboard Admin & Pengurus (DashboardView, data-testid dashboard-shortcuts): Peserta, Kegiatan, Pengumuman, Penjaga Absen, Laporan, QR Aktivasi. Navigasi via onGoto(setActive).
