@@ -175,3 +175,54 @@ JANGAN diset: `REACT_APP_BACKEND_URL` (harus kosong), `RUN_SCHEDULER`.
   sebelum login (pengecekan sesi anonim).
 - Data uji buatan testing agent sudah dibersihkan dari Atlas; tersisa 3 akun seed
   + 3 kelompok default.
+
+## Fase 6 — Fix base URL QR + Dokumentasi Lengkap (SELESAI)
+
+### Bug: QR pendaftaran mengarah ke domain preview, bukan produksi
+Gejala (dilaporkan user): "REGIST QR MASIH MENGARAH KE PREVIEW EMERGENT?"
+
+Penyebab: `get_or_create_public_qr()` menyimpan `link` + `image` PERMANEN di
+`app_settings._id="public_qr"`. Sandbox dan produksi memakai database Atlas yang SAMA,
+sehingga QR yang pertama kali dibuat di sandbox (domain preview Emergent) terus
+disajikan di produksi Vercel. Dibuktikan: dokumen berisi
+`link: "https://agengrider-live.preview.emergentagent.com/register?token=..."`.
+
+Perbaikan:
+- `app_settings.public_qr` sekarang menyimpan **hanya `token`** + `created_at`.
+  `link` dan gambar QR dihitung ULANG setiap request (membuat PNG QR sangat murah).
+  Token tetap stabil sehingga QR yang sudah dicetak tetap sah.
+- Helper baru `resolve_base_url(request)` dengan prioritas:
+  1. env `FRONTEND_URL` bila diset (produksi)
+  2. host request: `x-forwarded-proto` + `x-forwarded-host` (jaring pengaman kalau env
+     lupa diisi / custom domain)
+  3. `http://localhost:3000`
+  `FRONTEND_URL_ENV` string kosong diperlakukan sebagai TIDAK diset.
+- SEMUA endpoint penghasil URL kini menerima `request: Request` dan memakai
+  `resolve_base_url()`: `/qr/public`, `/staff/activation-qr`,
+  `/admin/kegiatan/{id}/qr`, `/admin/kegiatan/{id}/share`,
+  `/admin/kegiatan/{id}/absen-qr` (via `ensure_share` & `ensure_absen_token`).
+- Cache lama `link`/`image`/`base_url` di Atlas sudah dibersihkan (`$unset`).
+
+ATURAN BARU (masuk AGENTS.md): JANGAN pernah menyimpan URL absolut ke database.
+
+### Verifikasi (testing agent, iteration_5) — 100% LULUS, 0 ISU
+- Backend 28/28. `app_settings.public_qr` terbukti hanya menyimpan `token`+`created_at`.
+- Prioritas 1: semua endpoint QR memakai `FRONTEND_URL`.
+- Prioritas 2: dengan `FRONTEND_URL=` kosong, base URL mengikuti `x-forwarded-host`
+  (diuji `absen-ekertalangu.vercel.app` dan `absen.contoh-domain.id`).
+- Tautan hasil generate tetap fungsional: `/api/rekap/{token}` 200,
+  `/api/absen/{token}` 200, token invalid 404, register token salah 400.
+- Regresi aman meski signature endpoint berubah: login email/username/HP, guard
+  401/403, dashboard (`tren`), laporan (`per_kegiatan`), export Excel 5.525 B &
+  PDF 223.428 B, `/api/health`, `/api/me/profile`, `/api/cron/auto-close`.
+- Frontend: kartu QR Pendaftaran & modal QR Aktivasi menampilkan gambar dengan benar,
+  tombol Download & Salin Link ada, tanpa error JS.
+
+### Dokumentasi lengkap ditambahkan
+`README.md` (overview, tech stack, struktur folder, data flow, coding conventions),
+`AGENTS.md` (kontrak kerja AI agent: 12 aturan utama, urutan seksi server.py,
+batasan serverless, 11 antipattern nyata, definisi selesai, format commit),
+`docs/README.md` (indeks), `docs/ARCHITECTURE.md` (keputusan + alasan + utang teknis),
+`docs/API.md` (80 endpoint + guard + nama field), `docs/DATABASE.md` (10 collection +
+index), `docs/AUTH.md`, `docs/FEATURES.md`, `docs/TESTING.md`, `docs/TROUBLESHOOTING.md`,
+`CHANGELOG.md`.
