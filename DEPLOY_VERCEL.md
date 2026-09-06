@@ -9,8 +9,9 @@ satu project Vercel → satu domain. Infrastruktur hanya **Vercel + MongoDB Atla
 
 ```
 Absen-ekertalangu/
-├── vercel.json          <-- konfigurasi 1-project (routes + builds + cron)
+├── vercel.json          <-- konfigurasi 1-project (build + functions + rewrites + cron)
 ├── requirements.txt     <-- dependencies Python untuk serverless function
+├── .python-version      <-- pin runtime Python (3.12)
 ├── .vercelignore
 ├── api/
 │   ├── index.py         <-- ENTRYPOINT serverless: re-export FastAPI app
@@ -18,18 +19,58 @@ Absen-ekertalangu/
 ├── backend/
 │   ├── server.py        <-- SELURUH kode FastAPI (tetap di sini)
 │   └── requirements.txt <-- untuk sandbox/lokal (uvicorn)
-└── frontend/
-    ├── package.json     <-- script `vercel-build`
-    └── src/
+├── frontend/
+│   ├── package.json
+│   └── src/
+└── tests/
+    └── vercel_sim.py    <-- simulator routing Vercel untuk uji lokal
 ```
 
-Routing di `vercel.json`:
+Isi `vercel.json`:
+
+```json
+{
+  "installCommand": "cd frontend && yarn install --network-timeout 600000",
+  "buildCommand": "cd frontend && CI=false yarn build",
+  "outputDirectory": "frontend/build",
+  "functions": {
+    "api/index.py": { "maxDuration": 30, "includeFiles": "backend/**" }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/(.*)",     "destination": "/index.html" }
+  ],
+  "crons": [{ "path": "/api/cron/auto-close", "schedule": "0 16 * * *" }]
+}
+```
+
+Routing:
 
 | Request | Ditangani |
 |---|---|
-| `/api/*` | `api/index.py` (FastAPI serverless function) |
-| `/static/*`, `/favicon.png`, dll | file statis hasil build React |
-| sisanya (`/`, `/area/admin`, `/absen/xxx`, …) | `index.html` (SPA React Router) |
+| `/api/*` | `api/index.py` — FastAPI serverless function. Path asli tetap diteruskan ke FastAPI, jadi routing internal berjalan normal |
+| `/static/*`, `/favicon.png`, `/manifest.json`, dll | file statis hasil build React (tersaji dari filesystem) |
+| sisanya (`/`, `/roles`, `/area/admin`, `/absen/xxx`, `/rekap/xxx`, `/activate`) | `index.html` — SPA fallback React Router (rewrite 200, bukan redirect, jadi deep-link & tombol refresh aman) |
+
+> **Jangan pakai properti legacy `builds` + `routes`.** Dengan `builds` +
+> `@vercel/static-build`, hasil build React tidak dipasang di root deployment
+> melainkan bersarang di bawah path folder `src`-nya, sehingga `/` membalas
+> **404 NOT_FOUND** dan seluruh JS/CSS ikut 404 (halaman blank). Konfigurasi
+> modern di atas memakai `outputDirectory` yang lokasinya deterministik.
+>
+> Catatan: `rewrites` dievaluasi **setelah** filesystem, jadi aset statis yang
+> memang ada selalu disajikan apa adanya dan tidak tertelan SPA fallback.
+
+### Uji routing tanpa deploy
+
+```bash
+cd frontend && REACT_APP_BACKEND_URL= CI=false yarn build && cd ..
+VERCEL=1 uvicorn tests.vercel_sim:app --port 8099 --lifespan off
+```
+
+`tests/vercel_sim.py` meniru urutan routing Vercel (filesystem → rewrites) dan
+dijalankan dengan `--lifespan off` supaya benar-benar meniru lambda (tanpa
+startup event), sehingga `ensure_init()` harus jalan lewat HTTP middleware.
 
 Karena frontend dan backend satu domain, frontend memanggil API secara **relatif**
 (`/api/...`) sehingga **tidak ada CORS** dan cookie httpOnly (`SameSite=None; Secure`)
