@@ -24,9 +24,13 @@
       "dest": "/api/index.py"
     },
     {
-      "handle": "filesystem"
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
     },
-    
+    {
+      "src": "/favicon.png|manifest.json|logo.png|logo192.png|logo512.png|logo-full.png|apple-touch-icon.png",
+      "dest": "/$0"
+    },
     {
       "src": "/(.*)",
       "dest": "/index.html"
