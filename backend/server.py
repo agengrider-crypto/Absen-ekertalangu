@@ -59,7 +59,31 @@ client = AsyncIOMotorClient(mongo_url, **_mongo_kwargs)
 db = client[os.environ.get('DB_NAME') or 'ekertalangu']
 
 JWT_ALGORITHM = "HS256"
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+DEFAULT_FRONTEND_URL = "http://localhost:3000"
+# Nilai eksplisit dari environment (kosong = tidak diset).
+FRONTEND_URL_ENV = (os.environ.get("FRONTEND_URL") or "").strip().rstrip("/")
+FRONTEND_URL = FRONTEND_URL_ENV or DEFAULT_FRONTEND_URL
+
+
+def resolve_base_url(request: Optional[Request] = None) -> str:
+    """Base URL untuk link yang ditanam di QR code & tautan share.
+
+    Urutan prioritas:
+      1. env `FRONTEND_URL` bila diset (paling eksplisit, dipakai di produksi)
+      2. host request yang sedang berjalan (x-forwarded-* dari proxy Vercel)
+      3. fallback localhost
+
+    Poin 2 penting supaya QR tidak pernah mengarah ke domain lain hanya karena
+    `FRONTEND_URL` lupa diisi/masih tertinggal dari lingkungan sebelumnya.
+    """
+    if FRONTEND_URL_ENV:
+        return FRONTEND_URL_ENV
+    if request is not None:
+        proto = request.headers.get("x-forwarded-proto") or request.url.scheme or "https"
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+        if host:
+            return f"{proto}://{host}".rstrip("/")
+    return DEFAULT_FRONTEND_URL
 # Session lifetime (masa percobaan): sesi bertahan 365 hari agar tetap login saat refresh web
 SESSION_DAYS = 365
 SESSION_MAX_AGE = SESSION_DAYS * 24 * 60 * 60  # detik
@@ -357,15 +381,32 @@ def make_qr_data_url(data: str) -> str:
     img.save(buf, format="PNG")
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
-async def get_or_create_public_qr() -> dict:
+async def get_or_create_public_qr(request: Optional[Request] = None) -> dict:
+    """QR pendaftaran publik.
+
+    Yang disimpan permanen di database HANYA `token`-nya, supaya tautan yang
+    sudah pernah dicetak/dibagikan tetap sah. `link` dan `image` SENGAJA
+    dihitung ulang setiap request dari base URL yang berlaku.
+
+    Alasan: sandbox dan produksi memakai database yang sama. Kalau link/gambar
+    ikut disimpan, QR yang pertama dibuat di satu lingkungan (mis. preview) akan
+    terus dipakai di lingkungan lain, sehingga QR pendaftaran mengarah ke domain
+    yang salah. Membuat PNG QR sangat murah, jadi tidak perlu di-cache.
+    """
+    base = resolve_base_url(request)
     doc = await db.app_settings.find_one({"_id": "public_qr"})
     if not doc:
         token = secrets.token_urlsafe(12)
-        link = f"{FRONTEND_URL}/register?token={token}"
-        doc = {"_id": "public_qr", "token": token, "link": link,
-               "image": make_qr_data_url(link), "created_at": datetime.now(timezone.utc).isoformat()}
-        await db.app_settings.insert_one(doc)
-    return doc
+        await db.app_settings.update_one(
+            {"_id": "public_qr"},
+            {"$setOnInsert": {"token": token,
+                              "created_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True)
+        doc = await db.app_settings.find_one({"_id": "public_qr"}) or {"token": token}
+    token = doc["token"]
+    link = f"{base}/register?token={token}"
+    return {"token": token, "link": link, "image": make_qr_data_url(link),
+            "base_url": base, "created_at": doc.get("created_at")}
 
 # ---------------------------------------------------------------------------
 # Brute force helpers
@@ -554,8 +595,8 @@ async def self_reset(body: SelfResetInput):
 
 # ---- QR ----
 @api_router.get("/qr/public")
-async def public_qr():
-    doc = await get_or_create_public_qr()
+async def public_qr(request: Request):
+    doc = await get_or_create_public_qr(request)
     return {"link": doc["link"], "image": doc["image"], "token": doc["token"]}
 
 # ---- Admin ----
@@ -1295,7 +1336,7 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
 
 
 # ------------------------- QR + Share (public rekap) -------------------------
-async def ensure_share(kegiatan_id: str) -> dict:
+async def ensure_share(kegiatan_id: str, request: Optional[Request] = None) -> dict:
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
@@ -1314,19 +1355,19 @@ async def ensure_share(kegiatan_id: str) -> dict:
         exp = (now + timedelta(days=SHARE_EXPIRE_DAYS)).isoformat()
         await db.kegiatans.update_one({"_id": kegiatan_id},
                                       {"$set": {"share_token": token, "share_expires_at": exp}})
-    link = f"{FRONTEND_URL}/rekap/{token}"
+    link = f"{resolve_base_url(request)}/rekap/{token}"
     return {"token": token, "link": link, "expires_at": exp}
 
 
 @api_router.post("/admin/kegiatan/{kegiatan_id}/share")
-async def share_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff)):
-    info = await ensure_share(kegiatan_id)
+async def share_kegiatan(kegiatan_id: str, request: Request, admin: dict = Depends(require_staff)):
+    info = await ensure_share(kegiatan_id, request)
     return info
 
 
 @api_router.get("/admin/kegiatan/{kegiatan_id}/qr")
-async def qr_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff)):
-    info = await ensure_share(kegiatan_id)
+async def qr_kegiatan(kegiatan_id: str, request: Request, admin: dict = Depends(require_staff)):
+    info = await ensure_share(kegiatan_id, request)
     return {"link": info["link"], "expires_at": info["expires_at"],
             "image": make_qr_data_url(info["link"])}
 
@@ -1377,7 +1418,7 @@ async def public_rekap(token: str):
 
 
 # ------------------------- QR Absen Mandiri + Kesan & Pesan -------------------------
-async def ensure_absen_token(kegiatan_id: str) -> dict:
+async def ensure_absen_token(kegiatan_id: str, request: Optional[Request] = None) -> dict:
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
@@ -1385,13 +1426,13 @@ async def ensure_absen_token(kegiatan_id: str) -> dict:
     if not token:
         token = secrets.token_urlsafe(10)
         await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": {"absen_token": token}})
-    link = f"{FRONTEND_URL}/absen/{token}"
+    link = f"{resolve_base_url(request)}/absen/{token}"
     return {"token": token, "link": link, "kegiatan": k}
 
 
 @api_router.post("/admin/kegiatan/{kegiatan_id}/absen-qr")
-async def absen_qr(kegiatan_id: str, admin: dict = Depends(require_staff)):
-    info = await ensure_absen_token(kegiatan_id)
+async def absen_qr(kegiatan_id: str, request: Request, admin: dict = Depends(require_staff)):
+    info = await ensure_absen_token(kegiatan_id, request)
     return {"token": info["token"], "link": info["link"],
             "image": make_qr_data_url(info["link"])}
 
@@ -1781,8 +1822,8 @@ async def kegiatan_reminder(kegiatan_id: str, staff: dict = Depends(require_staf
 
 # ------------------------- QR Aktivasi Akun (publik) -------------------------
 @api_router.get("/staff/activation-qr")
-async def activation_qr(staff: dict = Depends(require_staff)):
-    url = f"{FRONTEND_URL}/activate"
+async def activation_qr(request: Request, staff: dict = Depends(require_staff)):
+    url = f"{resolve_base_url(request)}/activate"
     return {"url": url, "image": make_qr_data_url(url)}
 
 
