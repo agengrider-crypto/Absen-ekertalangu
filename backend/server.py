@@ -8,6 +8,7 @@ load_dotenv(ROOT_DIR / '.env')
 import logging
 import base64
 import io
+import time
 import re
 import secrets
 import hashlib
@@ -29,9 +30,33 @@ from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# ---------------------------------------------------------------------------
+# Database (serverless-friendly: single global client, small pool, TLS via certifi)
+# ---------------------------------------------------------------------------
+IS_SERVERLESS = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+
+mongo_url = os.environ.get('MONGO_URL') or os.environ.get('MONGODB_URI')
+if not mongo_url:
+    raise RuntimeError("MONGO_URL (atau MONGODB_URI) belum diset di environment")
+
+_mongo_kwargs = {
+    "maxPoolSize": 5 if IS_SERVERLESS else 20,
+    "minPoolSize": 0,
+    "serverSelectionTimeoutMS": 15000,
+    "connectTimeoutMS": 15000,
+    "socketTimeoutMS": 30000,
+    "retryWrites": True,
+    "appname": "e-kertalangu",
+}
+if mongo_url.startswith("mongodb+srv://") or "tls=true" in mongo_url or "ssl=true" in mongo_url:
+    try:
+        import certifi
+        _mongo_kwargs["tlsCAFile"] = certifi.where()
+    except Exception:  # pragma: no cover
+        pass
+
+client = AsyncIOMotorClient(mongo_url, **_mongo_kwargs)
+db = client[os.environ.get('DB_NAME') or 'ekertalangu']
 
 JWT_ALGORITHM = "HS256"
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000").rstrip("/")
@@ -56,7 +81,11 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 def get_jwt_secret() -> str:
-    return os.environ["JWT_SECRET"]
+    secret = os.environ.get("JWT_SECRET")
+    if not secret:
+        raise HTTPException(status_code=500,
+                            detail="JWT_SECRET belum diset pada environment server")
+    return secret
 
 def create_access_token(user_id: str, ver: int = 0) -> str:
     payload = {"sub": user_id, "ver": ver, "type": "access",
@@ -1032,12 +1061,47 @@ async def auto_close_kegiatan():
 
 
 async def auto_close_loop():
+    """Loop scheduler untuk mode server persisten (sandbox/VPS). Tidak dipakai di serverless."""
     while True:
         try:
             await auto_close_kegiatan()
         except Exception as exc:  # pragma: no cover
             logger.warning("auto_close_loop error: %s", exc)
         await asyncio.sleep(60)
+
+
+# Throttle auto-close untuk mode serverless (tanpa background worker):
+# dijalankan maksimal 1x per AUTO_CLOSE_INTERVAL detik, dikoordinasi lewat MongoDB
+# sehingga aman walau ada banyak instance lambda paralel.
+AUTO_CLOSE_INTERVAL = 60
+_last_auto_close_local = 0.0
+
+
+async def maybe_auto_close():
+    """Jalankan auto-close secara 'lazy' saat ada request masuk (serverless-safe)."""
+    global _last_auto_close_local
+    nowts = time.time()
+    if nowts - _last_auto_close_local < AUTO_CLOSE_INTERVAL:
+        return
+    _last_auto_close_local = nowts
+    try:
+        claimed = await db.app_settings.find_one_and_update(
+            {"_id": "__auto_close__", "next_at": {"$lte": nowts}},
+            {"$set": {"next_at": nowts + AUTO_CLOSE_INTERVAL}},
+        )
+        if claimed is None:
+            # Dokumen belum ada? buat sekaligus klaim slot pertama.
+            existing = await db.app_settings.find_one({"_id": "__auto_close__"})
+            if existing is None:
+                await db.app_settings.update_one(
+                    {"_id": "__auto_close__"},
+                    {"$setOnInsert": {"next_at": nowts + AUTO_CLOSE_INTERVAL}},
+                    upsert=True)
+            else:
+                return  # instance lain sudah mengklaim slot ini
+        await auto_close_kegiatan()
+    except Exception as exc:  # pragma: no cover
+        logger.warning("maybe_auto_close error: %s", exc)
 
 
 # ------------------------- Kegiatan CRUD -------------------------
@@ -2260,11 +2324,49 @@ async def admin_laporan_export(admin: dict = Depends(require_staff),
         headers={"Content-Disposition": f'attachment; filename="{fname_base}.xlsx"'})
 
 
+@api_router.get("/cron/auto-close")
+async def cron_auto_close(request: Request):
+    """Dipanggil Vercel Cron (atau cron eksternal) untuk menutup kegiatan yang lewat jam selesai."""
+    secret = os.environ.get("CRON_SECRET")
+    if secret:
+        auth = request.headers.get("authorization", "")
+        provided = auth[7:].strip() if auth.lower().startswith("bearer ") else request.headers.get("x-cron-secret", "")
+        if provided != secret:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+    await ensure_init()
+    before = await db.kegiatans.count_documents({"status": "open"})
+    await auto_close_kegiatan()
+    after = await db.kegiatans.count_documents({"status": "open"})
+    return {"ok": True, "closed": max(before - after, 0), "open_remaining": after}
+
+
+@api_router.get("/health")
+async def health():
+    """Health check + verifikasi koneksi database (berguna setelah deploy ke Vercel)."""
+    out = {"status": "ok", "serverless": IS_SERVERLESS, "db": "unknown",
+           "jwt_secret_set": bool(os.environ.get("JWT_SECRET"))}
+    try:
+        await client.admin.command("ping")
+        out["db"] = "connected"
+        out["db_name"] = db.name
+    except Exception as exc:
+        out["status"] = "degraded"
+        out["db"] = "error"
+        out["db_error"] = str(exc)[:200]
+    return out
+
+
 app.include_router(api_router)
+
+_allowed_origins = {FRONTEND_URL, "http://localhost:3000"}
+for _extra in (os.environ.get("EXTRA_CORS_ORIGINS") or "").split(","):
+    _extra = _extra.strip().rstrip("/")
+    if _extra:
+        _allowed_origins.add(_extra)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, "http://localhost:3000"],
+    allow_origins=sorted(o for o in _allowed_origins if o),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -2318,8 +2420,11 @@ async def seed_kelompok():
                 "_id": str(uuid.uuid4()), "name": name, "description": None,
                 "created_at": datetime.now(timezone.utc).isoformat()})
 
-@app.on_event("startup")
-async def startup():
+INIT_VERSION = 3
+
+
+async def _run_init():
+    """Buat index + seed data awal. Idempoten."""
     for idx in ["email_1", "username_1"]:
         try:
             await db.users.drop_index(idx)
@@ -2351,7 +2456,57 @@ async def startup():
     await db.pengumumans.create_index("pin_roles")
     await db.delegations.create_index([("kegiatan_id", 1), ("grantee_id", 1), ("active", 1)])
     await db.delegations.create_index("grantee_id")
-    asyncio.create_task(auto_close_loop())
+
+
+_init_done = False
+_init_lock = asyncio.Lock()
+
+
+async def ensure_init():
+    """Jalankan inisialisasi satu kali per proses.
+
+    Di serverless setiap cold start proses baru, jadi hasilnya ditandai di MongoDB
+    (`app_settings.__init__`) supaya index/seed berat hanya dijalankan sekali saja.
+    """
+    global _init_done
+    if _init_done:
+        return
+    async with _init_lock:
+        if _init_done:
+            return
+        try:
+            marker = await db.app_settings.find_one({"_id": "__init__"})
+            if marker and marker.get("version") == INIT_VERSION:
+                _init_done = True
+                return
+            await _run_init()
+            await db.app_settings.update_one(
+                {"_id": "__init__"},
+                {"$set": {"version": INIT_VERSION,
+                          "at": datetime.now(timezone.utc).isoformat()}},
+                upsert=True)
+            _init_done = True
+            logger.info("Inisialisasi database selesai (v%s, db=%s)", INIT_VERSION, db.name)
+        except Exception as exc:  # pragma: no cover
+            logger.error("ensure_init gagal: %s", exc)
+
+
+@app.middleware("http")
+async def bootstrap_middleware(request: Request, call_next):
+    """Gantikan background worker: init lazy + auto-close ter-throttle tiap request."""
+    await ensure_init()
+    path = request.url.path
+    if path.startswith("/api") and not path.startswith("/api/cron"):
+        await maybe_auto_close()
+    return await call_next(request)
+
+
+@app.on_event("startup")
+async def startup():
+    await ensure_init()
+    # Scheduler loop hanya untuk server persisten (sandbox / VPS / Docker).
+    if not IS_SERVERLESS and os.environ.get("RUN_SCHEDULER", "1") != "0":
+        asyncio.create_task(auto_close_loop())
 
 @app.on_event("shutdown")
 async def shutdown():
