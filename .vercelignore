@@ -1,0 +1,27 @@
+# Jangan ikut di-upload ke Vercel (mengurangi ukuran & waktu build)
+node_modules
+frontend/node_modules
+frontend/build
+.git
+.emergent
+__pycache__
+**/__pycache__
+*.pyc
+.venv
+venv
+
+# File pengujian / dokumen internal (tidak dibutuhkan runtime)
+tests
+backend/tests
+backend/pytest.ini
+test_reports
+backend_test*.py
+test_result.md
+memory
+design_guidelines.json
+plan.md
+
+# .env lokal tidak boleh ikut — pakai Environment Variables di dashboard Vercel
+.env
+*/.env
+.env.*

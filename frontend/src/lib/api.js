@@ -1,6 +1,10 @@
 import axios from "axios";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+// Base URL backend.
+// - Sandbox / dev: pakai REACT_APP_BACKEND_URL dari .env
+// - Produksi Vercel (1 project, frontend + backend satu domain): variabel tidak
+//   diset, sehingga base menjadi relatif ("/api") dan otomatis bebas CORS.
+const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "").replace(/\/+$/, "");
 export const API = `${BACKEND_URL}/api`;
 
 export const api = axios.create({

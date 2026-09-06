@@ -97,3 +97,60 @@ Web app absensi pengajian. Fase 1: fondasi autentikasi — Login fleksibel (HP/E
 ## Tambahan — QR Aktivasi Akun + Pintasan Dashboard (SELESAI, terverifikasi)
 - QR Aktivasi Akun (publik): GET /api/staff/activation-qr (require_staff) -> {url: FRONTEND_URL/activate, image PNG}. Peserta scan -> halaman /activate (Activate.jsx, pencarian nama sudah ada) -> aktivasi akun sendiri. Bisa di-Download & Salin Link dari modal di dashboard. Akses: staff 200, peserta 403, no-auth 401.
 - Pintasan Cepat di dashboard Admin & Pengurus (DashboardView, data-testid dashboard-shortcuts): Peserta, Kegiatan, Pengumuman, Penjaga Absen, Laporan, QR Aktivasi. Navigasi via onGoto(setActive).
+
+## Fase 5 — Migrasi Deployment: 1 Project Vercel + MongoDB Atlas (SELESAI)
+
+Tujuan: frontend & backend TIDAK dipisah — satu repo, satu project Vercel, satu domain.
+Infrastruktur hanya **Vercel + MongoDB Atlas** (tanpa server/VPS/worker terpisah).
+
+### Struktur baru
+- `vercel.json` (root): `builds` = `frontend/package.json` (@vercel/static-build, distDir `build`)
+  + `api/index.py` (@vercel/python, includeFiles `backend/**`). `routes`: `/api/*` → function,
+  `handle: filesystem` → static, sisanya → `/index.html` (SPA). `crons`: `/api/cron/auto-close` harian.
+- `api/index.py`: entrypoint serverless, menambah `backend/` ke sys.path lalu `from server import app`.
+  Kode FastAPI tetap di `backend/server.py` agar bisa dijalankan uvicorn di sandbox.
+- `requirements.txt` (root) + `api/requirements.txt`: dependency Python MINIMAL untuk lambda.
+- `.vercelignore`: exclude node_modules, test, memory, .env.
+- `DEPLOY_VERCEL.md` + `vercel-env.example.md`: panduan deploy & daftar env.
+- Vercel setup: **Root Directory `./`**, **Framework Preset `Other`**, Build/Output default (diatur vercel.json).
+
+### Perubahan backend (serverless-safe)
+- Mongo client: `maxPoolSize=5` saat serverless, `tlsCAFile=certifi.where()` untuk Atlas SRV,
+  timeout eksplisit; `MONGO_URL` fallback `MONGODB_URI`; `DB_NAME` default `ekertalangu`.
+- `IS_SERVERLESS` dideteksi dari env `VERCEL`/`AWS_LAMBDA_FUNCTION_NAME`.
+- Hapus ketergantungan `@app.on_event("startup")`: index+seed dipindah ke `_run_init()` dan
+  dipanggil `ensure_init()` (idempoten, satu kali per proses) lewat HTTP middleware
+  `bootstrap_middleware`. Ditandai di `app_settings.__init__` dengan `INIT_VERSION` (=3)
+  supaya cold start tidak mengulang kerja berat. Naikkan INIT_VERSION bila perlu re-index.
+- Scheduler `auto_close_loop()` (while True + sleep 60) HANYA jalan di server persisten
+  (`not IS_SERVERLESS and RUN_SCHEDULER != "0"`). Di Vercel diganti:
+  - `maybe_auto_close()` — lazy, dipicu tiap request `/api/*`, throttle 60s in-process +
+    klaim slot lewat `app_settings.__auto_close__` (aman untuk banyak instance paralel).
+  - `GET /api/cron/auto-close` — dipanggil Vercel Cron, diproteksi `CRON_SECRET`
+    (header `Authorization: Bearer` atau `X-Cron-Secret`). Tanpa secret → 401.
+- `GET /api/health` — status server + ping DB + nama DB + flag serverless (untuk verifikasi deploy).
+- `get_jwt_secret()` tidak lagi KeyError saat import; error 500 dengan pesan jelas.
+- CORS: `FRONTEND_URL` + `localhost:3000` + `EXTRA_CORS_ORIGINS` (dipisah koma).
+
+### Perubahan frontend
+- `src/lib/api.js`: `BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "")` → bila kosong,
+  base menjadi relatif `/api` (satu domain, TANPA CORS). Di Vercel `REACT_APP_BACKEND_URL`
+  sengaja TIDAK diset.
+- `package.json`: tambah script `vercel-build` = `CI=false craco build` (warning ESLint tidak
+  menggagalkan build di Vercel). `frontend/yarn.lock` di-commit agar build reproducible.
+- Hapus `frontend/vercel (1).json` (konfigurasi lama, sudah digantikan vercel.json root).
+
+### Env produksi (Vercel)
+WAJIB: `MONGO_URL`, `DB_NAME`, `JWT_SECRET`, `FRONTEND_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
+OPSIONAL: `CRON_SECRET`, `EXTRA_CORS_ORIGINS`.
+JANGAN diset: `REACT_APP_BACKEND_URL` (harus kosong), `RUN_SCHEDULER`.
+
+### Status verifikasi
+- Sandbox sudah dialihkan ke MongoDB Atlas (db `ekertalangu`), seed otomatis jalan,
+  login admin + dashboard + kegiatan OK di live preview.
+- Simulasi serverless (`uvicorn api/index.py --lifespan off`, VERCEL=1) LULUS:
+  `/api/health` ok, login 200 (seed via middleware tanpa lifespan), `/api/admin/dashboard` 200,
+  `/api/cron/auto-close` 401 tanpa secret & 200 dengan secret.
+- `CI=false yarn build` (CRA) sukses: 426 kB gz main.js.
+- Catatan serverless: tidak ada tulis ke disk — foto profil & QR disimpan base64 di MongoDB,
+  export Excel/PDF di-stream langsung dari memori.
