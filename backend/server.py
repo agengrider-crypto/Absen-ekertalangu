@@ -2110,6 +2110,12 @@ class ProfileUpdate(BaseModel):
     education: Optional[str] = None
 
 
+@api_router.get("/me/profile")
+async def get_my_profile(user: dict = Depends(get_current_user)):
+    """Data profil pengguna yang sedang login (dipakai halaman Profil)."""
+    return public_user(user)
+
+
 @api_router.patch("/me/profile")
 async def update_my_profile(body: ProfileUpdate, user: dict = Depends(get_current_user)):
     updates = {}
