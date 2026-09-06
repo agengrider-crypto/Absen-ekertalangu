@@ -154,3 +154,24 @@ JANGAN diset: `REACT_APP_BACKEND_URL` (harus kosong), `RUN_SCHEDULER`.
 - `CI=false yarn build` (CRA) sukses: 426 kB gz main.js.
 - Catatan serverless: tidak ada tulis ke disk — foto profil & QR disimpan base64 di MongoDB,
   export Excel/PDF di-stream langsung dari memori.
+
+### Hasil pengujian regresi (testing agent, iteration_4)
+- Backend 48/53 LULUS. `regression_check: PASSED` — refactor serverless tidak merusak
+  endpoint mana pun (auth fleksibel email/username/HP, guard 403/401, CRUD user &
+  kegiatan + recurring, absensi upsert, rekap, QR/share + rekap publik, activation-qr,
+  laporan + export Excel/PDF valid, reminder WA 200 bukan 404, close/reopen,
+  absen mandiri open/closed, seluruh endpoint area peserta).
+- Endpoint baru LULUS: `/api/health` 200; `/api/cron/auto-close` 401 tanpa secret,
+  200 dengan `Authorization: Bearer` maupun `X-Cron-Secret`.
+- FIX: `GET /api/me/profile` sebelumnya 405 (hanya PATCH) → ditambahkan.
+- False negative pada laporan agent (API sudah benar, hanya beda nama field yang
+  diharapkan agent): `tren` (bukan `tren_6_bulan`), `url` (bukan `link`),
+  `per_kegiatan` (bukan `kegiatans`), `announcements` (bukan `recent`).
+- False negative frontend "Masuk sebagai Admin tidak navigasi": diverifikasi manual —
+  navigasi ke `/area/admin` berhasil dan **10/10 menu sidebar** (Dashboard, Peserta,
+  Kegiatan, Penjaga Absen, Musyawarah, Pengumuman, Laporan, Log Aktivitas, Hak Akses,
+  Ganti Peran) tampil & bisa diklik tanpa red-screen. Error konsol 401 pada
+  `/api/auth/me` + `/api/auth/refresh` adalah perilaku NORMAL saat halaman dibuka
+  sebelum login (pengecekan sesi anonim).
+- Data uji buatan testing agent sudah dibersihkan dari Atlas; tersisa 3 akun seed
+  + 3 kelompok default.
