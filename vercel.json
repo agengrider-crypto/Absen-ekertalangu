@@ -26,10 +26,7 @@
     {
       "handle": "filesystem"
     },
-    {
-      "src": "/static/(.*)",
-      "status": 404
-    },
+    
     {
       "src": "/(.*)",
       "dest": "/index.html"
