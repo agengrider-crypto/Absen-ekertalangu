@@ -272,33 +272,40 @@ export function ScanPesertaModal({ kegiatan, onClose, onChanged }) {
   const onDetected = async (text) => {
     if (busy) return;
     if (!text || !text.startsWith("EKP:")) {
-      toast.error("Bukan QR pribadi peserta");
+      toast.error("Mohon maaf, QR ini bukan QR pribadi peserta. Mohon peserta membuka menu “QR Saya”.");
       return;
     }
     setBusy(true);
     try {
       const { data } = await api.post(`/staff/kegiatan/${kegiatan.id}/scan-personal`, { content: text });
       setLast(data);
-      if (data.already) toast.info(`${data.name} sudah hadir`);
-      else toast.success(`${data.name} ditandai hadir`);
+      if (data.already) toast.info(data.message || `${data.name} sudah tercatat hadir sebelumnya.`);
+      else toast.success(data.message || `Alhamdulillah, kehadiran ${data.name} berhasil dicatat.`);
       onChanged?.();
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
     setTimeout(() => setBusy(false), 1200);
   };
 
   return (
-    <ModalShell title="Scan QR Peserta" onClose={onClose} testid="modal-scan-peserta">
+    <ModalShell title="Absen Scan Barcode" onClose={onClose} testid="modal-scan-peserta">
       {kegiatan.status !== "open" ? (
-        <div className="text-sm text-[#991B1B] bg-[#FEE2E2] rounded-xl p-3">Kegiatan sudah ditutup — scan dinonaktifkan.</div>
+        <div className="text-sm text-[#991B1B] bg-[#FEE2E2] rounded-xl p-3">
+          Mohon maaf, kegiatan ini sudah ditutup sehingga scan absen dinonaktifkan.
+        </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-[#6B7280] flex items-center gap-2"><ScanLine size={16} className="text-[#0D5C3A]" /> Arahkan kamera ke QR pribadi peserta untuk menandai hadir.</p>
+          <p className="text-sm text-[#6B7280] flex items-start gap-2">
+            <ScanLine size={16} className="text-[#0D5C3A] shrink-0 mt-0.5" />
+            Arahkan kamera ke <b>QR pribadi peserta</b> (menu “QR Saya” pada akun peserta) untuk menandai hadir.
+          </p>
           <QrScanner onDetected={onDetected} paused={busy} />
           {last && (
-            <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl p-3 text-center">
+            <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl p-3 text-center" data-testid="scan-result">
               <CheckCircle2 className="mx-auto text-[#0D5C3A]" size={26} />
-              <div className="font-semibold text-[#065F46] mt-1">{last.name}</div>
-              <div className="text-xs text-[#4B5563]">{last.already ? "Sudah hadir sebelumnya" : "Hadir dicatat"}</div>
+              <div className="font-bold text-[#065F46] mt-1">{last.name}</div>
+              <div className="text-xs text-[#4B5563] mt-0.5">
+                {last.message || (last.already ? "Sudah hadir sebelumnya" : "Hadir dicatat")}
+              </div>
             </div>
           )}
         </div>

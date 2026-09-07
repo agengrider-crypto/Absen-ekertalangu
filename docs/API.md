@@ -166,9 +166,17 @@ curl -b ck.txt https://<domain>/api/auth/me
 | Method | Path | Guard | Keterangan |
 |---|---|---|---|
 | GET | `/api/rekap/{token}` | — | Rekap publik. **410** bila kedaluwarsa, **404** bila token salah |
-| GET | `/api/absen/{token}` | — | Info kegiatan + daftar peserta untuk absen mandiri |
+| GET | `/api/laporan/{token}` | — | **Laporan publik (tautan permanen)**. **404** bila token salah |
+| GET | `/api/absen/{token}` | — | Info kegiatan + daftar peserta (dipakai absen **manual**) |
 | POST | `/api/absen/{token}/mark` | — | `{user_id}` — **403** bila kegiatan sudah ditutup |
 | POST | `/api/absen/{token}/feedback` | — | `{name?, message}` |
+
+> **Absen mandiri tidak lagi memakai `/api/absen/{token}/mark`.** Sejak Fase 6, peserta
+> wajib login dan memakai `/api/me/absen/{token}` + `/api/me/absen/{token}/mark`
+> (lihat bagian 10) sehingga hanya bisa mengabsenkan **dirinya sendiri**.
+
+**Respons `/api/laporan/{token}`** — sama seperti `/api/admin/laporan` ditambah
+`title`, `mode` (`harian|bulanan|custom`), `created_by`, `created_at`.
 
 ---
 
@@ -181,7 +189,8 @@ curl -b ck.txt https://<domain>/api/auth/me
 | POST | `/api/staff/delegation/{deleg_id}/revoke` | `require_staff` | Cabut manual |
 | GET | `/api/me/delegations` | login | Delegasi aktif milik saya |
 | GET | `/api/delegate/kegiatan/{kegiatan_id}` | login + delegasi | Info kegiatan untuk penjaga absen |
-| POST | `/api/delegate/kegiatan/{kegiatan_id}/absen` | login + delegasi | `{user_id, status}` |
+| POST | `/api/delegate/kegiatan/{kegiatan_id}/absen` | login + delegasi | `{user_id, status}` — absen **manual** |
+| POST | `/api/delegate/kegiatan/{kegiatan_id}/scan-personal` | login + delegasi | `{content}` — absen **scan barcode** QR pribadi peserta. **403** tanpa delegasi, **400** QR tidak sah, **404** peserta tidak ditemukan |
 
 Delegasi **otomatis dicabut** saat kegiatan ditutup (manual maupun otomatis).
 
@@ -218,6 +227,8 @@ Delegasi **otomatis dicabut** saat kegiatan ditutup (manual maupun otomatis).
 | PATCH | `/api/me/profile` | login | `ProfileUpdate` |
 | GET | `/api/me/photo` | login | Foto (data URL) |
 | POST | `/api/me/photo` | login | `{photo}` — harus diawali `data:image/` (400 bila tidak) |
+| GET | `/api/me/absen/{token}` | login | **Absen mandiri terfokus** — hanya data diri sendiri (`kegiatan` + `me`). **401** tanpa login |
+| POST | `/api/me/absen/{token}/mark` | login | Tandai **diri sendiri** hadir. **403** kegiatan ditutup / bukan peserta / profil belum lengkap. Balas `already: true` bila sudah tercatat |
 
 ---
 
@@ -228,6 +239,7 @@ Delegasi **otomatis dicabut** saat kegiatan ditutup (manual maupun otomatis).
 | GET | `/api/admin/dashboard` | `require_staff` | Statistik panel |
 | GET | `/api/admin/laporan` | `require_staff` | `?date_from=&date_to=` |
 | GET | `/api/admin/laporan/export` | `require_staff` | `?format=excel\|pdf&date_from=&date_to=` — file biner |
+| POST | `/api/admin/laporan/share` | `require_staff` | `{date_from, date_to, mode}` — buat **tautan laporan publik permanen**. Balas `{token, link, image (QR data URL), title, mode}`. **Idempoten**: rentang + mode yang sama memakai token yang sama. **400** bila tanggal kosong / `date_from > date_to` |
 
 **Kunci respons `/api/admin/dashboard`** (nama persis — jangan tertukar):
 
@@ -243,10 +255,14 @@ kegiatan_bulan_ini, rasio_kehadiran_bulan, donut, tren, upcoming, recent
 ```
 date_from, date_to, total_kegiatan, total_peserta,
 summary { hadir, izin, alpha, ratio },
-gender_hadir, per_kegiatan[], top_rajin[] (5), top_alpha[] (5)
+gender_hadir, per_kegiatan[], per_peserta[], top_rajin[] (5), top_alpha[] (5)
 ```
 
 > Rincian per kegiatan memakai kunci **`per_kegiatan`**, bukan `kegiatans`.
+
+`per_peserta[]` (baru sejak Fase 6) berisi seluruh peserta terurut nama:
+`{name, gender, account_status, hadir, izin, alpha, ratio}` — dipakai dropdown
+"Rekap per Peserta" pada panel laporan dan halaman laporan publik.
 
 ---
 

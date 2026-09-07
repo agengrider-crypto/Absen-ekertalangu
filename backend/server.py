@@ -143,7 +143,37 @@ def _derive_gender(user: dict) -> Optional[str]:
         return "L"
     return None
 
+
+# ---------------------------------------------------------------------------
+# Kelengkapan profil (verifikasi akun sebelum memakai aplikasi)
+# ---------------------------------------------------------------------------
+# Field yang WAJIB diisi setiap pengguna (semua peran) sebelum boleh memakai app.
+REQUIRED_PROFILE_FIELDS = [
+    ("name", "Nama Lengkap"),
+    ("gender", "Jenis Kelamin"),
+    ("dob", "Tanggal Lahir"),
+    ("phone", "No. HP"),
+    ("address", "Alamat"),
+]
+
+
+def profile_missing_fields(user: dict) -> List[str]:
+    """Label field wajib yang masih kosong pada profil pengguna."""
+    missing = []
+    for key, label in REQUIRED_PROFILE_FIELDS:
+        if key == "gender":
+            # Sengaja memakai nilai MENTAH (bukan turunan dari avatar_gender),
+            # supaya pengguna benar-benar memilih jenis kelaminnya sendiri.
+            val = user.get("gender") if user.get("gender") in GENDER_OPTIONS else None
+        else:
+            val = user.get(key)
+        if val is None or str(val).strip() == "":
+            missing.append(label)
+    return missing
+
+
 def public_user(user: dict, include_photo: bool = False) -> dict:
+    missing = profile_missing_fields(user)
     data = {
         "id": str(user["_id"]),
         "name": user.get("name"),
@@ -163,6 +193,8 @@ def public_user(user: dict, include_photo: bool = False) -> dict:
         "source": user.get("source", "admin"),
         "avatar_gender": user.get("avatar_gender", "male"),
         "needs_completion": bool(user.get("needs_completion", False)),
+        "profile_complete": len(missing) == 0,
+        "missing_fields": missing,
         "has_photo": bool(user.get("photo")),
         "created_at": user.get("created_at"),
     }
@@ -1008,7 +1040,11 @@ import asyncio
 WITA = timezone(timedelta(hours=8))
 KEGIATAN_TYPES = ["rutin", "khusus", "asad"]
 ABSEN_STATUS = ["hadir", "izin", "alpha"]
-PESERTA_QUERY = {"roles": "peserta", "status": "active"}
+# Daftar peserta untuk absensi & rekap.
+# Termasuk peserta hasil import Excel yang BELUM aktivasi (status "pending") supaya
+# pengurus/penjaga absen tetap bisa mengabsen mereka secara MANUAL, dan mereka juga
+# ikut dihitung pada rekap/laporan kehadiran.
+PESERTA_QUERY = {"roles": "peserta", "status": {"$in": ["active", "pending"]}}
 SHARE_EXPIRE_DAYS = 7
 
 
@@ -1322,6 +1358,7 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
         rows.append({
             "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
             "status": status,
+            "account_status": p.get("status", "active"),
             "arrival_time": a.get("arrival_time") if a else None,
             "marked_by": a.get("marked_by") if a else None,
         })
@@ -1404,6 +1441,7 @@ async def public_rekap(token: str):
         else:
             alpha += 1
         rows.append({"name": p.get("name"), "status": status,
+                     "account_status": p.get("status", "active"),
                      "arrival_time": a.get("arrival_time") if a else None})
     total = len(peserta)
     return {
@@ -1454,6 +1492,7 @@ async def public_absen_info(token: str):
             "id": pid, "name": p.get("name"),
             "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
             "status": a["status"] if a else "alpha",
+            "account_status": p.get("status", "active"),
             "arrival_time": a.get("arrival_time") if a else None,
         })
     return {
@@ -1492,11 +1531,89 @@ async def public_absen_mark(token: str, body: SelfAbsenInput):
     return {"name": u.get("name"), "status": "hadir", "arrival_time": arrival, "already": False}
 
 
+# ------------------------- Absen Mandiri TERFOKUS (wajib login, 1 peserta) -------------------------
+# Peserta yang scan QR kegiatan hanya bisa mengabsenkan DIRINYA SENDIRI.
+# Tidak ada "nitip absen" — daftar nama peserta lain tidak ditampilkan.
+@api_router.get("/me/absen/{token}")
+async def my_absen_info(token: str, user: dict = Depends(get_current_user)):
+    k = await db.kegiatans.find_one({"absen_token": token})
+    if not k:
+        raise HTTPException(
+            status_code=404,
+            detail="Mohon maaf, tautan absen ini tidak dikenali. Silakan scan ulang QR kegiatan dari pengurus.")
+    uid = str(user["_id"])
+    a = await db.absensis.find_one({"kegiatan_id": k["_id"], "user_id": uid})
+    return {
+        "kegiatan": {
+            "id": k["_id"], "name": k.get("name"), "type": k.get("type"),
+            "location": k.get("location"), "date": k.get("date"),
+            "start_time": k.get("start_time"), "end_time": k.get("end_time"),
+            "teacher": k.get("teacher"), "material": k.get("material"),
+            "status": k.get("status", "open"),
+        },
+        "me": {
+            "id": uid, "name": user.get("name"),
+            "is_peserta": "peserta" in (user.get("roles") or []),
+            "status": a.get("status") if a else None,
+            "arrival_time": a.get("arrival_time") if a else None,
+            "marked_by": a.get("marked_by") if a else None,
+        },
+    }
+
+
+@api_router.post("/me/absen/{token}/mark")
+async def my_absen_mark(token: str, user: dict = Depends(get_current_user)):
+    k = await db.kegiatans.find_one({"absen_token": token})
+    if not k:
+        raise HTTPException(
+            status_code=404,
+            detail="Mohon maaf, tautan absen ini tidak dikenali. Silakan scan ulang QR kegiatan dari pengurus.")
+    if k.get("status", "open") != "open":
+        raise HTTPException(
+            status_code=403,
+            detail="Mohon maaf, kegiatan ini sudah ditutup sehingga absen mandiri tidak dapat diproses. "
+                   "Silakan menghubungi pengurus untuk absen susulan.")
+    if "peserta" not in (user.get("roles") or []):
+        raise HTTPException(
+            status_code=403,
+            detail="Mohon maaf, akun Anda belum terdaftar sebagai peserta pengajian. "
+                   "Silakan menghubungi pengurus untuk didaftarkan.")
+    if profile_missing_fields(user):
+        raise HTTPException(
+            status_code=403,
+            detail="Mohon lengkapi data profil Anda terlebih dahulu sebelum melakukan absen. "
+                   "Jazakumullahu khoiro.")
+    uid = str(user["_id"])
+    existing = await db.absensis.find_one({"kegiatan_id": k["_id"], "user_id": uid})
+    if existing and existing.get("status") == "hadir":
+        return {
+            "already": True, "name": user.get("name"), "status": "hadir",
+            "arrival_time": existing.get("arrival_time"),
+            "message": f"Kehadiran Anda sudah tercatat sebelumnya pada kegiatan {k.get('name')}. "
+                       "Terima kasih, jazakumullahu khoiro.",
+        }
+    arrival = now_wita().isoformat()
+    await db.absensis.update_one(
+        {"kegiatan_id": k["_id"], "user_id": uid},
+        {"$set": {"kegiatan_id": k["_id"], "user_id": uid, "status": "hadir",
+                  "arrival_time": arrival, "marked_by": "Mandiri (Scan QR)",
+                  "marked_by_id": uid, "updated_at": arrival}},
+        upsert=True)
+    return {
+        "already": False, "name": user.get("name"), "status": "hadir",
+        "arrival_time": arrival,
+        "message": f"Alhamdulillah, kehadiran Anda pada kegiatan {k.get('name')} berhasil dicatat. "
+                   "Jazakumullahu khoiro.",
+    }
+
+
 @api_router.post("/absen/{token}/feedback")
 async def public_absen_feedback(token: str, body: FeedbackInput):
     k = await db.kegiatans.find_one({"absen_token": token})
     if not k:
-        raise HTTPException(status_code=404, detail="Tautan absen tidak ditemukan")
+        raise HTTPException(
+            status_code=404,
+            detail="Mohon maaf, tautan absen ini tidak dikenali.")
     msg = (body.message or "").strip()
     if not msg:
         raise HTTPException(status_code=400, detail="Pesan tidak boleh kosong.")
@@ -1939,6 +2056,7 @@ async def delegate_kegiatan_info(kegiatan_id: str, user: dict = Depends(get_curr
         rows.append({"id": pid, "name": p.get("name"),
                      "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
                      "status": a["status"] if a else "alpha",
+                     "account_status": p.get("status", "active"),
                      "arrival_time": a.get("arrival_time") if a else None})
     return {"kegiatan": serialize_kegiatan(k), "peserta": rows,
             "delegation": serialize_delegation(deleg)}
@@ -1969,6 +2087,56 @@ async def delegate_mark_absen(kegiatan_id: str, body: AbsenInput, user: dict = D
     return {"user_id": body.user_id, "status": body.status, "arrival_time": arrival}
 
 
+class ScanPersonalInput(BaseModel):
+    # Dibuat opsional agar pemeriksaan hak akses (403) & pesan Bahasa Indonesia
+    # yang sopan (400) berjalan lebih dulu daripada error validasi mentah 422.
+    content: Optional[str] = ""
+
+
+@api_router.post("/delegate/kegiatan/{kegiatan_id}/scan-personal")
+async def delegate_scan_personal(kegiatan_id: str, body: ScanPersonalInput,
+                                 user: dict = Depends(get_current_user)):
+    """Penjaga absen (penerima delegasi) menandai hadir via scan QR pribadi peserta."""
+    deleg = await _active_delegation(kegiatan_id, str(user["_id"]))
+    if not deleg:
+        raise HTTPException(
+            status_code=403,
+            detail="Mohon maaf, Anda tidak memiliki hak penjaga absen untuk kegiatan ini.")
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Mohon maaf, kegiatan tidak ditemukan.")
+    if k.get("status", "open") != "open":
+        raise HTTPException(
+            status_code=403,
+            detail="Mohon maaf, kegiatan ini sudah ditutup sehingga absen tidak dapat diproses.")
+    content = (body.content or "").strip()
+    if content.startswith("EKP:"):
+        content = content[4:]
+    target_id = verify_personal_token(content)
+    if not target_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Mohon maaf, QR pribadi ini tidak dikenali atau sudah kadaluarsa. "
+                   "Mohon peserta menampilkan ulang QR-nya.")
+    u = await db.users.find_one({"_id": ObjectId(target_id)}) if ObjectId.is_valid(target_id) else None
+    if not u or "peserta" not in (u.get("roles") or []):
+        raise HTTPException(
+            status_code=404,
+            detail="Mohon maaf, data peserta untuk QR ini tidak ditemukan.")
+    existing = await db.absensis.find_one({"kegiatan_id": kegiatan_id, "user_id": target_id})
+    if existing and existing.get("status") == "hadir":
+        return {"name": u.get("name"), "status": "hadir",
+                "arrival_time": existing.get("arrival_time"), "already": True,
+                "message": f"{u.get('name')} sudah tercatat hadir sebelumnya. Terima kasih."}
+    arrival = now_wita().isoformat()
+    await db.absensis.update_one(
+        {"kegiatan_id": kegiatan_id, "user_id": target_id},
+        {"$set": {"kegiatan_id": kegiatan_id, "user_id": target_id, "status": "hadir",
+                  "arrival_time": arrival, "marked_by": f"Penjaga Absen: {user.get('name')}",
+                  "marked_by_id": str(user["_id"]), "updated_at": arrival}},
+        upsert=True)
+    return {"name": u.get("name"), "status": "hadir", "arrival_time": arrival, "already": False,
+            "message": f"Alhamdulillah, kehadiran {u.get('name')} berhasil dicatat."}
 # ------------------------- Peserta: QR pribadi rotating -------------------------
 def _current_window() -> int:
     return int(datetime.now(timezone.utc).timestamp() // PERSONAL_QR_ROTATE)
@@ -2009,10 +2177,6 @@ async def my_personal_qr(user: dict = Depends(get_current_user)):
             "rotate_seconds": PERSONAL_QR_ROTATE, "expires_in": max(expires_in, 1)}
 
 
-class ScanPersonalInput(BaseModel):
-    content: str
-
-
 @api_router.post("/staff/kegiatan/{kegiatan_id}/scan-personal")
 async def scan_personal_qr(kegiatan_id: str, body: ScanPersonalInput, staff: dict = Depends(require_staff)):
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
@@ -2025,14 +2189,20 @@ async def scan_personal_qr(kegiatan_id: str, body: ScanPersonalInput, staff: dic
         content = content[4:]
     user_id = verify_personal_token(content)
     if not user_id:
-        raise HTTPException(status_code=400, detail="QR pribadi tidak valid atau sudah kadaluarsa")
+        raise HTTPException(
+            status_code=400,
+            detail="Mohon maaf, QR pribadi ini tidak dikenali atau sudah kadaluarsa. "
+                   "Mohon peserta menampilkan ulang QR-nya.")
     u = await db.users.find_one({"_id": ObjectId(user_id)}) if ObjectId.is_valid(user_id) else None
     if not u or "peserta" not in (u.get("roles") or []):
-        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+        raise HTTPException(
+            status_code=404,
+            detail="Mohon maaf, data peserta untuk QR ini tidak ditemukan.")
     existing = await db.absensis.find_one({"kegiatan_id": kegiatan_id, "user_id": user_id})
     if existing and existing.get("status") == "hadir":
         return {"name": u.get("name"), "status": "hadir",
-                "arrival_time": existing.get("arrival_time"), "already": True}
+                "arrival_time": existing.get("arrival_time"), "already": True,
+                "message": f"{u.get('name')} sudah tercatat hadir sebelumnya. Terima kasih."}
     arrival = now_wita().isoformat()
     await db.absensis.update_one(
         {"kegiatan_id": kegiatan_id, "user_id": user_id},
@@ -2040,7 +2210,8 @@ async def scan_personal_qr(kegiatan_id: str, body: ScanPersonalInput, staff: dic
                   "arrival_time": arrival, "marked_by": f"Dibantu: {staff.get('name')}",
                   "marked_by_id": str(staff["_id"]), "updated_at": arrival}},
         upsert=True)
-    return {"name": u.get("name"), "status": "hadir", "arrival_time": arrival, "already": False}
+    return {"name": u.get("name"), "status": "hadir", "arrival_time": arrival, "already": False,
+            "message": f"Alhamdulillah, kehadiran {u.get('name')} berhasil dicatat."}
 
 
 # ------------------------- Peserta: dashboard / kegiatan / profil -------------------------
@@ -2249,6 +2420,7 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
 
     # per-user tally
     tally = {str(p["_id"]): {"name": p.get("name"), "gender": _derive_gender(p),
+                             "account_status": p.get("status", "active"),
                              "hadir": 0, "izin": 0, "alpha": 0} for p in peserta}
     per_keg_status = {}  # kegiatan_id -> {uid: status}
     for a in absens:
@@ -2283,6 +2455,10 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
     top_alpha = sorted(tvals, key=lambda x: x["alpha"], reverse=True)[:5]
     n_keg = len(kegiatans)
     denom = n_keg * total_peserta
+    # Rincian per peserta (dipakai daftar dropdown pada halaman laporan)
+    per_peserta = sorted(
+        [{**v, "ratio": round((v["hadir"] / n_keg) * 100, 1) if n_keg else 0.0} for v in tvals],
+        key=lambda x: (x["name"] or "").lower())
     return {
         "date_from": date_from, "date_to": date_to,
         "total_kegiatan": n_keg, "total_peserta": total_peserta,
@@ -2292,8 +2468,79 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
         },
         "gender_hadir": gender_hadir,
         "per_kegiatan": rows,
+        "per_peserta": per_peserta,
         "top_rajin": top_rajin, "top_alpha": top_alpha,
     }
+
+
+# ------------------------- Tautan Laporan Publik (permanen) -------------------------
+class LaporanShareInput(BaseModel):
+    date_from: str
+    date_to: str
+    mode: Optional[str] = "custom"  # harian | bulanan | custom
+
+
+def _laporan_title(mode: str, date_from: str, date_to: str) -> str:
+    if mode == "harian":
+        return "Laporan Kehadiran Harian"
+    if mode == "bulanan":
+        return "Laporan Kehadiran Bulanan"
+    return "Laporan Kehadiran"
+
+
+@api_router.post("/admin/laporan/share")
+async def share_laporan(body: LaporanShareInput, request: Request,
+                        admin: dict = Depends(require_staff)):
+    """Buat tautan laporan PUBLIK (permanen, tanpa login).
+
+    Token dipakai ulang untuk rentang tanggal + mode yang sama, sehingga tautan
+    yang sudah dibagikan tetap sah dan tidak menumpuk token baru.
+    """
+    date_from = (body.date_from or "").strip()
+    date_to = (body.date_to or "").strip()
+    mode = (body.mode or "custom").strip().lower()
+    if mode not in ("harian", "bulanan", "custom"):
+        mode = "custom"
+    if not date_from or not date_to:
+        raise HTTPException(status_code=400, detail="Rentang tanggal laporan wajib diisi.")
+    if date_from > date_to:
+        raise HTTPException(status_code=400, detail="Tanggal 'Dari' tidak boleh melebihi tanggal 'Sampai'.")
+
+    existing = await db.laporan_links.find_one(
+        {"date_from": date_from, "date_to": date_to, "mode": mode})
+    if existing:
+        token = existing["_id"]
+    else:
+        token = secrets.token_urlsafe(9)
+        await db.laporan_links.insert_one({
+            "_id": token, "date_from": date_from, "date_to": date_to, "mode": mode,
+            "title": _laporan_title(mode, date_from, date_to),
+            "created_by": admin.get("name"), "created_by_id": str(admin["_id"]),
+            "created_at": now_wita().isoformat(),
+        })
+        await log_activity(admin, "share_laporan",
+                           f"Membuat tautan laporan publik ({mode}) {date_from} s/d {date_to}")
+    link = f"{resolve_base_url(request)}/laporan/{token}"
+    return {"token": token, "link": link, "mode": mode, "image": make_qr_data_url(link),
+            "title": _laporan_title(mode, date_from, date_to),
+            "date_from": date_from, "date_to": date_to}
+
+
+@api_router.get("/laporan/{token}")
+async def public_laporan(token: str):
+    """Halaman laporan publik — bisa dibuka siapa pun TANPA login (tautan permanen)."""
+    doc = await db.laporan_links.find_one({"_id": token})
+    if not doc:
+        raise HTTPException(
+            status_code=404,
+            detail="Mohon maaf, tautan laporan ini tidak dikenali.")
+    data = await build_laporan(doc.get("date_from", ""), doc.get("date_to", ""))
+    data["mode"] = doc.get("mode", "custom")
+    data["title"] = doc.get("title") or _laporan_title(
+        doc.get("mode", "custom"), data["date_from"], data["date_to"])
+    data["created_by"] = doc.get("created_by")
+    data["created_at"] = doc.get("created_at")
+    return data
 
 
 @api_router.get("/admin/laporan")

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Eye, EyeOff, QrCode, UserPlus, LogIn, KeyRound, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -9,6 +9,7 @@ import { DateField } from "@/components/DateField";
 
 export default function Login() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const { setUser } = useAuth();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -16,14 +17,23 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showReset, setShowReset] = useState(false);
 
+  // Tujuan setelah login (mis. dari scan QR absen: /login?next=/absen/<token>)
+  const rawNext = params.get("next") || "";
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "";
+
   const submit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
       const { data } = await api.post("/auth/login", { identifier, password });
       setUser(data);
+      if (data.profile_complete === false) {
+        toast.warning(`Selamat datang, ${data.name}. Mohon lengkapi data akun Anda dahulu.`);
+        navigate("/lengkapi-akun", { replace: true });
+        return;
+      }
       toast.success(`Selamat datang, ${data.name}`);
-      navigate("/roles");
+      navigate(next || "/roles", { replace: true });
     } catch (err) {
       toast.error(formatApiErrorDetail(err.response?.data?.detail) || err.message);
     } finally {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  FileBarChart2, Loader2, FileSpreadsheet, FileText, TrendingUp, Award, AlertTriangle, Send,
+  FileBarChart2, Loader2, FileSpreadsheet, FileText, TrendingUp, Award, AlertTriangle,
+  Link as LinkIcon, Copy, Download, X, ExternalLink, Send, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -54,35 +55,21 @@ export default function LaporanView() {
     } finally { setExporting(""); }
   };
 
-  const shareWa = () => {
-    if (!data || !data.summary) { toast.error("Data belum siap"); return; }
-    const s2 = data.summary || {};
-    const lines = [];
-    if (tab === "harian") {
-      const tgl = tanggalSingkat(to);
-      lines.push("Assalamualaikum");
-      lines.push(`Berikut laporan kehadiran hari ini (${tgl}):`);
-      lines.push("");
-      (data.per_kegiatan || []).forEach((r) => {
-        lines.push(`• ${r.name}: Hadir ${r.hadir}, Izin ${r.izin}, Alpha ${r.alpha} (${r.ratio}%)`);
+  const [shareData, setShareData] = useState(null);
+  const [sharing, setSharing] = useState(false);
+
+  const buatLink = async () => {
+    setSharing(true);
+    try {
+      const { data: d } = await api.post("/admin/laporan/share", {
+        date_from: from, date_to: to, mode: tab,
       });
-      if (!(data.per_kegiatan || []).length) lines.push("(Belum ada kegiatan hari ini)");
-      lines.push("");
-      lines.push(`Total: Hadir ${s2.hadir}, Izin ${s2.izin}, Alpha ${s2.alpha} — Rasio ${s2.ratio}%`);
-    } else {
-      const monthName = new Date(from + "T00:00:00").toLocaleDateString("id-ID", { month: "long", year: "numeric" });
-      lines.push("Assalamualaikum");
-      lines.push(`Berikut laporan total kehadiran bulan ${monthName}:`);
-      lines.push("");
-      lines.push(`Total Hadir: ${s2.hadir}`);
-      lines.push(`Total Izin: ${s2.izin}`);
-      lines.push(`Total Alpha: ${s2.alpha}`);
-      lines.push(`Rasio Kehadiran: ${s2.ratio}%`);
-      lines.push(`Jumlah Kegiatan: ${data.total_kegiatan}`);
+      setShareData(d);
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setSharing(false);
     }
-    lines.push("");
-    lines.push("Alhamdulillah jazakumullahu khoiro");
-    window.open(`https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
   };
 
   const s = data?.summary || {};
@@ -94,16 +81,16 @@ export default function LaporanView() {
           <FileBarChart2 size={20} /> Laporan Kehadiran
         </div>
         <div className="flex items-center gap-2">
-          <button data-testid="button-share-wa" onClick={shareWa}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#25D366] text-white font-semibold text-sm hover:brightness-95">
-            <Send size={16} /> Share WA
+          <button data-testid="button-buat-link-laporan" onClick={buatLink} disabled={sharing}
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229] disabled:opacity-60">
+            {sharing ? <Loader2 className="animate-spin" size={16} /> : <LinkIcon size={16} />} Buat Link Laporan
           </button>
           <button data-testid="button-export-excel" onClick={() => doExport("excel")} disabled={!!exporting}
             className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE] disabled:opacity-50">
             {exporting === "excel" ? <Loader2 className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} Excel
           </button>
           <button data-testid="button-export-pdf" onClick={() => doExport("pdf")} disabled={!!exporting}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229] disabled:opacity-50">
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE] disabled:opacity-50">
             {exporting === "pdf" ? <Loader2 className="animate-spin" size={16} /> : <FileText size={16} />} PDF
           </button>
         </div>
@@ -196,8 +183,120 @@ export default function LaporanView() {
               </div>
             )}
           </div>
+
+          {/* Rekap per peserta (dropdown) */}
+          <PesertaLaporanList rows={data.per_peserta || []} />
         </div>
       )}
+
+      {shareData && <LaporanLinkModal data={shareData} onClose={() => setShareData(null)} />}
+    </div>
+  );
+}
+
+function PesertaLaporanList({ rows }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden mt-5" data-testid="laporan-per-peserta">
+      <button
+        data-testid="laporan-peserta-toggle"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full px-5 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFBF9]"
+      >
+        <span className="flex items-center gap-2 font-bold text-[#111827]">
+          <Users size={17} className="text-[#0D5C3A]" /> Rekap per Peserta
+          <span className="text-xs font-medium text-[#6B7280]">({rows.length})</span>
+        </span>
+        <span className="text-sm font-semibold text-[#0D5C3A]">{open ? "Tutup" : "Lihat"}</span>
+      </button>
+      {open && (
+        <div className="border-t border-[#E5E7EB] overflow-x-auto max-h-[52vh] overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0">
+              <tr className="bg-[#F8FAF8] text-[#9CA3AF] text-left text-[11px] uppercase tracking-wide">
+                <th className="px-4 py-2.5 font-bold">Nama</th>
+                <th className="px-4 py-2.5 font-bold text-center w-20">Hadir</th>
+                <th className="px-4 py-2.5 font-bold text-center w-20">Izin</th>
+                <th className="px-4 py-2.5 font-bold text-center w-20">Alpha</th>
+                <th className="px-4 py-2.5 font-bold text-right w-20">%</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#F1F2F0]">
+              {rows.map((p, i) => (
+                <tr key={i} data-testid={`laporan-peserta-row-${i}`}>
+                  <td className="px-4 py-2.5">
+                    <div className="font-medium text-[#111827]">{p.name}</div>
+                    {p.account_status === "pending" && (
+                      <div className="text-[11px] font-semibold text-[#92400E] inline-flex items-center gap-1 mt-0.5">
+                        <AlertTriangle size={11} /> Belum aktivasi
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#065F46] font-semibold">{p.hadir}</td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#92400E]">{p.izin}</td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#991B1B]">{p.alpha}</td>
+                  <td className="px-4 py-2.5 text-right font-bold text-[#0D5C3A]">{p.ratio}%</td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Belum ada data peserta.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LaporanLinkModal({ data, onClose }) {
+  const copy = () => { navigator.clipboard.writeText(data.link); toast.success("Tautan laporan disalin"); };
+  const download = () => {
+    const a = document.createElement("a");
+    a.href = data.image;
+    a.download = `qr_laporan_${data.date_from}_${data.date_to}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  const shareWa = () => {
+    const text = `Assalamualaikum\n\nBerikut tautan ${(data.title || "Laporan Kehadiran").toLowerCase()} E-KERTALANGU:\n${data.link}\n\nAlhamdulillah jazakumullahu khoiro`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/45" onClick={onClose} />
+      <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid="modal-laporan-link">
+        <div className="sticky top-0 bg-white border-b border-[#E5E7EB] px-5 py-4 flex items-center justify-between">
+          <h3 className="font-heading font-bold text-[#111827]">Tautan Laporan Publik</h3>
+          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F2F5F2]"><X size={20} /></button>
+        </div>
+        <div className="p-5 text-center">
+          <img src={data.image} alt="QR Laporan" className="mx-auto w-52 h-52 rounded-xl border border-[#E5E7EB] p-2" data-testid="laporan-qr-image" />
+          <div className="mt-3 bg-[#F0FAF4] border border-[#CDEBD9] rounded-xl p-3 text-left">
+            <p className="text-sm font-semibold text-[#065F46]">{data.title}</p>
+            <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
+              Siapa pun yang membuka tautan ini <b>langsung melihat laporannya tanpa perlu login</b>.
+              Tautan bersifat <b>permanen</b> untuk periode {tanggalSingkat(data.date_from)} s/d {tanggalSingkat(data.date_to)}.
+            </p>
+          </div>
+          <a
+            href={data.link}
+            target="_blank"
+            rel="noreferrer"
+            data-testid="laporan-link-open"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0D5C3A] hover:underline break-all"
+          >
+            <ExternalLink size={14} className="shrink-0" /> {data.link}
+          </a>
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#E8F5EE]"><Copy size={16} /> Salin Link</button>
+            <button data-testid="laporan-link-qr" onClick={download} className="h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#E8F5EE]"><Download size={16} /> Unduh QR</button>
+          </div>
+          <button data-testid="laporan-link-wa" onClick={shareWa} className="mt-2 w-full h-12 rounded-xl bg-[#25D366] text-white font-bold flex items-center justify-center gap-2 hover:brightness-95">
+            <Send size={18} /> Bagikan Link via WhatsApp
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

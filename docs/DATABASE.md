@@ -193,6 +193,36 @@ identifier tersebut. `is_locked()` mengunci bila ≥ 5 catatan dalam 15 menit �
 
 ---
 
+## `laporan_links`
+
+Tautan laporan publik yang **permanen** (dibuat panel Admin → Laporan → "Buat Link Laporan").
+`_id` berisi token yang dipakai pada URL `/laporan/{token}`.
+
+```js
+{
+  _id: "<token urlsafe 9 byte>",
+  date_from: "2026-09-07",
+  date_to: "2026-09-07",
+  mode: "harian" | "bulanan" | "custom",
+  title: "Laporan Kehadiran Harian",
+  created_by: "Administrator",
+  created_by_id: "<user id>",
+  created_at: "<ISO WITA>"
+}
+```
+
+Token dibuat **idempoten**: bila sudah ada dokumen dengan `date_from` + `date_to` + `mode`
+yang sama, token lama dipakai ulang. Dengan begitu tautan yang sudah dibagikan tidak
+pernah basi dan koleksi ini tidak membengkak. Berbeda dengan `kegiatans.share_token`
+(rekap) yang **kedaluwarsa** setelah `SHARE_EXPIRE_DAYS` (7 hari), tautan laporan
+**tidak memiliki masa berlaku**.
+
+Data laporan **tidak** disimpan di sini — hanya rentang tanggalnya. Angka selalu
+dihitung ulang oleh `build_laporan()` setiap tautan dibuka, jadi selalu mengikuti
+koreksi absen terbaru.
+
+---
+
 ## `app_settings`
 
 Collection kunci–nilai dengan `_id` tetap.

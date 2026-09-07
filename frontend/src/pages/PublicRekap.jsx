@@ -3,7 +3,8 @@ import { useParams } from "react-router-dom";
 import { CalendarDays, Clock, MapPin, User, BookOpen, Loader2, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Logo } from "@/components/Logo";
-import { TYPE_LABEL, tanggalPanjang, hhmm } from "./admin/kegiatanUtils";
+import PesertaRekapList from "@/components/PesertaRekapList";
+import { TYPE_LABEL, tanggalPanjang } from "./admin/kegiatanUtils";
 
 export default function PublicRekap() {
   const { token } = useParams();
@@ -32,8 +33,6 @@ export default function PublicRekap() {
   }
 
   const c = data.counts || {};
-  const statusChip = (s) =>
-    s === "hadir" ? "bg-[#E8F5EE] text-[#065F46]" : s === "izin" ? "bg-[#FEF3C7] text-[#92400E]" : "bg-[#FEE2E2] text-[#991B1B]";
 
   return (
     <div className="min-h-screen bg-[#FAFBF9] pb-12">
@@ -80,20 +79,12 @@ export default function PublicRekap() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#E5E7EB] font-bold text-[#111827]">Daftar Peserta</div>
-          <ul className="divide-y divide-[#E5E7EB] max-h-[50vh] overflow-y-auto">
-            {data.rows.map((r, i) => (
-              <li key={i} className="px-4 py-2.5 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-[#111827] truncate">{r.name}</div>
-                  {r.status === "hadir" && r.arrival_time && <div className="text-xs text-[#9CA3AF]">Datang {hhmm(r.arrival_time)} WITA</div>}
-                </div>
-                <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${statusChip(r.status)}`}>{r.status}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PesertaRekapList
+          rows={data.rows}
+          counts={c}
+          title="Daftar Peserta"
+          testid="rekap-publik-list"
+        />
 
         <p className="text-center text-xs text-[#9CA3AF] mt-6">© 2026 E-KERTALANGU · Absensi Pengajian</p>
       </main>

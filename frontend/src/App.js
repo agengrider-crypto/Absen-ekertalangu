@@ -1,5 +1,5 @@
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -9,7 +9,9 @@ import Activate from "@/pages/Activate";
 import RoleDashboard from "@/pages/RoleDashboard";
 import RoleArea from "@/pages/RoleArea";
 import PublicRekap from "@/pages/PublicRekap";
-import PublicAbsen from "@/pages/PublicAbsen";
+import PublicLaporan from "@/pages/PublicLaporan";
+import SelfAbsen from "@/pages/SelfAbsen";
+import CompleteProfile from "@/pages/CompleteProfile";
 
 function Loading() {
   return (
@@ -19,17 +21,41 @@ function Loading() {
   );
 }
 
+/**
+ * Protected + gerbang verifikasi akun.
+ * Selama data wajib profil belum lengkap, pengguna diarahkan ke /lengkapi-akun.
+ */
 function Protected({ children }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (user === null) return <Loading />;
+  if (user === false) {
+    const next = `${location.pathname}${location.search}`;
+    return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
+  }
+  if (user.profile_complete === false) return <Navigate to="/lengkapi-akun" replace />;
+  return children;
+}
+
+function ProfileGate() {
   const { user } = useAuth();
   if (user === null) return <Loading />;
   if (user === false) return <Navigate to="/login" replace />;
-  return children;
+  if (user.profile_complete !== false) return <Navigate to="/roles" replace />;
+  return <CompleteProfile />;
 }
 
 function PublicOnly({ children }) {
   const { user } = useAuth();
+  const [params] = useSearchParams();
   if (user === null) return <Loading />;
-  if (user) return <Navigate to="/roles" replace />;
+  if (user) {
+    if (user.profile_complete === false) return <Navigate to="/lengkapi-akun" replace />;
+    // Hormati ?next= (mis. dari halaman absen: /login?next=/absen/<token>)
+    const raw = params.get("next") || "";
+    const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/roles";
+    return <Navigate to={next} replace />;
+  }
   return children;
 }
 
@@ -39,8 +65,11 @@ function AppRoutes() {
       <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
       <Route path="/register" element={<Register />} />
       <Route path="/activate" element={<Activate />} />
+      <Route path="/lengkapi-akun" element={<ProfileGate />} />
       <Route path="/rekap/:token" element={<PublicRekap />} />
-      <Route path="/absen/:token" element={<PublicAbsen />} />
+      <Route path="/laporan/:token" element={<PublicLaporan />} />
+      {/* Absen mandiri: wajib login & fokus 1 peserta (halaman menangani sesinya sendiri) */}
+      <Route path="/absen/:token" element={<SelfAbsen />} />
       <Route path="/roles" element={<Protected><RoleDashboard /></Protected>} />
       <Route path="/area/:role" element={<Protected><RoleArea /></Protected>} />
       <Route path="*" element={<Navigate to="/roles" replace />} />

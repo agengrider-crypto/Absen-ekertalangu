@@ -1,19 +1,22 @@
 import { useEffect, useState } from "react";
-import { Loader2, ShieldCheck, CalendarDays, Clock, Users } from "lucide-react";
+import {
+  Loader2, ShieldCheck, CalendarDays, Clock, Users, MoreHorizontal,
+  ListChecks, ScanLine,
+} from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { TYPE_LABEL, TYPE_COLOR, tanggalSingkat } from "./kegiatanUtils";
-import { DelegasiModal } from "./KegiatanExtras";
-
-function todayYmd() {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
-}
+import { DelegasiModal, ScanPesertaModal } from "./KegiatanExtras";
+import { AbsensiModal } from "./KegiatanView";
+import ActionModal from "@/components/ActionModal";
 
 export default function PenjagaAbsenView() {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [items, setItems] = useState(null);
-  const [active, setActive] = useState(null); // kegiatan for DelegasiModal
+  const [delegasi, setDelegasi] = useState(null);
+  const [manual, setManual] = useState(null);
+  const [scan, setScan] = useState(null);
+  const [actionFor, setActionFor] = useState(null);
 
   const load = () => {
     setItems(null);
@@ -29,13 +32,17 @@ export default function PenjagaAbsenView() {
     setMonth(`${nd.getFullYear()}-${String(nd.getMonth() + 1).padStart(2, "0")}`);
   };
   const monthLabel = new Date(month + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" });
-  const today = todayYmd();
 
   return (
     <div>
       <div className="mb-5">
-        <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2"><ShieldCheck size={22} className="text-[#0D5C3A]" /> Penjaga Absen</h1>
-        <p className="text-[#6B7280] text-sm">Serahkan hak pengisian absen ke orang terpilih saat Anda tidak di lokasi. Hak otomatis dicabut saat kegiatan ditutup.</p>
+        <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
+          <ShieldCheck size={22} className="text-[#0D5C3A]" /> Penjaga Absen
+        </h1>
+        <p className="text-[#6B7280] text-sm">
+          Tersedia <b>absen manual</b> dan <b>absen scan barcode</b>. Anda juga dapat menyerahkan hak
+          pengisian absen ke orang terpilih saat tidak berada di lokasi — hak otomatis dicabut saat kegiatan ditutup.
+        </p>
       </div>
 
       <div className="flex items-center justify-between bg-white rounded-xl border border-[#E5E7EB] p-2 mb-4 max-w-xs">
@@ -63,12 +70,29 @@ export default function PenjagaAbsenView() {
                   <span className="inline-flex items-center gap-1.5"><CalendarDays size={14} /> {tanggalSingkat(k.date)}</span>
                   <span className="inline-flex items-center gap-1.5"><Clock size={14} /> {k.start_time}–{k.end_time} WITA</span>
                 </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <button
+                    data-testid={`penjaga-manual-${k.id}`}
+                    onClick={() => setManual(k)}
+                    className="h-10 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#094229]"
+                  >
+                    <ListChecks size={16} /> Absen Manual
+                  </button>
+                  <button
+                    data-testid={`penjaga-scan-${k.id}`}
+                    onClick={() => setScan(k)}
+                    className="h-10 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#E8F5EE]"
+                  >
+                    <ScanLine size={16} /> Scan Barcode
+                  </button>
+                </div>
                 <button
                   data-testid={`penjaga-manage-${k.id}`}
-                  onClick={() => setActive(k)}
-                  className="mt-3 w-full h-10 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#094229]"
+                  onClick={() => setActionFor(k)}
+                  className="mt-2 w-full h-10 rounded-xl border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
                 >
-                  <Users size={16} /> Kelola Delegasi
+                  <MoreHorizontal size={16} /> Aksi Lain
                 </button>
               </div>
             );
@@ -76,7 +100,23 @@ export default function PenjagaAbsenView() {
         </div>
       )}
 
-      {active && <DelegasiModal kegiatan={active} onClose={() => setActive(null)} />}
+      {actionFor && (
+        <ActionModal
+          testid={`penjaga-action-${actionFor.id}`}
+          title="Aksi Penjaga Absen"
+          subtitle={actionFor.name}
+          onClose={() => setActionFor(null)}
+          actions={[
+            { key: "manual", testid: `penjaga-act-manual-${actionFor.id}`, label: "Absen Manual", desc: "Tandai Hadir / Izin / Alpha per peserta", icon: ListChecks, onClick: () => setManual(actionFor) },
+            { key: "scan", testid: `penjaga-act-scan-${actionFor.id}`, label: "Absen Scan Barcode", desc: "Scan QR pribadi peserta", icon: ScanLine, onClick: () => setScan(actionFor) },
+            { key: "delegasi", testid: `penjaga-act-delegasi-${actionFor.id}`, label: "Kelola Delegasi", desc: "Serahkan hak absen ke orang terpilih", icon: Users, onClick: () => setDelegasi(actionFor) },
+          ]}
+        />
+      )}
+
+      {delegasi && <DelegasiModal kegiatan={delegasi} onClose={() => setDelegasi(null)} />}
+      {manual && <AbsensiModal kegiatanId={manual.id} onClose={() => setManual(null)} onChanged={load} />}
+      {scan && <ScanPesertaModal kegiatan={scan} onClose={() => setScan(null)} onChanged={load} />}
     </div>
   );
 }

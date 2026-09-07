@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ScanLine, Info } from "lucide-react";
+import { ScanLine, Info, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import QrScanner from "@/components/QrScanner";
 
-// Extract absen token from a scanned string that may be a full URL like
-// https://host/absen/<token>  or just a token.
+// Ambil token absen dari hasil scan, baik berupa URL lengkap
+// (https://host/absen/<token>) maupun token mentah.
 function extractAbsenToken(text) {
   if (!text) return null;
   const m = text.match(/\/absen\/([^/?#\s]+)/);
   if (m) return m[1];
-  if (text.startsWith("EKP:")) return null; // personal QR, not a kegiatan QR
   return null;
 }
 
@@ -23,25 +22,40 @@ export default function ScanTab() {
     const token = extractAbsenToken(text);
     if (token) {
       setDone(true);
-      toast.success("QR kegiatan terdeteksi");
+      toast.success("QR kegiatan terbaca. Mohon tunggu sebentar...");
       navigate(`/absen/${token}`);
-    } else {
-      toast.error("QR ini bukan barcode kegiatan absensi");
+      return;
     }
+    if (text && text.startsWith("EKP:")) {
+      toast.error("Mohon maaf, ini QR pribadi Anda sendiri. Mohon scan QR kegiatan yang disediakan pengurus.");
+      return;
+    }
+    toast.error("Mohon maaf, QR ini bukan QR kegiatan absensi. Mohon scan QR yang disediakan pengurus.");
   };
 
   return (
     <div className="space-y-4">
       <h1 className="font-heading text-2xl font-bold text-[#111827]">Scan Absensi</h1>
-      <p className="text-sm text-[#6B7280] flex items-center gap-2"><ScanLine size={16} className="text-[#0D5C3A]" /> Arahkan kamera ke QR kegiatan yang disediakan pengurus untuk absen sendiri.</p>
+      <p className="text-sm text-[#6B7280] flex items-start gap-2">
+        <ScanLine size={16} className="text-[#0D5C3A] shrink-0 mt-0.5" />
+        Arahkan kamera ke QR kegiatan yang disediakan pengurus untuk mencatat kehadiran Anda.
+      </p>
 
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4">
         <QrScanner onDetected={onDetected} paused={done} />
       </div>
 
-      <div className="bg-[#F0FAF4] border border-[#BBF7D0] rounded-2xl p-4 text-sm text-[#065F46] flex gap-2">
-        <Info size={18} className="shrink-0 mt-0.5" />
-        <span>Setelah QR terbaca, Anda akan diarahkan ke halaman absen untuk konfirmasi kehadiran. Pastikan kegiatan masih berlangsung.</span>
+      <div className="bg-[#F0FAF4] border border-[#BBF7D0] rounded-2xl p-4 text-sm text-[#065F46] flex gap-2.5">
+        <UserCheck size={18} className="shrink-0 mt-0.5" />
+        <span>
+          Absen ini <b>hanya untuk diri Anda sendiri</b>. Setelah QR terbaca, halaman absen akan
+          menampilkan nama Anda beserta tombol <b>Saya Hadir</b> — kehadiran orang lain tidak bisa dititipkan.
+        </span>
+      </div>
+
+      <div className="bg-white border border-[#E5E7EB] rounded-2xl p-4 text-sm text-[#4B5563] flex gap-2.5">
+        <Info size={18} className="shrink-0 mt-0.5 text-[#9CA3AF]" />
+        <span>Pastikan kegiatan masih berlangsung. Bila sudah ditutup, mohon menghubungi pengurus untuk absen susulan.</span>
       </div>
     </div>
   );

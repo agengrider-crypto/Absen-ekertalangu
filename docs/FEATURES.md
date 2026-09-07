@@ -83,15 +83,47 @@ Jamaah membuka tab **QR Saya** (`peserta/QrSaya.jsx`, `GET /api/me/qr`). QR berp
 tiap 60 detik sehingga tidak bisa dititipkan. Pengurus memindainya
 (`QrScanner.jsx` → `POST /api/staff/kegiatan/{id}/scan-personal`).
 
-### C. Jamaah absen mandiri dari QR kegiatan
+### C. Jamaah absen mandiri dari QR kegiatan — **terfokus 1 peserta**
 
 Pengurus mencetak QR absen dan menempelnya di lokasi. Jamaah scan → `/absen/{token}`
-(`PublicAbsen.jsx`) → cari nama sendiri → **Konfirmasi Hadir**. Hanya bisa saat kegiatan
-berstatus `open` (403 bila sudah ditutup). Ada juga kolom pesan/kesan
-(`POST /api/absen/{token}/feedback`).
+(`SelfAbsen.jsx`).
+
+Sejak Fase 6 alurnya **wajib login**:
+
+```
+Scan QR kegiatan
+  ↓ belum login → kartu "Mohon masuk terlebih dahulu" → /login?next=/absen/<token>
+  ↓ sudah login → HANYA nama sendiri + tombol "Saya Hadir"
+```
+
+Halaman ini **tidak menampilkan daftar peserta lain**, sehingga **titip absen tidak
+mungkin dilakukan**. Endpoint: `GET /api/me/absen/{token}` dan
+`POST /api/me/absen/{token}/mark`.
+
+Penolakan dibalas dengan pesan Bahasa Indonesia yang sopan, mis.:
+
+- kegiatan sudah ditutup → *"Mohon maaf, kegiatan ini sudah ditutup sehingga absen
+  mandiri tidak dapat diproses. Silakan menghubungi pengurus untuk absen susulan."*
+- bukan peserta → *"Mohon maaf, akun Anda belum terdaftar sebagai peserta pengajian."*
+- profil belum lengkap → *"Mohon lengkapi data profil Anda terlebih dahulu sebelum
+  melakukan absen. Jazakumullahu khoiro."*
+- sukses → *"Alhamdulillah, kehadiran Anda pada kegiatan … berhasil dicatat.
+  Jazakumullahu khoiro."*
+
+Kolom pesan/kesan tetap tersedia (`POST /api/absen/{token}/feedback`).
+
+> **Absen untuk banyak orang hanya lewat cara A (manual) atau B (scan QR pribadi)**
+> yang dilakukan pengurus / penjaga absen.
 
 Ketiganya menulis ke collection `absensis` yang sama dengan index unik
 `(kegiatan_id, user_id)` — tidak ada duplikasi.
+
+### Peserta yang belum aktivasi ikut terdaftar
+
+Peserta hasil impor Excel (status `pending`) **muncul di daftar absen** dengan label
+**"Belum aktivasi"** dan **bisa ditandai hadir secara manual** oleh pengurus/penjaga
+absen. Mereka juga **ikut dihitung** pada rekap dan laporan. Karena belum punya akun,
+mereka tidak bisa login sehingga tidak bisa absen mandiri/scan.
 
 ---
 
@@ -105,9 +137,19 @@ Pengurus → pilih kegiatan → pilih jamaah → (catatan alasan OPSIONAL)
          → hak OTOMATIS DICABUT saat kegiatan ditutup
 ```
 
-Jamaah terdelegasi melihatnya lewat `GET /api/me/delegations`, lalu mengisi absen
-via `POST /api/delegate/kegiatan/{id}/absen`. Catatan absensinya ditandai
-`marked_by: "Delegasi: <nama>"`. Semua aksi tercatat di `activity_logs`.
+Jamaah terdelegasi melihatnya lewat `GET /api/me/delegations`. Di Area Peserta muncul
+tab **Penjaga** (hanya bila ada delegasi aktif) dengan **dua cara mengabsen**:
+
+| Mode | Endpoint | Keterangan |
+|---|---|---|
+| **Absen Manual** | `POST /api/delegate/kegiatan/{id}/absen` | Daftar nama + tombol Hadir / Izin / Alpha, termasuk peserta "Belum aktivasi" |
+| **Scan Barcode** | `POST /api/delegate/kegiatan/{id}/scan-personal` | Memindai QR pribadi peserta (`EKP:<token>`) |
+
+Sisi pengurus (`PenjagaAbsenView.jsx`) juga menyediakan tombol **Absen Manual** dan
+**Scan Barcode** langsung per kegiatan, plus "Aksi Lain" untuk mengelola delegasi.
+
+Catatan absensinya ditandai `marked_by: "Penjaga Absen: <nama>"` (manual lewat delegasi
+tetap `"Delegasi: <nama>"`). Semua aksi tercatat di `activity_logs`.
 
 ---
 
@@ -118,11 +160,18 @@ Tiga mode: **Harian**, **Bulanan**, **Rentang**.
 Isi laporan: rasio kehadiran, total hadir/izin/alpha, kehadiran per jenis kelamin,
 **Paling Rajin** (5 teratas), **Paling Sering Alpha** (5 teratas), rincian per kegiatan.
 
+Rincian **per peserta** tersedia dalam bentuk dropdown "Rekap per Peserta"
+(nama, hadir, izin, alpha, persentase).
+
 | Tombol | Hasil |
 |---|---|
+| **Buat Link Laporan** | Tautan publik **permanen** + QR (`/laporan/{token}`). Siapa pun yang membukanya **langsung melihat laporan tanpa login**. Tersedia Salin Link, Unduh QR, dan Bagikan Link via WhatsApp |
 | **Excel** | `.xlsx` — sheet "Per Kegiatan" + "Ringkasan" |
 | **PDF** | `.pdf` — tabel berformat |
-| **Share WA** | Teks siap kirim dengan salam otomatis: harian ("laporan kehadiran hari ini") / bulanan ("laporan total kehadiran bulan …"), ditutup "Alhamdulillah jazakumullahu khoiro" |
+
+> Sejak Fase 6, tombol **Share WA** yang menyusun teks template panjang **diganti**
+> tombol **Buat Link Laporan**. Yang dibagikan ke WhatsApp sekarang cukup **satu tautan**,
+> dan angka di dalamnya selalu dihitung ulang saat dibuka (mengikuti koreksi absen terbaru).
 
 ---
 

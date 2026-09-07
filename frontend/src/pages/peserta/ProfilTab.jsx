@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Camera, Save, User as UserIcon, Trash2 } from "lucide-react";
+import { Loader2, Camera, Save, User as UserIcon, Trash2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { resizeImageFile } from "@/lib/image";
 
-function Field({ label, children }) {
+function Field({ label, required, children }) {
   return (
     <div>
-      <label className="text-sm font-semibold text-[#374151]">{label}</label>
+      <label className="text-sm font-semibold text-[#374151]">
+        {label} {required && <span className="text-[#DC2626]">*</span>}
+      </label>
       <div className="mt-1.5">{children}</div>
     </div>
   );
@@ -50,19 +52,34 @@ export default function ProfilTab({ user }) {
   };
 
   const save = async () => {
-    if (!f.name.trim()) { toast.error("Nama wajib diisi"); return; }
+    const need = [
+      ["name", "Nama Lengkap"], ["gender", "Jenis Kelamin"],
+      ["dob", "Tanggal Lahir"], ["phone", "No. HP"], ["address", "Alamat"],
+    ].filter(([k]) => !String(f[k] || "").trim()).map(([, l]) => l);
+    if (need.length) { toast.error(`Mohon lengkapi: ${need.join(", ")}`); return; }
     setSaving(true);
     try {
       await api.patch("/me/profile", f);
       await refresh();
-      toast.success("Profil disimpan");
+      toast.success("Alhamdulillah, profil berhasil disimpan.");
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
     setSaving(false);
   };
 
+  const missing = user?.missing_fields || [];
+
   return (
     <div className="space-y-4">
       <h1 className="font-heading text-2xl font-bold text-[#111827]">Profil Saya</h1>
+
+      {missing.length > 0 && (
+        <div className="rounded-2xl border-2 border-[#FDE68A] bg-[#FFFBEB] p-4 flex items-start gap-3" data-testid="profil-missing-warning">
+          <AlertCircle size={19} className="text-[#92400E] shrink-0 mt-0.5" />
+          <div className="text-sm text-[#92400E]">
+            Data berikut masih kosong: <b>{missing.join(", ")}</b>. Mohon dilengkapi agar kehadiran Anda dapat diverifikasi.
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 flex flex-col items-center">
         <div className="relative">
@@ -76,17 +93,17 @@ export default function ProfilTab({ user }) {
       </div>
 
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 space-y-4">
-        <Field label="Nama Lengkap"><input data-testid="profil-name" value={f.name} onChange={(e) => set("name", e.target.value)} className={inp} /></Field>
+        <Field label="Nama Lengkap" required><input data-testid="profil-name" value={f.name} onChange={(e) => set("name", e.target.value)} className={inp} /></Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="No. HP"><input data-testid="profil-phone" value={f.phone} onChange={(e) => set("phone", e.target.value)} className={inp} /></Field>
+          <Field label="No. HP" required><input data-testid="profil-phone" value={f.phone} onChange={(e) => set("phone", e.target.value)} className={inp} /></Field>
           <Field label="WhatsApp"><input data-testid="profil-whatsapp" value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} className={inp} /></Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Tempat Lahir"><input data-testid="profil-birthplace" value={f.birthplace} onChange={(e) => set("birthplace", e.target.value)} className={inp} /></Field>
-          <Field label="Tanggal Lahir"><input data-testid="profil-dob" type="date" value={f.dob} onChange={(e) => set("dob", e.target.value)} className={inp} /></Field>
+          <Field label="Tanggal Lahir" required><input data-testid="profil-dob" type="date" value={f.dob} onChange={(e) => set("dob", e.target.value)} className={inp} /></Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Jenis Kelamin">
+          <Field label="Jenis Kelamin" required>
             <select data-testid="profil-gender" value={f.gender} onChange={(e) => set("gender", e.target.value)} className={inp}>
               <option value="">—</option>
               <option value="L">Laki-laki</option>
@@ -95,7 +112,7 @@ export default function ProfilTab({ user }) {
           </Field>
           <Field label="Pendidikan"><input data-testid="profil-education" value={f.education} onChange={(e) => set("education", e.target.value)} className={inp} /></Field>
         </div>
-        <Field label="Alamat"><textarea data-testid="profil-address" value={f.address} onChange={(e) => set("address", e.target.value)} rows={2} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] resize-none" /></Field>
+        <Field label="Alamat" required><textarea data-testid="profil-address" value={f.address} onChange={(e) => set("address", e.target.value)} rows={2} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] resize-none" /></Field>
 
         <button data-testid="profil-save" onClick={save} disabled={saving} className="w-full h-12 rounded-xl bg-[#0D5C3A] text-white font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60">
           {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Simpan Profil

@@ -4,6 +4,99 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Fase 6 — 8 Revisi UX: Link Laporan, Action Modal, Verifikasi Akun, Absen Terfokus
+
+Menjawab 8 permintaan revisi: laporan berbasis tautan, penggantian dropdown dengan action
+modal, verifikasi kelengkapan akun saat login, absen scan yang terfokus 1 peserta,
+rekap peserta berbentuk dropdown, penjaga absen dengan 2 cara absen, peserta hasil import
+Excel bisa diabsen manual, serta profil untuk semua peran.
+
+### Ditambahkan
+
+- **Tautan laporan publik (permanen)** — `POST /api/admin/laporan/share`
+  (body `{date_from, date_to, mode: harian|bulanan|custom}`) membuat token **permanen**
+  dan **idempoten** (rentang + mode yang sama memakai token yang sama, sehingga tautan
+  yang sudah dibagikan tidak pernah basi). `GET /api/laporan/{token}` dapat dibuka
+  **tanpa login**. Koleksi baru: `laporan_links`.
+- Halaman publik `PublicLaporan.jsx` di route `/laporan/:token` — ringkasan, kehadiran per
+  jenis kelamin, tabel "Rincian per Kegiatan", dropdown "Rekap per Peserta", top rajin/alpha.
+- **Absen mandiri terfokus** — `GET /api/me/absen/{token}` dan
+  `POST /api/me/absen/{token}/mark` (keduanya **wajib login**). Endpoint hanya
+  mengembalikan/menandai data **diri sendiri**; tidak ada daftar peserta lain sehingga
+  titip absen tidak mungkin dilakukan.
+- **Penjaga absen scan barcode** — `POST /api/delegate/kegiatan/{id}/scan-personal`
+  untuk penerima delegasi (sebelumnya hanya staf yang punya endpoint scan).
+- `profile_complete` (bool) + `missing_fields` (list label) pada seluruh respons user
+  (`public_user`), dengan konstanta `REQUIRED_PROFILE_FIELDS` dan helper
+  `profile_missing_fields()`. Field wajib: Nama Lengkap, Jenis Kelamin, Tanggal Lahir,
+  No. HP, Alamat (foto profil opsional).
+- Field `account_status` pada baris rekap/absen (`/admin/kegiatan/{id}/rekap`,
+  `/absen/{token}`, `/delegate/kegiatan/{id}`) dan `per_peserta` pada `/admin/laporan`
+  + `/laporan/{token}` — dipakai UI untuk label "Belum aktivasi".
+- Komponen `components/ActionModal.jsx` — action sheet serbaguna (bottom-sheet di HP,
+  dialog di desktop), dirender lewat `createPortal` ke `document.body`.
+- Komponen `components/PesertaRekapList.jsx` — daftar peserta berbentuk dropdown
+  (accordion) dengan kolom berjarak `Nama | Jam | Status`, pencarian, dan filter
+  Semua/Hadir/Izin/Alpha.
+- Halaman `pages/CompleteProfile.jsx` + route `/lengkapi-akun` — gerbang verifikasi akun.
+- Halaman `pages/SelfAbsen.jsx` — pengganti `PublicAbsen.jsx`.
+- Halaman `pages/peserta/PenjagaAbsen.jsx` — area penjaga absen bagi penerima delegasi,
+  dengan mode **Absen Manual** dan **Scan Barcode**.
+- `backend/tests/test_smoke_iteration4.py` — smoke/regression test iterasi ini
+  (kredensial admin dibaca dari env `ADMIN_EMAIL`/`ADMIN_PASSWORD`).
+
+### Diubah
+
+- **`PESERTA_QUERY` kini mencakup `status: "pending"`** (sebelumnya hanya `active`).
+  Peserta hasil import Excel yang belum aktivasi otomatis muncul di daftar absen dan
+  **ikut dihitung** pada rekap/laporan. Mereka tetap tidak bisa login/absen mandiri.
+- Menu dropdown "Opsi" pada kartu kegiatan diganti **action modal** berisi 8 aksi
+  (Rekap Absen, Bagikan Rekap, Pengingat WhatsApp, Scan QR Peserta, Penjaga Absen,
+  Edit Kegiatan, Kotak Pesan/Saran, Hapus Kegiatan) — tombol hapus terpisah dihapus.
+- `ProfileMenu` tidak lagi memakai dropdown, melainkan action modal; menampilkan foto
+  profil asli dan penanda bila data profil belum lengkap.
+- `ProfileModal` kini **bisa mengedit** profil (sebelumnya hanya menampilkan) dan
+  tersedia untuk **semua peran** (admin, pengurus, peserta).
+- `RoleDashboard` memakai foto profil pengguna (sebelumnya foto stok Unsplash
+  berdasarkan `avatar_gender`), plus banner peringatan bila data profil belum lengkap.
+- `PesertaArea` menampilkan tab **Penjaga** secara dinamis bila pengguna memiliki
+  delegasi absen aktif (jumlah kolom bottom-nav ikut menyesuaikan).
+- Laporan: tombol "Share WA" (yang menyusun teks template WhatsApp) diganti
+  **"Buat Link Laporan"** yang memunculkan modal berisi QR, tautan, Salin Link,
+  Unduh QR, dan Bagikan Link via WhatsApp.
+- `PublicRekap` dan modal Absensi memakai `PesertaRekapList`; modal Absensi kini punya
+  dua bagian yang bisa dibuka/tutup: "Rekap Kehadiran" dan "Absen Manual".
+- `PenjagaAbsenView` (sisi pengurus) menyediakan tombol **Absen Manual** dan
+  **Scan Barcode** langsung per kegiatan, serta "Aksi Lain" berisi Kelola Delegasi.
+- `ScanTab` mengarahkan hasil scan ke `/absen/{token}` dan menegaskan absen hanya untuk
+  diri sendiri.
+- `AbsensiModal` diekspor dari `KegiatanView` agar bisa dipakai ulang `PenjagaAbsenView`.
+- Seluruh pesan sukses/gagal absen ditulis ulang dalam **Bahasa Indonesia yang sopan**
+  (mis. "Mohon maaf, kegiatan ini sudah ditutup sehingga absen mandiri tidak dapat
+  diproses. Silakan menghubungi pengurus untuk absen susulan.",
+  "Alhamdulillah, kehadiran Anda ... berhasil dicatat. Jazakumullahu khoiro.").
+- Kelengkapan jenis kelamin dinilai dari field `gender` **mentah**, bukan turunan
+  `avatar_gender`, agar pengguna benar-benar memilih sendiri.
+
+### Diperbaiki
+
+- **Modal terpotong** — `ActionModal`/`ProfileModal` sempat terpotong karena elemen
+  induk memakai `backdrop-blur`, yang membentuk *containing block* bagi
+  `position: fixed`. Diperbaiki dengan `createPortal` ke `document.body`.
+- **Kembali ke halaman absen setelah login** — `PublicOnly` langsung melempar pengguna
+  ke `/roles` sebelum tujuan `?next=` diproses. `PublicOnly` kini menghormati `?next=`,
+  sehingga alur "scan QR → login → absen" kembali ke halaman absen yang benar.
+- `POST /api/delegate/kegiatan/{id}/scan-personal` membalas `422` saat body kosong;
+  `content` dibuat opsional sehingga pemeriksaan hak akses (`403`) dan pesan Bahasa
+  Indonesia yang sopan (`400`) berjalan lebih dulu.
+
+### Dihapus
+
+- `frontend/src/pages/PublicAbsen.jsx` — digantikan `SelfAbsen.jsx`. Halaman lama
+  menampilkan seluruh daftar peserta sehingga memungkinkan titip absen.
+
+---
+
 ## Fase 5 — Deployment: 1 Project Vercel + MongoDB Atlas
 
 ### Ditambahkan

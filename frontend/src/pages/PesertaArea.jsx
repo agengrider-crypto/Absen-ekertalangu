@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell } from "lucide-react";
+import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import Beranda from "./peserta/Beranda";
@@ -8,8 +8,9 @@ import KegiatanList from "./peserta/KegiatanList";
 import ScanTab from "./peserta/ScanTab";
 import QrSaya from "./peserta/QrSaya";
 import ProfilTab from "./peserta/ProfilTab";
+import PenjagaAbsen from "./peserta/PenjagaAbsen";
 
-const TABS = [
+const BASE_TABS = [
   { key: "beranda", label: "Beranda", icon: Home },
   { key: "kegiatan", label: "Kegiatan", icon: CalendarDays },
   { key: "scan", label: "Scan", icon: ScanLine },
@@ -17,13 +18,27 @@ const TABS = [
   { key: "profil", label: "Profil", icon: User },
 ];
 
+const PENJAGA_TAB = { key: "penjaga", label: "Penjaga", icon: ShieldCheck };
+
 export default function PesertaArea({ user }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [tab, setTab] = useState("beranda");
   const [hasNew, setHasNew] = useState(false);
+  const [isPenjaga, setIsPenjaga] = useState(false);
   const multiRole = (user?.roles?.length || 0) > 1;
   const seenKey = `ann_seen_${user?.id || "me"}`;
+
+  // Tab "Penjaga Absen" hanya tampil bila pengguna punya delegasi absen yang aktif
+  useEffect(() => {
+    api.get("/me/delegations")
+      .then(({ data }) => setIsPenjaga((data || []).length > 0))
+      .catch(() => setIsPenjaga(false));
+  }, []);
+
+  const TABS = isPenjaga
+    ? [...BASE_TABS.slice(0, 3), PENJAGA_TAB, ...BASE_TABS.slice(3)]
+    : BASE_TABS;
 
   useEffect(() => {
     api.get("/me/announcements?role=peserta").then(({ data }) => {
@@ -79,13 +94,14 @@ export default function PesertaArea({ user }) {
         {tab === "beranda" && <Beranda user={user} onGoto={setTab} />}
         {tab === "kegiatan" && <KegiatanList />}
         {tab === "scan" && <ScanTab />}
+        {tab === "penjaga" && <PenjagaAbsen />}
         {tab === "qr" && <QrSaya user={user} />}
         {tab === "profil" && <ProfilTab user={user} />}
       </main>
 
       {/* Bottom navigation */}
       <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[#E5E7EB]">
-        <div className="max-w-lg mx-auto grid grid-cols-5">
+        <div className="max-w-lg mx-auto grid" style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}>
           {TABS.map((t) => {
             const Icon = t.icon;
             const on = tab === t.key;

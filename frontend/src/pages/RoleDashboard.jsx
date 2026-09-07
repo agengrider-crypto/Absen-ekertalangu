@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { Shield, Users, UserCheck, LogOut, ChevronRight, RefreshCw } from "lucide-react";
+import { Shield, Users, UserCheck, LogOut, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
+import ProfileMenu from "@/components/ProfileMenu";
 
 const ROLE_META = {
   admin: {
@@ -43,11 +44,6 @@ const ROLE_META = {
   },
 };
 
-const AVATARS = {
-  male: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?crop=entropy&cs=srgb&fm=jpg&q=85&w=200",
-  female: "https://images.unsplash.com/photo-1527203561188-dae1bc1a417f?crop=entropy&cs=srgb&fm=jpg&q=85&w=200",
-};
-
 export default function RoleDashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -55,7 +51,7 @@ export default function RoleDashboard() {
   if (!user) return null;
 
   const roles = user.roles || [];
-  const avatar = AVATARS[user.avatar_gender] || AVATARS.male;
+  const incomplete = (user.missing_fields || []).length > 0;
 
   const handleLogout = async () => {
     await logout();
@@ -75,20 +71,8 @@ export default function RoleDashboard() {
             <RefreshCw size={18} /> Ganti Akun
           </button>
 
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div data-testid="text-user-name" className="font-semibold text-[#111827] text-sm leading-tight max-w-[130px] sm:max-w-none truncate">
-                {user.name}
-              </div>
-              <div className="text-xs text-[#6B7280] capitalize truncate max-w-[130px] sm:max-w-none">{roles.join(" · ")}</div>
-            </div>
-            <img
-              data-testid="img-user-avatar"
-              src={avatar}
-              alt={user.name}
-              className="h-11 w-11 rounded-full object-cover border-2 border-[#0D5C3A]"
-            />
-          </div>
+          {/* Foto profil + menu akun (tersedia di halaman peran juga) */}
+          <ProfileMenu subtitle={roles.join(" · ")} />
         </div>
       </header>
 
@@ -104,6 +88,16 @@ export default function RoleDashboard() {
             Halo <span className="font-semibold text-[#0D5C3A]">{user.name}</span>, pilih area yang ingin Anda buka.
           </p>
         </div>
+
+        {incomplete && (
+          <div className="max-w-2xl mx-auto mb-8 rounded-2xl border-2 border-[#FDE68A] bg-[#FFFBEB] p-4 flex items-start gap-3" data-testid="role-incomplete-banner">
+            <AlertCircle size={20} className="text-[#92400E] shrink-0 mt-0.5" />
+            <div className="text-sm text-[#92400E]">
+              Data profil Anda belum lengkap: <b>{(user.missing_fields || []).join(", ")}</b>.
+              Silakan buka menu <b>Profil Saya</b> di kanan atas untuk melengkapinya.
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {["admin", "pengurus", "peserta"].map((rid) => {

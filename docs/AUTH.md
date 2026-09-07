@@ -108,7 +108,7 @@ Pemetaan prefix → guard:
 | `/api/staff/*` | `require_staff` |
 | `/api/me/*` | `get_current_user` |
 | `/api/delegate/*` | `get_current_user` + cek delegasi aktif |
-| `/api/rekap/{token}`, `/api/absen/{token}`, `/api/qr/public` | publik berbasis token |
+| `/api/rekap/{token}`, `/api/laporan/{token}`, `/api/absen/{token}`, `/api/qr/public` | publik berbasis token |
 | `/api/cron/*` | `CRON_SECRET` |
 
 Operasi **destruktif atau menyangkut hak akses** memakai `require_admin`, bukan
@@ -119,7 +119,56 @@ Di frontend, guard berupa komponen pembungkus di `App.js`:
 ```jsx
 <Route path="/roles" element={<Protected><RoleDashboard /></Protected>} />
 <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
+<Route path="/lengkapi-akun" element={<ProfileGate />} />
 ```
+
+`PublicOnly` menghormati parameter `?next=` (hanya path relatif yang diterima, `//`
+ditolak) sehingga alur **scan QR → login → halaman absen** kembali ke tujuan yang benar.
+
+---
+
+## 4b. Gerbang verifikasi kelengkapan akun
+
+Sejak Fase 6, pengguna **wajib melengkapi data akun** sebelum boleh memakai aplikasi.
+
+Field wajib (`REQUIRED_PROFILE_FIELDS` di `server.py`):
+
+| Field | Label |
+|---|---|
+| `name` | Nama Lengkap |
+| `gender` | Jenis Kelamin |
+| `dob` | Tanggal Lahir |
+| `phone` | No. HP |
+| `address` | Alamat |
+
+Foto profil **opsional**.
+
+Backend menyertakan dua field pada **setiap** respons user (`public_user`):
+
+```js
+profile_complete: false,
+missing_fields: ["Jenis Kelamin", "Tanggal Lahir", "Alamat"]
+```
+
+> Kelengkapan `gender` dinilai dari field **mentah** `user.gender`, **bukan** hasil
+> `_derive_gender()`. Sebab `_derive_gender()` jatuh ke `avatar_gender` yang default-nya
+> `"male"` — kalau dipakai, jenis kelamin akan selalu dianggap terisi.
+
+Alur frontend:
+
+```
+Login berhasil
+  ↓ profile_complete === false → /lengkapi-akun  (CompleteProfile.jsx)
+  ↓ profile_complete === true  → ?next= atau /roles
+```
+
+`Protected` juga menahan pengguna: membuka `/roles` atau `/area/*` secara manual tetap
+dilempar ke `/lengkapi-akun` sampai data lengkap. Pengguna diberi notifikasi (toast)
+plus daftar field yang kurang. Selama gerbang aktif, hanya tombol **Keluar** yang tersedia.
+
+Selain gerbang, `missing_fields` juga dipakai untuk menandai profil belum lengkap di
+`ProfileMenu` (titik oranye), `RoleDashboard` (banner), `ProfileModal`, dan `ProfilTab`.
+`POST /api/me/absen/{token}/mark` menolak absen mandiri (403) bila profil belum lengkap.
 
 ---
 

@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays, Plus, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
   Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
   Clock, MapPin, User, ScanLine, MessageSquareText,
-  MoreHorizontal, Pencil, FileBarChart2,
+  MoreHorizontal, Pencil, FileBarChart2, ChevronDown, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -12,6 +12,8 @@ import {
   tanggalPanjang, tanggalSingkat, hhmm, MONTH_SHORT,
 } from "./kegiatanUtils";
 import { ReminderModal, DelegasiModal, ScanPesertaModal } from "./KegiatanExtras";
+import ActionModal from "@/components/ActionModal";
+import PesertaRekapList from "@/components/PesertaRekapList";
 import { Send as SendIcon, ShieldCheck as ShieldIcon, ScanLine as ScanIcon } from "lucide-react";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white";
@@ -167,14 +169,7 @@ export default function KegiatanView() {
 function KegiatanCard({ k, onAbsenQr, onShare, onEdit, onRekap, onFeedback, onReminder, onDelegasi, onScanPeserta, onToggleStatus, onDelete }) {
   const c = k.counts || {};
   const closed = k.status === "closed";
-  const [opsi, setOpsi] = useState(false);
-  const opsiRef = useRef(null);
-  useEffect(() => {
-    const h = (e) => { if (opsiRef.current && !opsiRef.current.contains(e.target)) setOpsi(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-  const opsiItem = "w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-[#111827] hover:bg-[#F0FAF4] text-left";
+  const [showActions, setShowActions] = useState(false);
   return (
     <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4" data-testid={`kegiatan-card-${k.id}`}>
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -204,30 +199,34 @@ function KegiatanCard({ k, onAbsenQr, onShare, onEdit, onRekap, onFeedback, onRe
           {closed ? <><RotateCcw size={15} /> Buka</> : <><CheckCircle2 size={15} /> Selesai</>}
         </button>
 
-        {/* Opsi dropdown */}
-        <div className="relative" ref={opsiRef}>
-          <button
-            data-testid={`button-opsi-${k.id}`}
-            onClick={() => setOpsi((v) => !v)}
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
-          >
-            <MoreHorizontal size={16} /> Opsi
-          </button>
-          {opsi && (
-            <div className="absolute left-0 mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-[#E5E7EB] overflow-hidden z-30" data-testid={`opsi-menu-${k.id}`}>
-              <button data-testid={`opsi-share-${k.id}`} onClick={() => { setOpsi(false); onShare(); }} className={opsiItem}><Share2 size={16} className="text-[#0D5C3A]" /> Share</button>
-              <button data-testid={`opsi-reminder-${k.id}`} onClick={() => { setOpsi(false); onReminder(); }} className={opsiItem}><SendIcon size={16} className="text-[#0D5C3A]" /> Pengingat WA</button>
-              <button data-testid={`opsi-scan-peserta-${k.id}`} onClick={() => { setOpsi(false); onScanPeserta(); }} className={opsiItem}><ScanIcon size={16} className="text-[#0D5C3A]" /> Scan QR Peserta</button>
-              <button data-testid={`opsi-delegasi-${k.id}`} onClick={() => { setOpsi(false); onDelegasi(); }} className={opsiItem}><ShieldIcon size={16} className="text-[#0D5C3A]" /> Delegasi Absen</button>
-              <button data-testid={`opsi-edit-${k.id}`} onClick={() => { setOpsi(false); onEdit(); }} className={opsiItem}><Pencil size={16} className="text-[#0D5C3A]" /> Edit Kegiatan</button>
-              <button data-testid={`opsi-rekap-${k.id}`} onClick={() => { setOpsi(false); onRekap(); }} className={opsiItem}><FileBarChart2 size={16} className="text-[#0D5C3A]" /> Rekap Absen</button>
-              <button data-testid={`opsi-feedback-${k.id}`} onClick={() => { setOpsi(false); onFeedback(); }} className={opsiItem}><MessageSquareText size={16} className="text-[#0D5C3A]" /> Kotak Pesan / Saran</button>
-            </div>
-          )}
-        </div>
-
-        <button data-testid={`button-delete-${k.id}`} onClick={onDelete} className="ml-auto h-9 w-9 flex items-center justify-center rounded-lg text-[#DC2626] hover:bg-red-50"><Trash2 size={16} /></button>
+        {/* Aksi lain — memakai action modal (bukan dropdown) */}
+        <button
+          data-testid={`button-opsi-${k.id}`}
+          onClick={() => setShowActions(true)}
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+        >
+          <MoreHorizontal size={16} /> Aksi Lain
+        </button>
       </div>
+
+      {showActions && (
+        <ActionModal
+          testid={`action-modal-${k.id}`}
+          title="Aksi Kegiatan"
+          subtitle={k.name}
+          onClose={() => setShowActions(false)}
+          actions={[
+            { key: `rekap-${k.id}`, testid: `opsi-rekap-${k.id}`, label: "Rekap Absen", desc: "Lihat & ubah kehadiran peserta", icon: FileBarChart2, onClick: onRekap },
+            { key: `share-${k.id}`, testid: `opsi-share-${k.id}`, label: "Bagikan Rekap", desc: "Tautan & QR rekap kegiatan", icon: Share2, onClick: onShare },
+            { key: `reminder-${k.id}`, testid: `opsi-reminder-${k.id}`, label: "Pengingat WhatsApp", desc: "Kirim pengingat ke peserta", icon: SendIcon, onClick: onReminder },
+            { key: `scan-${k.id}`, testid: `opsi-scan-peserta-${k.id}`, label: "Scan QR Peserta", desc: "Tandai hadir lewat QR pribadi", icon: ScanIcon, onClick: onScanPeserta },
+            { key: `delegasi-${k.id}`, testid: `opsi-delegasi-${k.id}`, label: "Penjaga Absen (Delegasi)", desc: "Serahkan hak absen sementara", icon: ShieldIcon, onClick: onDelegasi },
+            { key: `edit-${k.id}`, testid: `opsi-edit-${k.id}`, label: "Edit Kegiatan", desc: "Ubah nama, jadwal, pengajar", icon: Pencil, onClick: onEdit },
+            { key: `feedback-${k.id}`, testid: `opsi-feedback-${k.id}`, label: "Kotak Pesan / Saran", desc: "Baca pesan dari peserta", icon: MessageSquareText, onClick: onFeedback },
+            { key: `delete-${k.id}`, testid: `opsi-delete-${k.id}`, label: "Hapus Kegiatan", desc: "Tindakan ini tidak bisa dibatalkan", icon: Trash2, danger: true, onClick: onDelete },
+          ]}
+        />
+      )}
     </div>
   );
 }
@@ -367,10 +366,11 @@ const STATUS_BTN = {
   alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
 };
 
-function AbsensiModal({ kegiatanId, onClose, onChanged }) {
+export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
   const [data, setData] = useState(null);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(null);
+  const [openManual, setOpenManual] = useState(true);
 
   const load = useCallback(() => {
     api.get(`/admin/kegiatan/${kegiatanId}/rekap`)
@@ -405,52 +405,89 @@ function AbsensiModal({ kegiatanId, onClose, onChanged }) {
       {!data ? (
         <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>
       ) : (
-        <div>
-          <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="space-y-4">
+          <div className="grid grid-cols-4 gap-2">
             <div className="rounded-xl bg-[#F2F5F2] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{c.total}</div><div className="text-xs text-[#6B7280]">Total</div></div>
             <div className="rounded-xl bg-[#E8F5EE] p-3 text-center"><div className="text-xl font-bold text-[#065F46]">{c.hadir}</div><div className="text-xs text-[#6B7280]">Hadir</div></div>
             <div className="rounded-xl bg-[#FEF3C7] p-3 text-center"><div className="text-xl font-bold text-[#92400E]">{c.izin}</div><div className="text-xs text-[#6B7280]">Izin</div></div>
             <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{c.alpha}</div><div className="text-xs text-[#6B7280]">Alpha</div></div>
           </div>
 
-          <div className="relative mb-3">
-            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-            <input data-testid="absensi-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E5E7EB] outline-none focus:border-[#0D5C3A] bg-white" />
-          </div>
+          {/* Rekap kehadiran — daftar peserta dalam DROPDOWN, kolom berjarak */}
+          <PesertaRekapList
+            rows={data.rows}
+            counts={c}
+            title="Rekap Kehadiran"
+            testid="rekap-absen-dropdown"
+          />
 
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white divide-y divide-[#E5E7EB] max-h-[46vh] overflow-y-auto">
-            {rows.length === 0 ? (
-              <div className="p-8 text-center text-[#6B7280] text-sm">Tidak ada peserta.</div>
-            ) : rows.map((r) => (
-              <div key={r.user_id} data-testid={`absensi-row-${r.user_id}`} className="px-4 py-3 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-semibold text-[#111827] truncate">{r.name}</div>
-                  <div className="text-xs text-[#9CA3AF]">
-                    {r.status === "hadir" && r.arrival_time ? `Datang ${hhmm(r.arrival_time)} WITA` : (r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—")}
+          {/* Absen manual — bisa dibuka/tutup */}
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid="absen-manual-section">
+            <button
+              data-testid="absen-manual-toggle"
+              onClick={() => setOpenManual((v) => !v)}
+              className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFBF9]"
+            >
+              <span className="flex items-center gap-2.5">
+                <span className="h-9 w-9 rounded-xl bg-[#E8F5EE] text-[#0D5C3A] flex items-center justify-center"><CheckCircle2 size={18} /></span>
+                <span>
+                  <span className="block font-bold text-[#111827] text-[15px]">Absen Manual</span>
+                  <span className="block text-xs text-[#6B7280]">Tandai Hadir / Izin / Alpha per peserta</span>
+                </span>
+              </span>
+              <ChevronDown size={20} className={`text-[#6B7280] transition-transform ${openManual ? "rotate-180" : ""}`} />
+            </button>
+
+            {openManual && (
+              <div className="border-t border-[#E5E7EB]">
+                <div className="p-3 bg-[#FAFBF9]">
+                  <div className="relative">
+                    <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+                    <input data-testid="absensi-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E5E7EB] outline-none focus:border-[#0D5C3A] bg-white" />
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {["hadir", "izin", "alpha"].map((s) => {
-                    const active = r.status === s;
-                    const cfg = STATUS_BTN[s];
-                    return (
-                      <button
-                        key={s}
-                        data-testid={`btn-${s}-${r.user_id}`}
-                        disabled={busy === r.user_id + s}
-                        onClick={() => mark(r.user_id, s)}
-                        className={`h-8 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors ${active ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E5E7EB] hover:border-current`}`}
-                      >
-                        {cfg.label}
-                      </button>
-                    );
-                  })}
+                <div className="divide-y divide-[#F1F2F0] max-h-[46vh] overflow-y-auto">
+                  {rows.length === 0 ? (
+                    <div className="p-8 text-center text-[#6B7280] text-sm">Tidak ada peserta.</div>
+                  ) : rows.map((r) => (
+                    <div key={r.user_id} data-testid={`absensi-row-${r.user_id}`} className="px-4 py-3 grid grid-cols-[1fr_auto_auto] items-center gap-4">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[#111827] text-sm truncate">{r.name}</div>
+                        <div className="text-xs text-[#9CA3AF] flex items-center gap-1.5">
+                          {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—"}
+                          {r.account_status === "pending" && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#92400E]">
+                              <AlertTriangle size={11} /> Belum aktivasi
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="w-14 text-center font-mono text-[13px] tabular-nums text-[#4B5563]">
+                        {r.status === "hadir" && r.arrival_time ? hhmm(r.arrival_time) : "—"}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {["hadir", "izin", "alpha"].map((s) => {
+                          const active = r.status === s;
+                          const cfg = STATUS_BTN[s];
+                          return (
+                            <button
+                              key={s}
+                              data-testid={`btn-${s}-${r.user_id}`}
+                              disabled={busy === r.user_id + s}
+                              onClick={() => mark(r.user_id, s)}
+                              className={`h-8 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors ${active ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E5E7EB] hover:border-current`}`}
+                            >
+                              {cfg.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
           </div>
-
-          {/* Kesan & Pesan dipindah ke modal terpisah via menu Opsi */}
         </div>
       )}
     </ModalShell>
@@ -531,8 +568,10 @@ function AbsenQrModal({ data, onClose }) {
         <div className="mt-3 bg-[#F0FAF4] border border-[#CDEBD9] rounded-xl p-3 text-left">
           <p className="text-sm font-semibold text-[#065F46] flex items-center gap-1.5"><ScanLine size={15} /> Cara absen mandiri</p>
           <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
-            Scan QR ini dengan kamera HP. Jamaah/peserta cukup <b>cari nama sendiri</b> lalu tekan
-            <b> Konfirmasi Hadir</b>. QR hanya berfungsi selama kegiatan <b>masih berlangsung</b> (belum diselesaikan).
+            Peserta scan QR ini dengan kamera HP lalu <b>masuk dengan akunnya sendiri</b>.
+            Halaman absen hanya menampilkan <b>nama peserta itu sendiri</b> dengan tombol
+            <b> Saya Hadir</b> — sehingga tidak bisa menitipkan absen orang lain.
+            QR hanya berfungsi selama kegiatan <b>masih berlangsung</b>.
           </p>
         </div>
         <p className="text-xs text-[#9CA3AF] mt-2 break-all px-2">{data.link}</p>
