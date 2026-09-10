@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { resizeImageFile } from "@/lib/image";
+import ContactButtons from "@/components/ContactButtons";
 
 function Field({ label, required, children }) {
   return (
@@ -91,6 +92,15 @@ export default function ProfilTab({ user }) {
         </div>
         {photo && <button data-testid="profil-photo-remove" onClick={removePhoto} className="mt-3 text-xs text-[#DC2626] font-semibold inline-flex items-center gap-1"><Trash2 size={12} /> Hapus foto</button>}
       </div>
+
+      {/* Fase 7 — Tombol Telepon & WhatsApp untuk nomor pada profil ini */}
+      <ContactButtons
+        phone={f.phone}
+        whatsapp={f.whatsapp}
+        name={f.name}
+        testidPrefix="profil-kontak"
+        label="Kontak Saya"
+      />
 
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 space-y-4">
         <Field label="Nama Lengkap" required><input data-testid="profil-name" value={f.name} onChange={(e) => set("name", e.target.value)} className={inp} /></Field>

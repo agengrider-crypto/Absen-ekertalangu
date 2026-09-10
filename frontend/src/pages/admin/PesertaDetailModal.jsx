@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import ContactButtons from "@/components/ContactButtons";
 import { DateField } from "@/components/DateField";
 import { EDUCATION_OPTIONS, MUBALIGH_OPTIONS, genderLabel, statusBadge } from "./adminUtils";
 
@@ -163,6 +164,15 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
                 <span className={`inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full ${badge.cls}`}>{badge.label}</span>
               </div>
             </div>
+
+            {/* Fase 7 — Tombol Telepon & WhatsApp */}
+            <ContactButtons
+              phone={form.phone}
+              whatsapp={form.whatsapp}
+              name={data.name}
+              testidPrefix="detail-kontak"
+              label={`Hubungi ${data.name || "Peserta"}`}
+            />
 
             {/* Biodata form */}
             <div className="bg-white rounded-2xl p-4 border border-[#E5E7EB] grid sm:grid-cols-2 gap-3">

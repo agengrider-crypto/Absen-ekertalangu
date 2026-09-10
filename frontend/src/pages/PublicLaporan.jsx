@@ -180,11 +180,6 @@ export default function PublicLaporan() {
           )}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TopList title="Paling Rajin" icon={Award} color="#0D5C3A" rows={data.top_rajin} field="hadir" suffix="hadir" />
-          <TopList title="Paling Sering Alpha" icon={AlertTriangle} color="#DC2626" rows={data.top_alpha} field="alpha" suffix="alpha" />
-        </div>
-
         <p className="text-center text-xs text-[#9CA3AF] mt-8">
           © 2026 E-KERTALANGU · Absensi Pengajian
           {data.created_by ? ` · Dibuat oleh ${data.created_by}` : ""}
@@ -194,25 +189,3 @@ export default function PublicLaporan() {
   );
 }
 
-function TopList({ title, icon: Icon, color, rows, field, suffix }) {
-  return (
-    <div className="bg-white rounded-2xl p-5 border border-[#E5E7EB]">
-      <div className="flex items-center gap-2 font-bold text-[#111827] mb-3"><Icon size={17} style={{ color }} /> {title}</div>
-      {(!rows || rows.length === 0) ? (
-        <p className="text-sm text-[#6B7280]">Belum ada data.</p>
-      ) : (
-        <ol className="space-y-2">
-          {rows.map((r, i) => (
-            <li key={i} className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2.5 min-w-0">
-                <span className="h-6 w-6 rounded-full bg-[#F2F5F2] text-[#4B5563] text-xs font-bold flex items-center justify-center shrink-0">{i + 1}</span>
-                <span className="font-medium text-[#111827] truncate">{r.name}</span>
-              </span>
-              <span className="text-sm font-semibold shrink-0" style={{ color }}>{r[field]} {suffix}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
-  );
-}

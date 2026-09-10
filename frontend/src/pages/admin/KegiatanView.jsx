@@ -4,6 +4,7 @@ import {
   Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
   Clock, MapPin, User, ScanLine, MessageSquareText,
   MoreHorizontal, Pencil, FileBarChart2, ChevronDown, AlertTriangle,
+  KeyRound, RefreshCw, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -13,7 +14,6 @@ import {
 } from "./kegiatanUtils";
 import { ReminderModal, DelegasiModal, ScanPesertaModal } from "./KegiatanExtras";
 import ActionModal from "@/components/ActionModal";
-import PesertaRekapList from "@/components/PesertaRekapList";
 import { Send as SendIcon, ShieldCheck as ShieldIcon, ScanLine as ScanIcon } from "lucide-react";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white";
@@ -38,6 +38,7 @@ export default function KegiatanView() {
   const [reminderItem, setReminderItem] = useState(null);
   const [delegasiItem, setDelegasiItem] = useState(null);
   const [scanItem, setScanItem] = useState(null);
+  const [aksesItem, setAksesItem] = useState(null);
 
   const load = useCallback(() => {
     setItems(null);
@@ -115,6 +116,12 @@ export default function KegiatanView() {
         <div className="grid gap-3">
           {filtered.map((k) => (
             <KegiatanCard key={k.id} k={k}
+              onAkses={async () => {
+                try {
+                  const { data } = await api.get(`/admin/kegiatan/${k.id}/access`);
+                  setAksesItem({ ...data, kegiatan_id: k.id });
+                } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+              }}
               onAbsenQr={async () => {
                 try {
                   const { data } = await api.post(`/admin/kegiatan/${k.id}/absen-qr`);
@@ -162,11 +169,12 @@ export default function KegiatanView() {
       {reminderItem && <ReminderModal kegiatan={reminderItem} onClose={() => setReminderItem(null)} />}
       {delegasiItem && <DelegasiModal kegiatan={delegasiItem} onClose={() => setDelegasiItem(null)} />}
       {scanItem && <ScanPesertaModal kegiatan={scanItem} onClose={() => setScanItem(null)} onChanged={load} />}
+      {aksesItem && <ShareAbsensiModal data={aksesItem} onClose={() => setAksesItem(null)} />}
     </div>
   );
 }
 
-function KegiatanCard({ k, onAbsenQr, onShare, onEdit, onRekap, onFeedback, onReminder, onDelegasi, onScanPeserta, onToggleStatus, onDelete }) {
+function KegiatanCard({ k, onAbsenQr, onShare, onAkses, onEdit, onRekap, onFeedback, onReminder, onDelegasi, onScanPeserta, onToggleStatus, onDelete }) {
   const c = k.counts || {};
   const closed = k.status === "closed";
   const [showActions, setShowActions] = useState(false);
@@ -194,6 +202,7 @@ function KegiatanCard({ k, onAbsenQr, onShare, onEdit, onRekap, onFeedback, onRe
       </div>
       <div className="flex items-center gap-2 mt-3 flex-wrap">
         <button data-testid={`button-absensi-${k.id}`} onClick={onRekap} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229]"><CheckCircle2 size={15} /> Absensi</button>
+        <button data-testid={`button-akses-${k.id}`} onClick={onAkses} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]"><KeyRound size={15} /> Kode Akses</button>
         <button data-testid={`button-absen-qr-${k.id}`} onClick={onAbsenQr} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]"><ScanLine size={15} /> Absen QR</button>
         <button data-testid={`button-toggle-status-${k.id}`} onClick={onToggleStatus} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
           {closed ? <><RotateCcw size={15} /> Buka</> : <><CheckCircle2 size={15} /> Selesai</>}
@@ -216,6 +225,7 @@ function KegiatanCard({ k, onAbsenQr, onShare, onEdit, onRekap, onFeedback, onRe
           subtitle={k.name}
           onClose={() => setShowActions(false)}
           actions={[
+            { key: `akses-${k.id}`, testid: `opsi-akses-${k.id}`, label: "Bagikan Kegiatan + Kode Akses", desc: "Tautan absensi + kode 6 digit", icon: KeyRound, onClick: onAkses },
             { key: `rekap-${k.id}`, testid: `opsi-rekap-${k.id}`, label: "Rekap Absen", desc: "Lihat & ubah kehadiran peserta", icon: FileBarChart2, onClick: onRekap },
             { key: `share-${k.id}`, testid: `opsi-share-${k.id}`, label: "Bagikan Rekap", desc: "Tautan & QR rekap kegiatan", icon: Share2, onClick: onShare },
             { key: `reminder-${k.id}`, testid: `opsi-reminder-${k.id}`, label: "Pengingat WhatsApp", desc: "Kirim pengingat ke peserta", icon: SendIcon, onClick: onReminder },
@@ -383,7 +393,9 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
   const mark = async (userId, status) => {
     setBusy(userId + status);
     try {
-      await api.post(`/admin/kegiatan/${kegiatanId}/absen`, { user_id: userId, status });
+      const { data: res } = await api.post(`/admin/kegiatan/${kegiatanId}/absen`, { user_id: userId, status });
+      // Fase 7: notifikasi HANYA untuk status "hadir" (izin & alpha tanpa notifikasi).
+      if (res?.message) toast.success(res.message);
       await load();
       if (onChanged) onChanged();
     } catch (e) {
@@ -412,14 +424,6 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
             <div className="rounded-xl bg-[#FEF3C7] p-3 text-center"><div className="text-xl font-bold text-[#92400E]">{c.izin}</div><div className="text-xs text-[#6B7280]">Izin</div></div>
             <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{c.alpha}</div><div className="text-xs text-[#6B7280]">Alpha</div></div>
           </div>
-
-          {/* Rekap kehadiran — daftar peserta dalam DROPDOWN, kolom berjarak */}
-          <PesertaRekapList
-            rows={data.rows}
-            counts={c}
-            title="Rekap Kehadiran"
-            testid="rekap-absen-dropdown"
-          />
 
           {/* Absen manual — bisa dibuka/tutup */}
           <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid="absen-manual-section">
@@ -538,6 +542,10 @@ function QrModal({ data, onClose }) {
     document.body.appendChild(a); a.click(); a.remove();
   };
   const copy = () => { navigator.clipboard.writeText(data.link); toast.success("Link disalin"); };
+  const shareWa = () => {
+    const text = data.wa_text || `Assalamu'alaikum warahmatullahi wabarakatuh\n\nBerikut laporan ${data.name || "kegiatan"}\n${data.link}\n\nAlhamdulillah, jazakumullahu khoiro.`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
   return (
     <ModalShell title="QR Rekap Kegiatan" onClose={onClose} testid="modal-qr">
       <div className="text-center">
@@ -548,6 +556,7 @@ function QrModal({ data, onClose }) {
           <button onClick={copy} className="flex-1 h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold flex items-center justify-center gap-2 hover:bg-[#E8F5EE]"><Copy size={16} /> Salin Link</button>
           <button onClick={download} className="flex-1 h-11 rounded-xl bg-[#0D5C3A] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#094229]"><Download size={16} /> Unduh QR</button>
         </div>
+        <button data-testid="qr-share-wa" onClick={shareWa} className="mt-2 w-full h-11 rounded-xl bg-[#25D366] text-white font-semibold flex items-center justify-center gap-2 hover:brightness-95"><Send size={16} /> Bagikan lewat WhatsApp</button>
       </div>
     </ModalShell>
   );
@@ -571,7 +580,8 @@ function AbsenQrModal({ data, onClose }) {
             Peserta scan QR ini dengan kamera HP lalu <b>masuk dengan akunnya sendiri</b>.
             Halaman absen hanya menampilkan <b>nama peserta itu sendiri</b> dengan tombol
             <b> Saya Hadir</b> — sehingga tidak bisa menitipkan absen orang lain.
-            QR hanya berfungsi selama kegiatan <b>masih berlangsung</b>.
+            Barcode kegiatan ini <b>berlaku 1 bulan</b>{data.expires_at ? <> (sampai {tanggalSingkat(String(data.expires_at).slice(0, 10))})</> : null},
+            sehingga bisa dicetak dan dipakai berulang untuk kegiatan tersebut.
           </p>
         </div>
         <p className="text-xs text-[#9CA3AF] mt-2 break-all px-2">{data.link}</p>
@@ -584,3 +594,77 @@ function AbsenQrModal({ data, onClose }) {
   );
 }
 
+/**
+ * FASE 7 — Bagikan Kegiatan + Kode Akses Absensi (6 digit).
+ *
+ * Pemegang tautan memasukkan kode akses lalu langsung melihat daftar peserta
+ * (aktif maupun belum aktivasi) untuk diabsen manual / scan barcode.
+ * Kode berlaku sampai kegiatan ditutup/selesai dan bisa diperbarui kapan pun.
+ */
+function ShareAbsensiModal({ data, onClose }) {
+  const [info, setInfo] = useState(data);
+  const [busy, setBusy] = useState(false);
+
+  const copyLink = () => { navigator.clipboard.writeText(info.link); toast.success("Tautan absensi disalin"); };
+  const copyCode = () => { navigator.clipboard.writeText(info.code); toast.success("Kode akses disalin"); };
+  const download = () => {
+    const a = document.createElement("a");
+    a.href = info.image;
+    a.download = `absensi_${(info.kegiatan_name || "kegiatan").replace(/\s+/g, "_")}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  const shareWa = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(info.wa_text || info.link)}`, "_blank");
+  };
+  const regenerate = async () => {
+    setBusy(true);
+    try {
+      const { data: d } = await api.post(`/admin/kegiatan/${info.kegiatan_id}/access/regenerate`);
+      setInfo({ ...d, kegiatan_id: info.kegiatan_id });
+      toast.success("Kode akses baru dibuat. Kode lama sudah tidak berlaku.");
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <ModalShell title="Bagikan Kegiatan + Kode Akses" onClose={onClose} testid="modal-akses">
+      <div className="text-center">
+        <img src={info.image} alt="QR Absensi Kegiatan" className="mx-auto w-52 h-52 rounded-xl border border-[#E5E7EB] p-2" data-testid="akses-qr-image" />
+
+        <div className="mt-4 rounded-2xl border-2 border-dashed border-[#0D5C3A] bg-[#F0FAF4] p-4">
+          <div className="text-xs font-semibold text-[#065F46] flex items-center justify-center gap-1.5">
+            <KeyRound size={14} /> KODE AKSES ABSENSI
+          </div>
+          <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#0D5C3A]" data-testid="akses-code">{info.code}</div>
+          <div className="text-xs text-[#4B5563] mt-1">
+            Berlaku sampai kegiatan <b>ditutup/selesai</b>
+            {info.valid_until ? <> · jadwal selesai {tanggalSingkat(String(info.valid_until).slice(0, 10))} {String(info.valid_until).slice(11, 16)} WITA</> : null}
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button onClick={copyCode} data-testid="akses-copy-code" className="flex-1 h-10 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#E8F5EE]"><Copy size={15} /> Salin Kode</button>
+            <button onClick={regenerate} disabled={busy} data-testid="akses-regenerate" className="flex-1 h-10 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60">
+              {busy ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />} Perbarui Kode
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-3 bg-white border border-[#E5E7EB] rounded-xl p-3 text-left">
+          <p className="text-xs text-[#4B5563] leading-relaxed">
+            Penerima tautan memasukkan kode akses ini, lalu langsung melihat <b>daftar peserta</b> —
+            termasuk peserta yang <b>belum aktivasi</b> — untuk diabsen <b>manual</b> atau lewat
+            <b> scan barcode</b> QR pribadi peserta.
+          </p>
+        </div>
+
+        <p className="text-xs text-[#9CA3AF] mt-2 break-all px-2">{info.link}</p>
+
+        <div className="flex gap-2 mt-3">
+          <button onClick={copyLink} data-testid="akses-copy-link" className="flex-1 h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold flex items-center justify-center gap-2 hover:bg-[#E8F5EE]"><Copy size={16} /> Salin Link</button>
+          <button onClick={download} data-testid="akses-download" className="flex-1 h-11 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold flex items-center justify-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]"><Download size={16} /> Unduh QR</button>
+        </div>
+        <button onClick={shareWa} data-testid="akses-share-wa" className="mt-2 w-full h-11 rounded-xl bg-[#25D366] text-white font-semibold flex items-center justify-center gap-2 hover:brightness-95"><Send size={16} /> Bagikan lewat WhatsApp</button>
+      </div>
+    </ModalShell>
+  );
+}

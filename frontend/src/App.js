@@ -11,6 +11,8 @@ import RoleArea from "@/pages/RoleArea";
 import PublicRekap from "@/pages/PublicRekap";
 import PublicLaporan from "@/pages/PublicLaporan";
 import SelfAbsen from "@/pages/SelfAbsen";
+import PublicAbsensi from "@/pages/PublicAbsensi";
+import KodeAbsen from "@/pages/KodeAbsen";
 import CompleteProfile from "@/pages/CompleteProfile";
 
 function Loading() {
@@ -70,6 +72,8 @@ function AppRoutes() {
       <Route path="/laporan/:token" element={<PublicLaporan />} />
       {/* Absen mandiri: wajib login & fokus 1 peserta (halaman menangani sesinya sendiri) */}
       <Route path="/absen/:token" element={<SelfAbsen />} />
+      <Route path="/absensi/:token" element={<PublicAbsensi />} />
+      <Route path="/absen-kode" element={<KodeAbsen />} />
       <Route path="/roles" element={<Protected><RoleDashboard /></Protected>} />
       <Route path="/area/:role" element={<Protected><RoleArea /></Protected>} />
       <Route path="*" element={<Navigate to="/roles" replace />} />

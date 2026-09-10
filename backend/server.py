@@ -196,6 +196,7 @@ def public_user(user: dict, include_photo: bool = False) -> dict:
         "profile_complete": len(missing) == 0,
         "missing_fields": missing,
         "has_photo": bool(user.get("photo")),
+        "is_system": bool(user.get("is_system", False)),
         "created_at": user.get("created_at"),
     }
     if include_photo:
@@ -633,8 +634,14 @@ async def public_qr(request: Request):
 
 # ---- Admin ----
 @api_router.get("/admin/users")
-async def admin_users(admin: dict = Depends(require_staff)):
-    users = await db.users.find().sort("created_at", -1).to_list(1000)
+async def admin_users(admin: dict = Depends(require_staff), include_system: bool = False):
+    """Daftar pengguna.
+
+    Fase 7: akun SISTEM (admin pengelola) tidak ditampilkan pada daftar peserta
+    maupun hak akses — kirim `include_system=true` bila memang perlu.
+    """
+    query = {} if include_system else {"is_system": {"$ne": True}}
+    users = await db.users.find(query).sort("created_at", -1).to_list(1000)
     return [public_user(u) for u in users]
 
 
@@ -849,13 +856,26 @@ async def update_kelompok(kelompok_id: str, body: KelompokInput, admin: dict = D
     return {"id": kelompok_id, "name": name}
 
 @api_router.delete("/admin/kelompok/{kelompok_id}")
-async def delete_kelompok(kelompok_id: str, admin: dict = Depends(require_admin)):
-    res = await db.kelompoks.delete_one({"_id": kelompok_id})
-    if res.deleted_count == 0:
+async def delete_kelompok(kelompok_id: str, keterangan: str = "",
+                          admin: dict = Depends(require_admin)):
+    """Hapus kelompok sambung. Anggota di dalamnya menjadi tanpa kelompok.
+
+    Fase 7: UI wajib menampilkan pop-up konfirmasi (Ya / Tidak) + kolom keterangan;
+    keterangan dikirim sebagai query `keterangan` dan dicatat pada log aktivitas.
+    """
+    k = await db.kelompoks.find_one({"_id": kelompok_id})
+    if not k:
         raise HTTPException(status_code=404, detail="Kelompok tidak ditemukan")
+    affected = await db.users.count_documents({"kelompok_id": kelompok_id})
+    await db.kelompoks.delete_one({"_id": kelompok_id})
     await db.users.update_many({"kelompok_id": kelompok_id}, {"$set": {"kelompok_id": None}})
-    await log_activity(admin, "hapus_kelompok", f"Menghapus kelompok {kelompok_id}", kelompok_id)
-    return {"message": "Kelompok dihapus"}
+    ket = (keterangan or "").strip()
+    detail = f"Menghapus kelompok '{k.get('name')}' ({affected} anggota dilepas)"
+    if ket:
+        detail += f" — Ket: {ket}"
+    await log_activity(admin, "hapus_kelompok", detail, kelompok_id)
+    return {"message": f"Kelompok '{k.get('name')}' dihapus.",
+            "affected": affected, "keterangan": ket or None}
 
 # ---------------------------------------------------------------------------
 # Fase 2: Peserta detail + update + bulk + reset + move
@@ -1044,8 +1064,14 @@ ABSEN_STATUS = ["hadir", "izin", "alpha"]
 # Termasuk peserta hasil import Excel yang BELUM aktivasi (status "pending") supaya
 # pengurus/penjaga absen tetap bisa mengabsen mereka secara MANUAL, dan mereka juga
 # ikut dihitung pada rekap/laporan kehadiran.
-PESERTA_QUERY = {"roles": "peserta", "status": {"$in": ["active", "pending"]}}
+# Fase 7: akun sistem (admin pengelola) TIDAK ikut terdaftar/dihitung sebagai peserta.
+PESERTA_QUERY = {"roles": "peserta", "status": {"$in": ["active", "pending"]},
+                 "is_system": {"$ne": True}}
 SHARE_EXPIRE_DAYS = 7
+# Fase 7: barcode/QR absen per kegiatan berlaku 1 bulan (30 hari).
+KEGIATAN_BARCODE_DAYS = 30
+# Fase 7: panjang kode akses absensi kegiatan.
+ACCESS_CODE_LEN = 6
 
 
 def now_wita() -> datetime:
@@ -1057,6 +1083,40 @@ def kegiatan_end_dt(date_str: str, end_time: str):
         return datetime.strptime(f"{date_str} {end_time}", "%Y-%m-%d %H:%M").replace(tzinfo=WITA)
     except Exception:
         return None
+
+
+def gen_access_code() -> str:
+    """Kode akses absensi kegiatan — 6 digit angka."""
+    return "".join(secrets.choice("0123456789") for _ in range(ACCESS_CODE_LEN))
+
+
+def wa_template_laporan(judul: str, link: str) -> str:
+    """Template WhatsApp BAKU untuk berbagi laporan/rekap (Fase 7)."""
+    judul = re.sub(r"^laporan\s+", "", (judul or "").strip(), flags=re.IGNORECASE)
+    return (
+        "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
+        f"Berikut laporan {judul}\n"
+        f"{link}\n\n"
+        "Alhamdulillah, jazakumullahu khoiro."
+    )
+
+
+def kegiatan_barcode_expiry(k: dict) -> str:
+    """Masa berlaku barcode absen kegiatan = 1 bulan sejak jam selesai kegiatan."""
+    base = kegiatan_end_dt(k.get("date"), k.get("end_time")) or now_wita()
+    return (base + timedelta(days=KEGIATAN_BARCODE_DAYS)).isoformat()
+
+
+def is_expired_iso(value: Optional[str]) -> bool:
+    if not value:
+        return False
+    try:
+        dt = datetime.fromisoformat(value)
+    except Exception:
+        return False
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=WITA)
+    return dt <= datetime.now(timezone.utc)
 
 
 class KegiatanInput(BaseModel):
@@ -1104,6 +1164,10 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
         "auto_closed": bool(k.get("auto_closed", False)),
         "share_token": k.get("share_token"),
         "share_expires_at": k.get("share_expires_at"),
+        # Fase 7 — kode akses absensi + masa berlaku barcode kegiatan (1 bulan)
+        "access_code": k.get("access_code"),
+        "akses_token": k.get("akses_token"),
+        "absen_expires_at": k.get("absen_expires_at"),
         "created_at": k.get("created_at"),
     }
     if counts is not None:
@@ -1216,6 +1280,13 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
             "auto_closed": False,
             "share_token": None,
             "share_expires_at": None,
+            # Fase 7: setiap kegiatan baru langsung punya kode akses absensi 6 digit
+            # (berlaku sampai kegiatan ditutup/selesai) + token halaman absensi.
+            "akses_token": secrets.token_urlsafe(9),
+            "access_code": gen_access_code(),
+            "access_code_at": now_iso,
+            "absen_token": None,
+            "absen_expires_at": None,
             "created_at": now_iso,
             "created_by": str(admin["_id"]),
         })
@@ -1327,7 +1398,12 @@ async def mark_absen(kegiatan_id: str, body: AbsenInput, admin: dict = Depends(r
             "arrival_time": arrival, "marked_by": admin.get("name"),
             "marked_by_id": str(admin["_id"]), "updated_at": now_wita().isoformat()}},
         upsert=True)
-    return {"user_id": body.user_id, "status": body.status, "arrival_time": arrival}
+    # Fase 7: notifikasi HANYA untuk status "hadir".
+    # Status "izin" & "alpha" tidak memunculkan notifikasi apa pun.
+    message = ("Absen berhasil, alhamdulillah jazakumullahu khoiro."
+               if body.status == "hadir" else None)
+    return {"user_id": body.user_id, "status": body.status, "arrival_time": arrival,
+            "message": message}
 
 
 @api_router.get("/admin/kegiatan/{kegiatan_id}/rekap")
@@ -1399,13 +1475,17 @@ async def ensure_share(kegiatan_id: str, request: Optional[Request] = None) -> d
 @api_router.post("/admin/kegiatan/{kegiatan_id}/share")
 async def share_kegiatan(kegiatan_id: str, request: Request, admin: dict = Depends(require_staff)):
     info = await ensure_share(kegiatan_id, request)
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    info["wa_text"] = wa_template_laporan(k.get("name") or "kegiatan", info["link"])
     return info
 
 
 @api_router.get("/admin/kegiatan/{kegiatan_id}/qr")
 async def qr_kegiatan(kegiatan_id: str, request: Request, admin: dict = Depends(require_staff)):
     info = await ensure_share(kegiatan_id, request)
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
     return {"link": info["link"], "expires_at": info["expires_at"],
+            "wa_text": wa_template_laporan(k.get("name") or "kegiatan", info["link"]),
             "image": make_qr_data_url(info["link"])}
 
 
@@ -1461,17 +1541,33 @@ async def ensure_absen_token(kegiatan_id: str, request: Optional[Request] = None
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
     token = k.get("absen_token")
-    if not token:
+    exp = k.get("absen_expires_at")
+    # Fase 7: barcode absen kegiatan berlaku 1 BULAN. Bila belum ada / sudah lewat,
+    # token diperbarui beserta masa berlakunya.
+    if not token or not exp or is_expired_iso(exp):
         token = secrets.token_urlsafe(10)
-        await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": {"absen_token": token}})
+        exp = kegiatan_barcode_expiry(k)
+        await db.kegiatans.update_one({"_id": kegiatan_id},
+                                      {"$set": {"absen_token": token, "absen_expires_at": exp}})
     link = f"{resolve_base_url(request)}/absen/{token}"
-    return {"token": token, "link": link, "kegiatan": k}
+    return {"token": token, "link": link, "expires_at": exp, "kegiatan": k}
+
+
+def assert_barcode_valid(k: dict) -> None:
+    """Fase 7: barcode absen kegiatan hanya berlaku 1 bulan."""
+    if is_expired_iso(k.get("absen_expires_at")):
+        raise HTTPException(
+            status_code=403,
+            detail="Mohon maaf, barcode absen kegiatan ini sudah kedaluwarsa "
+                   "(masa berlaku 1 bulan). Silakan minta QR baru kepada pengurus.")
 
 
 @api_router.post("/admin/kegiatan/{kegiatan_id}/absen-qr")
 async def absen_qr(kegiatan_id: str, request: Request, admin: dict = Depends(require_staff)):
     info = await ensure_absen_token(kegiatan_id, request)
     return {"token": info["token"], "link": info["link"],
+            "expires_at": info["expires_at"],
+            "expires_days": KEGIATAN_BARCODE_DAYS,
             "image": make_qr_data_url(info["link"])}
 
 
@@ -1480,6 +1576,7 @@ async def public_absen_info(token: str):
     k = await db.kegiatans.find_one({"absen_token": token})
     if not k:
         raise HTTPException(status_code=404, detail="Tautan absen tidak ditemukan")
+    assert_barcode_valid(k)
     peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(5000)
     kmap = {km["_id"]: km.get("name") async for km in db.kelompoks.find()}
     absens = await db.absensis.find({"kegiatan_id": k["_id"]}).to_list(10000)
@@ -1511,6 +1608,7 @@ async def public_absen_mark(token: str, body: SelfAbsenInput):
     k = await db.kegiatans.find_one({"absen_token": token})
     if not k:
         raise HTTPException(status_code=404, detail="Tautan absen tidak ditemukan")
+    assert_barcode_valid(k)
     if k.get("status", "open") != "open":
         raise HTTPException(status_code=403, detail="Kegiatan sudah ditutup. Absen mandiri dinonaktifkan.")
     u = await db.users.find_one({"_id": ObjectId(body.user_id)}) if ObjectId.is_valid(body.user_id) else None
@@ -1541,6 +1639,7 @@ async def my_absen_info(token: str, user: dict = Depends(get_current_user)):
         raise HTTPException(
             status_code=404,
             detail="Mohon maaf, tautan absen ini tidak dikenali. Silakan scan ulang QR kegiatan dari pengurus.")
+    assert_barcode_valid(k)
     uid = str(user["_id"])
     a = await db.absensis.find_one({"kegiatan_id": k["_id"], "user_id": uid})
     return {
@@ -1568,6 +1667,7 @@ async def my_absen_mark(token: str, user: dict = Depends(get_current_user)):
         raise HTTPException(
             status_code=404,
             detail="Mohon maaf, tautan absen ini tidak dikenali. Silakan scan ulang QR kegiatan dari pengurus.")
+    assert_barcode_valid(k)
     if k.get("status", "open") != "open":
         raise HTTPException(
             status_code=403,
@@ -1629,6 +1729,304 @@ async def admin_kegiatan_feedback(kegiatan_id: str, admin: dict = Depends(requir
     items = await db.feedbacks.find({"kegiatan_id": kegiatan_id}).sort("created_at", -1).to_list(1000)
     return [{"id": f["_id"], "name": f.get("name"), "message": f.get("message"),
              "created_at": f.get("created_at")} for f in items]
+
+
+# ===========================================================================
+# FASE 7 — Share Kegiatan + Kode Akses Absensi (6 digit)
+# ===========================================================================
+# Pengurus/admin membagikan TAUTAN + KODE AKSES 6 digit milik sebuah kegiatan.
+# Penerima tautan (mis. petugas absen di lokasi) memasukkan kode, lalu langsung
+# melihat DAFTAR PESERTA — baik yang sudah aktif maupun yang BELUM aktivasi —
+# untuk diabsen MANUAL atau lewat SCAN BARCODE (QR pribadi peserta).
+# Kode akses berlaku SAMPAI kegiatan ditutup/selesai.
+ABSENSI_SCOPE = "absensi_kegiatan"
+
+
+class AccessCodeInput(BaseModel):
+    code: str
+
+
+class AbsensiMarkInput(BaseModel):
+    access: str
+    user_id: str
+    status: str  # hadir | izin | alpha
+
+
+class AbsensiScanInput(BaseModel):
+    access: str
+    content: str
+
+
+async def ensure_kegiatan_access(kegiatan_id: str, request: Optional[Request] = None,
+                                 regenerate: bool = False) -> dict:
+    """Pastikan kegiatan punya token halaman absensi + kode akses 6 digit."""
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    token = k.get("akses_token")
+    code = k.get("access_code")
+    if regenerate or not token or not code or len(str(code)) != ACCESS_CODE_LEN:
+        token = token or secrets.token_urlsafe(9)
+        code = gen_access_code()
+        await db.kegiatans.update_one(
+            {"_id": kegiatan_id},
+            {"$set": {"akses_token": token, "access_code": code,
+                      "access_code_at": now_wita().isoformat()}})
+        k["akses_token"] = token
+        k["access_code"] = code
+    link = f"{resolve_base_url(request)}/absensi/{token}"
+    end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
+    return {
+        "token": token,
+        "code": code,
+        "link": link,
+        "image": make_qr_data_url(link),
+        "kegiatan_name": k.get("name"),
+        "kegiatan_status": k.get("status", "open"),
+        "valid_until": end.isoformat() if end else None,
+        "wa_text": (
+            "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
+            f"Berikut tautan absensi kegiatan {k.get('name')}\n"
+            f"{link}\n"
+            f"Kode akses: {code}\n\n"
+            "Alhamdulillah, jazakumullahu khoiro."
+        ),
+    }
+
+
+def make_absensi_access(kegiatan_id: str, token: str, k: dict) -> str:
+    end = kegiatan_end_dt(k.get("date"), k.get("end_time")) or now_wita()
+    exp = max(end, now_wita()) + timedelta(hours=6)
+    payload = {"sub": kegiatan_id, "tok": token, "type": ABSENSI_SCOPE, "exp": exp}
+    return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
+
+
+def verify_absensi_access(access: str, kegiatan_id: str, token: str) -> None:
+    if not access:
+        raise HTTPException(status_code=401, detail="Kode akses belum diverifikasi.")
+    try:
+        payload = jwt.decode(access, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
+    except Exception:
+        raise HTTPException(status_code=401,
+                            detail="Sesi absensi sudah berakhir. Silakan masukkan kode akses lagi.")
+    if (payload.get("type") != ABSENSI_SCOPE or payload.get("sub") != kegiatan_id
+            or payload.get("tok") != token):
+        raise HTTPException(status_code=401, detail="Kode akses tidak sah untuk kegiatan ini.")
+
+
+async def kegiatan_by_akses_token(token: str) -> dict:
+    k = await db.kegiatans.find_one({"akses_token": token})
+    if not k:
+        raise HTTPException(
+            status_code=404,
+            detail="Mohon maaf, tautan absensi ini tidak dikenali. "
+                   "Silakan minta tautan baru kepada pengurus.")
+    return k
+
+
+def assert_kegiatan_open(k: dict) -> None:
+    if k.get("status", "open") != "open":
+        raise HTTPException(
+            status_code=403,
+            detail="Kegiatan ini sudah selesai/ditutup, sehingga kode akses "
+                   "absensi tidak berlaku lagi.")
+
+
+async def build_absensi_rows(kegiatan_id: str) -> dict:
+    """Daftar peserta (aktif + belum aktivasi) beserta status absensinya."""
+    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(5000)
+    kmap = {}
+    async for km in db.kelompoks.find():
+        kmap[km["_id"]] = km.get("name")
+    absens = await db.absensis.find({"kegiatan_id": kegiatan_id}).to_list(10000)
+    amap = {a["user_id"]: a for a in absens}
+    rows, hadir, izin, alpha = [], 0, 0, 0
+    for p in peserta:
+        pid = str(p["_id"])
+        a = amap.get(pid)
+        status = a["status"] if a else "alpha"
+        if status == "hadir":
+            hadir += 1
+        elif status == "izin":
+            izin += 1
+        else:
+            alpha += 1
+        rows.append({
+            "user_id": pid,
+            "name": p.get("name"),
+            "gender": _derive_gender(p),
+            "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
+            "account_status": p.get("status", "active"),
+            "status": status,
+            "arrival_time": a.get("arrival_time") if a else None,
+            "marked_by": a.get("marked_by") if a else None,
+        })
+    total = len(peserta)
+    return {
+        "counts": {"total": total, "hadir": hadir, "izin": izin, "alpha": alpha,
+                   "ratio": round((hadir / total) * 100, 1) if total else 0.0},
+        "rows": rows,
+    }
+
+
+def public_kegiatan_info(k: dict) -> dict:
+    return {
+        "id": k["_id"], "name": k.get("name"), "type": k.get("type"),
+        "date": k.get("date"), "start_time": k.get("start_time"),
+        "end_time": k.get("end_time"), "location": k.get("location"),
+        "teacher": k.get("teacher"), "material": k.get("material"),
+        "status": k.get("status", "open"),
+    }
+
+
+@api_router.get("/admin/kegiatan/{kegiatan_id}/access")
+async def get_kegiatan_access(kegiatan_id: str, request: Request,
+                              staff: dict = Depends(require_staff)):
+    """Tautan + kode akses 6 digit untuk absensi kegiatan."""
+    return await ensure_kegiatan_access(kegiatan_id, request)
+
+
+@api_router.post("/admin/kegiatan/{kegiatan_id}/access/regenerate")
+async def regenerate_kegiatan_access(kegiatan_id: str, request: Request,
+                                     staff: dict = Depends(require_staff)):
+    """Perbarui (kadaluarsakan) kode akses lama dan buat kode 6 digit baru."""
+    info = await ensure_kegiatan_access(kegiatan_id, request, regenerate=True)
+    await log_activity(staff, "perbarui_kode_akses",
+                       f"Memperbarui kode akses absensi kegiatan '{info['kegiatan_name']}'")
+    return info
+
+
+@api_router.post("/absensi/{token}/verify")
+async def verify_kegiatan_access(token: str, body: AccessCodeInput):
+    """Verifikasi kode akses 6 digit → dapat sesi absensi (tanpa perlu login)."""
+    k = await kegiatan_by_akses_token(token)
+    assert_kegiatan_open(k)
+    code = re.sub(r"\D", "", body.code or "")
+    if not code or code != str(k.get("access_code") or ""):
+        raise HTTPException(status_code=401,
+                            detail="Kode akses salah. Mohon periksa kembali 6 digit kodenya.")
+    data = await build_absensi_rows(k["_id"])
+    return {
+        "access": make_absensi_access(k["_id"], token, k),
+        "kegiatan": public_kegiatan_info(k),
+        **data,
+    }
+
+
+@api_router.post("/absensi/verify-code")
+async def verify_code_only(body: AccessCodeInput, request: Request):
+    """FASE 7 — Absen dengan Kode: cari kegiatan hanya dari 6 digit kode akses.
+
+    Dipakai halaman 'Absen dengan Kode' pada layar masuk, sehingga petugas tidak
+    perlu tautan — cukup mengetik kode. Dibatasi 10 percobaan per 15 menit per IP
+    untuk mencegah percobaan kode secara acak.
+    """
+    ip = (request.client.host if request.client else "") or "unknown"
+    lock_key = f"absen_code:{ip}"
+    since = datetime.now(timezone.utc) - timedelta(minutes=15)
+    tries = await db.login_attempts.count_documents(
+        {"identifier": lock_key, "at": {"$gte": since.isoformat()}})
+    if tries >= 10:
+        raise HTTPException(status_code=429,
+                            detail="Terlalu banyak percobaan kode. Mohon coba lagi dalam 15 menit.")
+
+    code = re.sub(r"\D", "", body.code or "")
+    if len(code) != ACCESS_CODE_LEN:
+        raise HTTPException(status_code=400, detail="Kode akses harus 6 digit angka.")
+
+    k = await db.kegiatans.find_one({"access_code": code, "status": "open"})
+    if not k:
+        await db.login_attempts.insert_one(
+            {"identifier": lock_key, "email": lock_key,
+             "at": datetime.now(timezone.utc).isoformat()})
+        raise HTTPException(
+            status_code=404,
+            detail="Kode akses tidak ditemukan atau kegiatannya sudah ditutup. "
+                   "Mohon periksa kembali kode dari pengurus.")
+
+    await db.login_attempts.delete_many({"identifier": lock_key})
+    token = k.get("akses_token")
+    if not token:
+        info = await ensure_kegiatan_access(k["_id"], request)
+        token = info["token"]
+        k = await db.kegiatans.find_one({"_id": k["_id"]})
+    data = await build_absensi_rows(k["_id"])
+    return {
+        "token": token,
+        "access": make_absensi_access(k["_id"], token, k),
+        "link": f"{resolve_base_url(request)}/absensi/{token}",
+        "kegiatan": public_kegiatan_info(k),
+        **data,
+    }
+
+
+@api_router.get("/absensi/{token}")
+async def get_absensi_page(token: str, access: str = ""):
+    k = await kegiatan_by_akses_token(token)
+    verify_absensi_access(access, k["_id"], token)
+    data = await build_absensi_rows(k["_id"])
+    return {"kegiatan": public_kegiatan_info(k), **data}
+
+
+@api_router.post("/absensi/{token}/mark")
+async def mark_absensi_by_code(token: str, body: AbsensiMarkInput):
+    """Absen MANUAL oleh pemegang kode akses. Notifikasi hanya untuk 'hadir'."""
+    k = await kegiatan_by_akses_token(token)
+    verify_absensi_access(body.access, k["_id"], token)
+    assert_kegiatan_open(k)
+    if body.status not in ABSEN_STATUS:
+        raise HTTPException(status_code=400, detail="Status absensi tidak valid")
+    u = await db.users.find_one({"_id": ObjectId(body.user_id)}) if ObjectId.is_valid(body.user_id) else None
+    if not u or "peserta" not in (u.get("roles") or []) or u.get("is_system"):
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+    arrival = now_wita().isoformat() if body.status == "hadir" else None
+    await db.absensis.update_one(
+        {"kegiatan_id": k["_id"], "user_id": body.user_id},
+        {"$set": {"kegiatan_id": k["_id"], "user_id": body.user_id, "status": body.status,
+                  "arrival_time": arrival, "marked_by": "Petugas (Kode Akses)",
+                  "marked_by_id": None, "updated_at": now_wita().isoformat()}},
+        upsert=True)
+    message = ("Absen berhasil, alhamdulillah jazakumullahu khoiro."
+               if body.status == "hadir" else None)
+    return {"user_id": body.user_id, "name": u.get("name"), "status": body.status,
+            "arrival_time": arrival, "message": message}
+
+
+@api_router.post("/absensi/{token}/scan-personal")
+async def scan_absensi_by_code(token: str, body: AbsensiScanInput):
+    """Absen lewat SCAN BARCODE / QR pribadi peserta oleh pemegang kode akses."""
+    k = await kegiatan_by_akses_token(token)
+    verify_absensi_access(body.access, k["_id"], token)
+    assert_kegiatan_open(k)
+    content = (body.content or "").strip()
+    if content.startswith("EKP:"):
+        content = content[4:]
+    target_id = verify_personal_token(content)
+    if not target_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Mohon maaf, QR pribadi ini tidak dikenali atau sudah kadaluarsa. "
+                   "Mohon peserta menampilkan ulang QR-nya.")
+    u = await db.users.find_one({"_id": ObjectId(target_id)}) if ObjectId.is_valid(target_id) else None
+    if not u or "peserta" not in (u.get("roles") or []) or u.get("is_system"):
+        raise HTTPException(status_code=404,
+                            detail="Mohon maaf, data peserta untuk QR ini tidak ditemukan.")
+    existing = await db.absensis.find_one({"kegiatan_id": k["_id"], "user_id": target_id})
+    if existing and existing.get("status") == "hadir":
+        return {"user_id": target_id, "name": u.get("name"), "status": "hadir",
+                "arrival_time": existing.get("arrival_time"), "already": True,
+                "message": f"{u.get('name')} sudah tercatat hadir sebelumnya. Terima kasih."}
+    arrival = now_wita().isoformat()
+    await db.absensis.update_one(
+        {"kegiatan_id": k["_id"], "user_id": target_id},
+        {"$set": {"kegiatan_id": k["_id"], "user_id": target_id, "status": "hadir",
+                  "arrival_time": arrival, "marked_by": "Petugas (Scan Kode Akses)",
+                  "marked_by_id": None, "updated_at": arrival}},
+        upsert=True)
+    return {"user_id": target_id, "name": u.get("name"), "status": "hadir",
+            "arrival_time": arrival, "already": False,
+            "message": "Absen berhasil, alhamdulillah jazakumullahu khoiro."}
+
 
 
 # ===========================================================================
@@ -2451,8 +2849,7 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
                     gender_hadir[g] += 1
 
     tvals = list(tally.values())
-    top_rajin = sorted(tvals, key=lambda x: x["hadir"], reverse=True)[:5]
-    top_alpha = sorted(tvals, key=lambda x: x["alpha"], reverse=True)[:5]
+    # Fase 7: daftar "Paling Rajin" & "Paling Sering Alpha" DIHAPUS dari laporan.
     n_keg = len(kegiatans)
     denom = n_keg * total_peserta
     # Rincian per peserta (dipakai daftar dropdown pada halaman laporan)
@@ -2469,7 +2866,6 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
         "gender_hadir": gender_hadir,
         "per_kegiatan": rows,
         "per_peserta": per_peserta,
-        "top_rajin": top_rajin, "top_alpha": top_alpha,
     }
 
 
@@ -2521,8 +2917,11 @@ async def share_laporan(body: LaporanShareInput, request: Request,
         await log_activity(admin, "share_laporan",
                            f"Membuat tautan laporan publik ({mode}) {date_from} s/d {date_to}")
     link = f"{resolve_base_url(request)}/laporan/{token}"
+    title = _laporan_title(mode, date_from, date_to)
     return {"token": token, "link": link, "mode": mode, "image": make_qr_data_url(link),
-            "title": _laporan_title(mode, date_from, date_to),
+            "title": title,
+            # Fase 7 — template WhatsApp BAKU
+            "wa_text": wa_template_laporan(title.lower(), link),
             "date_from": date_from, "date_to": date_to}
 
 
@@ -2705,16 +3104,44 @@ async def seed_users():
     # Backfill gender for admin seed
     await db.users.update_one({"email": admin_email, "gender": {"$exists": False}},
                               {"$set": {"gender": "L"}})
+    # Fase 7: akun admin adalah AKUN SISTEM (untuk memperbaiki/mengelola sistem).
+    # Ditandai is_system=True agar TIDAK ikut terdaftar/dihitung sebagai peserta
+    # (daftar absensi, rekap, laporan, penerima WA). Peran tetap utuh sehingga
+    # admin masih bisa membuka area Pengurus & Peserta untuk pengecekan sistem.
+    await db.users.update_one({"email": admin_email}, {"$set": {"is_system": True}})
+    await db.users.update_many({"is_system": {"$exists": False}}, {"$set": {"is_system": False}})
+
 
 async def seed_kelompok():
-    defaults = ["Majelis Pusat", "Kelompok Timur", "Kelompok Barat"]
-    for name in defaults:
-        if not await db.kelompoks.find_one({"name": name}):
-            await db.kelompoks.insert_one({
-                "_id": str(uuid.uuid4()), "name": name, "description": None,
-                "created_at": datetime.now(timezone.utc).isoformat()})
+    """Fase 7: kelompok sambung hanya 'Bali' dan 'Luar Bali'.
 
-INIT_VERSION = 3
+    Kelompok default lama (Majelis Pusat / Kelompok Timur / Kelompok Barat)
+    dihapus; anggotanya dipindah-sambung ke kelompok 'Bali'.
+    """
+    defaults = ["Bali", "Luar Bali"]
+    ids = {}
+    for name in defaults:
+        existing = await db.kelompoks.find_one({"name": name})
+        if existing:
+            ids[name] = existing["_id"]
+            continue
+        new_id = str(uuid.uuid4())
+        await db.kelompoks.insert_one({
+            "_id": new_id, "name": name,
+            "description": ("Sambung di wilayah Bali" if name == "Bali"
+                            else "Sambung di luar wilayah Bali"),
+            "created_at": datetime.now(timezone.utc).isoformat()})
+        ids[name] = new_id
+
+    legacy_names = ["Majelis Pusat", "Kelompok Timur", "Kelompok Barat",
+                    "Kelompok Selatan"]
+    legacy = await db.kelompoks.find({"name": {"$in": legacy_names}}).to_list(50)
+    for old in legacy:
+        await db.users.update_many({"kelompok_id": old["_id"]},
+                                   {"$set": {"kelompok_id": ids["Bali"]}})
+        await db.kelompoks.delete_one({"_id": old["_id"]})
+
+INIT_VERSION = 4
 
 
 async def _run_init():
@@ -2742,6 +3169,8 @@ async def _run_init():
     await db.kegiatans.create_index("date")
     await db.kegiatans.create_index("status")
     await db.kegiatans.create_index("share_token")
+    await db.kegiatans.create_index("absen_token")
+    await db.kegiatans.create_index("akses_token")
     await db.absensis.create_index([("kegiatan_id", 1), ("user_id", 1)], unique=True)
     await db.absensis.create_index("kegiatan_id")
     await db.absensis.create_index("user_id")

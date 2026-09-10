@@ -128,6 +128,13 @@ export default function Login() {
 
           <div className="grid gap-3">
             <button
+              data-testid="button-absen-kode"
+              onClick={() => navigate("/absen-kode")}
+              className="w-full h-[52px] rounded-xl bg-[#0D5C3A] text-white text-base font-bold flex items-center justify-center gap-2 hover:bg-[#094229] transition-colors"
+            >
+              <KeyRound size={22} /> Absen dengan Kode (6 Digit)
+            </button>
+            <button
               data-testid="button-register-qr"
               onClick={() => navigate("/register")}
               className="w-full h-[52px] rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] text-base font-bold flex items-center justify-center gap-2 hover:bg-[#E8F5EE] transition-colors"
