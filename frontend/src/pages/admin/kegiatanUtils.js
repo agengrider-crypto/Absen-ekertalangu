@@ -1,4 +1,4 @@
-// Helpers khusus modul Kegiatan (Fase 2 Tahap B)
+// Helpers khusus modul Kegiatan (Fase 2 Tahap B, diperluas Fase 8)
 
 export const KEGIATAN_TYPES = [
   { value: "rutin", label: "Pengajian Rutin" },
@@ -17,6 +17,91 @@ export const TYPE_COLOR = {
   khusus: "#0284C7",
   asad: "#D97706",
 };
+
+/* ------------------------- FASE 8 ------------------------- */
+
+// Tipe peserta kegiatan
+export const AUDIENCE_OPTIONS = [
+  {
+    value: "reguler",
+    label: "Reguler (hanya akun yang sudah aktivasi)",
+    short: "Reguler",
+    desc: "Hanya jamaah yang akunnya sudah diaktivasi yang masuk daftar absen.",
+  },
+  {
+    value: "publik",
+    label: "Terbuka / Publik (termasuk yang belum aktivasi & tamu)",
+    short: "Terbuka / Publik",
+    desc: "Semua jamaah masuk daftar absen, dan petugas boleh menambah tamu cukup dengan nama.",
+  },
+];
+
+export const AUDIENCE_LABEL = {
+  reguler: "Reguler",
+  publik: "Terbuka / Publik",
+};
+
+// Penyaringan peserta berdasarkan jenis kelamin
+export const GENDER_FILTER_OPTIONS = [
+  { value: "semua", label: "Semua jamaah (laki-laki & perempuan)", short: "Semua Jamaah" },
+  { value: "L", label: "Khusus laki-laki", short: "Khusus Laki-laki" },
+  { value: "P", label: "Khusus perempuan", short: "Khusus Perempuan" },
+];
+
+export const GENDER_FILTER_LABEL = {
+  semua: "Semua Jamaah",
+  L: "Khusus Laki-laki",
+  P: "Khusus Perempuan",
+};
+
+// Fase waktu kegiatan → dipakai untuk urutan daftar
+export const PHASE_META = {
+  akan_datang: { label: "Akan Datang", badge: "Akan Datang", cls: "bg-[#E0F2FE] text-[#075985]" },
+  berlangsung: { label: "Berlangsung", badge: "Berlangsung", cls: "bg-[#E8F5EE] text-[#065F46]" },
+  selesai: { label: "Selesai", badge: "Selesai", cls: "bg-[#F3F4F6] text-[#4B5563]" },
+};
+
+export function todayYmd() {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+}
+
+/** Hitung fase kegiatan bila server tidak mengirimkannya. */
+export function phaseOf(k) {
+  if (k?.phase) return k.phase;
+  if ((k?.status || "open") !== "open") return "selesai";
+  const today = todayYmd();
+  if ((k?.date || today) > today) return "akan_datang";
+  return "berlangsung";
+}
+
+/**
+ * FASE 8 — Urutan daftar kegiatan sesuai permintaan:
+ *   1. AKAN DATANG  (paling atas, tanggal terdekat dulu)
+ *   2. BERLANGSUNG  (hari ini / masih terbuka)
+ *   3. SELESAI      (paling bawah, terbaru dulu)
+ */
+export function groupKegiatan(items) {
+  const akan = [];
+  const kini = [];
+  const selesai = [];
+  (items || []).forEach((k) => {
+    const p = phaseOf(k);
+    if (p === "akan_datang") akan.push(k);
+    else if (p === "selesai") selesai.push(k);
+    else kini.push(k);
+  });
+  const byDateAsc = (a, b) => `${a.date}${a.start_time}`.localeCompare(`${b.date}${b.start_time}`);
+  const byDateDesc = (a, b) => `${b.date}${b.start_time}`.localeCompare(`${a.date}${a.start_time}`);
+  akan.sort(byDateAsc);
+  kini.sort(byDateAsc);
+  selesai.sort(byDateDesc);
+  return [
+    { key: "akan_datang", ...PHASE_META.akan_datang, items: akan },
+    { key: "berlangsung", ...PHASE_META.berlangsung, items: kini },
+    { key: "selesai", ...PHASE_META.selesai, items: selesai },
+  ];
+}
 
 // Opsi waktu WITA interval 10 menit: "00:00" .. "23:50"
 export function timeOptions() {

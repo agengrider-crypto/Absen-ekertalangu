@@ -4,6 +4,26 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Fase 8 — Detail absen, filter jenis kelamin, tipe publik/tamu, mode offline
+
+### Backend (`backend/server.py`)
+- Kegiatan: field baru `audience` (reguler|publik) & `gender_filter` (semua|L|P) + `phase` pada respons.
+- Peserta kegiatan disaring per kegiatan (`peserta_for_kegiatan`, `match_gender_filter`).
+- Tamu kegiatan publik: koleksi `guest_absens` + endpoint staff & kode-akses (tambah/hapus), ikut dihitung hadir.
+- Sinkronisasi absen offline: `POST /api/admin/kegiatan/{id}/absen-batch`, `POST /api/absensi/{token}/mark-batch` (waktu dinormalkan ke WITA).
+- Tindak lanjut tidak hadir: koleksi `follow_ups` + `GET/POST /api/staff/kegiatan/{id}/tindak-lanjut`.
+- Laporan & rekap menghormati filter peserta + tamu; `/me/kegiatan` & `/me/dashboard` menyembunyikan kegiatan yang tidak sesuai jenis kelamin.
+- Performa: GZip middleware, daftar kegiatan tanpa N+1 query, index baru.
+
+### Frontend
+- `pages/admin/KegiatanDetail.jsx` (BARU): halaman detail absen dengan navigasi bar horizontal (7 tab).
+- `pages/admin/KegiatanView.jsx`: daftar dikelompokkan Akan Datang → Berlangsung → Selesai, badge tipe peserta & jenis kelamin, form kegiatan + pilihan tipe peserta, filter jenis kelamin, blok "Segera Hadir".
+- `lib/offline.js` + `components/OfflineBanner.jsx` (BARU): antrean absen offline & auto-sync.
+- `lib/api.js`: timeout 25s + retry GET otomatis (stabilitas Vercel).
+- `pages/PublicAbsensi.jsx`: badge tipe/filter, tab Tamu, mode offline.
+- `pages/SelfAbsen.jsx` & `components/ProfileMenu.jsx`: FIX input kehilangan fokus tiap 1 huruf (komponen dipindah ke level modul) + tombol kirim pesan anonim.
+- `pages/peserta/KegiatanList.jsx`: pengelompokan & urutan yang sama untuk jamaah.
+
 ## Fase 6 — 8 Revisi UX: Link Laporan, Action Modal, Verifikasi Akun, Absen Terfokus
 
 Menjawab 8 permintaan revisi: laporan berbasis tautan, penggantian dropdown dengan action

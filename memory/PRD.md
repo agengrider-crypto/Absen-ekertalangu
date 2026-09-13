@@ -232,3 +232,38 @@ index), `docs/AUTH.md`, `docs/FEATURES.md`, `docs/TESTING.md`, `docs/TROUBLESHOO
 - Fase 7 aktif & terverifikasi live: kode akses absensi 6 digit (`/absen-kode` -> `/absensi/{token}`), halaman absensi publik (Absen Manual + Scan Barcode), menu admin Kelompok Sambung, barcode/QR kegiatan.
 - Services: mongodb, backend (8001), frontend (3000) RUNNING. DB schema init v4.
 - Perubahan lokal sebelum restore disimpan di `git stash` ("pre-fase7-local").
+
+## Implemented — FASE 8 (2026-09-13)
+Revisi & update sesuai permintaan user (8 poin):
+1. **Detail absen kegiatan** — modal absensi diganti HALAMAN PENUH `KegiatanDetail.jsx` dengan
+   NAVIGASI BAR HORIZONTAL (bisa digeser di HP): Ringkasan, Absen Manual, Scan Barcode,
+   Tamu (khusus kegiatan publik), Tidak Hadir Kemarin, Kode Akses, Pesan/Saran.
+2. **Filter jenis kelamin kegiatan** — field `gender_filter` (semua|L|P). Daftar absen,
+   halaman absensi publik, jadwal peserta, dan laporan otomatis mengikuti filter ini.
+   Blok "Pengelompokan Lanjutan — SEGERA HADIR" (sudah/belum menikah, kelompok usia) tampil
+   sebagai penanda rencana berikutnya (tombol non-aktif).
+3. **Bug fix kotak pesan** — penyebab: komponen `Shell` didefinisikan DI DALAM `SelfAbsen`
+   (dan `Avatar` di dalam `ProfileMenu`) sehingga tiap ketikan me-remount subtree → input
+   kehilangan fokus/keyboard HP menutup setiap 1 huruf. Kedua komponen dipindah ke level modul.
+   Ditambah tombol **Kirim Tanpa Nama (Anonim)** (`button-send-feedback-anonim`).
+4. **Mode offline** — `src/lib/offline.js` (antrean localStorage + `useOnline`/`useOfflineQueue`),
+   `OfflineBanner.jsx`, dan endpoint batch `POST /api/absensi/{token}/mark-batch` &
+   `POST /api/admin/kegiatan/{id}/absen-batch`. Absen saat offline tersimpan di HP, ditandai
+   "menunggu dikirim", lalu OTOMATIS tersinkron saat internet kembali (waktu diseragamkan ke WITA).
+5. **Koneksi lebih stabil** — axios timeout 25s + retry otomatis 2x untuk GET yang gagal karena
+   jaringan, GZip middleware, dan penghapusan N+1 query pada daftar kegiatan (3 query saja) +
+   index baru (`guest_absens`, `follow_ups`, `kegiatans.date+start_time`, `access_code`).
+6. **Urutan daftar kegiatan** — `phase` dihitung server (`akan_datang|berlangsung|selesai`);
+   UI admin & peserta mengelompokkan: Akan Datang (atas) → Berlangsung (tengah) → Selesai (bawah).
+7. **Tipe peserta kegiatan** — field `audience`: `reguler` (hanya akun aktivasi) vs
+   `publik` (termasuk belum aktivasi + TAMU bebas nama). Endpoint tamu:
+   `POST/DELETE /api/admin/kegiatan/{id}/guest`, `POST/DELETE /api/absensi/{token}/guest`
+   (khusus publik; kegiatan reguler → 400). Tamu terhitung hadir pada rekap & laporan.
+8. **Rekap tidak hadir + janji hadir** — `GET/POST /api/staff/kegiatan/{id}/tindak-lanjut`
+   (koleksi `follow_ups`): daftar jamaah yang tidak hadir pada kegiatan SEBELUMNYA, tombol
+   WhatsApp/Telepon, catatan, dan status `akan_hadir|tidak_bisa|sudah_dihubungi` ditandai
+   oleh pengurus/admin.
+
+Teruji: backend 7/8 skenario agen uji (1 sisanya hanya urutan test, bukan bug) + verifikasi
+manual: detail view & tab, bug ketik (14 & 33 karakter penuh, fokus bertahan), kirim anonim,
+tamu publik, mode offline (banner + auto-sync), laporan, jadwal peserta.

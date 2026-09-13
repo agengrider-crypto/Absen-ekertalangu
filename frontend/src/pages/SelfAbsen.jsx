@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   CalendarDays, Clock, MapPin, User, BookOpen, Loader2, CheckCircle2,
-  MessageSquareText, Send, PartyPopper, Lock, LogIn, ShieldAlert, UserCheck,
+  MessageSquareText, Send, PartyPopper, Lock, LogIn, ShieldAlert, UserCheck, UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -57,37 +57,23 @@ export default function SelfAbsen() {
     }
   };
 
-  const sendFeedback = async () => {
-    if (!fbMsg.trim()) { toast.error("Mohon tuliskan kesan &amp; pesan Anda terlebih dahulu."); return; }
+  const sendFeedback = async (anonim = false) => {
+    if (!fbMsg.trim()) { toast.error("Mohon tuliskan kesan & pesan Anda terlebih dahulu."); return; }
     setFbSending(true);
     try {
-      await api.post(`/absen/${token}/feedback`, { name: fbName.trim() || user?.name || null, message: fbMsg.trim() });
+      const name = anonim ? "Anonim (tanpa nama)" : (fbName.trim() || user?.name || null);
+      await api.post(`/absen/${token}/feedback`, { name, message: fbMsg.trim() });
       setFbDone(true);
       setFbName(""); setFbMsg("");
-      toast.success("Alhamdulillah, jazakumullahu khoiro 🤲");
+      toast.success(anonim
+        ? "Pesan anonim terkirim. Jazakumullahu khoiro 🤲"
+        : "Alhamdulillah, jazakumullahu khoiro 🤲");
     } catch (e) {
       toast.error(formatApiErrorDetail(e.response?.data?.detail));
     } finally {
       setFbSending(false);
     }
   };
-
-  const Shell = ({ children, subtitle = "Absen Mandiri" }) => (
-    <div className="min-h-screen bg-[#FAFBF9] pb-16">
-      <header className="bg-[#0D5C3A] text-white">
-        <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
-            <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
-          </div>
-          <div className="leading-tight">
-            <div className="font-bold font-heading">E-KERTALANGU</div>
-            <div className="text-white/70 text-xs">{subtitle}</div>
-          </div>
-        </div>
-      </header>
-      <main className="max-w-lg mx-auto px-4 -mt-3">{children}</main>
-    </div>
-  );
 
   // Masih memeriksa sesi
   if (user === null) {
@@ -295,18 +281,53 @@ export default function SelfAbsen() {
               </button>
               <button
                 data-testid="button-send-feedback"
-                onClick={sendFeedback}
+                onClick={() => sendFeedback(false)}
                 disabled={fbSending}
                 className="flex-1 h-12 rounded-xl bg-[#0D5C3A] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60"
               >
                 {fbSending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />} Kirim
               </button>
             </div>
+            <button
+              data-testid="button-send-feedback-anonim"
+              onClick={() => sendFeedback(true)}
+              disabled={fbSending}
+              className="w-full h-12 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-bold flex items-center justify-center gap-2 hover:bg-[#E8F5EE] disabled:opacity-60"
+            >
+              <UserX size={18} /> Kirim Tanpa Nama (Anonim)
+            </button>
+            <p className="text-xs text-[#9CA3AF] text-center">
+              Pesan anonim tetap terkirim ke pengurus, hanya saja nama Anda tidak ditampilkan.
+            </p>
           </div>
         )}
       </div>
 
       <p className="text-center text-xs text-[#9CA3AF] mt-6">© 2026 E-KERTALANGU · Absensi Pengajian</p>
     </Shell>
+  );
+}
+
+/**
+ * Kerangka halaman. WAJIB didefinisikan di luar komponen utama — bila berada di
+ * dalamnya, setiap ketikan (setState) membuat komponen ini dibuat ulang sehingga
+ * input kehilangan fokus & keyboard HP menutup setiap 1 huruf.
+ */
+function Shell({ children, subtitle = "Absen Mandiri" }) {
+  return (
+    <div className="min-h-screen bg-[#FAFBF9] pb-16">
+      <header className="bg-[#0D5C3A] text-white">
+        <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-2">
+          <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
+            <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
+          </div>
+          <div className="leading-tight">
+            <div className="font-bold font-heading">E-KERTALANGU</div>
+            <div className="text-white/70 text-xs">{subtitle}</div>
+          </div>
+        </div>
+      </header>
+      <main className="max-w-lg mx-auto px-4 -mt-3">{children}</main>
+    </div>
   );
 }

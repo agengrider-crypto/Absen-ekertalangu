@@ -32,15 +32,6 @@ export default function ProfileMenu({ subtitle }) {
     return () => { active = false; };
   }, [user?.has_photo]);
 
-  const Avatar = ({ size = 40 }) => (
-    <div
-      className="rounded-full overflow-hidden bg-[#0D5C3A] text-white flex items-center justify-center font-bold shrink-0 border-2 border-white shadow-sm"
-      style={{ height: size, width: size, fontSize: size * 0.34 }}
-    >
-      {photo ? <img src={photo} alt="Foto profil" className="h-full w-full object-cover" /> : initials}
-    </div>
-  );
-
   return (
     <>
       <button
@@ -52,7 +43,7 @@ export default function ProfileMenu({ subtitle }) {
           <div className="font-semibold text-[#111827] text-sm">{user?.name}</div>
           {subtitle && <div className="text-xs text-[#6B7280]">{subtitle}</div>}
         </div>
-        <Avatar size={40} />
+        <Avatar size={40} photo={photo} initials={initials} />
         {incomplete && (
           <span data-testid="profile-incomplete-dot" className="absolute -top-0.5 right-6 h-3 w-3 rounded-full bg-[#D97706] ring-2 ring-white" />
         )}
@@ -94,7 +85,7 @@ export default function ProfileMenu({ subtitle }) {
           ]}
         >
           <div className="px-3.5 py-3 mb-1 flex items-center gap-3.5 rounded-2xl bg-[#FAFBF9] border border-[#F1F2F0]">
-            <Avatar size={52} />
+            <Avatar size={52} photo={photo} initials={initials} />
             <div className="min-w-0">
               <div className="font-bold text-[#111827] text-sm truncate">{user?.name}</div>
               <div className="text-xs text-[#6B7280] truncate">{user?.username || user?.phone}</div>
@@ -107,5 +98,20 @@ export default function ProfileMenu({ subtitle }) {
         <ProfileModal photo={photo} onPhotoChange={setPhoto} onClose={() => setShowProfile(false)} />
       )}
     </>
+  );
+}
+
+/**
+ * Avatar didefinisikan di LUAR komponen agar tidak dibuat ulang tiap render
+ * (penyebab input kehilangan fokus / keyboard HP menutup tiap 1 huruf).
+ */
+function Avatar({ size = 40, photo, initials }) {
+  return (
+    <div
+      className="rounded-full overflow-hidden bg-[#0D5C3A] text-white flex items-center justify-center font-bold shrink-0 border-2 border-white shadow-sm"
+      style={{ height: size, width: size, fontSize: size * 0.34 }}
+    >
+      {photo ? <img src={photo} alt="Foto profil" className="h-full w-full object-cover" /> : initials}
+    </div>
   );
 }

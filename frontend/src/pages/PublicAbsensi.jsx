@@ -3,12 +3,15 @@ import { useParams } from "react-router-dom";
 import {
   CalendarDays, Clock, MapPin, User, BookOpen, Loader2, KeyRound, ShieldAlert,
   Search, ScanLine, ListChecks, AlertTriangle, CheckCircle2, RefreshCw,
+  UserPlus, Trash2, Users,
 } from "lucide-react";
 import { toast } from "sonner";
-import { api, formatApiErrorDetail } from "@/lib/api";
+import { api, formatApiErrorDetail, isOfflineError } from "@/lib/api";
+import { useOfflineQueue } from "@/lib/offline";
+import OfflineBanner from "@/components/OfflineBanner";
 import QrScanner from "@/components/QrScanner";
 import { Logo } from "@/components/Logo";
-import { TYPE_LABEL, tanggalPanjang, hhmm } from "./admin/kegiatanUtils";
+import { TYPE_LABEL, tanggalPanjang, hhmm, AUDIENCE_LABEL, GENDER_FILTER_LABEL } from "./admin/kegiatanUtils";
 
 /**
  * FASE 7 — Halaman Absensi lewat TAUTAN + KODE AKSES 6 digit.
@@ -43,6 +46,8 @@ export default function PublicAbsensi() {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(null);
   const [lastScan, setLastScan] = useState(null);
+  const [guestName, setGuestName] = useState("");
+  const [guestSaving, setGuestSaving] = useState(false);
   const scanLock = useRef(false);
 
   const dropAccess = useCallback(() => {
@@ -59,6 +64,10 @@ export default function PublicAbsensi() {
     } catch (e) {
       const status = e.response?.status;
       const detail = formatApiErrorDetail(e.response?.data?.detail);
+      if (isOfflineError(e)) {
+        // Mode offline: pertahankan data terakhir yang sudah tampil.
+        return;
+      }
       if (status === 401) {
         dropAccess();
         setErr(detail);
@@ -67,6 +76,19 @@ export default function PublicAbsensi() {
       }
     }
   }, [token, dropAccess]);
+
+  // FASE 8 — antrean absen offline + sinkronisasi otomatis saat online kembali.
+  const sender = useCallback(async (items) => {
+    await api.post(`/absensi/${token}/mark-batch`, { access, items });
+  }, [token, access]);
+
+  const onSynced = useCallback((n) => {
+    toast.success(`${n} absen offline berhasil dikirim ke server.`);
+    load(access);
+  }, [load, access]);
+
+  const { pending, statusMap, online, syncing, add: addQueue, flush } =
+    useOfflineQueue(`absensi_${token}`, sender, onSynced);
 
   useEffect(() => {
     if (access) load(access);
@@ -96,6 +118,11 @@ export default function PublicAbsensi() {
   };
 
   const mark = async (userId, status) => {
+    if (!online) {
+      addQueue({ user_id: userId, status });
+      toast.info("Tanpa internet — absen disimpan di HP ini dan dikirim otomatis nanti.");
+      return;
+    }
     setBusy(userId + status);
     try {
       const { data: res } = await api.post(`/absensi/${token}/mark`, {
@@ -105,10 +132,42 @@ export default function PublicAbsensi() {
       if (res.message) toast.success(res.message);
       await load(access);
     } catch (e) {
-      if (e.response?.status === 401) dropAccess();
-      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+      if (isOfflineError(e)) {
+        addQueue({ user_id: userId, status });
+        toast.info("Koneksi terputus — absen disimpan di HP ini dan dikirim otomatis nanti.");
+      } else {
+        if (e.response?.status === 401) dropAccess();
+        toast.error(formatApiErrorDetail(e.response?.data?.detail));
+      }
     } finally {
       setBusy(null);
+    }
+  };
+
+  const addGuest = async (e) => {
+    e.preventDefault();
+    if (guestName.trim().length < 2) { toast.error("Mohon isi nama tamu (minimal 2 huruf)."); return; }
+    setGuestSaving(true);
+    try {
+      const { data: res } = await api.post(`/absensi/${token}/guest`, {
+        access, name: guestName.trim(),
+      });
+      toast.success(res.message || "Tamu tercatat hadir.");
+      setGuestName("");
+      await load(access);
+    } catch (ex) {
+      toast.error(formatApiErrorDetail(ex.response?.data?.detail));
+    } finally { setGuestSaving(false); }
+  };
+
+  const removeGuest = async (g) => {
+    if (!window.confirm(`Hapus tamu "${g.name}" dari daftar hadir?`)) return;
+    try {
+      await api.delete(`/absensi/${token}/guest/${g.id}`, { params: { access } });
+      toast.success("Data tamu dihapus.");
+      await load(access);
+    } catch (ex) {
+      toast.error(formatApiErrorDetail(ex.response?.data?.detail));
     }
   };
 
@@ -138,8 +197,13 @@ export default function PublicAbsensi() {
   const rows = useMemo(() => {
     if (!data?.rows) return [];
     const t = q.trim().toLowerCase();
-    return t ? data.rows.filter((r) => (r.name || "").toLowerCase().includes(t)) : data.rows;
-  }, [data, q]);
+    const base = t ? data.rows.filter((r) => (r.name || "").toLowerCase().includes(t)) : data.rows;
+    return base.map((r) => ({
+      ...r,
+      status: statusMap[r.user_id] || r.status,
+      queued: Boolean(statusMap[r.user_id]),
+    }));
+  }, [data, q, statusMap]);
 
   /* ------------------------- Layar error permanen ------------------------- */
   if (fatal) {
@@ -197,6 +261,8 @@ export default function PublicAbsensi() {
   const k = data.kegiatan || {};
   const c = data.counts || {};
   const closed = k.status !== "open";
+  const publik = (k.audience || "reguler") === "publik";
+  const guests = data.guests || [];
 
   return (
     <Shell>
@@ -208,6 +274,14 @@ export default function PublicAbsensi() {
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${closed ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#DCFCE7] text-[#065F46]"}`}>
             {closed ? "Selesai" : "Berlangsung"}
           </span>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3]">
+            {AUDIENCE_LABEL[k.audience] || "Reguler"}
+          </span>
+          {k.gender_filter && k.gender_filter !== "semua" && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">
+              {GENDER_FILTER_LABEL[k.gender_filter]}
+            </span>
+          )}
         </div>
         <h1 className="font-heading text-xl font-bold text-[#111827] mt-2">{k.name}</h1>
         <div className="text-sm text-[#6B7280] mt-2 grid gap-1">
@@ -233,12 +307,17 @@ export default function PublicAbsensi() {
         </div>
       )}
 
-      <div className="mt-3 flex gap-2">
+      <OfflineBanner online={online} pending={pending} syncing={syncing} onSync={flush} className="mt-3" />
+
+      <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar">
         <TabBtn active={tab === "manual"} onClick={() => setTab("manual")} icon={ListChecks} label="Absen Manual" testid="absensi-tab-manual" />
         <TabBtn active={tab === "scan"} onClick={() => setTab("scan")} icon={ScanLine} label="Scan Barcode" testid="absensi-tab-scan" />
+        {publik && (
+          <TabBtn active={tab === "tamu"} onClick={() => setTab("tamu")} icon={UserPlus} label={`Tamu (${guests.length})`} testid="absensi-tab-tamu" />
+        )}
       </div>
 
-      {tab === "manual" ? (
+      {tab === "manual" && (
         <div className="mt-3 bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid="absensi-manual">
           <div className="p-3 bg-[#FAFBF9] border-b border-[#E5E7EB]">
             <div className="relative">
@@ -269,6 +348,9 @@ export default function PublicAbsensi() {
                     {r.status === "hadir" && r.arrival_time && (
                       <span className="font-mono text-[11px] text-[#4B5563]">{hhmm(r.arrival_time)}</span>
                     )}
+                    {r.queued && (
+                      <span className="text-[11px] font-semibold text-[#B45309]">menunggu dikirim</span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
@@ -292,19 +374,89 @@ export default function PublicAbsensi() {
             ))}
           </div>
         </div>
-      ) : (
+      )}
+
+      {tab === "scan" && (
         <div className="mt-3 bg-white rounded-2xl border border-[#E5E7EB] p-4" data-testid="absensi-scan">
           <p className="text-sm text-[#4B5563] mb-3">
             <ScanLine size={16} className="text-[#0D5C3A] inline mr-1.5 -mt-0.5" />
             Arahkan kamera ke <b>QR pribadi peserta</b> (menu {"\"QR Saya\""} pada akun peserta) untuk mencatat kehadiran.
           </p>
           {!closed && <QrScanner onDetected={onScan} />}
+          {!online && (
+            <p className="text-xs text-[#B45309] mt-2">
+              Mode scan barcode memerlukan internet. Saat offline, silakan gunakan Absen Manual.
+            </p>
+          )}
           {lastScan && (
             <div className="mt-3 bg-[#F0FAF4] border border-[#CDEBD9] rounded-xl p-3 flex items-center gap-2 text-sm text-[#065F46]" data-testid="absensi-scan-result">
               <CheckCircle2 size={18} /> <b>{lastScan.name}</b> — {lastScan.already ? "sudah tercatat hadir" : "tercatat hadir"}
               {lastScan.arrival_time ? ` (${hhmm(lastScan.arrival_time)})` : ""}
             </div>
           )}
+        </div>
+      )}
+
+      {tab === "tamu" && publik && (
+        <div className="mt-3 space-y-3" data-testid="absensi-tamu">
+          <form onSubmit={addGuest} className="bg-white rounded-2xl border border-[#E5E7EB] p-4">
+            <div className="font-bold text-[#111827] text-[15px] flex items-center gap-2">
+              <UserPlus size={17} className="text-[#0D5C3A]" /> Tambah Tamu (tanpa akun)
+            </div>
+            <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
+              Kegiatan ini <b>terbuka/publik</b>. Jamaah yang belum mengaktivasi akun cukup
+              dicatat namanya saja, dan langsung terhitung hadir.
+            </p>
+            <div className="flex gap-2 mt-3 flex-wrap">
+              <input
+                data-testid="absensi-tamu-input"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                placeholder="Nama tamu"
+                className="flex-1 min-w-[160px] h-11 px-3.5 rounded-xl border-2 border-[#E5E7EB] outline-none focus:border-[#0D5C3A] bg-white"
+              />
+              <button
+                data-testid="absensi-tamu-add"
+                type="submit"
+                disabled={guestSaving || closed || !online}
+                className="h-11 px-4 rounded-xl bg-[#0D5C3A] text-white font-semibold inline-flex items-center gap-2 hover:bg-[#094229] disabled:opacity-60"
+              >
+                {guestSaving ? <Loader2 className="animate-spin" size={17} /> : <UserPlus size={17} />} Catat Hadir
+              </button>
+            </div>
+            {!online && (
+              <p className="text-xs text-[#B45309] mt-2">
+                Pencatatan tamu memerlukan internet. Mohon coba lagi saat koneksi kembali.
+              </p>
+            )}
+          </form>
+
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#E5E7EB] font-semibold text-[#111827] text-sm flex items-center gap-2">
+              <Users size={16} className="text-[#0D5C3A]" /> Daftar Tamu ({guests.length})
+            </div>
+            {guests.length === 0 ? (
+              <div className="p-8 text-center text-sm text-[#9CA3AF]">Belum ada tamu yang dicatat.</div>
+            ) : (
+              <div className="divide-y divide-[#F1F2F0]">
+                {guests.map((g) => (
+                  <div key={g.id} data-testid={`absensi-tamu-row-${g.id}`} className="px-4 py-3 flex items-center justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-[#111827] text-sm">{g.name}</div>
+                      <div className="text-xs text-[#9CA3AF]">Hadir {g.arrival_time ? hhmm(g.arrival_time) : ""}</div>
+                    </div>
+                    <button
+                      data-testid={`absensi-tamu-delete-${g.id}`}
+                      onClick={() => removeGuest(g)}
+                      className="h-9 w-9 rounded-lg border border-[#FECACA] text-[#DC2626] flex items-center justify-center hover:bg-[#FEF2F2]"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

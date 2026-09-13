@@ -1,0 +1,22 @@
+[
+  {
+    "content": "Backend FASE 8 (audience, gender_filter, tamu, batch offline, tindak lanjut, performa)",
+    "status": "completed"
+  },
+  {
+    "content": "Frontend FASE 8 (detail view + nav horizontal, form kegiatan, urutan daftar, offline, tamu, tindak lanjut)",
+    "status": "completed"
+  },
+  {
+    "content": "Fix bug input 1 huruf + tombol kirim anonim",
+    "status": "completed"
+  },
+  {
+    "content": "Testing: testing_agent_v3 + verifikasi manual semua 8 revisi",
+    "status": "completed"
+  },
+  {
+    "content": "Update PRD.md/CHANGELOG + teks PR siap pakai (docs/PR_FASE8.md)",
+    "status": "completed"
+  }
+]

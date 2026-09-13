@@ -4,14 +4,17 @@ import {
   Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
   Clock, MapPin, User, ScanLine, MessageSquareText,
   MoreHorizontal, Pencil, FileBarChart2, ChevronDown, AlertTriangle,
-  KeyRound, RefreshCw, Send,
+  KeyRound, RefreshCw, Send, Hourglass,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import {
   KEGIATAN_TYPES, TYPE_LABEL, TYPE_COLOR, timeOptions,
   tanggalPanjang, tanggalSingkat, hhmm, MONTH_SHORT,
+  AUDIENCE_OPTIONS, GENDER_FILTER_OPTIONS, AUDIENCE_LABEL, GENDER_FILTER_LABEL,
+  PHASE_META, phaseOf, groupKegiatan,
 } from "./kegiatanUtils";
+import KegiatanDetail from "./KegiatanDetail";
 import { ReminderModal, DelegasiModal, ScanPesertaModal } from "./KegiatanExtras";
 import ActionModal from "@/components/ActionModal";
 import { Send as SendIcon, ShieldCheck as ShieldIcon, ScanLine as ScanIcon } from "lucide-react";
@@ -70,6 +73,19 @@ export default function KegiatanView() {
     return s;
   }, [items]);
 
+  const groups = useMemo(() => groupKegiatan(filtered), [filtered]);
+
+  // FASE 8 — Detail absen kegiatan tampil sebagai HALAMAN PENUH (bukan modal)
+  if (detailId) {
+    return (
+      <KegiatanDetail
+        kegiatanId={detailId}
+        onBack={() => { setDetailId(null); load(); }}
+        onChanged={load}
+      />
+    );
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -113,56 +129,65 @@ export default function KegiatanView() {
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-10 text-center text-[#6B7280]">Belum ada kegiatan pada periode ini.</div>
       ) : (
-        <div className="grid gap-3">
-          {filtered.map((k) => (
-            <KegiatanCard key={k.id} k={k}
-              onAkses={async () => {
-                try {
-                  const { data } = await api.get(`/admin/kegiatan/${k.id}/access`);
-                  setAksesItem({ ...data, kegiatan_id: k.id });
-                } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-              }}
-              onAbsenQr={async () => {
-                try {
-                  const { data } = await api.post(`/admin/kegiatan/${k.id}/absen-qr`);
-                  setAbsenQr({ ...data, name: k.name });
-                } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-              }}
-              onShare={async () => {
-                try {
-                  const { data } = await api.get(`/admin/kegiatan/${k.id}/qr`);
-                  setQrModal({ ...data, name: k.name });
-                } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-              }}
-              onEdit={() => setEditItem(k)}
-              onRekap={() => setDetailId(k.id)}
-              onFeedback={() => setFeedbackItem(k)}
-              onReminder={() => setReminderItem(k)}
-              onDelegasi={() => setDelegasiItem(k)}
-              onScanPeserta={() => setScanItem(k)}
-              onToggleStatus={async () => {
-                try {
-                  await api.post(`/admin/kegiatan/${k.id}/${k.status === "open" ? "close" : "reopen"}`);
-                  toast.success(k.status === "open" ? "Kegiatan diselesaikan" : "Kegiatan dibuka kembali");
-                  load();
-                } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-              }}
-              onDelete={async () => {
-                if (!window.confirm(`Hapus kegiatan "${k.name}"?`)) return;
-                try {
-                  await api.delete(`/admin/kegiatan/${k.id}`);
-                  toast.success("Kegiatan dihapus");
-                  load();
-                } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-              }}
-            />
+        <div className="space-y-6">
+          {groups.filter((g) => g.items.length > 0).map((g) => (
+            <section key={g.key} data-testid={`kegiatan-group-${g.key}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${g.cls}`}>{g.label}</span>
+                <span className="text-xs text-[#9CA3AF]">{g.items.length} kegiatan</span>
+              </div>
+              <div className="grid gap-3">
+                {g.items.map((k) => (
+                  <KegiatanCard key={k.id} k={k}
+                    onAkses={async () => {
+                      try {
+                        const { data } = await api.get(`/admin/kegiatan/${k.id}/access`);
+                        setAksesItem({ ...data, kegiatan_id: k.id });
+                      } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+                    }}
+                    onAbsenQr={async () => {
+                      try {
+                        const { data } = await api.post(`/admin/kegiatan/${k.id}/absen-qr`);
+                        setAbsenQr({ ...data, name: k.name });
+                      } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+                    }}
+                    onShare={async () => {
+                      try {
+                        const { data } = await api.get(`/admin/kegiatan/${k.id}/qr`);
+                        setQrModal({ ...data, name: k.name });
+                      } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+                    }}
+                    onEdit={() => setEditItem(k)}
+                    onRekap={() => setDetailId(k.id)}
+                    onFeedback={() => setFeedbackItem(k)}
+                    onReminder={() => setReminderItem(k)}
+                    onDelegasi={() => setDelegasiItem(k)}
+                    onScanPeserta={() => setScanItem(k)}
+                    onToggleStatus={async () => {
+                      try {
+                        await api.post(`/admin/kegiatan/${k.id}/${k.status === "open" ? "close" : "reopen"}`);
+                        toast.success(k.status === "open" ? "Kegiatan diselesaikan" : "Kegiatan dibuka kembali");
+                        load();
+                      } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+                    }}
+                    onDelete={async () => {
+                      if (!window.confirm(`Hapus kegiatan "${k.name}"?`)) return;
+                      try {
+                        await api.delete(`/admin/kegiatan/${k.id}`);
+                        toast.success("Kegiatan dihapus");
+                        load();
+                      } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+                    }}
+                  />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}
 
       {showAdd && <KegiatanFormModal onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
       {editItem && <KegiatanFormModal initial={editItem} onClose={() => setEditItem(null)} onDone={() => { setEditItem(null); load(); }} />}
-      {detailId && <AbsensiModal kegiatanId={detailId} onClose={() => setDetailId(null)} onChanged={load} />}
       {feedbackItem && <FeedbackModal kegiatan={feedbackItem} onClose={() => setFeedbackItem(null)} />}
       {qrModal && <QrModal data={qrModal} onClose={() => setQrModal(null)} />}
       {absenQr && <AbsenQrModal data={absenQr} onClose={() => setAbsenQr(null)} />}
@@ -184,7 +209,11 @@ function KegiatanCard({ k, onAbsenQr, onShare, onAkses, onEdit, onRekap, onFeedb
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${closed ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#E8F5EE] text-[#065F46]"}`}>{closed ? "Selesai" : "Berlangsung"}</span>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${PHASE_META[phaseOf(k)].cls}`}>{PHASE_META[phaseOf(k)].badge}</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3]">{AUDIENCE_LABEL[k.audience] || "Reguler"}</span>
+            {k.gender_filter && k.gender_filter !== "semua" && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{GENDER_FILTER_LABEL[k.gender_filter]}</span>
+            )}
             {k.auto_closed && <span className="text-xs text-[#9CA3AF]">(auto)</span>}
           </div>
           <h3 className="font-heading font-bold text-[#111827] mt-1.5 truncate">{k.name}</h3>
@@ -201,7 +230,7 @@ function KegiatanCard({ k, onAbsenQr, onShare, onAkses, onEdit, onRekap, onFeedb
         </div>
       </div>
       <div className="flex items-center gap-2 mt-3 flex-wrap">
-        <button data-testid={`button-absensi-${k.id}`} onClick={onRekap} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229]"><CheckCircle2 size={15} /> Absensi</button>
+        <button data-testid={`button-absensi-${k.id}`} onClick={onRekap} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229]"><CheckCircle2 size={15} /> Buka Absen (Detail)</button>
         <button data-testid={`button-akses-${k.id}`} onClick={onAkses} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]"><KeyRound size={15} /> Kode Akses</button>
         <button data-testid={`button-absen-qr-${k.id}`} onClick={onAbsenQr} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]"><ScanLine size={15} /> Absen QR</button>
         <button data-testid={`button-toggle-status-${k.id}`} onClick={onToggleStatus} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
@@ -301,6 +330,8 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
     date: initial?.date || todayYmd(), start_time: initial?.start_time || "20:00",
     end_time: initial?.end_time || "21:30", teacher: initial?.teacher || "",
     material: initial?.material || "", location: initial?.location || "", recurring: false,
+    audience: initial?.audience || "reguler",
+    gender_filter: initial?.gender_filter || "semua",
   });
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -355,6 +386,67 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
         <input data-testid="keg-teacher" value={f.teacher} onChange={(e) => set("teacher", e.target.value)} placeholder="Pengajar" className={inp} />
         <input data-testid="keg-material" value={f.material} onChange={(e) => set("material", e.target.value)} placeholder="Materi" className={inp} />
         <input data-testid="keg-location" value={f.location} onChange={(e) => set("location", e.target.value)} placeholder="Lokasi" className={`${inp} sm:col-span-2`} />
+
+        {/* FASE 8 — Tipe peserta kegiatan */}
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-semibold text-[#111827] mb-1.5">Tipe Peserta Kegiatan</label>
+          <select data-testid="keg-audience" value={f.audience} onChange={(e) => set("audience", e.target.value)} className={inp}>
+            {AUDIENCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <p className="text-xs text-[#6B7280] mt-1.5 leading-relaxed">
+            {AUDIENCE_OPTIONS.find((o) => o.value === f.audience)?.desc}
+          </p>
+        </div>
+
+        {/* FASE 8 — Penyaringan jenis kelamin */}
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-semibold text-[#111827] mb-1.5">Khusus Jenis Kelamin</label>
+          <div className="grid grid-cols-3 gap-2">
+            {GENDER_FILTER_OPTIONS.map((o) => {
+              const on = f.gender_filter === o.value;
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  data-testid={`keg-gender-${o.value}`}
+                  onClick={() => set("gender_filter", o.value)}
+                  className={`h-11 rounded-xl border-2 font-semibold text-xs sm:text-sm transition-colors ${
+                    on ? "bg-[#0D5C3A] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E5E7EB] hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+                  }`}
+                >
+                  {o.short}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-[#6B7280] mt-1.5 leading-relaxed">
+            Bila dipilih khusus laki-laki / perempuan, maka daftar absen, halaman
+            absensi, dan laporan kegiatan ini hanya berisi jamaah sesuai pilihan tersebut.
+          </p>
+        </div>
+
+        {/* FASE 8 — Rencana berikutnya (belum aktif) */}
+        <div className="sm:col-span-2 rounded-xl border-2 border-dashed border-[#E5E7EB] bg-[#FAFBF9] p-3.5">
+          <div className="flex items-center gap-2 text-sm font-semibold text-[#4B5563]">
+            <Hourglass size={15} className="text-[#D97706]" /> Pengelompokan Lanjutan
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]">SEGERA HADIR</span>
+          </div>
+          <p className="text-xs text-[#6B7280] mt-1.5 leading-relaxed">
+            Nantinya kegiatan juga bisa dikhususkan menurut kelompok jamaah, misalnya
+            <b> sudah menikah / belum menikah</b>, serta <b>kelompok usia</b> (remaja,
+            dewasa, lansia). Pilihan ini belum dapat digunakan sekarang.
+          </p>
+          <div className="grid grid-cols-2 gap-2 mt-2.5">
+            <button type="button" disabled data-testid="keg-group-married-soon"
+              className="h-10 rounded-xl border-2 border-[#E5E7EB] bg-white text-[#9CA3AF] font-semibold text-xs cursor-not-allowed">
+              Sudah / Belum Menikah
+            </button>
+            <button type="button" disabled data-testid="keg-group-age-soon"
+              className="h-10 rounded-xl border-2 border-[#E5E7EB] bg-white text-[#9CA3AF] font-semibold text-xs cursor-not-allowed">
+              Kelompok Usia
+            </button>
+          </div>
+        </div>
         {!editing && (
           <label className="sm:col-span-2 flex items-center gap-2.5 px-3.5 h-12 rounded-xl border-2 border-[#E5E7EB] cursor-pointer bg-white">
             <input data-testid="keg-recurring" type="checkbox" className="accent-[#0D5C3A] w-4 h-4" checked={f.recurring} onChange={(e) => set("recurring", e.target.checked)} />
