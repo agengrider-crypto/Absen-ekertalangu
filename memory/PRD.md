@@ -226,3 +226,9 @@ batasan serverless, 11 antipattern nyata, definisi selesai, format commit),
 `docs/API.md` (80 endpoint + guard + nama field), `docs/DATABASE.md` (10 collection +
 index), `docs/AUTH.md`, `docs/FEATURES.md`, `docs/TESTING.md`, `docs/TROUBLESHOOTING.md`,
 `CHANGELOG.md`.
+
+## Status Workspace (2026-09-13)
+- Workspace dipulihkan ke commit Fase 7 (`0ba72e4`) dari PR #5 (PR ditutup tanpa merge di GitHub, kodenya diambil langsung ke branch `main` lokal via fast-forward).
+- Fase 7 aktif & terverifikasi live: kode akses absensi 6 digit (`/absen-kode` -> `/absensi/{token}`), halaman absensi publik (Absen Manual + Scan Barcode), menu admin Kelompok Sambung, barcode/QR kegiatan.
+- Services: mongodb, backend (8001), frontend (3000) RUNNING. DB schema init v4.
+- Perubahan lokal sebelum restore disimpan di `git stash` ("pre-fase7-local").
