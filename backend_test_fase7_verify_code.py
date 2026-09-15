@@ -11,7 +11,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 
 # Base URL dari frontend/.env
-BASE_URL = "https://942508be-de1d-4cc7-ade0-8dc6d468ef35.preview.emergentagent.com/api"
+BASE_URL = "https://event-recap-filter.preview.emergentagent.com/api"
 
 # Kredensial admin
 ADMIN_IDENTIFIER = "admin"

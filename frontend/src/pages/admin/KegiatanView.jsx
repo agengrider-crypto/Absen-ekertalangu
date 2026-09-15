@@ -37,11 +37,8 @@ export default function KegiatanView() {
   const [qrModal, setQrModal] = useState(null);
   const [absenQr, setAbsenQr] = useState(null);
   const [editItem, setEditItem] = useState(null);
-  const [feedbackItem, setFeedbackItem] = useState(null);
   const [reminderItem, setReminderItem] = useState(null);
-  const [delegasiItem, setDelegasiItem] = useState(null);
-  const [scanItem, setScanItem] = useState(null);
-  const [aksesItem, setAksesItem] = useState(null);
+  const [detailKey, setDetailKey] = useState(0);
 
   const load = useCallback(() => {
     setItems(null);
@@ -75,14 +72,66 @@ export default function KegiatanView() {
 
   const groups = useMemo(() => groupKegiatan(filtered), [filtered]);
 
-  // FASE 8 — Detail absen kegiatan tampil sebagai HALAMAN PENUH (bukan modal)
+  const openShareRekap = async (k) => {
+    try {
+      const { data } = await api.get(`/admin/kegiatan/${k.id}/qr`);
+      setQrModal({ ...data, name: k.name });
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
+  const openAbsenQr = async (k) => {
+    try {
+      const { data } = await api.post(`/admin/kegiatan/${k.id}/absen-qr`);
+      setAbsenQr({ ...data, name: k.name });
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
+  const toggleStatus = async (k) => {
+    try {
+      await api.post(`/admin/kegiatan/${k.id}/${k.status === "open" ? "close" : "reopen"}`);
+      toast.success(k.status === "open" ? "Kegiatan diselesaikan" : "Kegiatan dibuka kembali");
+      load();
+      setDetailKey((v) => v + 1);
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
+  const removeKegiatan = async (k) => {
+    if (!window.confirm(`Hapus kegiatan "${k.name}"?`)) return;
+    try {
+      await api.delete(`/admin/kegiatan/${k.id}`);
+      toast.success("Kegiatan dihapus");
+      setDetailId(null);
+      load();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
+  // Semua fitur kegiatan berada DI DALAM halaman detail (klik kegiatan di daftar)
   if (detailId) {
     return (
-      <KegiatanDetail
-        kegiatanId={detailId}
-        onBack={() => { setDetailId(null); load(); }}
-        onChanged={load}
-      />
+      <>
+        <KegiatanDetail
+          key={detailKey}
+          kegiatanId={detailId}
+          onBack={() => { setDetailId(null); load(); }}
+          onChanged={load}
+          onEdit={(k) => setEditItem(k)}
+          onShareRekap={openShareRekap}
+          onAbsenQr={openAbsenQr}
+          onReminder={(k) => setReminderItem(k)}
+          onToggleStatus={toggleStatus}
+          onDelete={removeKegiatan}
+        />
+        {editItem && (
+          <KegiatanFormModal
+            initial={editItem}
+            onClose={() => setEditItem(null)}
+            onDone={() => { setEditItem(null); load(); setDetailKey((v) => v + 1); }}
+          />
+        )}
+        {qrModal && <QrModal data={qrModal} onClose={() => setQrModal(null)} />}
+        {absenQr && <AbsenQrModal data={absenQr} onClose={() => setAbsenQr(null)} />}
+        {reminderItem && <ReminderModal kegiatan={reminderItem} onClose={() => setReminderItem(null)} />}
+      </>
     );
   }
 
@@ -138,47 +187,7 @@ export default function KegiatanView() {
               </div>
               <div className="grid gap-3">
                 {g.items.map((k) => (
-                  <KegiatanCard key={k.id} k={k}
-                    onAkses={async () => {
-                      try {
-                        const { data } = await api.get(`/admin/kegiatan/${k.id}/access`);
-                        setAksesItem({ ...data, kegiatan_id: k.id });
-                      } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-                    }}
-                    onAbsenQr={async () => {
-                      try {
-                        const { data } = await api.post(`/admin/kegiatan/${k.id}/absen-qr`);
-                        setAbsenQr({ ...data, name: k.name });
-                      } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-                    }}
-                    onShare={async () => {
-                      try {
-                        const { data } = await api.get(`/admin/kegiatan/${k.id}/qr`);
-                        setQrModal({ ...data, name: k.name });
-                      } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-                    }}
-                    onEdit={() => setEditItem(k)}
-                    onRekap={() => setDetailId(k.id)}
-                    onFeedback={() => setFeedbackItem(k)}
-                    onReminder={() => setReminderItem(k)}
-                    onDelegasi={() => setDelegasiItem(k)}
-                    onScanPeserta={() => setScanItem(k)}
-                    onToggleStatus={async () => {
-                      try {
-                        await api.post(`/admin/kegiatan/${k.id}/${k.status === "open" ? "close" : "reopen"}`);
-                        toast.success(k.status === "open" ? "Kegiatan diselesaikan" : "Kegiatan dibuka kembali");
-                        load();
-                      } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-                    }}
-                    onDelete={async () => {
-                      if (!window.confirm(`Hapus kegiatan "${k.name}"?`)) return;
-                      try {
-                        await api.delete(`/admin/kegiatan/${k.id}`);
-                        toast.success("Kegiatan dihapus");
-                        load();
-                      } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-                    }}
-                  />
+                  <KegiatanCard key={k.id} k={k} onOpen={() => setDetailId(k.id)} />
                 ))}
               </div>
             </section>
@@ -187,24 +196,19 @@ export default function KegiatanView() {
       )}
 
       {showAdd && <KegiatanFormModal onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
-      {editItem && <KegiatanFormModal initial={editItem} onClose={() => setEditItem(null)} onDone={() => { setEditItem(null); load(); }} />}
-      {feedbackItem && <FeedbackModal kegiatan={feedbackItem} onClose={() => setFeedbackItem(null)} />}
-      {qrModal && <QrModal data={qrModal} onClose={() => setQrModal(null)} />}
-      {absenQr && <AbsenQrModal data={absenQr} onClose={() => setAbsenQr(null)} />}
-      {reminderItem && <ReminderModal kegiatan={reminderItem} onClose={() => setReminderItem(null)} />}
-      {delegasiItem && <DelegasiModal kegiatan={delegasiItem} onClose={() => setDelegasiItem(null)} />}
-      {scanItem && <ScanPesertaModal kegiatan={scanItem} onClose={() => setScanItem(null)} onChanged={load} />}
-      {aksesItem && <ShareAbsensiModal data={aksesItem} onClose={() => setAksesItem(null)} />}
     </div>
   );
 }
 
-function KegiatanCard({ k, onAbsenQr, onShare, onAkses, onEdit, onRekap, onFeedback, onReminder, onDelegasi, onScanPeserta, onToggleStatus, onDelete }) {
+function KegiatanCard({ k, onOpen }) {
   const c = k.counts || {};
-  const closed = k.status === "closed";
-  const [showActions, setShowActions] = useState(false);
   return (
-    <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4" data-testid={`kegiatan-card-${k.id}`}>
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full text-left bg-white rounded-2xl border border-[#E5E7EB] p-4 hover:border-[#0D5C3A] hover:bg-[#FAFCFA] transition-colors"
+      data-testid={`kegiatan-card-${k.id}`}
+    >
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -229,44 +233,10 @@ function KegiatanCard({ k, onAbsenQr, onShare, onAkses, onEdit, onRekap, onFeedb
           <div className="text-xs text-[#6B7280] mt-1">H {c.hadir ?? 0} · I {c.izin ?? 0} · A {c.alpha ?? 0}</div>
         </div>
       </div>
-      <div className="flex items-center gap-2 mt-3 flex-wrap">
-        <button data-testid={`button-absensi-${k.id}`} onClick={onRekap} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229]"><CheckCircle2 size={15} /> Buka Absen (Detail)</button>
-        <button data-testid={`button-akses-${k.id}`} onClick={onAkses} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]"><KeyRound size={15} /> Kode Akses</button>
-        <button data-testid={`button-absen-qr-${k.id}`} onClick={onAbsenQr} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]"><ScanLine size={15} /> Absen QR</button>
-        <button data-testid={`button-toggle-status-${k.id}`} onClick={onToggleStatus} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
-          {closed ? <><RotateCcw size={15} /> Buka</> : <><CheckCircle2 size={15} /> Selesai</>}
-        </button>
-
-        {/* Aksi lain — memakai action modal (bukan dropdown) */}
-        <button
-          data-testid={`button-opsi-${k.id}`}
-          onClick={() => setShowActions(true)}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
-        >
-          <MoreHorizontal size={16} /> Aksi Lain
-        </button>
+      <div className="mt-3 text-sm font-semibold text-[#0D5C3A] inline-flex items-center gap-1.5">
+        Buka kegiatan ini <ChevronRight size={16} />
       </div>
-
-      {showActions && (
-        <ActionModal
-          testid={`action-modal-${k.id}`}
-          title="Aksi Kegiatan"
-          subtitle={k.name}
-          onClose={() => setShowActions(false)}
-          actions={[
-            { key: `akses-${k.id}`, testid: `opsi-akses-${k.id}`, label: "Bagikan Kegiatan + Kode Akses", desc: "Tautan absensi + kode 6 digit", icon: KeyRound, onClick: onAkses },
-            { key: `rekap-${k.id}`, testid: `opsi-rekap-${k.id}`, label: "Rekap Absen", desc: "Lihat & ubah kehadiran peserta", icon: FileBarChart2, onClick: onRekap },
-            { key: `share-${k.id}`, testid: `opsi-share-${k.id}`, label: "Bagikan Rekap", desc: "Tautan & QR rekap kegiatan", icon: Share2, onClick: onShare },
-            { key: `reminder-${k.id}`, testid: `opsi-reminder-${k.id}`, label: "Pengingat WhatsApp", desc: "Kirim pengingat ke peserta", icon: SendIcon, onClick: onReminder },
-            { key: `scan-${k.id}`, testid: `opsi-scan-peserta-${k.id}`, label: "Scan QR Peserta", desc: "Tandai hadir lewat QR pribadi", icon: ScanIcon, onClick: onScanPeserta },
-            { key: `delegasi-${k.id}`, testid: `opsi-delegasi-${k.id}`, label: "Penjaga Absen (Delegasi)", desc: "Serahkan hak absen sementara", icon: ShieldIcon, onClick: onDelegasi },
-            { key: `edit-${k.id}`, testid: `opsi-edit-${k.id}`, label: "Edit Kegiatan", desc: "Ubah nama, jadwal, pengajar", icon: Pencil, onClick: onEdit },
-            { key: `feedback-${k.id}`, testid: `opsi-feedback-${k.id}`, label: "Kotak Pesan / Saran", desc: "Baca pesan dari peserta", icon: MessageSquareText, onClick: onFeedback },
-            { key: `delete-${k.id}`, testid: `opsi-delete-${k.id}`, label: "Hapus Kegiatan", desc: "Tindakan ini tidak bisa dibatalkan", icon: Trash2, danger: true, onClick: onDelete },
-          ]}
-        />
-      )}
-    </div>
+    </button>
   );
 }
 

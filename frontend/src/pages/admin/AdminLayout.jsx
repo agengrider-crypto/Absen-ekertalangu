@@ -22,7 +22,7 @@ const MENU = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "pengurus"] },
   { key: "peserta", label: "Peserta", icon: Users, roles: ["admin", "pengurus"] },
   { key: "kegiatan", label: "Kegiatan", icon: CalendarDays, roles: ["admin", "pengurus"] },
-  { key: "penjaga", label: "Penjaga Absen", icon: UserCog, roles: ["admin", "pengurus"] },
+  // Menu "Penjaga Absen" disembunyikan (absensi sudah memakai kode akses kegiatan).
   { key: "musyawarah", label: "Musyawarah", icon: MessagesSquare, roles: ["admin", "pengurus"] },
   { key: "pengumuman", label: "Pengumuman", icon: Megaphone, roles: ["admin", "pengurus"] },
   { key: "laporan", label: "Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"] },
@@ -141,7 +141,6 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "dashboard" && <DashboardView user={user} onGoto={go} />}
           {active === "peserta" && <Peserta role={role} />}
           {active === "kegiatan" && <KegiatanView />}
-          {active === "penjaga" && <PenjagaAbsenView />}
           {active === "musyawarah" && <MusyawarahView />}
           {active === "pengumuman" && <PengumumanView />}
           {active === "laporan" && <LaporanView />}

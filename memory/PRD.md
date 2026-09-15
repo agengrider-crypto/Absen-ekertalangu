@@ -185,7 +185,7 @@ Penyebab: `get_or_create_public_qr()` menyimpan `link` + `image` PERMANEN di
 `app_settings._id="public_qr"`. Sandbox dan produksi memakai database Atlas yang SAMA,
 sehingga QR yang pertama kali dibuat di sandbox (domain preview Emergent) terus
 disajikan di produksi Vercel. Dibuktikan: dokumen berisi
-`link: "https://agengrider-live.preview.emergentagent.com/register?token=..."`.
+`link: "https://event-recap-filter.preview.emergentagent.com/register?token=..."`.
 
 Perbaikan:
 - `app_settings.public_qr` sekarang menyimpan **hanya `token`** + `created_at`.
@@ -267,3 +267,30 @@ Revisi & update sesuai permintaan user (8 poin):
 Teruji: backend 7/8 skenario agen uji (1 sisanya hanya urutan test, bukan bug) + verifikasi
 manual: detail view & tab, bug ketik (14 & 33 karakter penuh, fokus bertahan), kirim anonim,
 tamu publik, mode offline (banner + auto-sync), laporan, jadwal peserta.
+
+## Revisi Tambahan (2026-09-15)
+1. **Dashboard admin cepat** — `/api/admin/dashboard` dihitung dengan ~6 query saja
+   (sebelumnya 3 query PER kegiatan × 6 bulan → timeout/"gagal memuat").
+   Rasio & tren dihitung in-memory dari 1x ambil peserta + absensi + tamu.
+2. **Daftar kegiatan bersih** — kartu kegiatan hanya menampilkan info kegiatan dan bisa
+   diklik. SEMUA fitur (absen manual, scan, tamu, barcode publik, tindak lanjut, kode akses,
+   pesan) + tombol "Aksi Kegiatan" (selesai/buka, QR absen mandiri, bagikan rekap, pengingat
+   WA, edit, hapus) berada DI DALAM halaman detail. Tab "Ringkasan" dihapus.
+3. **Penjaga absen disembunyikan** — menu admin/pengurus, pintasan dashboard, tab peserta,
+   dan aksi delegasi tidak lagi ditampilkan (kode & endpoint tetap ada bila ingin diaktifkan).
+4. **Filter jenis kelamin ditegakkan** — helper `assert_gender_eligible()` memblokir total
+   absen peserta yang tidak sesuai (`/admin/.../absen`, absen-batch, scan-personal staff,
+   delegasi, kode akses, absen QR publik). Rekap publik `/api/rekap/{token}` & halaman
+   `/api/absen/{token}` kini juga mengikuti filter + menghitung tamu (SUMBER BUG: dua endpoint
+   ini sebelumnya memakai SELURUH peserta).
+5. **Scan langsung sukses** — halaman `/absen/{token}` otomatis mencatat hadir saat dibuka
+   (tanpa tombol "Saya Hadir"; tombol hanya muncul sebagai ulangi bila gagal).
+6. **Barcode publik kegiatan terbuka** — `publik_token` + endpoint
+   `GET /api/admin/kegiatan/{id}/publik-qr`, `GET/POST /api/hadir/{token}`, halaman
+   `/hadir/:token` (`PublicHadir.jsx`): cukup isi NAMA, tanpa login/kode akses.
+   Nama yang cocok dengan peserta terdaftar → absen peserta; lainnya → dicatat sebagai tamu.
+   Nama peserta yang tidak sesuai filter gender ditolak.
+
+Catatan: atas permintaan user, revisi ini TIDAK diuji oleh testing agent (uji manual sendiri).
+Verifikasi yang sudah dilakukan: curl endpoint baru + screenshot alur admin, /hadir, dan
+auto-hadir /absen.

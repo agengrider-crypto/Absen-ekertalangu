@@ -94,12 +94,11 @@ export default function DashboardView({ user, onGoto }) {
       {/* Shortcut cepat */}
       <div className="mb-6" data-testid="dashboard-shortcuts">
         <div className="text-sm font-semibold text-[#374151] mb-2">Pintasan Cepat</div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
           {[
             { key: "peserta", label: "Peserta", icon: Users, action: () => onGoto && onGoto("peserta") },
             { key: "kegiatan", label: "Kegiatan", icon: CalendarPlus, action: () => onGoto && onGoto("kegiatan") },
             { key: "pengumuman", label: "Pengumuman", icon: Megaphone, action: () => onGoto && onGoto("pengumuman") },
-            { key: "penjaga", label: "Penjaga Absen", icon: UserCog, action: () => onGoto && onGoto("penjaga") },
             { key: "laporan", label: "Laporan", icon: FileBarChart2, action: () => onGoto && onGoto("laporan") },
             { key: "qr-aktivasi", label: "QR Aktivasi", icon: ScanLine, action: openActQr },
           ].map((s) => {

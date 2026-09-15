@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timedelta
 
 # Base URL from frontend/.env
-BASE_URL = "https://942508be-de1d-4cc7-ade0-8dc6d468ef35.preview.emergentagent.com/api"
+BASE_URL = "https://event-recap-filter.preview.emergentagent.com/api"
 
 # Test credentials
 ADMIN_CREDS = {"identifier": "admin", "password": "jokam354"}

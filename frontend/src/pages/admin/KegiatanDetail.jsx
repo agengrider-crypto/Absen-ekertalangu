@@ -3,9 +3,11 @@ import {
   ArrowLeft, CalendarDays, Clock, MapPin, User, BookOpen, Loader2, Search,
   ListChecks, ScanLine, KeyRound, MessageSquareText, UserPlus, PhoneCall,
   Copy, RefreshCw, Download, Send, Trash2, CheckCircle2, AlertTriangle,
-  Users, PhoneOff, ClipboardList, Info,
+  Users, PhoneOff, ClipboardList, QrCode, MoreHorizontal, Pencil,
+  Share2, RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
+import ActionModal from "@/components/ActionModal";
 import { api, formatApiErrorDetail, isOfflineError } from "@/lib/api";
 import { useOfflineQueue } from "@/lib/offline";
 import OfflineBanner from "@/components/OfflineBanner";
@@ -39,8 +41,10 @@ const FOLLOWUP_META = {
   tidak_bisa: { label: "Tidak bisa hadir", cls: "bg-[#FEE2E2] text-[#991B1B]" },
 };
 
-export default function KegiatanDetail({ kegiatanId, onBack, onChanged }) {
-  const [tab, setTab] = useState("ringkasan");
+export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, onShareRekap,
+                                        onAbsenQr, onReminder, onToggleStatus, onDelete }) {
+  const [tab, setTab] = useState("manual");
+  const [showActions, setShowActions] = useState(false);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
 
@@ -59,14 +63,15 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged }) {
   useEffect(() => { load(); }, [load]);
 
   const k = data?.kegiatan;
-  const c = data?.counts || {};
   const publik = (k?.audience || "reguler") === "publik";
 
   const TABS = useMemo(() => ([
-    { key: "ringkasan", label: "Ringkasan", icon: Info },
     { key: "manual", label: "Absen Manual", icon: ListChecks },
     { key: "scan", label: "Scan Barcode", icon: ScanLine },
-    ...(publik ? [{ key: "tamu", label: "Tamu", icon: UserPlus }] : []),
+    ...(publik ? [
+      { key: "tamu", label: "Tamu", icon: UserPlus },
+      { key: "publik", label: "Barcode Publik", icon: QrCode },
+    ] : []),
     { key: "tindak", label: "Tidak Hadir Kemarin", icon: PhoneCall },
     { key: "kode", label: "Kode Akses", icon: KeyRound },
     { key: "pesan", label: "Pesan / Saran", icon: MessageSquareText },
@@ -87,7 +92,16 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged }) {
 
   return (
     <div data-testid="kegiatan-detail-view">
-      <BackBar onBack={onBack} title={k.name} />
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <BackBar onBack={onBack} title={k.name} />
+        <button
+          data-testid="kegiatan-detail-actions-button"
+          onClick={() => setShowActions(true)}
+          className="ml-auto h-10 px-3.5 rounded-xl border-2 border-[#E5E7EB] bg-white text-[#4B5563] font-semibold text-sm inline-flex items-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+        >
+          <MoreHorizontal size={17} /> Aksi Kegiatan
+        </button>
+      </div>
 
       {/* Kartu info kegiatan */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 sm:p-5">
@@ -132,7 +146,6 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged }) {
       </div>
 
       <div className="mt-4 space-y-4">
-        {tab === "ringkasan" && <Ringkasan k={k} counts={c} guests={data.guests || []} gender={data.gender} />}
         {tab === "manual" && (
           <AbsenManual kegiatanId={kegiatanId} rows={data.rows || []} closed={k.status !== "open"}
             onReload={() => { load(true); if (onChanged) onChanged(); }} />
@@ -145,17 +158,62 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged }) {
           <TamuPanel kegiatanId={kegiatanId} guests={data.guests || []}
             onReload={() => { load(true); if (onChanged) onChanged(); }} />
         )}
+        {tab === "publik" && <BarcodePublikPanel kegiatanId={kegiatanId} />}
         {tab === "tindak" && <TindakLanjut kegiatanId={kegiatanId} />}
         {tab === "kode" && <KodeAksesPanel kegiatanId={kegiatanId} />}
         {tab === "pesan" && <PesanPanel kegiatanId={kegiatanId} />}
       </div>
+
+      {showActions && (
+        <ActionModal
+          testid="kegiatan-detail-actions"
+          title="Aksi Kegiatan"
+          subtitle={k.name}
+          onClose={() => setShowActions(false)}
+          actions={[
+            {
+              key: "status",
+              testid: "detail-opsi-status",
+              label: k.status === "open" ? "Tandai Selesai" : "Buka Kembali",
+              desc: k.status === "open" ? "Tutup absensi kegiatan ini" : "Aktifkan kembali absensi",
+              icon: k.status === "open" ? CheckCircle2 : RotateCcw,
+              onClick: () => onToggleStatus && onToggleStatus(k),
+            },
+            {
+              key: "absen-qr", testid: "detail-opsi-absen-qr", label: "QR Absen Mandiri",
+              desc: "Peserta absen sendiri lewat akunnya", icon: QrCode,
+              onClick: () => onAbsenQr && onAbsenQr(k),
+            },
+            {
+              key: "share", testid: "detail-opsi-share", label: "Bagikan Rekap",
+              desc: "Tautan & QR rekap kegiatan", icon: Share2,
+              onClick: () => onShareRekap && onShareRekap(k),
+            },
+            {
+              key: "reminder", testid: "detail-opsi-reminder", label: "Pengingat WhatsApp",
+              desc: "Kirim pengingat ke peserta", icon: Send,
+              onClick: () => onReminder && onReminder(k),
+            },
+            {
+              key: "edit", testid: "detail-opsi-edit", label: "Edit Kegiatan",
+              desc: "Ubah nama, jadwal, pengajar", icon: Pencil,
+              onClick: () => onEdit && onEdit(k),
+            },
+            {
+              key: "delete", testid: "detail-opsi-delete", label: "Hapus Kegiatan",
+              desc: "Tindakan ini tidak bisa dibatalkan", icon: Trash2, danger: true,
+              onClick: () => onDelete && onDelete(k),
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }
 
 function BackBar({ onBack, title }) {
   return (
-    <div className="flex items-center gap-3 mb-3">
+    <div className="flex items-center gap-3 min-w-0">
       <button
         data-testid="kegiatan-detail-back"
         onClick={onBack}
@@ -177,36 +235,55 @@ function Stat({ value, label, bg, fg, testid }) {
   );
 }
 
-function Ringkasan({ k, counts, guests, gender }) {
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        <Stat value={counts.total} label="Total" bg="#F2F5F2" fg="#111827" testid="stat-total" />
-        <Stat value={counts.hadir} label="Hadir" bg="#E8F5EE" fg="#065F46" testid="stat-hadir" />
-        <Stat value={counts.izin} label="Izin" bg="#FEF3C7" fg="#92400E" testid="stat-izin" />
-        <Stat value={counts.alpha} label="Alpha" bg="#FEE2E2" fg="#991B1B" testid="stat-alpha" />
-        <Stat value={`${counts.ratio ?? 0}%`} label="Kehadiran" bg="#EEF2FF" fg="#3730A3" testid="stat-ratio" />
-      </div>
+/* ------------------------- Barcode publik (kegiatan terbuka) ------------------------- */
+function BarcodePublikPanel({ kegiatanId }) {
+  const [info, setInfo] = useState(null);
 
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4">
-        <div className="font-bold text-[#111827] text-[15px] flex items-center gap-2"><Users size={17} className="text-[#0D5C3A]" /> Ketentuan Peserta</div>
-        <ul className="mt-2 text-sm text-[#4B5563] space-y-1.5 leading-relaxed">
-          <li>
-            <b>{AUDIENCE_LABEL[k.audience] || "Reguler"}</b> —{" "}
-            {(k.audience || "reguler") === "publik"
-              ? "terbuka untuk semua jamaah (sudah maupun belum aktivasi akun) dan petugas boleh menambahkan tamu cukup dengan nama."
-              : "hanya jamaah yang akunnya sudah diaktivasi yang masuk daftar absen."}
-          </li>
-          <li><b>{GENDER_FILTER_LABEL[k.gender_filter || "semua"]}</b> — daftar peserta &amp; laporan mengikuti ketentuan ini.</li>
-          {gender && (
-            <li>
-              Rincian hadir: laki-laki <b>{gender.L?.hadir ?? 0}</b> dari {gender.L?.total ?? 0} ·
-              perempuan <b>{gender.P?.hadir ?? 0}</b> dari {gender.P?.total ?? 0}
-            </li>
-          )}
-          {guests.length > 0 && <li>Tamu tercatat hadir: <b>{guests.length} orang</b></li>}
-        </ul>
+  useEffect(() => {
+    api.get(`/admin/kegiatan/${kegiatanId}/publik-qr`)
+      .then(({ data }) => setInfo(data))
+      .catch((e) => toast.error(formatApiErrorDetail(e.response?.data?.detail)));
+  }, [kegiatanId]);
+
+  if (!info) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>;
+
+  const download = () => {
+    const a = document.createElement("a");
+    a.href = info.image;
+    a.download = `barcode_publik_${(info.kegiatan_name || "kegiatan").replace(/\s+/g, "_")}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 text-center" data-testid="detail-publik-panel">
+      <img src={info.image} alt="Barcode Publik" className="mx-auto w-48 h-48 rounded-xl border border-[#E5E7EB] p-2" data-testid="detail-publik-qr" />
+      <div className="mt-4 bg-[#F0FAF4] border border-[#CDEBD9] rounded-xl p-3.5 text-left">
+        <p className="text-sm font-semibold text-[#065F46] flex items-center gap-1.5"><QrCode size={15} /> Barcode absen untuk jamaah umum</p>
+        <p className="text-xs text-[#4B5563] mt-1.5 leading-relaxed">
+          Kegiatan ini <b>terbuka</b>, sehingga jamaah yang <b>belum aktivasi akun</b> cukup
+          scan barcode ini, <b>mengisi nama</b>, lalu kehadiran <b>langsung tercatat</b> —
+          tanpa perlu login maupun kode akses.
+        </p>
       </div>
+      <p className="text-xs text-[#9CA3AF] mt-3 break-all px-2">{info.link}</p>
+      <div className="grid sm:grid-cols-2 gap-2 mt-3">
+        <button onClick={() => { navigator.clipboard.writeText(info.link); toast.success("Tautan absen publik disalin"); }}
+          data-testid="detail-publik-copy"
+          className="h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#E8F5EE]">
+          <Copy size={16} /> Salin Tautan
+        </button>
+        <button onClick={download} data-testid="detail-publik-download"
+          className="h-11 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold inline-flex items-center justify-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
+          <Download size={16} /> Unduh Barcode
+        </button>
+      </div>
+      <button
+        onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(info.wa_text || info.link)}`, "_blank")}
+        data-testid="detail-publik-share-wa"
+        className="mt-2 w-full h-11 rounded-xl bg-[#25D366] text-white font-semibold inline-flex items-center justify-center gap-2 hover:brightness-95"
+      >
+        <Send size={16} /> Bagikan lewat WhatsApp
+      </button>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   CalendarDays, Clock, MapPin, User, BookOpen, Loader2, CheckCircle2,
@@ -26,6 +26,7 @@ export default function SelfAbsen() {
   const [err, setErr] = useState("");
   const [marking, setMarking] = useState(false);
   const [result, setResult] = useState(null);
+  const autoRef = useRef(false);
 
   const [fbName, setFbName] = useState("");
   const [fbMsg, setFbMsg] = useState("");
@@ -42,7 +43,7 @@ export default function SelfAbsen() {
 
   useEffect(() => { load(); }, [load]);
 
-  const doMark = async () => {
+  const doMark = useCallback(async () => {
     setMarking(true);
     try {
       const { data: res } = await api.post(`/me/absen/${token}/mark`);
@@ -55,7 +56,17 @@ export default function SelfAbsen() {
     } finally {
       setMarking(false);
     }
-  };
+  }, [token, load]);
+
+  // REVISI: kehadiran LANGSUNG dicatat saat halaman terbuka (tanpa tombol "Saya Hadir").
+  useEffect(() => {
+    if (autoRef.current || !data) return;
+    const k = data.kegiatan || {};
+    const me = data.me || {};
+    if (k.status !== "open" || !me.is_peserta || me.status === "hadir") return;
+    autoRef.current = true;
+    doMark();
+  }, [data, doMark]);
 
   const sendFeedback = async (anonim = false) => {
     if (!fbMsg.trim()) { toast.error("Mohon tuliskan kesan & pesan Anda terlebih dahulu."); return; }
@@ -195,10 +206,10 @@ export default function SelfAbsen() {
       ) : (
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 mt-4" data-testid="absen-self-card">
           <div className="flex items-center gap-2 text-[#0D5C3A] font-bold">
-            <UserCheck size={18} /> Konfirmasi Kehadiran Anda
+            <UserCheck size={18} /> Kehadiran Anda
           </div>
           <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
-            Absen ini hanya berlaku untuk akun Anda sendiri dan tidak dapat dititipkan.
+            Kehadiran langsung dicatat atas nama akun Anda sendiri dan tidak dapat dititipkan.
           </p>
 
           <div className="mt-4 rounded-2xl border-2 border-[#0D5C3A]/15 bg-[#FAFBF9] p-4 flex items-center gap-3.5">
@@ -223,14 +234,22 @@ export default function SelfAbsen() {
               </p>
             </div>
           ) : (
-            <button
-              data-testid="button-saya-hadir"
-              onClick={doMark}
-              disabled={marking}
-              className="mt-4 w-full h-[54px] rounded-xl bg-[#0D5C3A] text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60"
-            >
-              {marking ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />} Saya Hadir
-            </button>
+            <div className="mt-4 rounded-xl bg-[#FAFBF9] border border-[#E5E7EB] p-4 text-center" data-testid="absen-auto">
+              {marking ? (
+                <>
+                  <Loader2 className="mx-auto animate-spin text-[#0D5C3A]" size={26} />
+                  <p className="text-sm font-semibold text-[#4B5563] mt-2">Mencatat kehadiran Anda...</p>
+                </>
+              ) : (
+                <button
+                  data-testid="button-saya-hadir"
+                  onClick={doMark}
+                  className="w-full h-[54px] rounded-xl bg-[#0D5C3A] text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#094229]"
+                >
+                  <CheckCircle2 size={20} /> Catat Kehadiran Saya
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}

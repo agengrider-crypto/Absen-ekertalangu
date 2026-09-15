@@ -19,6 +19,13 @@ export default function ScanTab() {
 
   const onDetected = (text) => {
     if (done) return;
+    const publik = text && text.match(/\/hadir\/([^/?#\s]+)/);
+    if (publik) {
+      setDone(true);
+      toast.success("QR kegiatan terbaca. Mohon tunggu sebentar...");
+      navigate(`/hadir/${publik[1]}`);
+      return;
+    }
     const token = extractAbsenToken(text);
     if (token) {
       setDone(true);
@@ -48,8 +55,8 @@ export default function ScanTab() {
       <div className="bg-[#F0FAF4] border border-[#BBF7D0] rounded-2xl p-4 text-sm text-[#065F46] flex gap-2.5">
         <UserCheck size={18} className="shrink-0 mt-0.5" />
         <span>
-          Absen ini <b>hanya untuk diri Anda sendiri</b>. Setelah QR terbaca, halaman absen akan
-          menampilkan nama Anda beserta tombol <b>Saya Hadir</b> — kehadiran orang lain tidak bisa dititipkan.
+          Absen ini <b>hanya untuk diri Anda sendiri</b>. Setelah QR terbaca, kehadiran Anda
+          <b> langsung tercatat otomatis</b> tanpa perlu menekan tombol apa pun.
         </span>
       </div>
 

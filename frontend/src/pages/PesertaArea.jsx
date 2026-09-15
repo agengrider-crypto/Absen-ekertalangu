@@ -25,20 +25,11 @@ export default function PesertaArea({ user }) {
   const { logout } = useAuth();
   const [tab, setTab] = useState("beranda");
   const [hasNew, setHasNew] = useState(false);
-  const [isPenjaga, setIsPenjaga] = useState(false);
   const multiRole = (user?.roles?.length || 0) > 1;
   const seenKey = `ann_seen_${user?.id || "me"}`;
 
-  // Tab "Penjaga Absen" hanya tampil bila pengguna punya delegasi absen yang aktif
-  useEffect(() => {
-    api.get("/me/delegations")
-      .then(({ data }) => setIsPenjaga((data || []).length > 0))
-      .catch(() => setIsPenjaga(false));
-  }, []);
-
-  const TABS = isPenjaga
-    ? [...BASE_TABS.slice(0, 3), PENJAGA_TAB, ...BASE_TABS.slice(3)]
-    : BASE_TABS;
+  // Tab "Penjaga Absen" dinonaktifkan (absensi memakai kode akses kegiatan).
+  const TABS = BASE_TABS;
 
   useEffect(() => {
     api.get("/me/announcements?role=peserta").then(({ data }) => {
@@ -94,7 +85,6 @@ export default function PesertaArea({ user }) {
         {tab === "beranda" && <Beranda user={user} onGoto={setTab} />}
         {tab === "kegiatan" && <KegiatanList />}
         {tab === "scan" && <ScanTab />}
-        {tab === "penjaga" && <PenjagaAbsen />}
         {tab === "qr" && <QrSaya user={user} />}
         {tab === "profil" && <ProfilTab user={user} />}
       </main>
