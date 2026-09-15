@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
   X, Loader2, Save, KeyRound, ArrowRightLeft, Power, Camera,
-  Phone, MessageCircle, Mail, MapPin, GraduationCap, User as UserIcon,
+  Phone, MessageCircle, Mail, MapPin, GraduationCap, User as UserIcon, HeartHandshake,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import ContactButtons from "@/components/ContactButtons";
 import { DateField } from "@/components/DateField";
-import { EDUCATION_OPTIONS, MUBALIGH_OPTIONS, genderLabel, statusBadge } from "./adminUtils";
+import { EDUCATION_OPTIONS, MUBALIGH_OPTIONS, MARITAL_OPTIONS, genderLabel, statusBadge } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white";
 const lbl = "text-xs font-semibold text-[#6B7280] mb-1 block";
@@ -60,6 +60,7 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
         whatsapp: form.whatsapp || "", dob: form.dob || null, birthplace: form.birthplace || "",
         address: form.address || "", gender: form.gender || null,
         education: form.education || null, mubaligh: form.mubaligh || null,
+        marital: form.marital || null,
         photo: form.photo ?? null, roles: form.roles, kelompok_id: form.kelompok_id || null,
         needs_completion: false,
       };
@@ -224,6 +225,13 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
                 <select data-testid="detail-mubaligh" value={form.mubaligh || ""} onChange={(e) => set("mubaligh", e.target.value)} className={inp}>
                   <option value="">- Pilih -</option>
                   {MUBALIGH_OPTIONS.map((o) => <option key={o} value={o} className="capitalize">{o === "sudah" ? "Sudah" : "Belum"}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={lbl}><HeartHandshake size={12} className="inline mr-1" />Status Pernikahan</label>
+                <select data-testid="detail-marital" value={form.marital || ""} onChange={(e) => set("marital", e.target.value)} className={inp}>
+                  <option value="">- Pilih -</option>
+                  {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             </div>

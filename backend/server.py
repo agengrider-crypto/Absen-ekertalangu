@@ -91,6 +91,8 @@ SESSION_MAX_AGE = SESSION_DAYS * 24 * 60 * 60  # detik
 VALID_ROLES = ["admin", "pengurus", "peserta"]
 EDUCATION_OPTIONS = ["TK", "SD", "SMP", "SMA", "D1", "D2", "D3", "D4", "S1", "S2", "S3"]
 MUBALIGH_OPTIONS = ["belum", "sudah"]
+# Status pernikahan peserta (dropdown)
+MARITAL_OPTIONS = ["belum_menikah", "sudah_menikah"]
 GENDER_OPTIONS = ["L", "P"]
 
 app = FastAPI()
@@ -188,6 +190,7 @@ def public_user(user: dict, include_photo: bool = False) -> dict:
         "gender": _derive_gender(user),
         "education": user.get("education"),
         "mubaligh": user.get("mubaligh"),
+        "marital": user.get("marital"),
         "kelompok_id": user.get("kelompok_id"),
         "roles": user.get("roles", []),
         "status": user.get("status", "active"),
@@ -239,6 +242,7 @@ class AdminCreateUser(BaseModel):
     gender: Optional[str] = None
     education: Optional[str] = None
     mubaligh: Optional[str] = None
+    marital: Optional[str] = None
     kelompok_id: Optional[str] = None
     roles: List[str] = ["peserta"]
     password: Optional[str] = None
@@ -285,6 +289,7 @@ class PesertaUpdate(BaseModel):
     gender: Optional[str] = None
     education: Optional[str] = None
     mubaligh: Optional[str] = None
+    marital: Optional[str] = None
     photo: Optional[str] = None
     roles: Optional[List[str]] = None
     status: Optional[str] = None
@@ -709,6 +714,7 @@ async def admin_create_user(body: AdminCreateUser, admin: dict = Depends(require
         "gender": normalize_gender(body.gender),
         "education": body.education if body.education in EDUCATION_OPTIONS else None,
         "mubaligh": body.mubaligh if body.mubaligh in MUBALIGH_OPTIONS else None,
+        "marital": body.marital if body.marital in MARITAL_OPTIONS else None,
         "kelompok_id": body.kelompok_id or None,
         "roles": roles, "source": "admin",
         "avatar_gender": "female" if normalize_gender(body.gender) == "P" else "male",
@@ -927,6 +933,8 @@ async def admin_update_user(user_id: str, body: PesertaUpdate, admin: dict = Dep
         updates["education"] = body.education if body.education in EDUCATION_OPTIONS else None
     if body.mubaligh is not None:
         updates["mubaligh"] = body.mubaligh if body.mubaligh in MUBALIGH_OPTIONS else None
+    if body.marital is not None:
+        updates["marital"] = body.marital if body.marital in MARITAL_OPTIONS else None
     if body.photo is not None:
         updates["photo"] = body.photo or None
     if body.kelompok_id is not None:
@@ -3268,6 +3276,7 @@ class ProfileUpdate(BaseModel):
     address: Optional[str] = None
     gender: Optional[str] = None
     education: Optional[str] = None
+    marital: Optional[str] = None
 
 
 @api_router.get("/me/profile")
@@ -3287,6 +3296,8 @@ async def update_my_profile(body: ProfileUpdate, user: dict = Depends(get_curren
         updates["dob"] = normalize_dob(body.dob)
     if body.gender is not None:
         updates["gender"] = normalize_gender(body.gender)
+    if body.marital is not None:
+        updates["marital"] = body.marital if body.marital in MARITAL_OPTIONS else None
     if updates:
         await db.users.update_one({"_id": user["_id"]}, {"$set": updates})
     u = await db.users.find_one({"_id": user["_id"]})
@@ -3439,6 +3450,16 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
 
     tvals = list(tally.values())
     n_keg = len(kegiatans)
+    keg_map = {k["_id"]: k for k in kegiatans}
+    # Daftar TAMU terpisah supaya mudah dibedakan dari jamaah terdaftar
+    guest_rows = sorted(
+        [{"name": g.get("name"),
+          "kegiatan_id": g.get("kegiatan_id"),
+          "kegiatan": (keg_map.get(g.get("kegiatan_id")) or {}).get("name"),
+          "date": (keg_map.get(g.get("kegiatan_id")) or {}).get("date"),
+          "arrival_time": g.get("arrival_time"),
+          "added_by": g.get("added_by")} for g in guests],
+        key=lambda x: (x["date"] or "", (x["name"] or "").lower()))
     per_peserta = sorted(
         [{**v, "ratio": round((v["hadir"] / v["kegiatan"]) * 100, 1) if v["kegiatan"] else 0.0}
          for v in tvals],
@@ -3451,6 +3472,8 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
             "ratio": round((total_hadir / total_slot) * 100, 1) if total_slot else 0.0,
         },
         "gender_hadir": gender_hadir,
+        "total_tamu": len(guest_rows),
+        "tamu": guest_rows,
         "per_kegiatan": rows,
         "per_peserta": per_peserta,
     }
@@ -3573,6 +3596,29 @@ async def admin_laporan_export(admin: dict = Depends(require_staff),
             ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F2F5F2")]),
         ]))
         elems.append(t)
+
+        # Daftar TAMU terpisah (bukan jamaah terdaftar)
+        elems.append(Spacer(1, 16))
+        elems.append(Paragraph(
+            f"Daftar Tamu (bukan jamaah terdaftar) — {data.get('total_tamu', 0)} orang",
+            styles["Heading3"]))
+        if data.get("tamu"):
+            gdata = [["Tanggal", "Kegiatan", "Nama Tamu", "Jam Hadir"]]
+            for g in data["tamu"]:
+                gdata.append([g.get("date") or "-", g.get("kegiatan") or "-",
+                              g.get("name") or "-",
+                              (g.get("arrival_time") or "")[11:16] or "-"])
+            gt = Table(gdata, repeatRows=1)
+            gt.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#D97706")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                ("FONTSIZE", (0, 0), (-1, -1), 9),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
+                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#FEF7EC")]),
+            ]))
+            elems.append(gt)
+        else:
+            elems.append(Paragraph("Tidak ada tamu pada periode ini.", styles["Normal"]))
         doc.build(elems)
         buf.seek(0)
         return StreamingResponse(buf, media_type="application/pdf",
@@ -3596,6 +3642,12 @@ async def admin_laporan_export(admin: dict = Depends(require_staff),
     ws2.append(["Kehadiran %", data["summary"]["ratio"]])
     ws2.append(["Hadir L", data["gender_hadir"]["L"]])
     ws2.append(["Hadir P", data["gender_hadir"]["P"]])
+    ws2.append(["Total Tamu", data.get("total_tamu", 0)])
+    ws3 = wb.create_sheet("Daftar Tamu")
+    ws3.append(["Tanggal", "Kegiatan", "Nama Tamu", "Jam Hadir", "Dicatat Oleh"])
+    for g in data.get("tamu", []):
+        ws3.append([g.get("date"), g.get("kegiatan"), g.get("name"),
+                    (g.get("arrival_time") or "")[11:16], g.get("added_by")])
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)

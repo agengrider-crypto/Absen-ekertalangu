@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { api, API, formatApiErrorDetail } from "@/lib/api";
 import { DateField } from "@/components/DateField";
 import PesertaDetailModal from "./PesertaDetailModal";
-import { formatTanggal, genderLabel, statusBadge } from "./adminUtils";
+import { formatTanggal, genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white";
 
@@ -306,7 +306,7 @@ function ModalShell({ title, children, onClose, testid, wide = false }) {
 }
 
 function AddModal({ kelompok, onClose, onDone }) {
-  const [f, setF] = useState({ name: "", gender: "", birthplace: "", dob: "", phone: "", whatsapp: "", email: "", address: "", kelompok_id: "" });
+  const [f, setF] = useState({ name: "", gender: "", marital: "", birthplace: "", dob: "", phone: "", whatsapp: "", email: "", address: "", kelompok_id: "" });
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
 
@@ -319,6 +319,7 @@ function AddModal({ kelompok, onClose, onDone }) {
         name: f.name, gender: f.gender || null, birthplace: f.birthplace || null,
         dob: f.dob || null, phone: f.phone || null, whatsapp: f.whatsapp || null,
         email: f.email || null, address: f.address || null, kelompok_id: f.kelompok_id || null,
+        marital: f.marital || null,
         roles: ["peserta"],
       });
       toast.success(`Peserta "${f.name}" ditambahkan (menunggu aktivasi).`);
@@ -336,6 +337,10 @@ function AddModal({ kelompok, onClose, onDone }) {
           <option value="">Jenis Kelamin</option>
           <option value="L">Laki-laki</option>
           <option value="P">Perempuan</option>
+        </select>
+        <select data-testid="add-marital" value={f.marital} onChange={(e) => set("marital", e.target.value)} className={inp}>
+          <option value="">Status Pernikahan</option>
+          {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <input data-testid="add-birthplace" value={f.birthplace} onChange={(e) => set("birthplace", e.target.value)} placeholder="Tempat Lahir" className={inp} />
         <DateField testid="add-dob" value={f.dob} onChange={(v) => set("dob", v)} placeholder="Tanggal Lahir" className="h-[46px]" />

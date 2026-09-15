@@ -5,6 +5,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { resizeImageFile } from "@/lib/image";
 import ContactButtons from "@/components/ContactButtons";
+import { MARITAL_OPTIONS } from "@/pages/admin/adminUtils";
 
 function Field({ label, required, children }) {
   return (
@@ -27,6 +28,7 @@ export default function ProfilTab({ user }) {
     name: user?.name || "", phone: user?.phone || "", whatsapp: user?.whatsapp || "",
     dob: user?.dob || "", birthplace: user?.birthplace || "", address: user?.address || "",
     gender: user?.gender || "", education: user?.education || "",
+    marital: user?.marital || "",
   });
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -122,6 +124,12 @@ export default function ProfilTab({ user }) {
           </Field>
           <Field label="Pendidikan"><input data-testid="profil-education" value={f.education} onChange={(e) => set("education", e.target.value)} className={inp} /></Field>
         </div>
+        <Field label="Status Pernikahan">
+          <select data-testid="profil-marital" value={f.marital} onChange={(e) => set("marital", e.target.value)} className={inp}>
+            <option value="">—</option>
+            {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </Field>
         <Field label="Alamat" required><textarea data-testid="profil-address" value={f.address} onChange={(e) => set("address", e.target.value)} rows={2} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] resize-none" /></Field>
 
         <button data-testid="profil-save" onClick={save} disabled={saving} className="w-full h-12 rounded-xl bg-[#0D5C3A] text-white font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60">

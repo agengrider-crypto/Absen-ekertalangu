@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   X, Camera, Trash2, Loader2, User as UserIcon, Save, Pencil,
-  Phone, Mail, MapPin, Shield, CalendarDays, GraduationCap, MessageCircle, AlertCircle,
+  Phone, Mail, MapPin, Shield, CalendarDays, GraduationCap, MessageCircle, AlertCircle, HeartHandshake,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { resizeImageFile } from "@/lib/image";
 import { useAuth } from "@/context/AuthContext";
-import { formatTanggal } from "@/pages/admin/adminUtils";
+import { formatTanggal, MARITAL_OPTIONS, maritalLabel } from "@/pages/admin/adminUtils";
 
 const ROLE_LABEL = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta" };
 const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white";
@@ -53,6 +53,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
     name: user?.name || "", phone: user?.phone || "", whatsapp: user?.whatsapp || "",
     dob: user?.dob || "", birthplace: user?.birthplace || "", address: user?.address || "",
     gender: user?.gender || "", education: user?.education || "",
+    marital: user?.marital || "",
   });
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
 
@@ -227,6 +228,12 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                   <input data-testid="profile-edit-education" value={f.education} onChange={(e) => set("education", e.target.value)} className={inp} />
                 </Field>
               </div>
+              <Field label="Status Pernikahan">
+                <select data-testid="profile-edit-marital" value={f.marital} onChange={(e) => set("marital", e.target.value)} className={inp}>
+                  <option value="">— Pilih —</option>
+                  {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </Field>
               <Field label="Alamat" required>
                 <textarea
                   data-testid="profile-edit-address"
@@ -266,6 +273,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                 <Row icon={MessageCircle} label="WhatsApp" value={user?.whatsapp} />
                 <Row icon={Mail} label="Email" value={user?.email} />
                 <Row icon={GraduationCap} label="Pendidikan" value={user?.education} />
+                <Row icon={HeartHandshake} label="Status Pernikahan" value={user?.marital ? maritalLabel(user.marital) : null} />
                 <Row icon={MapPin} label="Alamat" value={user?.address} />
                 <Row icon={Shield} label="Status Akun" value={user?.status === "active" ? "Aktif" : user?.status === "pending" ? "Belum aktivasi" : "Nonaktif"} />
               </div>
@@ -276,6 +284,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                     name: user?.name || "", phone: user?.phone || "", whatsapp: user?.whatsapp || "",
                     dob: user?.dob || "", birthplace: user?.birthplace || "", address: user?.address || "",
                     gender: user?.gender || "", education: user?.education || "",
+                    marital: user?.marital || "",
                   });
                   setEditing(true);
                 }}

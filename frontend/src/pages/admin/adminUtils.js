@@ -2,6 +2,14 @@
 
 export const EDUCATION_OPTIONS = ["TK", "SD", "SMP", "SMA", "D1", "D2", "D3", "D4", "S1", "S2", "S3"];
 export const MUBALIGH_OPTIONS = ["belum", "sudah"];
+// Status pernikahan peserta
+export const MARITAL_OPTIONS = [
+  { value: "belum_menikah", label: "Belum Menikah" },
+  { value: "sudah_menikah", label: "Sudah Menikah" },
+];
+export function maritalLabel(v) {
+  return MARITAL_OPTIONS.find((o) => o.value === v)?.label || "-";
+}
 
 export const GREEN = "#0D5C3A";
 export const GREEN_DARK = "#094229";

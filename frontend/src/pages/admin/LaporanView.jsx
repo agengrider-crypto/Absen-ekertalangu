@@ -6,6 +6,7 @@ import {
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { tanggalSingkat, TYPE_LABEL } from "./kegiatanUtils";
+import TamuLaporanList from "@/components/TamuLaporanList";
 
 const inp = "h-11 px-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white";
 
@@ -138,7 +139,7 @@ export default function LaporanView() {
               </div>
             </div>
             <div className="bg-white rounded-2xl p-4 border border-[#E5E7EB]">
-              <div className="text-sm text-[#6B7280]">Periode <b className="text-[#111827]">{tanggalSingkat(data.date_from)}</b> s/d <b className="text-[#111827]">{tanggalSingkat(data.date_to)}</b> · {data.total_kegiatan} kegiatan · {data.total_peserta} peserta</div>
+              <div className="text-sm text-[#6B7280]">Periode <b className="text-[#111827]">{tanggalSingkat(data.date_from)}</b> s/d <b className="text-[#111827]">{tanggalSingkat(data.date_to)}</b> · {data.total_kegiatan} kegiatan · {data.total_peserta} peserta · <b className="text-[#B45309]">{data.total_tamu ?? 0} tamu</b></div>
             </div>
           </div>
 
@@ -181,6 +182,9 @@ export default function LaporanView() {
 
           {/* Rekap per peserta (dropdown) */}
           <PesertaLaporanList rows={data.per_peserta || []} />
+
+          {/* Daftar tamu TERPISAH dari jamaah terdaftar */}
+          <TamuLaporanList rows={data.tamu || []} />
         </div>
       )}
 

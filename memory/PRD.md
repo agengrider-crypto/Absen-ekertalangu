@@ -294,3 +294,18 @@ tamu publik, mode offline (banner + auto-sync), laporan, jadwal peserta.
 Catatan: atas permintaan user, revisi ini TIDAK diuji oleh testing agent (uji manual sendiri).
 Verifikasi yang sudah dilakukan: curl endpoint baru + screenshot alur admin, /hadir, dan
 auto-hadir /absen.
+
+## Tambahan (2026-09-15, lanjutan)
+- **Status pernikahan peserta** — field baru `marital` (`belum_menikah|sudah_menikah`, divalidasi
+  `MARITAL_OPTIONS`). Dropdown tersedia di: form **Tambah Peserta**, **Detail Peserta** (admin/
+  pengurus), serta **Profil Saya** (ProfileModal & ProfilTab) sehingga peserta boleh mengisi
+  sendiri. Tidak ditampilkan sebagai kolom tabel (sesuai permintaan). Dikirim lewat
+  `POST/PATCH /api/admin/users*` dan `PATCH /api/me/profile`, tampil di `public_user()`.
+- **Daftar tamu terpisah di laporan** — `build_laporan()` mengembalikan `total_tamu` + `tamu`
+  (nama, kegiatan, tanggal, jam hadir, dicatat oleh). Komponen `TamuLaporanList.jsx` dipakai di
+  halaman Laporan admin & laporan publik. Export Excel menambah sheet **"Daftar Tamu"** +
+  baris Total Tamu di Ringkasan; export PDF menambah tabel **Daftar Tamu** di bawah rincian.
+
+Verifikasi mandiri (tanpa testing agent, sesuai permintaan user): PATCH marital admin & profil
+sendiri (nilai invalid ditolak → null), laporan JSON `total_tamu`, sheet Excel "Daftar Tamu",
+PDF 223 KB terbentuk, dan screenshot UI (laporan tamu, form tambah, detail peserta).

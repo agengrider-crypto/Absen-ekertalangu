@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { tanggalSingkat, tanggalPanjang, TYPE_LABEL } from "./admin/kegiatanUtils";
+import TamuLaporanList from "@/components/TamuLaporanList";
 
 /**
  * Halaman laporan PUBLIK — dibuka lewat tautan permanen dari panel Admin.
@@ -179,6 +180,9 @@ export default function PublicLaporan() {
             </div>
           )}
         </div>
+
+        {/* Daftar tamu TERPISAH dari jamaah terdaftar */}
+        <TamuLaporanList rows={data.tamu || []} />
 
         <p className="text-center text-xs text-[#9CA3AF] mt-8">
           © 2026 E-KERTALANGU · Absensi Pengajian
