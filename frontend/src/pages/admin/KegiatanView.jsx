@@ -4,15 +4,17 @@ import {
   Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
   Clock, MapPin, User, ScanLine, MessageSquareText,
   MoreHorizontal, Pencil, FileBarChart2, ChevronDown, AlertTriangle,
-  KeyRound, RefreshCw, Send, Hourglass,
+  KeyRound, RefreshCw, Send, Layers, SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import {
   KEGIATAN_TYPES, TYPE_LABEL, TYPE_COLOR, timeOptions,
   tanggalPanjang, tanggalSingkat, hhmm, MONTH_SHORT,
-  AUDIENCE_OPTIONS, GENDER_FILTER_OPTIONS, AUDIENCE_LABEL, GENDER_FILTER_LABEL,
+  AUDIENCE_OPTIONS, GENDER_FILTER_OPTIONS, AUDIENCE_LABEL,
   PHASE_META, phaseOf, groupKegiatan,
+  MARITAL_FILTER_OPTIONS, AGE_GROUP_OPTIONS, SESSION_LABEL_PRESETS,
+  SESSION_DEFAULT_TIME, groupSessions,
 } from "./kegiatanUtils";
 import KegiatanDetail from "./KegiatanDetail";
 import { ReminderModal, DelegasiModal, ScanPesertaModal } from "./KegiatanExtras";
@@ -186,8 +188,10 @@ export default function KegiatanView() {
                 <span className="text-xs text-[#9CA3AF]">{g.items.length} kegiatan</span>
               </div>
               <div className="grid gap-3">
-                {g.items.map((k) => (
-                  <KegiatanCard key={k.id} k={k} onOpen={() => setDetailId(k.id)} />
+                {groupSessions(g.items).map((grp) => (
+                  grp.single
+                    ? <KegiatanCard key={grp.key} k={grp.k} onOpen={() => setDetailId(grp.k.id)} />
+                    : <SessionGroupCard key={grp.key} group={grp} onOpen={setDetailId} />
                 ))}
               </div>
             </section>
@@ -197,6 +201,19 @@ export default function KegiatanView() {
 
       {showAdd && <KegiatanFormModal onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
     </div>
+  );
+}
+
+function FilterBadges({ k }) {
+  const labels = k.filter_labels || [];
+  if (!labels.length) return null;
+  return (
+    <>
+      {labels.map((l) => (
+        <span key={l} data-testid="keg-filter-badge"
+          className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{l}</span>
+      ))}
+    </>
   );
 }
 
@@ -215,9 +232,7 @@ function KegiatanCard({ k, onOpen }) {
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${PHASE_META[phaseOf(k)].cls}`}>{PHASE_META[phaseOf(k)].badge}</span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3]">{AUDIENCE_LABEL[k.audience] || "Reguler"}</span>
-            {k.gender_filter && k.gender_filter !== "semua" && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{GENDER_FILTER_LABEL[k.gender_filter]}</span>
-            )}
+            <FilterBadges k={k} />
             {k.auto_closed && <span className="text-xs text-[#9CA3AF]">(auto)</span>}
           </div>
           <h3 className="font-heading font-bold text-[#111827] mt-1.5 truncate">{k.name}</h3>
@@ -237,6 +252,71 @@ function KegiatanCard({ k, onOpen }) {
         Buka kegiatan ini <ChevronRight size={16} />
       </div>
     </button>
+  );
+}
+
+/**
+ * FASE 9 — Kartu kegiatan 1 hari BEBERAPA WAKTU/SESI (pagi/sore/malam).
+ *
+ * Setiap sesi punya absensi, rekap, kode akses & barcode SENDIRI, sehingga
+ * peserta yang hadir sesi pagi tidak otomatis terhitung hadir di sesi lain.
+ */
+function SessionGroupCard({ group, onOpen }) {
+  const first = group.items[0];
+  return (
+    <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4" data-testid={`kegiatan-sesi-group-${first.session_group_id}`}>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[first.type]}1a`, color: TYPE_COLOR[first.type] }}>{TYPE_LABEL[first.type]}</span>
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] inline-flex items-center gap-1">
+          <Layers size={12} /> {group.items.length} Waktu / Sesi
+        </span>
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3]">{AUDIENCE_LABEL[first.audience] || "Reguler"}</span>
+        <FilterBadges k={first} />
+      </div>
+      <h3 className="font-heading font-bold text-[#111827] mt-1.5">{first.base_name || first.name}</h3>
+      <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
+        <span className="inline-flex items-center gap-1"><CalendarDays size={14} /> {tanggalSingkat(first.date)}</span>
+        {first.location && <span className="inline-flex items-center gap-1"><MapPin size={14} /> {first.location}</span>}
+        {first.teacher && <span className="inline-flex items-center gap-1"><User size={14} /> {first.teacher}</span>}
+      </div>
+
+      <div className="mt-3 grid gap-2">
+        {group.items.map((k) => {
+          const c = k.counts || {};
+          const meta = PHASE_META[phaseOf(k)];
+          return (
+            <button
+              key={k.id}
+              type="button"
+              onClick={() => onOpen(k.id)}
+              data-testid={`kegiatan-card-${k.id}`}
+              className="w-full text-left rounded-xl border-2 border-[#E5E7EB] bg-[#FAFBF9] px-3.5 py-3 hover:border-[#0D5C3A] hover:bg-[#F0FAF4] transition-colors"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-bold text-[#0D5C3A]">{k.session_label || "Sesi"}</span>
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${meta.cls}`}>{meta.badge}</span>
+                  </div>
+                  <div className="text-xs text-[#6B7280] mt-0.5 inline-flex items-center gap-1">
+                    <Clock size={12} /> {k.start_time}–{k.end_time} WITA
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-lg font-bold text-[#0D5C3A] leading-none">{c.ratio ?? 0}%</div>
+                  <div className="text-[11px] text-[#6B7280] mt-0.5">H {c.hadir ?? 0} · I {c.izin ?? 0} · A {c.alpha ?? 0}</div>
+                </div>
+                <ChevronRight size={16} className="text-[#0D5C3A] shrink-0" />
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-[#9CA3AF] mt-2 leading-relaxed">
+        Absensi, rekap, kode akses &amp; barcode <b>terpisah untuk setiap waktu/sesi</b>.
+        Hadir di sesi pagi tidak dihitung sebagai hadir di sesi sore/malam.
+      </p>
+    </div>
   );
 }
 
@@ -302,13 +382,40 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
     material: initial?.material || "", location: initial?.location || "", recurring: false,
     audience: initial?.audience || "reguler",
     gender_filter: initial?.gender_filter || "semua",
+    // FASE 9 — pengelompokan lanjutan
+    marital_filter: initial?.marital_filter || "semua",
+    age_filter: initial?.age_filter || [],
   });
+  // FASE 9 — beberapa waktu/sesi dalam 1 hari
+  const [multi, setMulti] = useState(false);
+  const [sessions, setSessions] = useState([
+    { label: "Pagi", start_time: "08:00", end_time: "10:00" },
+    { label: "Sore", start_time: "16:00", end_time: "17:30" },
+  ]);
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+
+  const toggleAge = (val) => setF((p) => {
+    const cur = p.age_filter || [];
+    return { ...p, age_filter: cur.includes(val) ? cur.filter((x) => x !== val) : [...cur, val] };
+  });
+
+  const setSession = (i, key, val) => setSessions((p) => p.map((s, idx) => (idx === i ? { ...s, [key]: val } : s)));
+  const addSession = () => setSessions((p) => {
+    const used = p.map((s) => s.label);
+    const next = SESSION_LABEL_PRESETS.find((l) => !used.includes(l)) || `Sesi ${p.length + 1}`;
+    const [st, en] = SESSION_DEFAULT_TIME[next] || ["08:00", "10:00"];
+    return [...p, { label: next, start_time: st, end_time: en }];
+  });
+  const removeSession = (i) => setSessions((p) => p.filter((_, idx) => idx !== i));
 
   const submit = async (e) => {
     e.preventDefault();
     if (!f.name.trim()) { toast.error("Nama kegiatan wajib diisi"); return; }
+    if (!editing && multi) {
+      if (sessions.length < 2) { toast.error("Minimal 2 waktu/sesi bila memakai beberapa waktu"); return; }
+      if (sessions.some((s) => !String(s.label).trim())) { toast.error("Nama setiap waktu/sesi wajib diisi"); return; }
+    }
     setSaving(true);
     try {
       if (editing) {
@@ -316,8 +423,12 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
         await api.patch(`/admin/kegiatan/${initial.id}`, payload);
         toast.success("Kegiatan diperbarui.");
       } else {
-        const { data } = await api.post("/admin/kegiatan", f);
-        toast.success(`Kegiatan dibuat${f.recurring ? ` (${data.length}x berulang)` : ""}.`);
+        const payload = { ...f, sessions: multi ? sessions : [] };
+        const { data } = await api.post("/admin/kegiatan", payload);
+        const parts = [];
+        if (multi) parts.push(`${sessions.length} waktu/sesi`);
+        if (f.recurring) parts.push("berulang 4 minggu");
+        toast.success(`Kegiatan dibuat${parts.length ? ` (${parts.join(", ")}, total ${data.length} jadwal)` : ""}.`);
       }
       onDone();
     } catch (e2) {
@@ -339,20 +450,88 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
           <label className="block text-sm font-semibold text-[#111827] mb-1.5">Tanggal</label>
           <input data-testid="keg-date" type="date" required value={f.date} onChange={(e) => set("date", e.target.value)} className={inp} />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-sm font-semibold text-[#111827] mb-1.5">Mulai (WITA)</label>
-            <select data-testid="keg-start" value={f.start_time} onChange={(e) => set("start_time", e.target.value)} className={inp}>
-              {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
+        {!editing && multi ? (
+          <div className="rounded-xl border-2 border-[#CDEBD9] bg-[#F0FAF4] px-3.5 py-3 text-xs text-[#065F46] leading-relaxed flex items-center">
+            Jam kegiatan diatur pada daftar <b className="mx-1">Waktu / Sesi</b> di bawah.
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-[#111827] mb-1.5">Selesai (WITA)</label>
-            <select data-testid="keg-end" value={f.end_time} onChange={(e) => set("end_time", e.target.value)} className={inp}>
-              {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Mulai (WITA)</label>
+              <select data-testid="keg-start" value={f.start_time} onChange={(e) => set("start_time", e.target.value)} className={inp}>
+                {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-[#111827] mb-1.5">Selesai (WITA)</label>
+              <select data-testid="keg-end" value={f.end_time} onChange={(e) => set("end_time", e.target.value)} className={inp}>
+                {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* FASE 9 — 1 hari beberapa waktu/sesi (pengajian pagi / sore / malam) */}
+        {!editing && (
+          <div className="sm:col-span-2 rounded-xl border-2 border-[#E5E7EB] bg-white p-3.5">
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input data-testid="keg-multi-session" type="checkbox" className="accent-[#0D5C3A] w-4 h-4 mt-0.5"
+                checked={multi} onChange={(e) => setMulti(e.target.checked)} />
+              <span>
+                <span className="block text-sm font-bold text-[#111827] inline-flex items-center gap-1.5">
+                  <Layers size={15} className="text-[#0D5C3A]" /> Beberapa waktu dalam 1 hari (pagi / sore / malam)
+                </span>
+                <span className="block text-xs text-[#6B7280] mt-1 leading-relaxed">
+                  Setiap waktu menjadi <b>sesi tersendiri</b>: absensi, rekap, kode akses, dan barcode
+                  <b> terpisah</b>. Jamaah yang hadir sesi pagi <b>tidak</b> otomatis terhitung hadir di
+                  sesi sore/malam, dan jamaah lain tetap tampil pada rekap sesi berikutnya.
+                </span>
+              </span>
+            </label>
+
+            {multi && (
+              <div className="mt-3 space-y-2" data-testid="keg-session-list">
+                {sessions.map((s, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_auto] sm:grid-cols-[1.1fr_1fr_1fr_auto] gap-2 items-end rounded-xl bg-[#FAFBF9] border border-[#E5E7EB] p-2.5" data-testid={`keg-session-row-${i}`}>
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Nama waktu</label>
+                      <input data-testid={`keg-session-label-${i}`} list="session-presets" value={s.label}
+                        onChange={(e) => setSession(i, "label", e.target.value)}
+                        placeholder="Pagi / Sore / Malam"
+                        className="w-full h-11 px-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white" />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Mulai</label>
+                      <select data-testid={`keg-session-start-${i}`} value={s.start_time} onChange={(e) => setSession(i, "start_time", e.target.value)}
+                        className="w-full h-11 px-2 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white">
+                        {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Selesai</label>
+                      <select data-testid={`keg-session-end-${i}`} value={s.end_time} onChange={(e) => setSession(i, "end_time", e.target.value)}
+                        className="w-full h-11 px-2 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white">
+                        {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <button type="button" data-testid={`keg-session-remove-${i}`} onClick={() => removeSession(i)}
+                      disabled={sessions.length <= 2}
+                      className="h-11 w-11 flex items-center justify-center rounded-xl border-2 border-[#E5E7EB] text-[#DC2626] hover:border-[#DC2626] disabled:opacity-40 disabled:cursor-not-allowed bg-white">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                <datalist id="session-presets">
+                  {SESSION_LABEL_PRESETS.map((l) => <option key={l} value={l} />)}
+                </datalist>
+                <button type="button" data-testid="keg-session-add" onClick={addSession} disabled={sessions.length >= 6}
+                  className="w-full h-11 rounded-xl border-2 border-dashed border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#E8F5EE] disabled:opacity-40">
+                  <Plus size={16} /> Tambah Waktu / Sesi
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         <input data-testid="keg-teacher" value={f.teacher} onChange={(e) => set("teacher", e.target.value)} placeholder="Pengajar" className={inp} />
         <input data-testid="keg-material" value={f.material} onChange={(e) => set("material", e.target.value)} placeholder="Materi" className={inp} />
         <input data-testid="keg-location" value={f.location} onChange={(e) => set("location", e.target.value)} placeholder="Lokasi" className={`${inp} sm:col-span-2`} />
@@ -395,26 +574,71 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
           </p>
         </div>
 
-        {/* FASE 8 — Rencana berikutnya (belum aktif) */}
-        <div className="sm:col-span-2 rounded-xl border-2 border-dashed border-[#E5E7EB] bg-[#FAFBF9] p-3.5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-[#4B5563]">
-            <Hourglass size={15} className="text-[#D97706]" /> Pengelompokan Lanjutan
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]">SEGERA HADIR</span>
+        {/* FASE 9 — PENGELOMPOKAN LANJUTAN (aktif) */}
+        <div className="sm:col-span-2 rounded-xl border-2 border-[#CDEBD9] bg-[#F0FAF4] p-3.5" data-testid="keg-advanced-group">
+          <div className="flex items-center gap-2 text-sm font-bold text-[#065F46]">
+            <SlidersHorizontal size={15} /> Pengelompokan Lanjutan
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#0D5C3A] text-white">AKTIF</span>
           </div>
-          <p className="text-xs text-[#6B7280] mt-1.5 leading-relaxed">
-            Nantinya kegiatan juga bisa dikhususkan menurut kelompok jamaah, misalnya
-            <b> sudah menikah / belum menikah</b>, serta <b>kelompok usia</b> (remaja,
-            dewasa, lansia). Pilihan ini belum dapat digunakan sekarang.
+          <p className="text-xs text-[#4B5563] mt-1.5 leading-relaxed">
+            Khususkan kegiatan menurut <b>status pernikahan</b> dan/atau <b>kelompok usia</b>.
+            Daftar absen, halaman absensi, jadwal peserta, dan laporan otomatis hanya
+            berisi jamaah yang sesuai.
           </p>
-          <div className="grid grid-cols-2 gap-2 mt-2.5">
-            <button type="button" disabled data-testid="keg-group-married-soon"
-              className="h-10 rounded-xl border-2 border-[#E5E7EB] bg-white text-[#9CA3AF] font-semibold text-xs cursor-not-allowed">
-              Sudah / Belum Menikah
-            </button>
-            <button type="button" disabled data-testid="keg-group-age-soon"
-              className="h-10 rounded-xl border-2 border-[#E5E7EB] bg-white text-[#9CA3AF] font-semibold text-xs cursor-not-allowed">
-              Kelompok Usia
-            </button>
+
+          {/* Status pernikahan */}
+          <div className="mt-3">
+            <label className="block text-xs font-bold text-[#111827] mb-1.5">Status Pernikahan</label>
+            <div className="grid grid-cols-3 gap-2">
+              {MARITAL_FILTER_OPTIONS.map((o) => {
+                const on = f.marital_filter === o.value;
+                return (
+                  <button key={o.value} type="button" data-testid={`keg-marital-${o.value}`}
+                    onClick={() => set("marital_filter", o.value)}
+                    className={`h-11 rounded-xl border-2 font-semibold text-xs transition-colors ${
+                      on ? "bg-[#0D5C3A] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E5E7EB] hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+                    }`}>
+                    {o.short}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Kelompok usia */}
+          <div className="mt-3">
+            <label className="block text-xs font-bold text-[#111827] mb-1.5">
+              Kelompok Usia <span className="font-normal text-[#6B7280]">(boleh pilih lebih dari satu · tidak dipilih = semua usia)</span>
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {AGE_GROUP_OPTIONS.map((o) => {
+                const on = (f.age_filter || []).includes(o.value);
+                return (
+                  <button key={o.value} type="button" data-testid={`keg-age-${o.value}`}
+                    onClick={() => toggleAge(o.value)}
+                    className={`h-12 rounded-xl border-2 font-semibold text-xs transition-colors flex flex-col items-center justify-center leading-tight ${
+                      on ? "bg-[#0D5C3A] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E5E7EB] hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+                    }`}>
+                    <span>{o.label}</span>
+                    <span className={`text-[10px] font-medium ${on ? "text-white/80" : "text-[#9CA3AF]"}`}>{o.range}</span>
+                  </button>
+                );
+              })}
+              {(f.age_filter || []).length > 0 && (
+                <button type="button" data-testid="keg-age-reset" onClick={() => set("age_filter", [])}
+                  className="h-12 rounded-xl border-2 border-dashed border-[#9CA3AF] text-[#6B7280] font-semibold text-xs hover:border-[#DC2626] hover:text-[#DC2626] bg-white">
+                  Semua Usia
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-[#92400E] mt-2 leading-relaxed bg-[#FEF3C7] rounded-lg px-2.5 py-2 inline-flex items-start gap-1.5">
+              <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+              <span>
+                Usia dihitung otomatis dari <b>tanggal lahir</b>, dan status pernikahan dari data
+                profil jamaah. Jamaah yang datanya <b>belum diisi</b> tidak masuk daftar kegiatan
+                khusus ini — lengkapi dulu di menu Peserta.
+              </span>
+            </p>
           </div>
         </div>
         {!editing && (

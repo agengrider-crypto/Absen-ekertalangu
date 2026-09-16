@@ -1082,6 +1082,22 @@ PESERTA_QUERY = {"roles": "peserta", "status": {"$in": ["active", "pending"]},
 KEGIATAN_AUDIENCES = ["reguler", "publik"]
 # FASE 8 — Penyaringan peserta kegiatan berdasarkan jenis kelamin.
 KEGIATAN_GENDER_FILTERS = ["semua", "L", "P"]
+# FASE 9 — PENGELOMPOKAN LANJUTAN (dibuka, sebelumnya "segera hadir"):
+#   1. Status pernikahan  → "semua" | "belum_menikah" | "sudah_menikah"
+#   2. Kelompok usia      → daftar kosong = semua usia
+KEGIATAN_MARITAL_FILTERS = ["semua"] + MARITAL_OPTIONS
+AGE_GROUPS = [
+    {"value": "anak", "label": "Anak-anak", "min": 0, "max": 12},
+    {"value": "remaja", "label": "Remaja", "min": 13, "max": 19},
+    {"value": "muda", "label": "Usia Muda", "min": 20, "max": 35},
+    {"value": "dewasa", "label": "Dewasa", "min": 36, "max": 55},
+    {"value": "lansia", "label": "Lansia", "min": 56, "max": 200},
+]
+AGE_GROUP_KEYS = [g["value"] for g in AGE_GROUPS]
+AGE_GROUP_LABEL = {g["value"]: g["label"] for g in AGE_GROUPS}
+MARITAL_LABEL = {"belum_menikah": "Belum Menikah", "sudah_menikah": "Sudah Menikah"}
+# FASE 9 — Label sesi kegiatan (1 hari beberapa waktu).
+SESSION_LABELS = ["Pagi", "Siang", "Sore", "Malam"]
 # FASE 8 — Status tindak lanjut peserta yang tidak hadir kegiatan sebelumnya.
 FOLLOWUP_STATUSES = ["belum_dihubungi", "sudah_dihubungi", "akan_hadir", "tidak_bisa"]
 SHARE_EXPIRE_DAYS = 7
@@ -1153,6 +1169,13 @@ def is_expired_iso(value: Optional[str]) -> bool:
     return dt <= datetime.now(timezone.utc)
 
 
+class SessionInput(BaseModel):
+    """FASE 9 — satu waktu/sesi kegiatan dalam 1 hari (mis. Pagi 08:00-10:00)."""
+    label: str
+    start_time: str
+    end_time: str
+
+
 class KegiatanInput(BaseModel):
     name: str
     type: str = "rutin"
@@ -1166,6 +1189,11 @@ class KegiatanInput(BaseModel):
     # FASE 8
     audience: str = "reguler"          # reguler | publik
     gender_filter: str = "semua"       # semua | L | P
+    # FASE 9 — pengelompokan lanjutan
+    marital_filter: str = "semua"      # semua | belum_menikah | sudah_menikah
+    age_filter: List[str] = []         # [] = semua usia
+    # FASE 9 — beberapa waktu/sesi dalam 1 hari (pagi/sore/malam)
+    sessions: List[SessionInput] = []
 
 
 class KegiatanUpdate(BaseModel):
@@ -1179,6 +1207,9 @@ class KegiatanUpdate(BaseModel):
     location: Optional[str] = None
     audience: Optional[str] = None
     gender_filter: Optional[str] = None
+    marital_filter: Optional[str] = None
+    age_filter: Optional[List[str]] = None
+    session_label: Optional[str] = None
 
 
 class AbsenInput(BaseModel):
@@ -1240,6 +1271,15 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
         # FASE 8 — tipe peserta, filter jenis kelamin & fase waktu kegiatan
         "audience": k.get("audience", "reguler"),
         "gender_filter": k.get("gender_filter", "semua"),
+        # FASE 9 — pengelompokan lanjutan + sesi (1 hari beberapa waktu)
+        "marital_filter": k.get("marital_filter", "semua"),
+        "age_filter": normalize_age_filter(k.get("age_filter")),
+        "filter_labels": kegiatan_filter_labels(k),
+        "base_name": k.get("base_name") or k.get("name"),
+        "session_label": k.get("session_label"),
+        "session_group_id": k.get("session_group_id"),
+        "session_index": k.get("session_index"),
+        "session_total": k.get("session_total") or 1,
         "phase": kegiatan_phase(k),
         "created_at": k.get("created_at"),
     }
@@ -1268,33 +1308,105 @@ def gender_label(gf: str) -> str:
     return {"L": "Khusus Laki-laki", "P": "Khusus Perempuan"}.get(gf, "Semua Jamaah")
 
 
+# --------------------------- FASE 9: usia & pernikahan ---------------------------
+def age_from_dob(dob: Optional[str], ref: Optional[datetime] = None) -> Optional[int]:
+    """Umur (tahun penuh) dari tanggal lahir 'YYYY-MM-DD'. None bila tidak valid."""
+    d = normalize_dob(dob)
+    if not d:
+        return None
+    try:
+        born = datetime.strptime(d, "%Y-%m-%d").date()
+    except Exception:
+        return None
+    today = (ref or now_wita()).date()
+    years = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+    return years if 0 <= years <= 200 else None
+
+
+def age_group_of(dob: Optional[str]) -> Optional[str]:
+    """Kelompok usia peserta ('anak'|'remaja'|'muda'|'dewasa'|'lansia')."""
+    age = age_from_dob(dob)
+    if age is None:
+        return None
+    for g in AGE_GROUPS:
+        if g["min"] <= age <= g["max"]:
+            return g["value"]
+    return None
+
+
+def normalize_age_filter(value) -> list:
+    """Bersihkan daftar kelompok usia; daftar kosong = semua usia."""
+    if not value:
+        return []
+    out = []
+    for v in value:
+        v = str(v).strip()
+        if v and v != "semua" and v in AGE_GROUP_KEYS and v not in out:
+            out.append(v)
+    # Semua kelompok dipilih = tidak ada penyaringan
+    if len(out) == len(AGE_GROUP_KEYS):
+        return []
+    return out
+
+
+def kegiatan_filter_labels(k: dict) -> list:
+    """Label ringkas semua penyaringan peserta kegiatan (untuk UI & pesan error)."""
+    labels = []
+    gf = k.get("gender_filter") or "semua"
+    if gf in ("L", "P"):
+        labels.append(gender_label(gf))
+    mf = k.get("marital_filter") or "semua"
+    if mf in MARITAL_OPTIONS:
+        labels.append(f"Khusus {MARITAL_LABEL[mf]}")
+    ages = normalize_age_filter(k.get("age_filter"))
+    if ages:
+        labels.append("Khusus Usia " + ", ".join(AGE_GROUP_LABEL[a] for a in ages))
+    return labels
+
+
 def peserta_query_for(k: dict) -> dict:
-    """Query peserta sesuai tipe kegiatan (FASE 8)."""
+    """Query peserta sesuai tipe kegiatan (FASE 8) + status pernikahan (FASE 9)."""
     q = dict(PESERTA_QUERY)
     if (k.get("audience") or "reguler") == "reguler":
         # Kegiatan reguler: hanya akun yang sudah aktivasi.
         q["status"] = "active"
+    mf = k.get("marital_filter") or "semua"
+    if mf in MARITAL_OPTIONS:
+        q["marital"] = mf
     return q
 
 
 def match_gender_filter(k: dict, user: dict) -> bool:
+    """Apakah 1 peserta termasuk daftar peserta kegiatan.
+
+    FASE 9 — selain jenis kelamin, ikut memeriksa PENGELOMPOKAN LANJUTAN:
+    status pernikahan & kelompok usia. Nama fungsi dipertahankan karena
+    dipakai di banyak endpoint.
+    """
     gf = k.get("gender_filter") or "semua"
-    if gf not in ("L", "P"):
-        return True
-    return (_derive_gender(user) or "L") == gf
+    if gf in ("L", "P") and (_derive_gender(user) or "L") != gf:
+        return False
+    mf = k.get("marital_filter") or "semua"
+    if mf in MARITAL_OPTIONS and (user.get("marital") or None) != mf:
+        return False
+    ages = normalize_age_filter(k.get("age_filter"))
+    if ages and age_group_of(user.get("dob")) not in ages:
+        return False
+    return True
 
 
 def assert_gender_eligible(k: dict, u: dict) -> None:
-    """REVISI: blokir total peserta yang tidak sesuai filter jenis kelamin kegiatan."""
+    """REVISI: blokir total peserta yang tidak sesuai penyaringan kegiatan."""
     if not match_gender_filter(k, u):
+        labels = kegiatan_filter_labels(k) or ["khusus kelompok tertentu"]
         raise HTTPException(
             status_code=400,
-            detail=f"Kegiatan ini {gender_label(k.get('gender_filter') or 'semua').lower()}. "
+            detail=f"Kegiatan ini {' · '.join(labels).lower()}. "
                    f"{u.get('name') or 'Peserta'} tidak termasuk daftar peserta kegiatan ini.")
 
 
 async def peserta_for_kegiatan(k: dict) -> list:
-    """Daftar peserta yang berhak diabsen pada satu kegiatan (FASE 8)."""
+    """Daftar peserta yang berhak diabsen pada satu kegiatan (FASE 8/9)."""
     docs = await db.users.find(peserta_query_for(k)).sort("name", 1).to_list(5000)
     return [d for d in docs if match_gender_filter(k, d)]
 
@@ -1418,45 +1530,83 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
     gender_filter = (body.gender_filter or "semua").strip()
     if gender_filter not in KEGIATAN_GENDER_FILTERS:
         raise HTTPException(status_code=400, detail="Filter jenis kelamin tidak valid")
+    marital_filter = (body.marital_filter or "semua").strip()
+    if marital_filter not in KEGIATAN_MARITAL_FILTERS:
+        raise HTTPException(status_code=400, detail="Filter status pernikahan tidak valid")
+    age_filter = normalize_age_filter(body.age_filter)
+
+    # FASE 9 — beberapa waktu/sesi dalam 1 hari (mis. pengajian pagi / sore / malam).
+    # Setiap sesi menjadi KEGIATAN TERSENDIRI yang saling terhubung lewat
+    # `session_group_id`, sehingga absensi, rekap, laporan, kode akses & barcode
+    # otomatis TERPISAH per sesi (peserta yang hadir pagi tidak ikut terhitung
+    # hadir di sesi sore/malam).
+    sessions = []
+    for s in (body.sessions or []):
+        label = (s.label or "").strip()
+        if not label:
+            raise HTTPException(status_code=400, detail="Nama waktu/sesi kegiatan wajib diisi")
+        if kegiatan_end_dt(body.date, s.start_time) is None or kegiatan_end_dt(body.date, s.end_time) is None:
+            raise HTTPException(status_code=400, detail="Format waktu sesi harus HH:MM")
+        sessions.append({"label": label, "start_time": s.start_time, "end_time": s.end_time})
+    if len(sessions) > 6:
+        raise HTTPException(status_code=400, detail="Maksimal 6 waktu/sesi dalam 1 hari")
+    multi = len(sessions) > 1
+    if not sessions:
+        sessions = [{"label": None, "start_time": body.start_time, "end_time": body.end_time}]
 
     occurrences = 4 if body.recurring else 1
     group_id = str(uuid.uuid4()) if body.recurring else None
     now_iso = datetime.now(timezone.utc).isoformat()
+    base_name = body.name.strip()
     docs = []
     for i in range(occurrences):
         d = base_date + timedelta(weeks=i)
-        docs.append({
-            "_id": str(uuid.uuid4()),
-            "name": body.name.strip(),
-            "type": body.type,
-            "date": d.strftime("%Y-%m-%d"),
-            "start_time": body.start_time,
-            "end_time": body.end_time,
-            "teacher": (body.teacher or "").strip() or None,
-            "material": (body.material or "").strip() or None,
-            "location": (body.location or "").strip() or None,
-            "recurring": body.recurring,
-            "recurring_group_id": group_id,
-            "audience": audience,
-            "gender_filter": gender_filter,
-            "status": "open",
-            "closed_at": None,
-            "auto_closed": False,
-            "share_token": None,
-            "share_expires_at": None,
-            # Fase 7: setiap kegiatan baru langsung punya kode akses absensi 6 digit
-            # (berlaku sampai kegiatan ditutup/selesai) + token halaman absensi.
-            "akses_token": secrets.token_urlsafe(9),
-            "access_code": gen_access_code(),
-            "access_code_at": now_iso,
-            "absen_token": None,
-            "absen_expires_at": None,
-            "created_at": now_iso,
-            "created_by": str(admin["_id"]),
-        })
+        session_group_id = str(uuid.uuid4()) if multi else None
+        for idx, s in enumerate(sessions):
+            docs.append({
+                "_id": str(uuid.uuid4()),
+                "name": f"{base_name} ({s['label']})" if multi else base_name,
+                "base_name": base_name,
+                "session_label": s["label"] if multi else None,
+                "session_group_id": session_group_id,
+                "session_index": idx if multi else None,
+                "session_total": len(sessions) if multi else 1,
+                "type": body.type,
+                "date": d.strftime("%Y-%m-%d"),
+                "start_time": s["start_time"],
+                "end_time": s["end_time"],
+                "teacher": (body.teacher or "").strip() or None,
+                "material": (body.material or "").strip() or None,
+                "location": (body.location or "").strip() or None,
+                "recurring": body.recurring,
+                "recurring_group_id": group_id,
+                "audience": audience,
+                "gender_filter": gender_filter,
+                "marital_filter": marital_filter,
+                "age_filter": age_filter,
+                "status": "open",
+                "closed_at": None,
+                "auto_closed": False,
+                "share_token": None,
+                "share_expires_at": None,
+                # Fase 7: setiap kegiatan baru langsung punya kode akses absensi 6 digit
+                # (berlaku sampai kegiatan ditutup/selesai) + token halaman absensi.
+                "akses_token": secrets.token_urlsafe(9),
+                "access_code": gen_access_code(),
+                "access_code_at": now_iso,
+                "absen_token": None,
+                "absen_expires_at": None,
+                "created_at": now_iso,
+                "created_by": str(admin["_id"]),
+            })
     await db.kegiatans.insert_many(docs)
+    extra = []
+    if multi:
+        extra.append(f"{len(sessions)} waktu/sesi: " + ", ".join(s["label"] for s in sessions))
+    if body.recurring:
+        extra.append(f"berulang {occurrences}x")
     await log_activity(admin, "buat_kegiatan",
-                       f"Membuat kegiatan '{body.name}'" + (f" (berulang {occurrences}x)" if body.recurring else ""))
+                       f"Membuat kegiatan '{base_name}'" + (f" ({'; '.join(extra)})" if extra else ""))
     return [serialize_kegiatan(d, await kegiatan_counts(d)) for d in docs]
 
 
@@ -1514,7 +1664,8 @@ async def update_kegiatan(kegiatan_id: str, body: KegiatanUpdate, admin: dict = 
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
     updates = {}
     for field in ["name", "type", "date", "start_time", "end_time", "teacher",
-                  "material", "location", "audience", "gender_filter"]:
+                  "material", "location", "audience", "gender_filter",
+                  "marital_filter", "session_label"]:
         val = getattr(body, field)
         if val is not None:
             if field == "type" and val not in KEGIATAN_TYPES:
@@ -1523,7 +1674,13 @@ async def update_kegiatan(kegiatan_id: str, body: KegiatanUpdate, admin: dict = 
                 raise HTTPException(status_code=400, detail="Tipe peserta kegiatan tidak valid")
             if field == "gender_filter" and val not in KEGIATAN_GENDER_FILTERS:
                 raise HTTPException(status_code=400, detail="Filter jenis kelamin tidak valid")
+            if field == "marital_filter" and val not in KEGIATAN_MARITAL_FILTERS:
+                raise HTTPException(status_code=400, detail="Filter status pernikahan tidak valid")
             updates[field] = val.strip() if isinstance(val, str) else val
+    if body.age_filter is not None:
+        updates["age_filter"] = normalize_age_filter(body.age_filter)
+    if "name" in updates and not k.get("session_label"):
+        updates["base_name"] = updates["name"]
     if updates:
         await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": updates})
         await log_activity(admin, "ubah_kegiatan", f"Mengubah kegiatan '{k.get('name')}'")
@@ -2049,11 +2206,12 @@ async def my_absen_mark(token: str, user: dict = Depends(get_current_user)):
             status_code=403,
             detail="Mohon lengkapi data profil Anda terlebih dahulu sebelum melakukan absen. "
                    "Jazakumullahu khoiro.")
-    # FASE 8 — kegiatan khusus laki-laki/perempuan
+    # FASE 8/9 — kegiatan khusus (jenis kelamin / status pernikahan / kelompok usia)
     if not match_gender_filter(k, user):
+        labels = kegiatan_filter_labels(k) or ["khusus kelompok tertentu"]
         raise HTTPException(
             status_code=403,
-            detail=f"Mohon maaf, kegiatan ini {gender_label(k.get('gender_filter')).lower()} "
+            detail=f"Mohon maaf, kegiatan ini {' · '.join(labels).lower()} "
                    "sehingga absen Anda tidak dapat diproses.")
     # FASE 8 — kegiatan reguler hanya untuk akun yang sudah aktivasi
     if (k.get("audience") or "reguler") == "reguler" and (user.get("status") or "active") != "active":
@@ -2266,6 +2424,11 @@ def public_kegiatan_info(k: dict) -> dict:
         "audience": k.get("audience", "reguler"),
         "gender_filter": k.get("gender_filter", "semua"),
         "gender_label": gender_label(k.get("gender_filter", "semua")),
+        # FASE 9 — pengelompokan lanjutan + label sesi (pagi/sore/malam)
+        "marital_filter": k.get("marital_filter", "semua"),
+        "age_filter": normalize_age_filter(k.get("age_filter")),
+        "filter_labels": kegiatan_filter_labels(k),
+        "session_label": k.get("session_label"),
     }
 
 
@@ -2370,9 +2533,10 @@ async def mark_absensi_by_code(token: str, body: AbsensiMarkInput):
     if not u or "peserta" not in (u.get("roles") or []) or u.get("is_system"):
         raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
     if not match_gender_filter(k, u):
+        labels = kegiatan_filter_labels(k) or ["khusus kelompok tertentu"]
         raise HTTPException(
             status_code=400,
-            detail=f"Kegiatan ini {gender_label(k.get('gender_filter')).lower()}, "
+            detail=f"Kegiatan ini {' · '.join(labels).lower()}, "
                    "peserta ini tidak termasuk dalam daftar.")
     arrival = now_wita().isoformat() if body.status == "hadir" else None
     await db.absensis.update_one(

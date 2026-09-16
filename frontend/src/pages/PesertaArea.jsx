@@ -14,7 +14,7 @@ const BASE_TABS = [
   { key: "beranda", label: "Beranda", icon: Home },
   { key: "kegiatan", label: "Kegiatan", icon: CalendarDays },
   { key: "scan", label: "Scan", icon: ScanLine },
-  { key: "qr", label: "QR Saya", icon: QrCode },
+  { key: "qr", label: "Barcode", icon: QrCode },
   { key: "profil", label: "Profil", icon: User },
 ];
 

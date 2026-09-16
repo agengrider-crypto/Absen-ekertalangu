@@ -27,8 +27,14 @@ function DetailModal({ k, onClose }) {
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
-            {k.gender_filter && k.gender_filter !== "semua" && (
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{GENDER_FILTER_LABEL[k.gender_filter]}</span>
+            {(k.filter_labels && k.filter_labels.length
+              ? k.filter_labels
+              : (k.gender_filter && k.gender_filter !== "semua" ? [GENDER_FILTER_LABEL[k.gender_filter]] : [])
+            ).map((l) => (
+              <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{l}</span>
+            ))}
+            {(k.session_total || 1) > 1 && k.session_label && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]">Sesi {k.session_label}</span>
             )}
           </div>
           <h2 className="font-heading text-xl font-bold text-[#111827]">{k.name}</h2>

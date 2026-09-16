@@ -54,6 +54,70 @@ export const GENDER_FILTER_LABEL = {
   P: "Khusus Perempuan",
 };
 
+/* ------------------------- FASE 9 -------------------------
+ * Pengelompokan Lanjutan (status pernikahan + kelompok usia) & sesi kegiatan.
+ */
+
+export const MARITAL_FILTER_OPTIONS = [
+  { value: "semua", label: "Semua status pernikahan", short: "Semua" },
+  { value: "belum_menikah", label: "Khusus belum menikah", short: "Belum Menikah" },
+  { value: "sudah_menikah", label: "Khusus sudah menikah", short: "Sudah Menikah" },
+];
+
+export const MARITAL_FILTER_LABEL = {
+  semua: "Semua Status",
+  belum_menikah: "Khusus Belum Menikah",
+  sudah_menikah: "Khusus Sudah Menikah",
+};
+
+// Kelompok usia otomatis dihitung dari tanggal lahir peserta.
+export const AGE_GROUP_OPTIONS = [
+  { value: "anak", label: "Anak-anak", range: "0–12 th" },
+  { value: "remaja", label: "Remaja", range: "13–19 th" },
+  { value: "muda", label: "Usia Muda", range: "20–35 th" },
+  { value: "dewasa", label: "Dewasa", range: "36–55 th" },
+  { value: "lansia", label: "Lansia", range: "56 th +" },
+];
+
+export const AGE_GROUP_LABEL = AGE_GROUP_OPTIONS.reduce(
+  (acc, g) => ({ ...acc, [g.value]: g.label }), {},
+);
+
+// Pilihan cepat nama sesi (boleh diubah manual)
+export const SESSION_LABEL_PRESETS = ["Pagi", "Siang", "Sore", "Malam"];
+
+export const SESSION_DEFAULT_TIME = {
+  Pagi: ["08:00", "10:00"],
+  Siang: ["13:00", "14:30"],
+  Sore: ["16:00", "17:30"],
+  Malam: ["20:00", "21:30"],
+};
+
+/** Gabungkan kegiatan 1 hari beberapa sesi menjadi 1 kartu. */
+export function groupSessions(items) {
+  const out = [];
+  const idx = {};
+  (items || []).forEach((k) => {
+    const gid = k.session_group_id;
+    if (!gid || (k.session_total || 1) <= 1) {
+      out.push({ key: `single-${k.id}`, single: true, k, items: [k] });
+      return;
+    }
+    if (idx[gid] === undefined) {
+      idx[gid] = out.length;
+      out.push({ key: `grp-${gid}`, single: false, k, items: [k] });
+    } else {
+      out[idx[gid]].items.push(k);
+    }
+  });
+  out.forEach((g) => {
+    if (!g.single) {
+      g.items.sort((a, b) => (a.session_index ?? 0) - (b.session_index ?? 0));
+    }
+  });
+  return out;
+}
+
 // Fase waktu kegiatan → dipakai untuk urutan daftar
 export const PHASE_META = {
   akan_datang: { label: "Akan Datang", badge: "Akan Datang", cls: "bg-[#E0F2FE] text-[#075985]" },

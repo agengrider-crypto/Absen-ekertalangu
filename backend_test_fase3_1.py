@@ -12,7 +12,7 @@ import requests
 from datetime import datetime, timedelta
 
 # Base URL from frontend/.env
-BASE_URL = "https://event-recap-filter.preview.emergentagent.com/api"
+BASE_URL = "https://barcode-attendance-31.preview.emergentagent.com/api"
 
 # Test credentials from /app/memory/test_credentials.md
 ADMIN_CREDS = {"identifier": "admin", "password": "jokam354"}

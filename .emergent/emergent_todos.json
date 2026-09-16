@@ -1,22 +1,26 @@
 [
   {
-    "content": "Backend FASE 8 (audience, gender_filter, tamu, batch offline, tindak lanjut, performa)",
+    "content": "Backend: filter lanjutan (status pernikahan + kelompok usia) pada kegiatan",
     "status": "completed"
   },
   {
-    "content": "Frontend FASE 8 (detail view + nav horizontal, form kegiatan, urutan daftar, offline, tamu, tindak lanjut)",
+    "content": "Backend: sesi kegiatan (pagi/sore/malam) — absen & rekap terpisah",
     "status": "completed"
   },
   {
-    "content": "Fix bug input 1 huruf + tombol kirim anonim",
+    "content": "Frontend: form kegiatan — Pengelompokan Lanjutan aktif + editor sesi",
     "status": "completed"
   },
   {
-    "content": "Testing: testing_agent_v3 + verifikasi manual semua 8 revisi",
+    "content": "Frontend: kartu kegiatan dikelompokkan per sesi + badge filter",
     "status": "completed"
   },
   {
-    "content": "Update PRD.md/CHANGELOG + teks PR siap pakai (docs/PR_FASE8.md)",
+    "content": "Frontend: tombol pintasan Barcode Saya di beranda peserta",
+    "status": "completed"
+  },
+  {
+    "content": "Verifikasi manual (curl + screenshot) & update PRD.md",
     "status": "completed"
   }
 ]

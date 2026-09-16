@@ -185,7 +185,7 @@ Penyebab: `get_or_create_public_qr()` menyimpan `link` + `image` PERMANEN di
 `app_settings._id="public_qr"`. Sandbox dan produksi memakai database Atlas yang SAMA,
 sehingga QR yang pertama kali dibuat di sandbox (domain preview Emergent) terus
 disajikan di produksi Vercel. Dibuktikan: dokumen berisi
-`link: "https://event-recap-filter.preview.emergentagent.com/register?token=..."`.
+`link: "https://barcode-attendance-31.preview.emergentagent.com/register?token=..."`.
 
 Perbaikan:
 - `app_settings.public_qr` sekarang menyimpan **hanya `token`** + `created_at`.
@@ -309,3 +309,56 @@ auto-hadir /absen.
 Verifikasi mandiri (tanpa testing agent, sesuai permintaan user): PATCH marital admin & profil
 sendiri (nilai invalid ditolak → null), laporan JSON `total_tamu`, sheet Excel "Daftar Tamu",
 PDF 223 KB terbentuk, dan screenshot UI (laporan tamu, form tambah, detail peserta).
+
+## FASE 9 (2026-09-16) — Pengelompokan Lanjutan, Sesi Kegiatan, Pintasan Barcode Peserta
+
+Permintaan user (3 poin) — SELESAI, diuji manual (user minta TIDAK memakai testing agent).
+
+### 1. Pengelompokan Lanjutan DIBUKA (sebelumnya "SEGERA HADIR")
+- Field kegiatan baru: `marital_filter` (`semua|belum_menikah|sudah_menikah`) dan
+  `age_filter` (daftar; kosong = semua usia).
+- Kelompok usia dihitung OTOMATIS dari `dob`: anak 0–12, remaja 13–19, muda 20–35,
+  dewasa 36–55, lansia 56+ (`AGE_GROUPS`, `age_from_dob()`, `age_group_of()`).
+- `match_gender_filter()` (nama dipertahankan, dipakai ~15 endpoint) kini memeriksa
+  jenis kelamin + status pernikahan + kelompok usia. `peserta_query_for()` menambahkan
+  filter `marital` di level Mongo; usia disaring in-memory.
+- `kegiatan_filter_labels()` → daftar label (mis. ["Khusus Perempuan","Khusus Usia Lansia"])
+  dipakai badge UI + pesan penolakan absen (`assert_gender_eligible`, absen kode akses,
+  absen mandiri QR).
+- `serialize_kegiatan()` & `public_kegiatan_info()` mengirim `marital_filter`,
+  `age_filter`, `filter_labels`.
+- Peserta yang `dob`/`marital` belum diisi TIDAK masuk kegiatan khusus (ada peringatan
+  di form kegiatan agar dilengkapi lewat menu Peserta).
+- UI: blok "Pengelompokan Lanjutan — AKTIF" di form kegiatan (tombol status pernikahan +
+  multi-pilih kelompok usia + tombol "Semua Usia"). Badge filter tampil di kartu kegiatan,
+  halaman detail, jadwal peserta, dan halaman absensi publik.
+
+### 2. Kegiatan 1 hari beberapa waktu/SESI (pagi/sore/malam) — rekap TERPISAH
+- `POST /api/admin/kegiatan` menerima `sessions: [{label,start_time,end_time}]` (maks 6).
+  Setiap sesi dibuat sebagai DOKUMEN KEGIATAN TERSENDIRI yang terhubung lewat
+  `session_group_id` + `base_name`, `session_label`, `session_index`, `session_total`.
+  Nama tersimpan "Nama Kegiatan (Pagi)" agar rekap/laporan/WA jelas.
+- Konsekuensi (SUMBER BUG yang dilaporkan user): absensi, rekap, kode akses 6 digit,
+  barcode/QR, tindak lanjut, dan laporan otomatis TERPISAH per sesi. Peserta yang hadir
+  sesi pagi TIDAK terhitung hadir di sesi sore/malam, dan peserta lain tetap muncul
+  (status alpha) pada rekap sesi berikutnya. Terbukti via uji: rekap Pagi 1 hadir/1 alpha,
+  rekap Malam 2 alpha, laporan menampilkan 2 baris terpisah.
+- Bisa digabung dengan "kegiatan berulang 4 minggu" (occurrences × sesi).
+- UI: checkbox "Beberapa waktu dalam 1 hari (pagi/sore/malam)" + editor daftar sesi
+  (nama waktu dengan preset Pagi/Siang/Sore/Malam, jam mulai/selesai, tambah/hapus).
+  Daftar kegiatan menggabungkan sesi 1 grup menjadi SATU kartu (`SessionGroupCard`,
+  `groupSessions()`), tiap sesi punya baris sendiri + persentase & H/I/A, klik → halaman
+  detail sesi tersebut.
+
+### 3. Barcode di dashboard peserta
+- Beranda peserta: kartu pintasan "Barcode Saya" (`button-goto-barcode`) → tab Barcode
+  (halaman QR pribadi rotating, bisa di-Download) + pintasan "Scan Barcode"
+  (`button-goto-scan`). Label tab bawah "QR Saya" → "Barcode".
+
+### Verifikasi manual
+curl: buat kegiatan 2–3 sesi (dokumen terpisah + counts), absen sesi Pagi lalu bandingkan
+rekap Pagi vs Malam, laporan per_kegiatan 2 baris, filter usia lansia (hanya 1 dari 2 peserta),
+filter sudah menikah, penolakan absen peserta tidak sesuai (400 + pesan jelas).
+Screenshot: form kegiatan (editor sesi + Pengelompokan Lanjutan AKTIF), kartu grup sesi,
+beranda peserta (pintasan barcode), halaman Barcode Saya.
+Data uji sudah dihapus kembali dari database.

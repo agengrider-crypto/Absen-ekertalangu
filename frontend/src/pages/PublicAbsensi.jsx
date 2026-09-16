@@ -277,11 +277,14 @@ export default function PublicAbsensi() {
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3]">
             {AUDIENCE_LABEL[k.audience] || "Reguler"}
           </span>
-          {k.gender_filter && k.gender_filter !== "semua" && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">
-              {GENDER_FILTER_LABEL[k.gender_filter]}
+          {(k.filter_labels && k.filter_labels.length
+            ? k.filter_labels
+            : (k.gender_filter && k.gender_filter !== "semua" ? [GENDER_FILTER_LABEL[k.gender_filter]] : [])
+          ).map((l) => (
+            <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">
+              {l}
             </span>
-          )}
+          ))}
         </div>
         <h1 className="font-heading text-xl font-bold text-[#111827] mt-2">{k.name}</h1>
         <div className="text-sm text-[#6B7280] mt-2 grid gap-1">
