@@ -4,7 +4,7 @@ import {
   ListChecks, ScanLine, KeyRound, MessageSquareText, UserPlus, PhoneCall,
   Copy, RefreshCw, Download, Send, Trash2, CheckCircle2, AlertTriangle,
   Users, PhoneOff, ClipboardList, QrCode, MoreHorizontal, Pencil,
-  Share2, RotateCcw,
+  Share2, RotateCcw, Layers, FileBarChart2,
 } from "lucide-react";
 import { toast } from "sonner";
 import ActionModal from "@/components/ActionModal";
@@ -42,7 +42,8 @@ const FOLLOWUP_META = {
 };
 
 export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, onShareRekap,
-                                        onAbsenQr, onReminder, onToggleStatus, onDelete }) {
+                                        onAbsenQr, onReminder, onToggleStatus, onDelete,
+                                        onRekapGabungan, onSalinJadwal }) {
   const [tab, setTab] = useState("manual");
   const [showActions, setShowActions] = useState(false);
   const [data, setData] = useState(null);
@@ -129,6 +130,19 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
           {k.teacher && <span className="inline-flex items-center gap-1.5"><User size={15} /> {k.teacher}</span>}
           {k.material && <span className="inline-flex items-center gap-1.5"><BookOpen size={15} /> {k.material}</span>}
         </div>
+        {/* FASE 10 — aksi cepat grup sesi: rekap gabungan 1 hari & salin jadwal */}
+        {(k.session_total || 1) > 1 && k.session_group_id && (
+          <div className="mt-3 flex flex-wrap gap-2" data-testid="detail-sesi-actions">
+            <button type="button" data-testid="detail-rekap-gabungan" onClick={() => onRekapGabungan && onRekapGabungan(k)}
+              className="h-10 px-3.5 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#094229]">
+              <FileBarChart2 size={16} /> Rekap Gabungan 1 Hari ({k.session_total} sesi)
+            </button>
+            <button type="button" data-testid="detail-salin-jadwal" onClick={() => onSalinJadwal && onSalinJadwal(k)}
+              className="h-10 px-3.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#E8F5EE]">
+              <Copy size={16} /> Salin Jadwal Sesi
+            </button>
+          </div>
+        )}
       </div>
 
       {/* NAVIGASI BAR HORIZONTAL */}
@@ -201,6 +215,17 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
               key: "reminder", testid: "detail-opsi-reminder", label: "Pengingat WhatsApp",
               desc: "Kirim pengingat ke peserta", icon: Send,
               onClick: () => onReminder && onReminder(k),
+            },
+            ...((k.session_total || 1) > 1 ? [{
+              key: "gabungan", testid: "detail-opsi-gabungan", label: "Rekap Gabungan 1 Hari",
+              desc: "Gabungkan kehadiran semua sesi (pagi/sore/malam)", icon: Layers,
+              onClick: () => onRekapGabungan && onRekapGabungan(k),
+            }] : []),
+            {
+              key: "salin", testid: "detail-opsi-salin", label: "Salin ke Tanggal Lain",
+              desc: (k.session_total || 1) > 1 ? "Salin pola semua sesi hari ini ke tanggal lain" : "Salin jadwal ini ke tanggal lain",
+              icon: Copy,
+              onClick: () => onSalinJadwal && onSalinJadwal(k),
             },
             {
               key: "edit", testid: "detail-opsi-edit", label: "Edit Kegiatan",

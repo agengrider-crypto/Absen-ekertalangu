@@ -362,3 +362,50 @@ filter sudah menikah, penolakan absen peserta tidak sesuai (400 + pesan jelas).
 Screenshot: form kegiatan (editor sesi + Pengelompokan Lanjutan AKTIF), kartu grup sesi,
 beranda peserta (pintasan barcode), halaman Barcode Saya.
 Data uji sudah dihapus kembali dari database.
+
+## FASE 10 — Rekap Gabungan Sesi, Salin Jadwal, Kelengkapan Data (SELESAI)
+Permintaan user (3 fitur, tanpa testing agent — verifikasi manual curl + screenshot):
+
+### 1. Rekap Gabungan 1 Hari (semua sesi pagi/sore/malam)
+- `GET /api/admin/kegiatan/{kegiatan_id}/rekap-gabungan` — `kegiatan_id` boleh salah satu
+  sesi dari grup (`sesi_group_docs()` mengambil semua dokumen dengan `session_group_id` sama).
+  Mengembalikan: `sessions[]` (counts per sesi), `summary` {total, hadir_min_1, hadir_semua,
+  izin_saja, tidak_hadir, tamu, ratio_min_1, ratio_semua}, `rows[]` (jamaah × sesi:
+  status/arrival_time per sesi, `null` bila tidak termasuk daftar sesi tsb).
+- Rekap per sesi TETAP terpisah; endpoint ini hanya menggabungkan untuk tampilan 1 hari.
+- UI: `SesiExtras.jsx` → `RekapGabunganModal` (kartu ringkasan, kartu per sesi, tombol
+  "Salin Ringkasan (teks WhatsApp)", tabel jamaah × sesi dengan filter Semua/Hadir ≥1/Tidak
+  hadir + pencarian). Tombol: `SessionGroupCard` di daftar kegiatan
+  (`sesi-rekap-gabungan-{gid}`), kartu info detail sesi (`detail-rekap-gabungan`), dan
+  menu Aksi Kegiatan (`detail-opsi-gabungan`).
+
+### 2. Salin Jadwal Sesi ke tanggal lain
+- `POST /api/admin/kegiatan/{kegiatan_id}/salin` body `{dates: [YYYY-MM-DD,...]}` (1–12
+  tanggal; `date` tunggal juga diterima). Menyalin seluruh grup sesi (label, jam, jenis,
+  pengajar, materi, lokasi, audience, semua filter peserta) ke tiap tanggal dengan
+  `session_group_id` BARU per tanggal, kode akses & `akses_token` baru, status open,
+  absensi TIDAK disalin, field `copied_from`. Kegiatan tunggal (bukan sesi) juga bisa disalin.
+  Tolak bila tanggal tujuan = tanggal asal. Log aktivitas `salin_kegiatan`.
+- UI: `SalinJadwalModal` (pratinjau pola sesi, chip cepat Besok / Minggu depan /
+  4 minggu ke depan, daftar tanggal multi, tombol "Salin ke N tanggal (M jadwal)").
+  Tombol: `SessionGroupCard` (`sesi-salin-jadwal-{gid}`), `KegiatanCard` tunggal
+  (`kegiatan-salin-{id}`), detail (`detail-salin-jadwal`, `detail-opsi-salin`).
+  Setelah sukses di daftar: otomatis pindah ke bulan tanggal tujuan pertama.
+
+### 3. Kelengkapan Data (tanggal lahir / status pernikahan kosong)
+- `GET /api/admin/users/kelengkapan` (didefinisikan SEBELUM `/admin/users/{user_id}`) →
+  {total_peserta, belum_lengkap, lengkap, missing_dob, missing_marital, rows[{id,name,
+  phone,gender,status,dob,marital,missing[],missing_labels[]}]}.
+- UI Peserta (`Peserta.jsx`): chip filter baru "Data Belum Lengkap" (`filter-incomplete`),
+  banner kelengkapan (`kelengkapan-banner`) dengan hitungan tgl lahir/status nikah kosong
+  + tombol "Tampilkan daftar", kolom tabel "Kelengkapan" (badge "Lengkap" / "Tgl lahir
+  kosong" / "Status nikah kosong"), keterangan di baris versi HP. Helper `dataMissing(u)`.
+- UI Dashboard admin: kartu peringatan `dashboard-kelengkapan` (klik → menu Peserta).
+
+### Catatan
+- `KegiatanCard` diubah dari `<button>` menjadi `<div>` berisi tombol buka
+  (`kegiatan-card-open-{id}`) + tombol salin, agar tidak ada nested button.
+- Verifikasi: curl ketiga endpoint (rekap gabungan Ibu Jamaah H+A=1/2, Pak Pengurus A+I,
+  salin 2 tanggal → 4 jadwal dengan kode akses baru, tolak tanggal sama), screenshot
+  dashboard, halaman peserta (filter), daftar kegiatan, modal rekap gabungan, modal salin,
+  halaman detail sesi + submit salin "Besok" sukses.

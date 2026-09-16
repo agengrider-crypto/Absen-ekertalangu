@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Users, Search, Loader2, UserPlus, Trash2, FileSpreadsheet, Download,
-  ListPlus, X, Eye, AlertTriangle, Plus,
+  ListPlus, X, Eye, AlertTriangle, Plus, ClipboardList, CalendarDays, Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, API, formatApiErrorDetail } from "@/lib/api";
@@ -10,6 +10,19 @@ import PesertaDetailModal from "./PesertaDetailModal";
 import { formatTanggal, genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white";
+
+/**
+ * FASE 10 — KELENGKAPAN DATA: tanggal lahir & status pernikahan dipakai untuk
+ * penyaringan kegiatan (kelompok usia / khusus menikah). Jamaah yang datanya
+ * kosong tidak akan masuk daftar kegiatan khusus tersebut.
+ */
+export function dataMissing(u) {
+  const m = [];
+  if (!u?.dob || !/^\d{4}-\d{2}-\d{2}$/.test(String(u.dob).slice(0, 10))) m.push("dob");
+  if (!u?.marital) m.push("marital");
+  return m;
+}
+const MISSING_LABEL = { dob: "Tgl lahir", marital: "Status nikah" };
 
 function PesertaAvatar({ user }) {
   const [err, setErr] = useState(false);
@@ -38,7 +51,7 @@ export default function Peserta({ role = "admin" }) {
   const [users, setUsers] = useState(null);
   const [kelompok, setKelompok] = useState([]);
   const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // all | pending | active
+  const [statusFilter, setStatusFilter] = useState("all"); // all | pending | active | incomplete
   const [selected, setSelected] = useState(new Set());
   const [detailId, setDetailId] = useState(null);
   const [modal, setModal] = useState(null); // "add" | "bulk" | null
@@ -61,6 +74,9 @@ export default function Peserta({ role = "admin" }) {
       all: all.length,
       pending: all.filter((u) => u.status === "pending").length,
       active: all.filter((u) => u.status === "active").length,
+      incomplete: all.filter((u) => dataMissing(u).length > 0).length,
+      missingDob: all.filter((u) => dataMissing(u).includes("dob")).length,
+      missingMarital: all.filter((u) => dataMissing(u).includes("marital")).length,
     };
   }, [users]);
 
@@ -69,6 +85,7 @@ export default function Peserta({ role = "admin" }) {
     let list = users;
     if (statusFilter === "pending") list = list.filter((u) => u.status === "pending");
     else if (statusFilter === "active") list = list.filter((u) => u.status === "active");
+    else if (statusFilter === "incomplete") list = list.filter((u) => dataMissing(u).length > 0);
     const t = q.trim().toLowerCase();
     if (!t) return list;
     return list.filter((u) =>
@@ -190,6 +207,7 @@ export default function Peserta({ role = "admin" }) {
           { key: "all", label: "Semua", count: counts.all, cls: "bg-[#0D5C3A] text-white border-[#0D5C3A]" },
           { key: "pending", label: "Belum Aktivasi", count: counts.pending, cls: "bg-[#D97706] text-white border-[#D97706]" },
           { key: "active", label: "Sudah Aktif", count: counts.active, cls: "bg-[#059669] text-white border-[#059669]" },
+          { key: "incomplete", label: "Data Belum Lengkap", count: counts.incomplete, cls: "bg-[#9D174D] text-white border-[#9D174D]" },
         ].map((f) => {
           const on = statusFilter === f.key;
           return (
@@ -200,6 +218,7 @@ export default function Peserta({ role = "admin" }) {
               className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-full border-2 text-sm font-semibold transition-colors ${on ? f.cls : "bg-white text-[#4B5563] border-[#E5E7EB] hover:border-[#0D5C3A]"}`}
             >
               {f.key === "pending" && <AlertTriangle size={14} className={on ? "text-white" : "text-[#D97706]"} />}
+              {f.key === "incomplete" && <ClipboardList size={14} className={on ? "text-white" : "text-[#9D174D]"} />}
               {f.label}
               <span className={`text-xs px-1.5 py-0.5 rounded-full ${on ? "bg-white/25" : "bg-[#F3F4F6] text-[#374151]"}`}>{f.count}</span>
             </button>
@@ -211,6 +230,38 @@ export default function Peserta({ role = "admin" }) {
           </span>
         )}
       </div>
+
+      {/* FASE 10 — Kelengkapan data (tanggal lahir & status pernikahan) */}
+      {users && counts.incomplete > 0 && (
+        <div className={`mb-4 rounded-2xl border-2 p-3.5 flex flex-wrap items-center gap-3 ${statusFilter === "incomplete" ? "border-[#9D174D] bg-[#FDF2F8]" : "border-[#F5D0E3] bg-[#FDF2F8]/60"}`} data-testid="kelengkapan-banner">
+          <span className="h-10 w-10 rounded-xl bg-[#9D174D] text-white flex items-center justify-center shrink-0"><ClipboardList size={18} /></span>
+          <div className="flex-1 min-w-[200px]">
+            <div className="text-sm font-bold text-[#831843]">
+              {counts.incomplete} jamaah datanya belum lengkap
+            </div>
+            <div className="text-xs text-[#9D174D] mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+              <span className="inline-flex items-center gap-1"><CalendarDays size={12} /> Tgl lahir kosong: <b>{counts.missingDob}</b></span>
+              <span className="inline-flex items-center gap-1"><Heart size={12} /> Status nikah kosong: <b>{counts.missingMarital}</b></span>
+            </div>
+            <p className="text-[11px] text-[#6B7280] mt-1 leading-relaxed">
+              Data ini dipakai penyaringan kegiatan khusus (kelompok usia / status pernikahan). Jamaah yang datanya
+              kosong <b>tidak masuk</b> daftar absen kegiatan khusus tersebut. Klik <b>Detail</b> untuk melengkapi.
+            </p>
+          </div>
+          {statusFilter !== "incomplete" ? (
+            <button data-testid="kelengkapan-show" onClick={() => setStatusFilter("incomplete")}
+              className="h-10 px-4 rounded-xl bg-[#9D174D] text-white font-semibold text-sm hover:bg-[#831843]">Tampilkan daftar</button>
+          ) : (
+            <button data-testid="kelengkapan-hide" onClick={() => setStatusFilter("all")}
+              className="h-10 px-4 rounded-xl border-2 border-[#9D174D] text-[#9D174D] font-semibold text-sm hover:bg-[#FDF2F8]">Tampilkan semua</button>
+          )}
+        </div>
+      )}
+      {users && counts.incomplete === 0 && statusFilter === "incomplete" && (
+        <div className="mb-4 rounded-2xl border border-[#CDEBD9] bg-[#F0FAF4] p-3.5 text-sm text-[#065F46] font-semibold" data-testid="kelengkapan-complete">
+          Semua jamaah sudah melengkapi tanggal lahir dan status pernikahan.
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid="peserta-table">
@@ -232,6 +283,7 @@ export default function Peserta({ role = "admin" }) {
                   <th className="px-4 py-3 font-semibold hidden md:table-cell">Tempat Lahir</th>
                   <th className="px-4 py-3 font-semibold hidden md:table-cell">Tgl Lahir</th>
                   <th className="px-4 py-3 font-semibold hidden lg:table-cell">No HP</th>
+                  <th className="px-4 py-3 font-semibold hidden md:table-cell">Kelengkapan</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
                   <th className="px-4 py-3 font-semibold text-right">Aksi</th>
                 </tr>
@@ -239,6 +291,7 @@ export default function Peserta({ role = "admin" }) {
               <tbody className="divide-y divide-[#E5E7EB]">
                 {filtered.map((u) => {
                   const b = statusBadge(u.status, u.needs_completion);
+                  const miss = dataMissing(u);
                   return (
                     <tr key={u.id} data-testid={`peserta-row-${u.id}`} className={selected.has(u.id) ? "bg-[#F0FAF4]" : ""}>
                       <td className="px-4 py-3">
@@ -253,11 +306,29 @@ export default function Peserta({ role = "admin" }) {
                           {u.needs_completion && <AlertTriangle size={14} className="text-[#D97706]" title="Perlu dilengkapi" />}
                         </div>
                         <div className="text-xs text-[#9CA3AF] sm:hidden">{genderLabel(u.gender)} · {u.phone || "-"}</div>
+                        {miss.length > 0 && (
+                          <div className="text-[11px] text-[#9D174D] font-semibold md:hidden mt-0.5">
+                            {miss.map((m) => MISSING_LABEL[m]).join(" & ")} belum diisi
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell text-[#4B5563]">{genderLabel(u.gender)}</td>
                       <td className="px-4 py-3 hidden md:table-cell text-[#4B5563]">{u.birthplace || "-"}</td>
                       <td className="px-4 py-3 hidden md:table-cell text-[#4B5563]">{formatTanggal(u.dob)}</td>
                       <td className="px-4 py-3 hidden lg:table-cell text-[#4B5563]">{u.phone || "-"}</td>
+                      <td className="px-4 py-3 hidden md:table-cell" data-testid={`kelengkapan-${u.id}`}>
+                        {miss.length === 0 ? (
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E8F5EE] text-[#065F46]">Lengkap</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {miss.map((m) => (
+                              <span key={m} className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D] inline-flex items-center gap-1">
+                                {m === "dob" ? <CalendarDays size={11} /> : <Heart size={11} />} {MISSING_LABEL[m]} kosong
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${b.cls}`}>{b.label}</span>
                       </td>

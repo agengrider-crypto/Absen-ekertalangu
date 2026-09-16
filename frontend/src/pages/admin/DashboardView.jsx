@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Users, UserCheck, UserX, CalendarDays, TrendingUp, Loader2, QrCode, Copy, CalendarPlus,
-  Megaphone, UserCog, FileBarChart2, Download, X, ScanLine,
+  Megaphone, UserCog, FileBarChart2, Download, X, ScanLine, ClipboardList,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -34,10 +34,12 @@ export default function DashboardView({ user, onGoto }) {
   const [qr, setQr] = useState(null);
   const [actQr, setActQr] = useState(null);
   const [showActQr, setShowActQr] = useState(false);
+  const [lengkap, setLengkap] = useState(null); // FASE 10 — kelengkapan data jamaah
 
   useEffect(() => {
     api.get("/admin/dashboard").then(({ data }) => setD(data)).catch(() => setD(false));
     api.get("/qr/public").then(({ data }) => setQr(data)).catch(() => {});
+    api.get("/admin/users/kelengkapan").then(({ data }) => setLengkap(data)).catch(() => {});
   }, []);
 
   const openActQr = () => {
@@ -90,6 +92,28 @@ export default function DashboardView({ user, onGoto }) {
         </h1>
         <p className="text-[#6B7280] flex items-center gap-1.5 mt-1"><CalendarDays size={16} /> {todayIndo()}</p>
       </div>
+
+      {/* FASE 10 — Peringatan kelengkapan data (tgl lahir & status pernikahan) */}
+      {lengkap && lengkap.belum_lengkap > 0 && (
+        <button
+          type="button"
+          data-testid="dashboard-kelengkapan"
+          onClick={() => onGoto && onGoto("peserta")}
+          className="w-full text-left mb-6 rounded-2xl border-2 border-[#F5D0E3] bg-[#FDF2F8] p-4 flex items-center gap-3 hover:border-[#9D174D] transition-colors"
+        >
+          <span className="h-11 w-11 rounded-xl bg-[#9D174D] text-white flex items-center justify-center shrink-0"><ClipboardList size={20} /></span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-bold text-[#831843]">
+              {lengkap.belum_lengkap} dari {lengkap.total_peserta} jamaah datanya belum lengkap
+            </span>
+            <span className="block text-xs text-[#9D174D] mt-0.5">
+              Tanggal lahir kosong: <b>{lengkap.missing_dob}</b> · Status pernikahan kosong: <b>{lengkap.missing_marital}</b>
+              {" "}— diperlukan untuk kegiatan khusus usia / status pernikahan.
+            </span>
+          </span>
+          <span className="text-xs font-semibold text-[#9D174D] shrink-0 hidden sm:block">Lihat daftar →</span>
+        </button>
+      )}
 
       {/* Shortcut cepat */}
       <div className="mb-6" data-testid="dashboard-shortcuts">

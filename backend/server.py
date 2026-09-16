@@ -651,6 +651,48 @@ async def admin_users(admin: dict = Depends(require_staff), include_system: bool
     return [public_user(u) for u in users]
 
 
+@api_router.get("/admin/users/kelengkapan")
+async def admin_users_kelengkapan(admin: dict = Depends(require_staff)):
+    """FASE 10 — Daftar jamaah yang TANGGAL LAHIR atau STATUS PERNIKAHAN-nya
+    belum diisi. Data ini dipakai penyaringan kegiatan (kelompok usia & status
+    pernikahan); jamaah yang datanya kosong tidak akan masuk daftar kegiatan khusus.
+
+    Didefinisikan SEBELUM `/admin/users/{user_id}` agar tidak tertangkap route generik.
+    """
+    users = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
+    rows = []
+    missing_dob = missing_marital = 0
+    for u in users:
+        need = []
+        if not normalize_dob(u.get("dob")):
+            need.append("dob")
+            missing_dob += 1
+        if (u.get("marital") or None) not in MARITAL_OPTIONS:
+            need.append("marital")
+            missing_marital += 1
+        if not need:
+            continue
+        rows.append({
+            "id": str(u["_id"]),
+            "name": u.get("name"),
+            "phone": u.get("phone"),
+            "gender": _derive_gender(u),
+            "status": u.get("status", "active"),
+            "dob": u.get("dob"),
+            "marital": u.get("marital"),
+            "missing": need,
+            "missing_labels": [{"dob": "Tanggal lahir", "marital": "Status pernikahan"}[m] for m in need],
+        })
+    return {
+        "total_peserta": len(users),
+        "belum_lengkap": len(rows),
+        "lengkap": len(users) - len(rows),
+        "missing_dob": missing_dob,
+        "missing_marital": missing_marital,
+        "rows": rows,
+    }
+
+
 @api_router.get("/admin/users/{user_id}/photo")
 async def admin_user_photo(user_id: str, admin: dict = Depends(require_staff)):
     user = await db.users.find_one({"_id": parse_object_id(user_id)})
@@ -1830,6 +1872,206 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
         "gender": gender,
         "rows": rows,
         "guests": [serialize_guest(g) for g in guests],
+    }
+
+
+# ------------------- FASE 10: Rekap gabungan 1 hari (semua sesi) -------------------
+async def sesi_group_docs(kegiatan_id: str) -> list:
+    """Semua kegiatan dalam 1 grup sesi (pagi/sore/malam) dari salah satu id-nya.
+    Bila kegiatan tidak bersesi, kembalikan list berisi 1 kegiatan itu saja."""
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    gid = k.get("session_group_id")
+    if not gid:
+        return [k]
+    docs = await db.kegiatans.find({"session_group_id": gid}).to_list(20)
+    docs.sort(key=lambda d: (d.get("session_index") or 0, d.get("start_time") or ""))
+    return docs
+
+
+@api_router.get("/admin/kegiatan/{kegiatan_id}/rekap-gabungan")
+async def rekap_gabungan_sesi(kegiatan_id: str, admin: dict = Depends(require_staff)):
+    """Ringkasan SATU HARI yang menggabungkan kehadiran semua sesi (pagi/sore/malam).
+
+    - Setiap sesi tetap punya rekap terpisah (kolom per sesi).
+    - "hadir_min_1"   : jamaah hadir minimal pada 1 sesi.
+    - "hadir_semua"   : jamaah hadir pada SEMUA sesi.
+    - "tidak_hadir"   : tidak hadir di sesi mana pun (dan tidak izin).
+    `kegiatan_id` boleh salah satu sesi dari grup tersebut.
+    """
+    docs = await sesi_group_docs(kegiatan_id)
+    ids = [d["_id"] for d in docs]
+    all_users = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
+    absens = await db.absensis.find({"kegiatan_id": {"$in": ids}}).to_list(50000)
+    guests = await db.guest_absens.find({"kegiatan_id": {"$in": ids}}).to_list(10000)
+    abs_by_keg: dict = {}
+    for a in absens:
+        abs_by_keg.setdefault(a["kegiatan_id"], {})[a["user_id"]] = a
+    guest_by_keg: dict = {}
+    for g in guests:
+        guest_by_keg[g["kegiatan_id"]] = guest_by_keg.get(g["kegiatan_id"], 0) + 1
+
+    # Peserta per sesi (filter bisa berbeda tiap sesi walau umumnya sama)
+    sessions_out = []
+    peserta_union: dict = {}
+    eligible_by_keg: dict = {}
+    for d in docs:
+        peserta = filter_peserta_for_kegiatan(d, all_users)
+        eligible_by_keg[d["_id"]] = {str(p["_id"]) for p in peserta}
+        for p in peserta:
+            peserta_union[str(p["_id"])] = p
+        counts = compute_counts(peserta, list(abs_by_keg.get(d["_id"], {}).values()), guest_by_keg.get(d["_id"], 0))
+        sessions_out.append({
+            "id": d["_id"],
+            "label": d.get("session_label") or d.get("name"),
+            "start_time": d.get("start_time"),
+            "end_time": d.get("end_time"),
+            "status": d.get("status", "open"),
+            "counts": counts,
+        })
+
+    rows = []
+    hadir_min_1 = hadir_semua = izin_saja = tidak_hadir = 0
+    for pid, p in sorted(peserta_union.items(), key=lambda x: (x[1].get("name") or "").lower()):
+        per = []
+        n_hadir = n_izin = n_eligible = 0
+        for d in docs:
+            if pid not in eligible_by_keg[d["_id"]]:
+                per.append(None)   # tidak termasuk daftar sesi ini
+                continue
+            n_eligible += 1
+            a = abs_by_keg.get(d["_id"], {}).get(pid)
+            st = a["status"] if a else "alpha"
+            per.append({"status": st, "arrival_time": a.get("arrival_time") if a else None})
+            if st == "hadir":
+                n_hadir += 1
+            elif st == "izin":
+                n_izin += 1
+        if n_hadir >= 1:
+            hadir_min_1 += 1
+        if n_eligible and n_hadir == n_eligible:
+            hadir_semua += 1
+        if n_hadir == 0 and n_izin > 0:
+            izin_saja += 1
+        if n_hadir == 0 and n_izin == 0:
+            tidak_hadir += 1
+        rows.append({
+            "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
+            "account_status": p.get("status", "active"),
+            "sessions": per, "hadir": n_hadir, "izin": n_izin, "eligible": n_eligible,
+        })
+
+    total = len(rows)
+    total_guests = sum(guest_by_keg.values())
+    first = docs[0]
+    return {
+        "date": first.get("date"),
+        "base_name": first.get("base_name") or first.get("name"),
+        "session_group_id": first.get("session_group_id"),
+        "type": first.get("type", "rutin"),
+        "location": first.get("location"),
+        "teacher": first.get("teacher"),
+        "filter_labels": kegiatan_filter_labels(first),
+        "sessions": sessions_out,
+        "summary": {
+            "total": total,
+            "hadir_min_1": hadir_min_1,
+            "hadir_semua": hadir_semua,
+            "izin_saja": izin_saja,
+            "tidak_hadir": tidak_hadir,
+            "tamu": total_guests,
+            "ratio_min_1": round((hadir_min_1 / total) * 100, 1) if total else 0.0,
+            "ratio_semua": round((hadir_semua / total) * 100, 1) if total else 0.0,
+        },
+        "rows": rows,
+    }
+
+
+class SalinJadwalInput(BaseModel):
+    dates: List[str] = []           # daftar tanggal tujuan YYYY-MM-DD (1..12)
+    date: Optional[str] = None      # kompatibilitas: 1 tanggal saja
+
+
+@api_router.post("/admin/kegiatan/{kegiatan_id}/salin")
+async def salin_jadwal_kegiatan(kegiatan_id: str, body: SalinJadwalInput,
+                                admin: dict = Depends(require_staff)):
+    """FASE 10 — Salin POLA JADWAL (semua sesi pagi/sore/malam beserta jam, pengajar,
+    lokasi & penyaringan peserta) ke tanggal lain dalam sekali klik.
+
+    Absensi TIDAK ikut disalin — jadwal baru dimulai kosong dengan kode akses &
+    barcode baru. Bila kegiatan bukan bersesi, hanya kegiatan itu yang disalin.
+    """
+    dates = [d.strip() for d in (body.dates or []) if d and d.strip()]
+    if body.date and body.date.strip():
+        dates.append(body.date.strip())
+    dates = list(dict.fromkeys(dates))
+    if not dates:
+        raise HTTPException(status_code=400, detail="Pilih minimal 1 tanggal tujuan")
+    if len(dates) > 12:
+        raise HTTPException(status_code=400, detail="Maksimal 12 tanggal tujuan sekaligus")
+    for dt in dates:
+        try:
+            datetime.strptime(dt, "%Y-%m-%d")
+        except Exception:
+            raise HTTPException(status_code=400, detail=f"Format tanggal harus YYYY-MM-DD ({dt})")
+
+    docs = await sesi_group_docs(kegiatan_id)
+    src = docs[0]
+    if src.get("date") in dates:
+        raise HTTPException(status_code=400, detail="Tanggal tujuan sama dengan tanggal jadwal asal")
+
+    multi = len(docs) > 1
+    now_iso = datetime.now(timezone.utc).isoformat()
+    base_name = src.get("base_name") or src.get("name")
+    new_docs = []
+    for dt in dates:
+        session_group_id = str(uuid.uuid4()) if multi else None
+        for idx, d in enumerate(docs):
+            new_docs.append({
+                "_id": str(uuid.uuid4()),
+                "name": d.get("name"),
+                "base_name": base_name,
+                "session_label": d.get("session_label"),
+                "session_group_id": session_group_id,
+                "session_index": d.get("session_index") if multi else None,
+                "session_total": len(docs) if multi else 1,
+                "type": d.get("type", "rutin"),
+                "date": dt,
+                "start_time": d.get("start_time"),
+                "end_time": d.get("end_time"),
+                "teacher": d.get("teacher"),
+                "material": d.get("material"),
+                "location": d.get("location"),
+                "recurring": False,
+                "recurring_group_id": None,
+                "audience": d.get("audience", "reguler"),
+                "gender_filter": d.get("gender_filter", "semua"),
+                "marital_filter": d.get("marital_filter", "semua"),
+                "age_filter": normalize_age_filter(d.get("age_filter")),
+                "status": "open",
+                "closed_at": None,
+                "auto_closed": False,
+                "share_token": None,
+                "share_expires_at": None,
+                "akses_token": secrets.token_urlsafe(9),
+                "access_code": gen_access_code(),
+                "access_code_at": now_iso,
+                "absen_token": None,
+                "absen_expires_at": None,
+                "copied_from": d["_id"],
+                "created_at": now_iso,
+                "created_by": str(admin["_id"]),
+            })
+    await db.kegiatans.insert_many(new_docs)
+    await log_activity(
+        admin, "salin_kegiatan",
+        f"Menyalin jadwal '{base_name}' ({len(docs)} sesi) dari {src.get('date')} ke {', '.join(dates)}")
+    return {
+        "message": f"Jadwal '{base_name}' disalin ke {len(dates)} tanggal ({len(new_docs)} jadwal baru).",
+        "created": len(new_docs),
+        "dates": dates,
+        "items": [serialize_kegiatan(d, {"total": 0, "hadir": 0, "izin": 0, "alpha": 0, "ratio": 0.0}) for d in new_docs],
     }
 
 

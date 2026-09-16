@@ -1,26 +1,18 @@
 [
   {
-    "content": "Backend: filter lanjutan (status pernikahan + kelompok usia) pada kegiatan",
+    "content": "Backend: 3 endpoint baru",
     "status": "completed"
   },
   {
-    "content": "Backend: sesi kegiatan (pagi/sore/malam) — absen & rekap terpisah",
+    "content": "Frontend: modal Rekap Gabungan + Salin Jadwal + tombol di KegiatanView & KegiatanDetail",
     "status": "completed"
   },
   {
-    "content": "Frontend: form kegiatan — Pengelompokan Lanjutan aktif + editor sesi",
+    "content": "Frontend: filter 'Data Belum Lengkap' di Peserta.jsx + banner Dashboard",
     "status": "completed"
   },
   {
-    "content": "Frontend: kartu kegiatan dikelompokkan per sesi + badge filter",
-    "status": "completed"
-  },
-  {
-    "content": "Frontend: tombol pintasan Barcode Saya di beranda peserta",
-    "status": "completed"
-  },
-  {
-    "content": "Verifikasi manual (curl + screenshot) & update PRD.md",
+    "content": "Verifikasi: esbuild, curl, screenshot",
     "status": "completed"
   }
 ]

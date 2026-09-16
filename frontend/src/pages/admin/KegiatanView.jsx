@@ -18,6 +18,7 @@ import {
 } from "./kegiatanUtils";
 import KegiatanDetail from "./KegiatanDetail";
 import { ReminderModal, DelegasiModal, ScanPesertaModal } from "./KegiatanExtras";
+import { RekapGabunganModal, SalinJadwalModal } from "./SesiExtras";
 import ActionModal from "@/components/ActionModal";
 import { Send as SendIcon, ShieldCheck as ShieldIcon, ScanLine as ScanIcon } from "lucide-react";
 
@@ -41,6 +42,9 @@ export default function KegiatanView() {
   const [editItem, setEditItem] = useState(null);
   const [reminderItem, setReminderItem] = useState(null);
   const [detailKey, setDetailKey] = useState(0);
+  // FASE 10 — rekap gabungan 1 hari & salin jadwal sesi
+  const [gabunganId, setGabunganId] = useState(null);
+  const [salinGroup, setSalinGroup] = useState(null);
 
   const load = useCallback(() => {
     setItems(null);
@@ -122,6 +126,12 @@ export default function KegiatanView() {
           onReminder={(k) => setReminderItem(k)}
           onToggleStatus={toggleStatus}
           onDelete={removeKegiatan}
+          onRekapGabungan={(k) => setGabunganId(k.id)}
+          onSalinJadwal={(k) => {
+            const grp = (items || []).filter((x) => k.session_group_id && x.session_group_id === k.session_group_id);
+            const list = grp.length ? grp.sort((a, b) => (a.session_index ?? 0) - (b.session_index ?? 0)) : [k];
+            setSalinGroup({ items: list });
+          }}
         />
         {editItem && (
           <KegiatanFormModal
@@ -133,6 +143,11 @@ export default function KegiatanView() {
         {qrModal && <QrModal data={qrModal} onClose={() => setQrModal(null)} />}
         {absenQr && <AbsenQrModal data={absenQr} onClose={() => setAbsenQr(null)} />}
         {reminderItem && <ReminderModal kegiatan={reminderItem} onClose={() => setReminderItem(null)} />}
+        {gabunganId && <RekapGabunganModal kegiatanId={gabunganId} onClose={() => setGabunganId(null)} />}
+        {salinGroup && (
+          <SalinJadwalModal group={salinGroup} onClose={() => setSalinGroup(null)}
+            onDone={() => { setSalinGroup(null); load(); }} />
+        )}
       </>
     );
   }
@@ -190,8 +205,10 @@ export default function KegiatanView() {
               <div className="grid gap-3">
                 {groupSessions(g.items).map((grp) => (
                   grp.single
-                    ? <KegiatanCard key={grp.key} k={grp.k} onOpen={() => setDetailId(grp.k.id)} />
-                    : <SessionGroupCard key={grp.key} group={grp} onOpen={setDetailId} />
+                    ? <KegiatanCard key={grp.key} k={grp.k} onOpen={() => setDetailId(grp.k.id)} onSalin={() => setSalinGroup({ items: [grp.k] })} />
+                    : <SessionGroupCard key={grp.key} group={grp} onOpen={setDetailId}
+                        onRekapGabungan={() => setGabunganId(grp.items[0].id)}
+                        onSalin={() => setSalinGroup(grp)} />
                 ))}
               </div>
             </section>
@@ -200,6 +217,15 @@ export default function KegiatanView() {
       )}
 
       {showAdd && <KegiatanFormModal onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
+      {gabunganId && <RekapGabunganModal kegiatanId={gabunganId} onClose={() => setGabunganId(null)} />}
+      {salinGroup && (
+        <SalinJadwalModal group={salinGroup} onClose={() => setSalinGroup(null)}
+          onDone={(res) => {
+            setSalinGroup(null);
+            const d = res?.dates?.[0];
+            if (d && d.slice(0, 7) !== month) { setDayFilter(""); setMonth(d.slice(0, 7)); } else load();
+          }} />
+      )}
     </div>
   );
 }
@@ -217,41 +243,49 @@ function FilterBadges({ k }) {
   );
 }
 
-function KegiatanCard({ k, onOpen }) {
+function KegiatanCard({ k, onOpen, onSalin }) {
   const c = k.counts || {};
   return (
-    <button
-      type="button"
-      onClick={onOpen}
+    <div
       className="w-full text-left bg-white rounded-2xl border border-[#E5E7EB] p-4 hover:border-[#0D5C3A] hover:bg-[#FAFCFA] transition-colors"
       data-testid={`kegiatan-card-${k.id}`}
     >
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
-            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${PHASE_META[phaseOf(k)].cls}`}>{PHASE_META[phaseOf(k)].badge}</span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3]">{AUDIENCE_LABEL[k.audience] || "Reguler"}</span>
-            <FilterBadges k={k} />
-            {k.auto_closed && <span className="text-xs text-[#9CA3AF]">(auto)</span>}
+      <button type="button" onClick={onOpen} className="w-full text-left" data-testid={`kegiatan-card-open-${k.id}`}>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${PHASE_META[phaseOf(k)].cls}`}>{PHASE_META[phaseOf(k)].badge}</span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3]">{AUDIENCE_LABEL[k.audience] || "Reguler"}</span>
+              <FilterBadges k={k} />
+              {k.auto_closed && <span className="text-xs text-[#9CA3AF]">(auto)</span>}
+            </div>
+            <h3 className="font-heading font-bold text-[#111827] mt-1.5 truncate">{k.name}</h3>
+            <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
+              <span className="inline-flex items-center gap-1"><CalendarDays size={14} /> {tanggalSingkat(k.date)}</span>
+              <span className="inline-flex items-center gap-1"><Clock size={14} /> {k.start_time}–{k.end_time} WITA</span>
+              {k.location && <span className="inline-flex items-center gap-1"><MapPin size={14} /> {k.location}</span>}
+              {k.teacher && <span className="inline-flex items-center gap-1"><User size={14} /> {k.teacher}</span>}
+            </div>
           </div>
-          <h3 className="font-heading font-bold text-[#111827] mt-1.5 truncate">{k.name}</h3>
-          <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
-            <span className="inline-flex items-center gap-1"><CalendarDays size={14} /> {tanggalSingkat(k.date)}</span>
-            <span className="inline-flex items-center gap-1"><Clock size={14} /> {k.start_time}–{k.end_time} WITA</span>
-            {k.location && <span className="inline-flex items-center gap-1"><MapPin size={14} /> {k.location}</span>}
-            {k.teacher && <span className="inline-flex items-center gap-1"><User size={14} /> {k.teacher}</span>}
+          <div className="text-right shrink-0">
+            <div className="text-2xl font-bold text-[#0D5C3A] leading-none">{c.ratio ?? 0}%</div>
+            <div className="text-xs text-[#6B7280] mt-1">H {c.hadir ?? 0} · I {c.izin ?? 0} · A {c.alpha ?? 0}</div>
           </div>
         </div>
-        <div className="text-right shrink-0">
-          <div className="text-2xl font-bold text-[#0D5C3A] leading-none">{c.ratio ?? 0}%</div>
-          <div className="text-xs text-[#6B7280] mt-1">H {c.hadir ?? 0} · I {c.izin ?? 0} · A {c.alpha ?? 0}</div>
-        </div>
+      </button>
+      <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
+        <button type="button" onClick={onOpen} className="text-sm font-semibold text-[#0D5C3A] inline-flex items-center gap-1.5 hover:underline">
+          Buka kegiatan ini <ChevronRight size={16} />
+        </button>
+        {onSalin && (
+          <button type="button" data-testid={`kegiatan-salin-${k.id}`} onClick={onSalin}
+            className="h-9 px-3 rounded-lg border border-[#E5E7EB] bg-white text-xs font-semibold text-[#4B5563] inline-flex items-center gap-1.5 hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
+            <Copy size={13} /> Salin ke tanggal lain
+          </button>
+        )}
       </div>
-      <div className="mt-3 text-sm font-semibold text-[#0D5C3A] inline-flex items-center gap-1.5">
-        Buka kegiatan ini <ChevronRight size={16} />
-      </div>
-    </button>
+    </div>
   );
 }
 
@@ -260,9 +294,12 @@ function KegiatanCard({ k, onOpen }) {
  *
  * Setiap sesi punya absensi, rekap, kode akses & barcode SENDIRI, sehingga
  * peserta yang hadir sesi pagi tidak otomatis terhitung hadir di sesi lain.
+ * FASE 10 — tombol Rekap Gabungan 1 Hari & Salin Jadwal ke tanggal lain.
  */
-function SessionGroupCard({ group, onOpen }) {
+function SessionGroupCard({ group, onOpen, onRekapGabungan, onSalin }) {
   const first = group.items[0];
+  // Ringkasan cepat: hadir per sesi
+  const totalHadir = group.items.reduce((n, k) => n + (k.counts?.hadir || 0), 0);
   return (
     <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4" data-testid={`kegiatan-sesi-group-${first.session_group_id}`}>
       <div className="flex items-center gap-2 flex-wrap">
@@ -316,6 +353,18 @@ function SessionGroupCard({ group, onOpen }) {
         Absensi, rekap, kode akses &amp; barcode <b>terpisah untuk setiap waktu/sesi</b>.
         Hadir di sesi pagi tidak dihitung sebagai hadir di sesi sore/malam.
       </p>
+      {/* FASE 10 — aksi grup sesi */}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button type="button" data-testid={`sesi-rekap-gabungan-${first.session_group_id}`} onClick={onRekapGabungan}
+          className="h-11 rounded-xl bg-[#0D5C3A] text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#094229]">
+          <FileBarChart2 size={15} /> Rekap Gabungan 1 Hari
+          <span className="hidden sm:inline text-[11px] font-medium text-white/80">· {totalHadir} hadir</span>
+        </button>
+        <button type="button" data-testid={`sesi-salin-jadwal-${first.session_group_id}`} onClick={onSalin}
+          className="h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#E8F5EE]">
+          <Copy size={15} /> Salin ke Tanggal Lain
+        </button>
+      </div>
     </div>
   );
 }
