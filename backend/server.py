@@ -463,6 +463,231 @@ async def is_locked(identifier: str) -> bool:
 async def root():
     return {"message": "E-KERTALANGU API"}
 
+# --------------------------- FASE 11: Pantau Login ---------------------------
+def parse_device(ua: str) -> dict:
+    """Ringkasan perangkat dari User-Agent (tanpa pustaka tambahan)."""
+    u = (ua or "")
+    ul = u.lower()
+    if "ipad" in ul:
+        os_name, kind = "iPadOS", "tablet"
+    elif "iphone" in ul:
+        os_name, kind = "iPhone", "hp"
+    elif "android" in ul:
+        os_name, kind = "Android", ("tablet" if "mobile" not in ul else "hp")
+    elif "windows" in ul:
+        os_name, kind = "Windows", "komputer"
+    elif "mac os" in ul or "macintosh" in ul:
+        os_name, kind = "macOS", "komputer"
+    elif "cros" in ul:
+        os_name, kind = "ChromeOS", "komputer"
+    elif "linux" in ul:
+        os_name, kind = "Linux", "komputer"
+    else:
+        os_name, kind = "Perangkat lain", "lainnya"
+    if "edg/" in ul:
+        browser = "Edge"
+    elif "opr/" in ul or "opera" in ul:
+        browser = "Opera"
+    elif "samsungbrowser" in ul:
+        browser = "Samsung Internet"
+    elif "chrome" in ul or "crios" in ul:
+        browser = "Chrome"
+    elif "firefox" in ul or "fxios" in ul:
+        browser = "Firefox"
+    elif "safari" in ul:
+        browser = "Safari"
+    elif "wv" in ul and "android" in ul:
+        browser = "Aplikasi (WebView)"
+    else:
+        browser = "Browser lain"
+    return {"os": os_name, "browser": browser, "kind": kind,
+            "label": f"{browser} · {os_name}"}
+
+
+def client_ip(request: Request) -> Optional[str]:
+    xff = request.headers.get("x-forwarded-for") or request.headers.get("x-real-ip")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else None
+
+
+def serialize_login_event(e: dict) -> dict:
+    return {
+        "id": e["_id"],
+        "user_id": e.get("user_id"),
+        "name": e.get("name"),
+        "roles": e.get("roles", []),
+        "at": e.get("at"),
+        "date": e.get("date"),
+        "device": e.get("device") or {},
+        "ip": e.get("ip"),
+        "is_new_device": bool(e.get("is_new_device")),
+    }
+
+
+async def record_login_event(user: dict, request: Request) -> dict:
+    """Simpan peristiwa login & kembalikan info untuk notifikasi ke akun tersebut.
+    Tidak pernah melempar error (login tetap sukses walau pencatatan gagal)."""
+    try:
+        now = now_wita()
+        ua = request.headers.get("user-agent", "")
+        dev = parse_device(ua)
+        ip = client_ip(request)
+        uid = str(user["_id"])
+        prev = await db.login_events.find({"user_id": uid}).sort("at", -1).to_list(1)
+        prev = prev[0] if prev else None
+        known = await db.login_events.count_documents(
+            {"user_id": uid, "device.label": dev["label"]})
+        is_new_device = prev is not None and known == 0
+        doc = {
+            "_id": str(uuid.uuid4()),
+            "user_id": uid,
+            "name": user.get("name"),
+            "roles": user.get("roles", []),
+            "at": now.isoformat(),
+            "date": now.strftime("%Y-%m-%d"),
+            "device": dev,
+            "ua": ua[:300],
+            "ip": ip,
+            "is_new_device": is_new_device,
+        }
+        await db.login_events.insert_one(doc)
+        await db.users.update_one({"_id": user["_id"]}, {
+            "$set": {"last_login_at": doc["at"], "last_login_device": dev["label"]},
+            "$inc": {"login_count": 1},
+        })
+        return {
+            "at": doc["at"],
+            "device": dev,
+            "ip": ip,
+            "is_new_device": is_new_device,
+            "first_login": prev is None,
+            "login_count": int(user.get("login_count") or 0) + 1,
+            "previous_at": prev.get("at") if prev else None,
+            "previous_device": (prev.get("device") or {}).get("label") if prev else None,
+        }
+    except Exception as exc:  # pragma: no cover
+        logger.warning("record_login_event gagal: %s", exc)
+        return {"at": now_wita().isoformat(), "device": {"label": "-"}, "ip": None,
+                "is_new_device": False, "first_login": False, "login_count": 0,
+                "previous_at": None, "previous_device": None}
+
+
+@api_router.get("/staff/login-monitor")
+async def login_monitor(staff: dict = Depends(require_staff),
+                        date_from: str = "", date_to: str = "", q: str = "",
+                        limit: int = 200):
+    """FASE 11 — Pantau login peserta untuk admin/pengurus.
+
+    Ringkasan hari ini (WITA), daftar login terbaru (bisa difilter tanggal & nama),
+    dan daftar peserta yang BELUM PERNAH login.
+    """
+    today = now_wita().strftime("%Y-%m-%d")
+    query: dict = {}
+    if date_from.strip() or date_to.strip():
+        rng = {}
+        if date_from.strip():
+            rng["$gte"] = date_from.strip()
+        if date_to.strip():
+            rng["$lte"] = date_to.strip()
+        query["date"] = rng
+    if q.strip():
+        query["name"] = {"$regex": re.escape(q.strip()), "$options": "i"}
+    limit = max(1, min(limit, 1000))
+    events = await db.login_events.find(query).sort("at", -1).to_list(limit)
+
+    today_events = await db.login_events.find({"date": today}).to_list(10000)
+    today_users = {e["user_id"] for e in today_events}
+
+    peserta = await db.users.find(
+        PESERTA_QUERY,
+        {"name": 1, "status": 1, "phone": 1, "gender": 1, "avatar_gender": 1,
+         "last_login_at": 1, "last_login_device": 1, "login_count": 1,
+         "login_backfilled": 1}).sort("name", 1).to_list(10000)
+
+    # Backfill sekali: peserta yang pernah login SEBELUM fitur ini ada diambil dari
+    # Log Aktivitas (aksi "login") agar tidak salah dihitung "belum pernah login".
+    need_bf = [u for u in peserta if not u.get("last_login_at") and not u.get("login_backfilled")]
+    if need_bf:
+        ids = [str(u["_id"]) for u in need_bf]
+        logs = await db.activity_logs.find({"action": "login", "actor_id": {"$in": ids}},
+                                           {"actor_id": 1, "at": 1}).to_list(50000)
+        latest: dict = {}
+        cnt: dict = {}
+        for lg in logs:
+            a = lg.get("actor_id")
+            cnt[a] = cnt.get(a, 0) + 1
+            if (lg.get("at") or "") > (latest.get(a) or ""):
+                latest[a] = lg.get("at")
+        for u in need_bf:
+            uid = str(u["_id"])
+            upd = {"login_backfilled": True}
+            if uid in latest:
+                upd["last_login_at"] = to_wita_iso(latest[uid])
+                upd["last_login_device"] = "Riwayat lama"
+                upd["login_count"] = cnt.get(uid, 1)
+                u["last_login_at"] = upd["last_login_at"]
+            await db.users.update_one({"_id": u["_id"]}, {"$set": upd})
+
+    never = [{
+        "id": str(u["_id"]), "name": u.get("name"), "phone": u.get("phone"),
+        "status": u.get("status", "active"), "gender": _derive_gender(u),
+    } for u in peserta if not u.get("last_login_at")]
+    sudah = len(peserta) - len(never)
+
+    # 7 hari terakhir: jumlah login unik per hari (untuk grafik kecil)
+    days = []
+    for i in range(6, -1, -1):
+        d = (now_wita() - timedelta(days=i)).strftime("%Y-%m-%d")
+        days.append(d)
+    week_events = await db.login_events.find({"date": {"$gte": days[0]}}).to_list(20000)
+    per_day = {d: {"date": d, "logins": 0, "users": set()} for d in days}
+    for e in week_events:
+        b = per_day.get(e.get("date"))
+        if b:
+            b["logins"] += 1
+            b["users"].add(e["user_id"])
+    tren = [{"date": d, "logins": per_day[d]["logins"], "users": len(per_day[d]["users"])} for d in days]
+
+    return {
+        "today": today,
+        "summary": {
+            "today_logins": len(today_events),
+            "today_users": len(today_users),
+            "total_peserta": len(peserta),
+            "sudah_login": sudah,
+            "belum_login": len(never),
+            "ratio_login": round((sudah / len(peserta)) * 100, 1) if peserta else 0.0,
+        },
+        "tren": tren,
+        "events": [serialize_login_event(e) for e in events],
+        "never_logged_in": never,
+    }
+
+
+@api_router.get("/staff/login-monitor/user/{user_id}")
+async def login_monitor_user(user_id: str, staff: dict = Depends(require_staff), limit: int = 50):
+    """Riwayat login 1 peserta (untuk detail di halaman Pantau Login)."""
+    u = await db.users.find_one({"_id": parse_object_id(user_id)})
+    if not u:
+        raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan")
+    limit = max(1, min(limit, 500))
+    events = await db.login_events.find({"user_id": user_id}).sort("at", -1).to_list(limit)
+    devices: dict = {}
+    for e in events:
+        lbl = (e.get("device") or {}).get("label") or "-"
+        devices[lbl] = devices.get(lbl, 0) + 1
+    return {
+        "user": {"id": str(u["_id"]), "name": u.get("name"), "phone": u.get("phone"),
+                 "status": u.get("status", "active"), "roles": u.get("roles", []),
+                 "last_login_at": u.get("last_login_at"),
+                 "last_login_device": u.get("last_login_device"),
+                 "login_count": int(u.get("login_count") or 0)},
+        "devices": [{"label": k, "count": v} for k, v in sorted(devices.items(), key=lambda x: -x[1])],
+        "events": [serialize_login_event(e) for e in events],
+    }
+
+
 @api_router.post("/auth/login")
 async def login(body: LoginInput, request: Request, response: Response):
     ident = body.identifier.strip().lower()
@@ -484,7 +709,11 @@ async def login(body: LoginInput, request: Request, response: Response):
     await db.login_attempts.delete_many({"identifier": lock_key})
     set_auth_cookies(response, str(user["_id"]), user.get("token_version", 0))
     await log_activity(user, "login", f"Login berhasil sebagai {', '.join(user.get('roles', []))}")
-    return public_user(user)
+    # FASE 11 — catat peristiwa login (untuk notifikasi akun & pantau login staf)
+    login_info = await record_login_event(user, request)
+    data = public_user(user)
+    data["login_info"] = login_info
+    return data
 
 @api_router.post("/auth/logout")
 async def logout(response: Response):

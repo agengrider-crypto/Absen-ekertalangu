@@ -409,3 +409,40 @@ Permintaan user (3 fitur, tanpa testing agent — verifikasi manual curl + scree
   salin 2 tanggal → 4 jadwal dengan kode akses baru, tolak tanggal sama), screenshot
   dashboard, halaman peserta (filter), daftar kegiatan, modal rekap gabungan, modal salin,
   halaman detail sesi + submit salin "Besok" sukses.
+
+## FASE 11 — Notifikasi Login & Pantau Login (SELESAI)
+Pilihan user: notifikasi cukup pesan saat login berhasil (tanpa riwayat di profil);
+Pantau Login = panel ringkas Dashboard + halaman penuh; TANPA fitur keluarkan paksa.
+
+### Backend
+- Koleksi baru `login_events`: {_id uuid, user_id, name, roles, at (ISO WITA), date
+  (YYYY-MM-DD WITA), device {os, browser, kind(hp|tablet|komputer|lainnya), label}, ua, ip,
+  is_new_device}. `parse_device()` (parser User-Agent sederhana), `client_ip()`
+  (X-Forwarded-For / X-Real-IP).
+- `record_login_event()` dipanggil di `POST /auth/login`: simpan event, set
+  `users.last_login_at`, `last_login_device`, `$inc login_count`. Respons login kini berisi
+  `login_info` {at, device, ip, is_new_device, first_login, login_count, previous_at,
+  previous_device}. Tidak pernah melempar error.
+- `GET /api/staff/login-monitor?date_from&date_to&q&limit` (admin & pengurus) →
+  {today, summary{today_logins, today_users, total_peserta, sudah_login, belum_login,
+  ratio_login}, tren[7 hari]{date, logins, users}, events[], never_logged_in[]}.
+  BACKFILL sekali per user: peserta tanpa `last_login_at` & belum `login_backfilled`
+  dicek ke `activity_logs` (action "login") → isi last_login_at ("Riwayat lama") agar
+  peserta yang login sebelum fitur ini tidak salah dihitung "belum pernah login".
+- `GET /api/staff/login-monitor/user/{user_id}` → {user{...login_count,last_login_*},
+  devices[{label,count}], events[]}.
+
+### Frontend
+- `Login.jsx`: `showLoginNotice()` — toast sukses "Selamat datang, X" dengan deskripsi
+  "Login <waktu WITA> · <perangkat>" + "Login sebelumnya: ..." (atau "Ini login pertama").
+  Bila perangkat baru → toast peringatan "login dari perangkat baru … Bukan Anda? ganti
+  kata sandi". Berlaku untuk semua akun (admin/pengurus/peserta).
+- `PantauLoginView.jsx` (menu baru "Pantau Login", admin & pengurus, `nav-pantau-login`):
+  4 kartu ringkasan (login hari ini, peserta pernah login, belum pernah login, grafik
+  batang 7 hari), filter nama + rentang tanggal + chip Hari ini/7 hari/Semua, tab "Login
+  Terbaru" (tabel: nama+badge perangkat baru, waktu WITA & relatif, perangkat, IP, peran,
+  tombol Riwayat) dan tab "Belum Pernah Login" (daftar + status aktivasi). Auto-refresh
+  60 detik. `LoginDetailModal` = riwayat per peserta (total login, login terakhir,
+  perangkat yang dipakai, daftar event).
+- `DashboardView.jsx`: panel "Pantau Login" ringkas (3 angka + 6 login terbaru, tombol
+  "Lihat semua" → menu Pantau Login), refresh 60 detik.

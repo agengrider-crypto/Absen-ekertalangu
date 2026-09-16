@@ -7,6 +7,42 @@ import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import { DateField } from "@/components/DateField";
 
+function fmtWaktu(iso) {
+  if (!iso) return "-";
+  try {
+    return new Date(iso).toLocaleString("id-ID", {
+      weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+      timeZone: "Asia/Makassar",
+    }) + " WITA";
+  } catch { return iso; }
+}
+
+/**
+ * FASE 11 — Notifikasi login berhasil untuk setiap akun:
+ * menampilkan perangkat & waktu login sekarang, serta login terakhir sebelumnya.
+ * Bila perangkat belum pernah dipakai akun ini, tampil sebagai peringatan.
+ */
+function showLoginNotice(data) {
+  const info = data?.login_info;
+  const title = `Selamat datang, ${data?.name || ""}`;
+  if (!info) { toast.success(title); return; }
+  const dev = info.device?.label || "perangkat ini";
+  const lines = [`Login ${fmtWaktu(info.at)} · ${dev}`];
+  if (info.first_login) lines.push("Ini login pertama akun Anda.");
+  else if (info.previous_at) lines.push(`Login sebelumnya: ${fmtWaktu(info.previous_at)}${info.previous_device ? ` · ${info.previous_device}` : ""}`);
+  const description = (
+    <span className="whitespace-pre-line" data-testid="login-notice-desc">
+      {lines.join("\n")}
+      {info.is_new_device ? "\nBukan Anda? Segera ganti kata sandi lewat menu Profil." : ""}
+    </span>
+  );
+  if (info.is_new_device) {
+    toast.warning(`${title} — login dari perangkat baru`, { description, duration: 9000 });
+  } else {
+    toast.success(title, { description, duration: 6000 });
+  }
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -27,12 +63,13 @@ export default function Login() {
     try {
       const { data } = await api.post("/auth/login", { identifier, password });
       setUser(data);
+      // FASE 11 — notifikasi login untuk akun ini (perangkat, waktu, login sebelumnya)
+      showLoginNotice(data);
       if (data.profile_complete === false) {
         toast.warning(`Selamat datang, ${data.name}. Mohon lengkapi data akun Anda dahulu.`);
         navigate("/lengkapi-akun", { replace: true });
         return;
       }
-      toast.success(`Selamat datang, ${data.name}`);
       navigate(next || "/roles", { replace: true });
     } catch (err) {
       toast.error(formatApiErrorDetail(err.response?.data?.detail) || err.message);
