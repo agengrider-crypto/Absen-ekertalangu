@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timedelta
 
 # Base URL from frontend/.env
-BASE_URL = "https://barcode-attendance-31.preview.emergentagent.com/api"
+BASE_URL = "https://github-absen-preview.preview.emergentagent.com/api"
 
 # Test credentials
 ADMIN_CREDS = {"identifier": "admin", "password": "jokam354"}
