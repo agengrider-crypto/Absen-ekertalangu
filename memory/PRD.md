@@ -476,3 +476,10 @@ Pantau Login = panel ringkas Dashboard + halaman penuh; TANPA fitur keluarkan pa
    menu & panel dashboard disembunyikan untuk pengurus.
 
 Script verifikasi: `/app/tests/fase12_check.py`.
+
+### Revisi Rekap Gabungan (2026-09-21, lanjutan FASE 12)
+- Peserta yang sudah HADIR di sesi lebih awal → kolom sesi berikutnya berstatus `exempt`
+  (ditampilkan ✓ abu-abu, bukan Alpha) dan tidak masuk `eligible`, sehingga totalnya 1/1 bukan 1/2.
+  Ikut memperbaiki metrik "Hadir semua sesi".
+- Baris jamaah menambah `required_sessions` & `multi_sesi` → badge "Wajib N sesi" (kuning) pada
+  nama yang terdaftar di beberapa sesi, di modal admin maupun halaman publik rekap gabungan.

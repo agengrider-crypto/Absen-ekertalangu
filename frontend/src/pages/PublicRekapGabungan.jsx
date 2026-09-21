@@ -9,6 +9,7 @@ const ST = {
   hadir: { t: "H", cls: "bg-[#0D5C3A] text-white", title: "Hadir" },
   izin: { t: "I", cls: "bg-[#D97706] text-white", title: "Izin" },
   alpha: { t: "A", cls: "bg-[#FEE2E2] text-[#991B1B]", title: "Alpha" },
+  exempt: { t: "✓", cls: "bg-[#F3F4F6] text-[#9CA3AF]", title: "Sudah hadir di sesi sebelumnya — tidak dihitung" },
 };
 
 export function PercentBar({ label, value, sub, color = "#0D5C3A", testid }) {
@@ -94,6 +95,9 @@ export default function PublicRekapGabungan() {
             <span className="px-2.5 py-1 rounded-full bg-[#FEE2E2] text-[#991B1B] font-semibold">Tidak hadir: {s.tidak_hadir}</span>
             {s.tamu > 0 && <span className="px-2.5 py-1 rounded-full bg-[#EEF2FF] text-[#3730A3] font-semibold">Tamu: {s.tamu}</span>}
           </div>
+          <p className="text-[11px] text-[#9CA3AF] leading-relaxed">
+            Jamaah yang sudah hadir di sesi sebelumnya tidak dihitung Alpha pada sesi berikutnya (kolomnya dikosongkan ✓).
+          </p>
         </div>
 
         {/* Per sesi dengan bar */}
@@ -132,7 +136,18 @@ export default function PublicRekapGabungan() {
               <tbody className="divide-y divide-[#F1F2F0]">
                 {data.rows.map((r) => (
                   <tr key={r.user_id}>
-                    <td className="px-3 py-2 font-semibold text-[#111827]">{r.name}</td>
+                    <td className="px-3 py-2 font-semibold text-[#111827]">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span>{r.name}</span>
+                        {r.multi_sesi && (
+                          <span title="Jamaah ini terdaftar di beberapa sesi hari ini"
+                            data-testid={`multi-sesi-${r.user_id}`}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
+                            <Layers size={10} /> Wajib {r.required_sessions} sesi
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     {r.sessions.map((c, i) => (
                       <td key={i} className="px-2 py-2 text-center">
                         {c === null ? <span className="text-[#D1D5DB]">—</span> : (

@@ -29,6 +29,7 @@ const ST = {
   hadir: { t: "H", cls: "bg-[#0D5C3A] text-white", title: "Hadir" },
   izin: { t: "I", cls: "bg-[#D97706] text-white", title: "Izin" },
   alpha: { t: "A", cls: "bg-[#FEE2E2] text-[#991B1B]", title: "Alpha" },
+  exempt: { t: "✓", cls: "bg-[#F3F4F6] text-[#9CA3AF]", title: "Sudah hadir di sesi sebelumnya — tidak dihitung" },
 };
 
 /**
@@ -143,6 +144,10 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
           <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 space-y-3.5" data-testid="rekap-gabungan-bars">
             <PercentBar label="Hadir minimal 1 sesi" value={s.ratio_min_1} sub={`${s.hadir_min_1}/${s.total}`} testid="gab-bar-min1" />
             <PercentBar label="Hadir semua sesi" value={s.ratio_semua} sub={`${s.hadir_semua}/${s.total}`} color="#14532D" testid="gab-bar-semua" />
+            <p className="text-[11px] text-[#9CA3AF] leading-relaxed pt-0.5">
+              Jamaah yang sudah hadir di sesi sebelumnya <b>tidak dihitung Alpha</b> pada sesi berikutnya
+              (kolomnya dikosongkan ✓). Tanda <b>“2 sesi”</b> berarti jamaah tersebut terdaftar di beberapa sesi hari ini.
+            </p>
           </div>
 
           {/* Per sesi + bar persen */}
@@ -217,7 +222,16 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                   ) : rows.map((r) => (
                     <tr key={r.user_id} data-testid={`rekap-gabungan-row-${r.user_id}`}>
                       <td className="px-3 py-2">
-                        <div className="font-semibold text-[#111827] truncate max-w-[180px] sm:max-w-none">{r.name}</div>
+                        <div className="font-semibold text-[#111827] truncate max-w-[180px] sm:max-w-none flex items-center gap-1.5">
+                          <span className="truncate">{r.name}</span>
+                          {r.multi_sesi && (
+                            <span title="Jamaah ini terdaftar di beberapa sesi hari ini"
+                              data-testid={`gab-multi-sesi-${r.user_id}`}
+                              className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
+                              <Layers size={10} /> {r.required_sessions} sesi
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[11px] text-[#9CA3AF]">{r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—"}</div>
                       </td>
                       {r.sessions.map((c, i) => (

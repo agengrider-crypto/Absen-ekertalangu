@@ -2255,16 +2255,24 @@ async def build_rekap_gabungan(docs: list) -> dict:
     for pid, p in sorted(peserta_union.items(), key=lambda x: (x[1].get("name") or "").lower()):
         per = []
         n_hadir = n_izin = n_eligible = 0
+        required = 0
+        done = False   # sudah hadir di sesi sebelumnya pada hari yang sama
         for d in docs:
             if pid not in eligible_by_keg[d["_id"]]:
                 per.append(None)   # tidak termasuk daftar sesi ini
                 continue
-            n_eligible += 1
+            required += 1
             a = abs_by_keg.get(d["_id"], {}).get(pid)
             st = a["status"] if a else "alpha"
+            if done and st in ("alpha", None):
+                # REVISI — sudah hadir sesi sebelumnya: dikosongkan, bukan Alpha
+                per.append({"status": "exempt", "arrival_time": None})
+                continue
+            n_eligible += 1
             per.append({"status": st, "arrival_time": a.get("arrival_time") if a else None})
             if st == "hadir":
                 n_hadir += 1
+                done = True
             elif st == "izin":
                 n_izin += 1
         if n_hadir >= 1:
@@ -2279,6 +2287,8 @@ async def build_rekap_gabungan(docs: list) -> dict:
             "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
             "account_status": p.get("status", "active"),
             "sessions": per, "hadir": n_hadir, "izin": n_izin, "eligible": n_eligible,
+            "required_sessions": required,
+            "multi_sesi": required > 1,
         })
 
     total = len(rows)
