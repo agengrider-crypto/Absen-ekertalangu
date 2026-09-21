@@ -574,7 +574,7 @@ async def record_login_event(user: dict, request: Request) -> dict:
 
 
 @api_router.get("/staff/login-monitor")
-async def login_monitor(staff: dict = Depends(require_staff),
+async def login_monitor(staff: dict = Depends(require_admin),
                         date_from: str = "", date_to: str = "", q: str = "",
                         limit: int = 200):
     """FASE 11 — Pantau login peserta untuk admin/pengurus.
@@ -666,7 +666,7 @@ async def login_monitor(staff: dict = Depends(require_staff),
 
 
 @api_router.get("/staff/login-monitor/user/{user_id}")
-async def login_monitor_user(user_id: str, staff: dict = Depends(require_staff), limit: int = 50):
+async def login_monitor_user(user_id: str, staff: dict = Depends(require_admin), limit: int = 50):
     """Riwayat login 1 peserta (untuk detail di halaman Pantau Login)."""
     u = await db.users.find_one({"_id": parse_object_id(user_id)})
     if not u:
@@ -1405,10 +1405,19 @@ def wa_template_laporan(judul: str, link: str) -> str:
     )
 
 
+def end_of_day_iso(date_str: Optional[str]) -> str:
+    """Akhir hari (23:59:59 WITA) dari tanggal kegiatan."""
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d").replace(
+            hour=23, minute=59, second=59, tzinfo=WITA)
+    except Exception:
+        d = now_wita().replace(hour=23, minute=59, second=59, microsecond=0)
+    return d.isoformat()
+
+
 def kegiatan_barcode_expiry(k: dict) -> str:
-    """Masa berlaku barcode absen kegiatan = 1 bulan sejak jam selesai kegiatan."""
-    base = kegiatan_end_dt(k.get("date"), k.get("end_time")) or now_wita()
-    return (base + timedelta(days=KEGIATAN_BARCODE_DAYS)).isoformat()
+    """REVISI — QR absen kegiatan berlaku HARIAN: habis di akhir hari kegiatan."""
+    return end_of_day_iso(k.get("date"))
 
 
 def to_wita_iso(value: Optional[str]) -> str:
@@ -1441,10 +1450,17 @@ def is_expired_iso(value: Optional[str]) -> bool:
 
 
 class SessionInput(BaseModel):
-    """FASE 9 — satu waktu/sesi kegiatan dalam 1 hari (mis. Pagi 08:00-10:00)."""
+    """FASE 9 — satu waktu/sesi kegiatan dalam 1 hari (mis. Pagi 08:00-10:00).
+
+    FASE 12 — setiap sesi bisa punya pengajar, materi & lokasi sendiri.
+    Bila dikosongkan, dipakai nilai dari kegiatan induk.
+    """
     label: str
     start_time: str
     end_time: str
+    teacher: Optional[str] = None
+    material: Optional[str] = None
+    location: Optional[str] = None
 
 
 class KegiatanInput(BaseModel):
@@ -1699,9 +1715,17 @@ async def count_peserta_total() -> int:
     return await db.users.count_documents(PESERTA_QUERY)
 
 
-def compute_counts(peserta: list, absens: list, guests: int = 0) -> dict:
+def compute_counts(peserta: list, absens: list, guests: int = 0,
+                   skip_ids: Optional[set] = None) -> dict:
+    """Angka rekap 1 kegiatan.
+
+    `skip_ids` = peserta yang SUDAH hadir di sesi lain pada hari yang sama
+    (FASE 12). Mereka tidak dihitung lagi di sesi ini agar tidak menambah alpha.
+    """
     amap = {a["user_id"]: a.get("status") for a in absens}
-    ids = {str(p["_id"]) for p in peserta}
+    skip = skip_ids or set()
+    all_ids = {str(p["_id"]) for p in peserta}
+    ids = {pid for pid in all_ids if pid not in skip}
     hadir = guests
     izin = 0
     for pid in ids:
@@ -1713,7 +1737,45 @@ def compute_counts(peserta: list, absens: list, guests: int = 0) -> dict:
     total = len(ids) + guests
     alpha = max(total - hadir - izin, 0)
     ratio = round((hadir / total) * 100, 1) if total else 0.0
-    return {"total": total, "hadir": hadir, "izin": izin, "alpha": alpha, "ratio": ratio}
+    return {"total": total, "hadir": hadir, "izin": izin, "alpha": alpha, "ratio": ratio,
+            "sudah_sesi_lain": len(all_ids) - len(ids)}
+
+
+async def attended_other_sessions(k: dict) -> dict:
+    """FASE 12 — peserta yang SUDAH hadir di sesi LAIN pada hari yang sama.
+
+    Mengembalikan {user_id: {"label": nama sesi, "arrival_time": ...}}.
+    Dipakai agar nama yang sudah absen sesi pagi tidak lagi tercatat/ditagih
+    pada sesi sore/malam di hari yang sama.
+    """
+    gid = k.get("session_group_id")
+    if not gid:
+        return {}
+    docs = await db.kegiatans.find({"session_group_id": gid,
+                                    "_id": {"$ne": k.get("_id")}}).to_list(20)
+    if not docs:
+        return {}
+    dmap = {d["_id"]: d for d in docs}
+    absens = await db.absensis.find({"kegiatan_id": {"$in": list(dmap)},
+                                     "status": "hadir"}).to_list(50000)
+    out: dict = {}
+    for a in absens:
+        d = dmap.get(a["kegiatan_id"]) or {}
+        idx = d.get("session_index") or 0
+        prev = out.get(a["user_id"])
+        if prev is None or idx < prev["index"]:
+            out[a["user_id"]] = {"label": d.get("session_label") or d.get("name"),
+                                 "arrival_time": a.get("arrival_time"), "index": idx}
+    return out
+
+
+async def assert_not_attended_other_session(k: dict, user_id: str, name: str = "Peserta") -> None:
+    info = (await attended_other_sessions(k)).get(user_id)
+    if info:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{name} sudah tercatat hadir pada sesi {info['label']} di hari yang sama, "
+                   "jadi tidak perlu diabsen lagi pada sesi ini.")
 
 
 async def kegiatan_counts(kegiatan, total: Optional[int] = None) -> dict:
@@ -1724,7 +1786,8 @@ async def kegiatan_counts(kegiatan, total: Optional[int] = None) -> dict:
     peserta = await peserta_for_kegiatan(k)
     absens = await db.absensis.find({"kegiatan_id": k["_id"]}).to_list(10000)
     guests = await db.guest_absens.count_documents({"kegiatan_id": k["_id"]})
-    return compute_counts(peserta, absens, guests)
+    skip = set(await attended_other_sessions(k))
+    return compute_counts(peserta, absens, guests, skip)
 
 
 async def auto_close_kegiatan():
@@ -1818,12 +1881,16 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
             raise HTTPException(status_code=400, detail="Nama waktu/sesi kegiatan wajib diisi")
         if kegiatan_end_dt(body.date, s.start_time) is None or kegiatan_end_dt(body.date, s.end_time) is None:
             raise HTTPException(status_code=400, detail="Format waktu sesi harus HH:MM")
-        sessions.append({"label": label, "start_time": s.start_time, "end_time": s.end_time})
+        sessions.append({"label": label, "start_time": s.start_time, "end_time": s.end_time,
+                         "teacher": (s.teacher or "").strip() or None,
+                         "material": (s.material or "").strip() or None,
+                         "location": (s.location or "").strip() or None})
     if len(sessions) > 6:
         raise HTTPException(status_code=400, detail="Maksimal 6 waktu/sesi dalam 1 hari")
     multi = len(sessions) > 1
     if not sessions:
-        sessions = [{"label": None, "start_time": body.start_time, "end_time": body.end_time}]
+        sessions = [{"label": None, "start_time": body.start_time, "end_time": body.end_time,
+                     "teacher": None, "material": None, "location": None}]
 
     occurrences = 4 if body.recurring else 1
     group_id = str(uuid.uuid4()) if body.recurring else None
@@ -1846,9 +1913,9 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
                 "date": d.strftime("%Y-%m-%d"),
                 "start_time": s["start_time"],
                 "end_time": s["end_time"],
-                "teacher": (body.teacher or "").strip() or None,
-                "material": (body.material or "").strip() or None,
-                "location": (body.location or "").strip() or None,
+                "teacher": s.get("teacher") or (body.teacher or "").strip() or None,
+                "material": s.get("material") or (body.material or "").strip() or None,
+                "location": s.get("location") or (body.location or "").strip() or None,
                 "recurring": body.recurring,
                 "recurring_group_id": group_id,
                 "audience": audience,
@@ -2009,6 +2076,7 @@ async def mark_absen(kegiatan_id: str, body: AbsenInput, admin: dict = Depends(r
     if not u:
         raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
     assert_gender_eligible(k, u)
+    await assert_not_attended_other_session(k, body.user_id, u.get("name") or "Peserta")
     arrival = now_wita().isoformat() if body.status == "hadir" else None
     await db.absensis.update_one(
         {"kegiatan_id": kegiatan_id, "user_id": body.user_id},
@@ -2067,12 +2135,25 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
     absens = await db.absensis.find({"kegiatan_id": kegiatan_id}).to_list(10000)
     guests = await db.guest_absens.find({"kegiatan_id": kegiatan_id}).sort("created_at", 1).to_list(2000)
     amap = {a["user_id"]: a for a in absens}
+    other = await attended_other_sessions(k)
     rows, hadir, izin, alpha = [], 0, 0, 0
     gender = {"L": {"hadir": 0, "total": 0}, "P": {"hadir": 0, "total": 0}}
+    skipped = 0
     for p in peserta:
         pid = str(p["_id"])
         a = amap.get(pid)
         status = a["status"] if a else "alpha"
+        ot = other.get(pid)
+        if ot:
+            skipped += 1
+            rows.append({
+                "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
+                "status": status, "account_status": p.get("status", "active"),
+                "arrival_time": a.get("arrival_time") if a else ot.get("arrival_time"),
+                "marked_by": a.get("marked_by") if a else None,
+                "attended_other": True, "attended_other_label": ot.get("label"),
+            })
+            continue
         g = _derive_gender(p) or "L"
         if g not in gender:
             g = "L"
@@ -2090,13 +2171,15 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
             "account_status": p.get("status", "active"),
             "arrival_time": a.get("arrival_time") if a else None,
             "marked_by": a.get("marked_by") if a else None,
+            "attended_other": False, "attended_other_label": None,
         })
-    total = len(peserta) + len(guests)
+    total = len(peserta) - skipped + len(guests)
     hadir += len(guests)
     return {
         "kegiatan": serialize_kegiatan(k),
         "counts": {"total": total, "hadir": hadir, "izin": izin,
                    "alpha": max(total - hadir - izin, 0),
+                   "sudah_sesi_lain": skipped,
                    "ratio": round((hadir / total) * 100, 1) if total else 0.0},
         "gender": gender,
         "rows": rows,
@@ -2119,17 +2202,14 @@ async def sesi_group_docs(kegiatan_id: str) -> list:
     return docs
 
 
-@api_router.get("/admin/kegiatan/{kegiatan_id}/rekap-gabungan")
-async def rekap_gabungan_sesi(kegiatan_id: str, admin: dict = Depends(require_staff)):
+async def build_rekap_gabungan(docs: list) -> dict:
     """Ringkasan SATU HARI yang menggabungkan kehadiran semua sesi (pagi/sore/malam).
 
     - Setiap sesi tetap punya rekap terpisah (kolom per sesi).
     - "hadir_min_1"   : jamaah hadir minimal pada 1 sesi.
     - "hadir_semua"   : jamaah hadir pada SEMUA sesi.
     - "tidak_hadir"   : tidak hadir di sesi mana pun (dan tidak izin).
-    `kegiatan_id` boleh salah satu sesi dari grup tersebut.
     """
-    docs = await sesi_group_docs(kegiatan_id)
     ids = [d["_id"] for d in docs]
     all_users = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
     absens = await db.absensis.find({"kegiatan_id": {"$in": ids}}).to_list(50000)
@@ -2142,6 +2222,8 @@ async def rekap_gabungan_sesi(kegiatan_id: str, admin: dict = Depends(require_st
         guest_by_keg[g["kegiatan_id"]] = guest_by_keg.get(g["kegiatan_id"], 0) + 1
 
     # Peserta per sesi (filter bisa berbeda tiap sesi walau umumnya sama)
+    hadir_by_keg = {kid: {pid for pid, a in m.items() if a.get("status") == "hadir"}
+                    for kid, m in abs_by_keg.items()}
     sessions_out = []
     peserta_union: dict = {}
     eligible_by_keg: dict = {}
@@ -2150,12 +2232,20 @@ async def rekap_gabungan_sesi(kegiatan_id: str, admin: dict = Depends(require_st
         eligible_by_keg[d["_id"]] = {str(p["_id"]) for p in peserta}
         for p in peserta:
             peserta_union[str(p["_id"])] = p
-        counts = compute_counts(peserta, list(abs_by_keg.get(d["_id"], {}).values()), guest_by_keg.get(d["_id"], 0))
+        skip: set = set()
+        for o in docs:
+            if o["_id"] != d["_id"]:
+                skip |= hadir_by_keg.get(o["_id"], set())
+        counts = compute_counts(peserta, list(abs_by_keg.get(d["_id"], {}).values()),
+                                guest_by_keg.get(d["_id"], 0), skip)
         sessions_out.append({
             "id": d["_id"],
             "label": d.get("session_label") or d.get("name"),
             "start_time": d.get("start_time"),
             "end_time": d.get("end_time"),
+            "teacher": d.get("teacher"),
+            "material": d.get("material"),
+            "location": d.get("location"),
             "status": d.get("status", "open"),
             "counts": counts,
         })
@@ -2215,6 +2305,49 @@ async def rekap_gabungan_sesi(kegiatan_id: str, admin: dict = Depends(require_st
         },
         "rows": rows,
     }
+
+
+@api_router.get("/admin/kegiatan/{kegiatan_id}/rekap-gabungan")
+async def rekap_gabungan_sesi(kegiatan_id: str, admin: dict = Depends(require_staff)):
+    """`kegiatan_id` boleh salah satu sesi dari grup tersebut."""
+    return await build_rekap_gabungan(await sesi_group_docs(kegiatan_id))
+
+
+async def ensure_share_gabungan(kegiatan_id: str, request: Optional[Request] = None) -> dict:
+    """FASE 12 — tautan publik REKAP GABUNGAN 1 hari (semua sesi), berlaku 7 hari."""
+    docs = await sesi_group_docs(kegiatan_id)
+    ids = [d["_id"] for d in docs]
+    token = next((d.get("group_share_token") for d in docs if d.get("group_share_token")), None)
+    exp = next((d.get("group_share_expires_at") for d in docs if d.get("group_share_token")), None)
+    if not token or not exp or is_expired_iso(exp):
+        token = secrets.token_urlsafe(10)
+        exp = (datetime.now(timezone.utc) + timedelta(days=SHARE_EXPIRE_DAYS)).isoformat()
+        await db.kegiatans.update_many(
+            {"_id": {"$in": ids}},
+            {"$set": {"group_share_token": token, "group_share_expires_at": exp}})
+    return {"token": token, "expires_at": exp, "docs": docs,
+            "link": f"{resolve_base_url(request)}/rekap-gabungan/{token}"}
+
+
+@api_router.post("/admin/kegiatan/{kegiatan_id}/share-gabungan")
+async def share_kegiatan_gabungan(kegiatan_id: str, request: Request,
+                                  admin: dict = Depends(require_staff)):
+    info = await ensure_share_gabungan(kegiatan_id, request)
+    first = info["docs"][0]
+    judul = f"rekap gabungan {first.get('base_name') or first.get('name')} ({first.get('date')})"
+    return {"token": info["token"], "link": info["link"], "expires_at": info["expires_at"],
+            "wa_text": wa_template_laporan(judul, info["link"])}
+
+
+@api_router.get("/rekap-gabungan/{token}")
+async def public_rekap_gabungan(token: str):
+    docs = await db.kegiatans.find({"group_share_token": token}).to_list(20)
+    if not docs:
+        raise HTTPException(status_code=404, detail="Tautan rekap gabungan tidak ditemukan")
+    if is_expired_iso(docs[0].get("group_share_expires_at")):
+        raise HTTPException(status_code=410, detail="Tautan rekap gabungan sudah kadaluarsa")
+    docs.sort(key=lambda d: (d.get("session_index") or 0, d.get("start_time") or ""))
+    return await build_rekap_gabungan(docs)
 
 
 class SalinJadwalInput(BaseModel):
@@ -2495,9 +2628,13 @@ async def public_rekap(token: str):
     absens = await db.absensis.find({"kegiatan_id": k["_id"]}).to_list(10000)
     guests = await db.guest_absens.find({"kegiatan_id": k["_id"]}).sort("created_at", 1).to_list(2000)
     amap = {a["user_id"]: a for a in absens}
-    rows, hadir, izin, alpha = [], 0, 0, 0
+    other = await attended_other_sessions(k)
+    rows, hadir, izin, alpha, skipped = [], 0, 0, 0, 0
     gender = {"L": 0, "P": 0}
     for p in peserta:
+        if str(p["_id"]) in other:
+            skipped += 1
+            continue
         a = amap.get(str(p["_id"]))
         status = a["status"] if a else "alpha"
         if status == "hadir":
@@ -2516,7 +2653,7 @@ async def public_rekap(token: str):
         hadir += 1
         rows.append({"name": f"{g.get('name')} (tamu)", "status": "hadir",
                      "account_status": "tamu", "arrival_time": g.get("arrival_time")})
-    total = len(peserta) + len(guests)
+    total = len(peserta) - skipped + len(guests)
     return {
         "name": k.get("name"), "type": k.get("type"), "location": k.get("location"),
         "date": k.get("date"), "start_time": k.get("start_time"), "end_time": k.get("end_time"),
@@ -2530,29 +2667,59 @@ async def public_rekap(token: str):
 
 # ------------------------- QR Absen Mandiri + Kesan & Pesan -------------------------
 async def ensure_absen_token(kegiatan_id: str, request: Optional[Request] = None) -> dict:
-    k = await db.kegiatans.find_one({"_id": kegiatan_id})
-    if not k:
-        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
-    token = k.get("absen_token")
-    exp = k.get("absen_expires_at")
-    # Fase 7: barcode absen kegiatan berlaku 1 BULAN. Bila belum ada / sudah lewat,
-    # token diperbarui beserta masa berlakunya.
-    if not token or not exp or is_expired_iso(exp):
+    """REVISI — QR absen kegiatan: SATU token per HARI, dipakai semua sesi hari itu.
+
+    Token berlaku sampai akhir hari kegiatan (bukan bulanan lagi). Bila kegiatan
+    memiliki beberapa sesi (pagi/sore/malam), semua sesi memakai token yang sama
+    dan halaman absen otomatis mengarah ke sesi yang sedang berjalan.
+    """
+    docs = await sesi_group_docs(kegiatan_id)
+    k = next((d for d in docs if d["_id"] == kegiatan_id), docs[0])
+    ids = [d["_id"] for d in docs]
+    exp = end_of_day_iso(k.get("date"))
+    token = next((d.get("absen_token") for d in docs
+                  if d.get("absen_token") and not is_expired_iso(d.get("absen_expires_at"))), None)
+    if not token:
         token = secrets.token_urlsafe(10)
-        exp = kegiatan_barcode_expiry(k)
-        await db.kegiatans.update_one({"_id": kegiatan_id},
-                                      {"$set": {"absen_token": token, "absen_expires_at": exp}})
+    await db.kegiatans.update_many({"_id": {"$in": ids}},
+                                   {"$set": {"absen_token": token, "absen_expires_at": exp}})
     link = f"{resolve_base_url(request)}/absen/{token}"
-    return {"token": token, "link": link, "expires_at": exp, "kegiatan": k}
+    return {"token": token, "link": link, "expires_at": exp, "kegiatan": k,
+            "sessions": len(docs)}
+
+
+async def kegiatan_by_absen_token(token: str) -> dict:
+    """Kegiatan/sesi yang dituju sebuah token absen harian.
+
+    Bila token dipakai beberapa sesi dalam 1 hari, dipilih sesi yang sedang
+    berjalan (jam selesainya belum lewat & masih terbuka).
+    """
+    docs = await db.kegiatans.find({"absen_token": token}).to_list(20)
+    if not docs:
+        raise HTTPException(
+            status_code=404,
+            detail="Mohon maaf, tautan absen ini tidak dikenali. "
+                   "Silakan scan ulang QR kegiatan dari pengurus.")
+    if len(docs) == 1:
+        return docs[0]
+    docs.sort(key=lambda d: (d.get("session_index") or 0, d.get("start_time") or ""))
+    now = now_wita()
+    for d in docs:
+        end = kegiatan_end_dt(d.get("date"), d.get("end_time"))
+        if (d.get("status") or "open") == "open" and end and now <= end:
+            return d
+    open_docs = [d for d in docs if (d.get("status") or "open") == "open"]
+    return open_docs[-1] if open_docs else docs[-1]
 
 
 def assert_barcode_valid(k: dict) -> None:
-    """Fase 7: barcode absen kegiatan hanya berlaku 1 bulan."""
+    """REVISI — QR absen kegiatan berlaku 1 hari (habis di akhir hari kegiatan)."""
     if is_expired_iso(k.get("absen_expires_at")):
         raise HTTPException(
             status_code=403,
-            detail="Mohon maaf, barcode absen kegiatan ini sudah kedaluwarsa "
-                   "(masa berlaku 1 bulan). Silakan minta QR baru kepada pengurus.")
+            detail="Mohon maaf, QR absen kegiatan ini sudah kedaluwarsa "
+                   "(berlaku 1 hari sesuai tanggal kegiatan). "
+                   "Silakan minta QR baru kepada pengurus.")
 
 
 @api_router.post("/admin/kegiatan/{kegiatan_id}/absen-qr")
@@ -2560,13 +2727,14 @@ async def absen_qr(kegiatan_id: str, request: Request, admin: dict = Depends(req
     info = await ensure_absen_token(kegiatan_id, request)
     return {"token": info["token"], "link": info["link"],
             "expires_at": info["expires_at"],
-            "expires_days": KEGIATAN_BARCODE_DAYS,
+            "expires_days": 1,
+            "sessions": info.get("sessions", 1),
             "image": make_qr_data_url(info["link"])}
 
 
 @api_router.get("/absen/{token}")
 async def public_absen_info(token: str):
-    k = await db.kegiatans.find_one({"absen_token": token})
+    k = await kegiatan_by_absen_token(token)
     if not k:
         raise HTTPException(status_code=404, detail="Tautan absen tidak ditemukan")
     assert_barcode_valid(k)
@@ -2598,7 +2766,7 @@ async def public_absen_info(token: str):
 
 @api_router.post("/absen/{token}/mark")
 async def public_absen_mark(token: str, body: SelfAbsenInput):
-    k = await db.kegiatans.find_one({"absen_token": token})
+    k = await kegiatan_by_absen_token(token)
     if not k:
         raise HTTPException(status_code=404, detail="Tautan absen tidak ditemukan")
     assert_barcode_valid(k)
@@ -2609,6 +2777,7 @@ async def public_absen_mark(token: str, body: SelfAbsenInput):
         raise HTTPException(status_code=404, detail="Nama peserta tidak ditemukan")
     assert_gender_eligible(k, u)
     pid = str(u["_id"])
+    await assert_not_attended_other_session(k, pid, u.get("name") or "Peserta")
     existing = await db.absensis.find_one({"kegiatan_id": k["_id"], "user_id": pid})
     if existing and existing.get("status") == "hadir":
         return {"name": u.get("name"), "status": "hadir",
@@ -2628,7 +2797,7 @@ async def public_absen_mark(token: str, body: SelfAbsenInput):
 # Tidak ada "nitip absen" — daftar nama peserta lain tidak ditampilkan.
 @api_router.get("/me/absen/{token}")
 async def my_absen_info(token: str, user: dict = Depends(get_current_user)):
-    k = await db.kegiatans.find_one({"absen_token": token})
+    k = await kegiatan_by_absen_token(token)
     if not k:
         raise HTTPException(
             status_code=404,
@@ -2656,7 +2825,7 @@ async def my_absen_info(token: str, user: dict = Depends(get_current_user)):
 
 @api_router.post("/me/absen/{token}/mark")
 async def my_absen_mark(token: str, user: dict = Depends(get_current_user)):
-    k = await db.kegiatans.find_one({"absen_token": token})
+    k = await kegiatan_by_absen_token(token)
     if not k:
         raise HTTPException(
             status_code=404,
@@ -2691,6 +2860,7 @@ async def my_absen_mark(token: str, user: dict = Depends(get_current_user)):
             detail="Mohon maaf, kegiatan reguler hanya untuk akun yang sudah diaktivasi. "
                    "Silakan aktivasi akun Anda terlebih dahulu.")
     uid = str(user["_id"])
+    await assert_not_attended_other_session(k, uid, "Kehadiran Anda")
     existing = await db.absensis.find_one({"kegiatan_id": k["_id"], "user_id": uid})
     if existing and existing.get("status") == "hadir":
         return {
@@ -2716,7 +2886,7 @@ async def my_absen_mark(token: str, user: dict = Depends(get_current_user)):
 
 @api_router.post("/absen/{token}/feedback")
 async def public_absen_feedback(token: str, body: FeedbackInput):
-    k = await db.kegiatans.find_one({"absen_token": token})
+    k = await kegiatan_by_absen_token(token)
     if not k:
         raise HTTPException(
             status_code=404,
@@ -2852,12 +3022,16 @@ async def build_absensi_rows(kegiatan) -> dict:
     absens = await db.absensis.find({"kegiatan_id": kegiatan_id}).to_list(10000)
     amap = {a["user_id"]: a for a in absens}
     guests = await db.guest_absens.find({"kegiatan_id": kegiatan_id}).sort("created_at", 1).to_list(2000)
-    rows, hadir, izin, alpha = [], 0, 0, 0
+    other = await attended_other_sessions(k)
+    rows, hadir, izin, alpha, skipped = [], 0, 0, 0, 0
     for p in peserta:
         pid = str(p["_id"])
         a = amap.get(pid)
         status = a["status"] if a else "alpha"
-        if status == "hadir":
+        ot = other.get(pid)
+        if ot:
+            skipped += 1
+        elif status == "hadir":
             hadir += 1
         elif status == "izin":
             izin += 1
@@ -2870,15 +3044,18 @@ async def build_absensi_rows(kegiatan) -> dict:
             "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
             "account_status": p.get("status", "active"),
             "status": status,
-            "arrival_time": a.get("arrival_time") if a else None,
+            "arrival_time": a.get("arrival_time") if a else (ot or {}).get("arrival_time"),
             "marked_by": a.get("marked_by") if a else None,
             "is_guest": False,
+            "attended_other": bool(ot),
+            "attended_other_label": (ot or {}).get("label"),
         })
-    total = len(peserta) + len(guests)
+    total = len(peserta) - skipped + len(guests)
     hadir += len(guests)
     return {
         "counts": {"total": total, "hadir": hadir, "izin": izin,
                    "alpha": max(total - hadir - izin, 0),
+                   "sudah_sesi_lain": skipped,
                    "ratio": round((hadir / total) * 100, 1) if total else 0.0},
         "rows": rows,
         "guests": [serialize_guest(g) for g in guests],
@@ -3009,6 +3186,7 @@ async def mark_absensi_by_code(token: str, body: AbsensiMarkInput):
             status_code=400,
             detail=f"Kegiatan ini {' · '.join(labels).lower()}, "
                    "peserta ini tidak termasuk dalam daftar.")
+    await assert_not_attended_other_session(k, body.user_id, u.get("name") or "Peserta")
     arrival = now_wita().isoformat() if body.status == "hadir" else None
     await db.absensis.update_one(
         {"kegiatan_id": k["_id"], "user_id": body.user_id},
@@ -3093,6 +3271,7 @@ async def scan_absensi_by_code(token: str, body: AbsensiScanInput):
         raise HTTPException(status_code=404,
                             detail="Mohon maaf, data peserta untuk QR ini tidak ditemukan.")
     assert_gender_eligible(k, u)
+    await assert_not_attended_other_session(k, target_id, u.get("name") or "Peserta")
     existing = await db.absensis.find_one({"kegiatan_id": k["_id"], "user_id": target_id})
     if existing and existing.get("status") == "hadir":
         return {"user_id": target_id, "name": u.get("name"), "status": "hadir",
@@ -3218,7 +3397,8 @@ async def publik_hadir_mark(token: str, body: PublikHadirInput):
 # ===========================================================================
 # FASE 3 (Pengurus) & FASE 4 (Peserta)
 # ===========================================================================
-MUSY_CATEGORIES = ["4S", "tim7"]
+MUSY_CATEGORIES = ["4S", "tim7", "pleno"]
+MUSY_LABEL = {"4S": "Musyawarah 4S", "tim7": "Musyawarah Tim 7", "pleno": "Musyawarah Pleno"}
 MAX_PINNED = 3
 PERSONAL_QR_ROTATE = 60  # detik
 
@@ -3251,8 +3431,11 @@ class MusyawarahUpdate(BaseModel):
 
 
 def serialize_musyawarah(m: dict) -> dict:
-    return {"id": m["_id"], "category": m.get("category"), "date": m.get("date"),
+    return {"id": m["_id"], "category": m.get("category"),
+            "category_label": MUSY_LABEL.get(m.get("category"), "Musyawarah"),
+            "date": m.get("date"),
             "content": m.get("content", ""), "created_by": m.get("created_by_name"),
+            "share_token": m.get("share_token"),
             "created_at": m.get("created_at"), "updated_at": m.get("updated_at")}
 
 
@@ -3301,6 +3484,38 @@ async def delete_musyawarah(musy_id: str, staff: dict = Depends(require_staff)):
     return {"ok": True}
 
 
+@api_router.post("/staff/musyawarah/{musy_id}/share")
+async def share_musyawarah(musy_id: str, request: Request, staff: dict = Depends(require_staff)):
+    """FASE 12 — tautan publik catatan musyawarah (bisa dibagikan ke WhatsApp)."""
+    m = await db.musyawarahs.find_one({"_id": musy_id})
+    if not m:
+        raise HTTPException(status_code=404, detail="Catatan tidak ditemukan")
+    token = m.get("share_token")
+    if not token:
+        token = secrets.token_urlsafe(10)
+        await db.musyawarahs.update_one({"_id": musy_id}, {"$set": {"share_token": token}})
+    link = f"{resolve_base_url(request)}/musyawarah/{token}"
+    label = MUSY_LABEL.get(m.get("category"), "Musyawarah")
+    wa_text = (
+        "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
+        f"Berikut hasil {label} tanggal {m.get('date', '-')}\n"
+        f"{link}\n\n"
+        "Alhamdulillah, jazakumullahu khoiro."
+    )
+    return {"token": token, "link": link, "wa_text": wa_text, "label": label}
+
+
+@api_router.get("/musyawarah/{token}")
+async def public_musyawarah(token: str):
+    m = await db.musyawarahs.find_one({"share_token": token})
+    if not m:
+        raise HTTPException(status_code=404, detail="Tautan musyawarah tidak ditemukan")
+    return {"category": m.get("category"),
+            "label": MUSY_LABEL.get(m.get("category"), "Musyawarah"),
+            "date": m.get("date"), "content": m.get("content", ""),
+            "created_by": m.get("created_by_name"), "updated_at": m.get("updated_at")}
+
+
 @api_router.get("/staff/musyawarah/{musy_id}/pdf")
 async def musyawarah_pdf(musy_id: str, staff: dict = Depends(require_staff)):
     m = await db.musyawarahs.find_one({"_id": musy_id})
@@ -3315,7 +3530,7 @@ async def musyawarah_pdf(musy_id: str, staff: dict = Depends(require_staff)):
                             leftMargin=2 * cm, rightMargin=2 * cm)
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#0D5C3A")
-    cat_label = "Musyawarah 4S" if m.get("category") == "4S" else "Musyawarah Tim 7"
+    cat_label = MUSY_LABEL.get(m.get("category"), "Musyawarah")
     body_style = ParagraphStyle("b", parent=styles["Normal"], fontSize=11, leading=17)
     elems = [Paragraph("E-KERTALANGU", title_style),
              Paragraph(cat_label, styles["Heading2"]),
@@ -3354,8 +3569,7 @@ async def musyawarah_export_pdf(category: str = "", date_from: str = "", date_to
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#0D5C3A")
     body_style = ParagraphStyle("b", parent=styles["Normal"], fontSize=11, leading=17)
-    cat_label = ("Musyawarah 4S" if category == "4S" else
-                 "Musyawarah Tim 7" if category == "tim7" else "Musyawarah 4S & Tim 7")
+    cat_label = MUSY_LABEL.get(category, "Musyawarah 4S, Tim 7 & Pleno")
     periode = ""
     if date_from or date_to:
         periode = f"Periode: {date_from or '...'} s/d {date_to or '...'}"
@@ -3367,7 +3581,7 @@ async def musyawarah_export_pdf(category: str = "", date_from: str = "", date_to
     if not items:
         elems.append(Paragraph("Tidak ada catatan pada periode ini.", body_style))
     for m in items:
-        lbl = "4S" if m.get("category") == "4S" else "Tim 7"
+        lbl = {"4S": "4S", "tim7": "Tim 7", "pleno": "Pleno"}.get(m.get("category"), "-")
         elems.append(Paragraph(f"<b>[{lbl}] {m.get('date', '-')}</b>", styles["Heading3"]))
         content = (m.get("content") or "(kosong)").replace("\n", "<br/>")
         elems.append(Paragraph(content, body_style))
@@ -3479,6 +3693,49 @@ async def delete_pengumuman(peng_id: str, staff: dict = Depends(require_staff)):
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Pengumuman tidak ditemukan")
     return {"ok": True}
+
+
+def to_utc_iso(value) -> Optional[str]:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except Exception:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat()
+
+
+@api_router.get("/me/updates")
+async def my_updates(user: dict = Depends(get_current_user)):
+    """FASE 12 — bahan lonceng notifikasi peserta: kegiatan baru + pengumuman baru."""
+    today = now_wita().strftime("%Y-%m-%d")
+    items = []
+    kegs = await db.kegiatans.find({"date": {"$gte": today}}).sort("created_at", -1).to_list(80)
+    for k in kegs:
+        if not match_gender_filter(k, user):
+            continue
+        items.append({
+            "type": "kegiatan", "id": k["_id"],
+            "title": k.get("name"),
+            "subtitle": f"{k.get('date')} · {k.get('start_time')}–{k.get('end_time')} WITA"
+                        + (f" · {k.get('location')}" if k.get("location") else ""),
+            "at": to_utc_iso(k.get("created_at")),
+        })
+    pengs = await db.pengumumans.find().sort("created_at", -1).to_list(30)
+    for p in pengs:
+        items.append({
+            "type": "pengumuman", "id": p["_id"], "title": p.get("title"),
+            "subtitle": (p.get("body") or "")[:90],
+            "important": bool(p.get("important")),
+            "at": to_utc_iso(p.get("created_at")),
+        })
+    items = [i for i in items if i["at"]]
+    items.sort(key=lambda x: x["at"], reverse=True)
+    items = items[:30]
+    return {"items": items, "now": datetime.now(timezone.utc).isoformat(),
+            "latest_at": items[0]["at"] if items else None}
 
 
 @api_router.get("/me/announcements")

@@ -338,6 +338,13 @@ function SessionGroupCard({ group, onOpen, onRekapGabungan, onSalin }) {
                   <div className="text-xs text-[#6B7280] mt-0.5 inline-flex items-center gap-1">
                     <Clock size={12} /> {k.start_time}–{k.end_time} WITA
                   </div>
+                  {(k.teacher || k.material || k.location) && (
+                    <div className="text-[11px] text-[#9CA3AF] mt-0.5 flex flex-wrap gap-x-2.5">
+                      {k.teacher && <span className="inline-flex items-center gap-1"><User size={11} /> {k.teacher}</span>}
+                      {k.location && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {k.location}</span>}
+                      {k.material && <span className="truncate max-w-[160px]">{k.material}</span>}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-lg font-bold text-[#0D5C3A] leading-none">{c.ratio ?? 0}%</div>
@@ -438,8 +445,8 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
   // FASE 9 — beberapa waktu/sesi dalam 1 hari
   const [multi, setMulti] = useState(false);
   const [sessions, setSessions] = useState([
-    { label: "Pagi", start_time: "08:00", end_time: "10:00" },
-    { label: "Sore", start_time: "16:00", end_time: "17:30" },
+    { label: "Pagi", start_time: "08:00", end_time: "10:00", teacher: "", material: "", location: "" },
+    { label: "Sore", start_time: "16:00", end_time: "17:30", teacher: "", material: "", location: "" },
   ]);
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -454,7 +461,7 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
     const used = p.map((s) => s.label);
     const next = SESSION_LABEL_PRESETS.find((l) => !used.includes(l)) || `Sesi ${p.length + 1}`;
     const [st, en] = SESSION_DEFAULT_TIME[next] || ["08:00", "10:00"];
-    return [...p, { label: next, start_time: st, end_time: en }];
+    return [...p, { label: next, start_time: st, end_time: en, teacher: "", material: "", location: "" }];
   });
   const removeSession = (i) => setSessions((p) => p.filter((_, idx) => idx !== i));
 
@@ -568,6 +575,30 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
                       className="h-11 w-11 flex items-center justify-center rounded-xl border-2 border-[#E5E7EB] text-[#DC2626] hover:border-[#DC2626] disabled:opacity-40 disabled:cursor-not-allowed bg-white">
                       <Trash2 size={16} />
                     </button>
+                    {/* FASE 12 — pengajar / materi / lokasi per sesi */}
+                    <div className="col-span-2 sm:col-span-4 grid sm:grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Pengajar sesi ini</label>
+                        <input data-testid={`keg-session-teacher-${i}`} value={s.teacher || ""}
+                          onChange={(e) => setSession(i, "teacher", e.target.value)} placeholder="cth: Ust. Ahmad"
+                          className="w-full h-11 px-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Materi sesi ini</label>
+                        <input data-testid={`keg-session-material-${i}`} value={s.material || ""}
+                          onChange={(e) => setSession(i, "material", e.target.value)} placeholder="cth: Tafsir Al-Baqarah"
+                          className="w-full h-11 px-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white" />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Lokasi sesi ini</label>
+                        <input data-testid={`keg-session-location-${i}`} value={s.location || ""}
+                          onChange={(e) => setSession(i, "location", e.target.value)} placeholder="cth: Masjid Kertalangu"
+                          className="w-full h-11 px-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white" />
+                      </div>
+                      <p className="sm:col-span-3 text-[11px] text-[#9CA3AF] leading-relaxed">
+                        Dikosongkan = memakai pengajar / materi / lokasi kegiatan di bawah.
+                      </p>
+                    </div>
                   </div>
                 ))}
                 <datalist id="session-presets">
@@ -915,8 +946,8 @@ function AbsenQrModal({ data, onClose }) {
             Peserta scan QR ini dengan kamera HP lalu <b>masuk dengan akunnya sendiri</b>.
             Halaman absen hanya menampilkan <b>nama peserta itu sendiri</b> dengan tombol
             <b> Saya Hadir</b> — sehingga tidak bisa menitipkan absen orang lain.
-            Barcode kegiatan ini <b>berlaku 1 bulan</b>{data.expires_at ? <> (sampai {tanggalSingkat(String(data.expires_at).slice(0, 10))})</> : null},
-            sehingga bisa dicetak dan dipakai berulang untuk kegiatan tersebut.
+            QR kegiatan ini <b>berlaku 1 hari</b>{data.expires_at ? <> (hanya untuk tanggal {tanggalSingkat(String(data.expires_at).slice(0, 10))})</> : null}
+            {data.sessions > 1 ? <>, dan <b>1 QR dipakai semua sesi</b> hari itu — halaman absen otomatis mengarah ke sesi yang sedang berjalan.</> : "."}
           </p>
         </div>
         <p className="text-xs text-[#9CA3AF] mt-2 break-all px-2">{data.link}</p>

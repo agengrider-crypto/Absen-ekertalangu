@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck } from "lucide-react";
+import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import Beranda from "./peserta/Beranda";
@@ -14,7 +14,7 @@ const BASE_TABS = [
   { key: "beranda", label: "Beranda", icon: Home },
   { key: "kegiatan", label: "Kegiatan", icon: CalendarDays },
   { key: "scan", label: "Scan", icon: ScanLine },
-  { key: "qr", label: "Barcode", icon: QrCode },
+  { key: "qr", label: "QR Saya", icon: QrCode },
   { key: "profil", label: "Profil", icon: User },
 ];
 
@@ -24,31 +24,34 @@ export default function PesertaArea({ user }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [tab, setTab] = useState("beranda");
-  const [hasNew, setHasNew] = useState(false);
+  const [updates, setUpdates] = useState([]);
+  const [unread, setUnread] = useState(0);
+  const [panel, setPanel] = useState(false);
   const multiRole = (user?.roles?.length || 0) > 1;
-  const seenKey = `ann_seen_${user?.id || "me"}`;
+  const seenKey = `upd_seen_${user?.id || "me"}`;
 
   // Tab "Penjaga Absen" dinonaktifkan (absensi memakai kode akses kegiatan).
   const TABS = BASE_TABS;
 
+  // FASE 12 — lonceng notifikasi: kegiatan baru + pengumuman baru
+  const loadUpdates = () => api.get("/me/updates").then(({ data }) => {
+    const items = data.items || [];
+    setUpdates(items);
+    const seen = localStorage.getItem(seenKey) || "";
+    setUnread(items.filter((i) => !seen || i.at > seen).length);
+  }).catch(() => {});
+
   useEffect(() => {
-    api.get("/me/announcements?role=peserta").then(({ data }) => {
-      const important = (data || []).filter((a) => a.important && a.created_at);
-      if (!important.length) { setHasNew(false); return; }
-      const latest = important.map((a) => a.created_at).sort().slice(-1)[0];
-      const seen = localStorage.getItem(seenKey);
-      setHasNew(!seen || latest > seen);
-    }).catch(() => {});
+    loadUpdates();
+    const t = setInterval(loadUpdates, 60000);
+    return () => clearInterval(t);
     // eslint-disable-next-line
   }, []);
 
   const openBell = () => {
-    setTab("beranda");
-    api.get("/me/announcements?role=peserta").then(({ data }) => {
-      const stamps = (data || []).map((a) => a.created_at).filter(Boolean).sort();
-      if (stamps.length) localStorage.setItem(seenKey, stamps.slice(-1)[0]);
-      setHasNew(false);
-    }).catch(() => setHasNew(false));
+    setPanel((p) => !p);
+    if (updates.length) localStorage.setItem(seenKey, updates[0].at);
+    setUnread(0);
   };
 
   const doLogout = async () => { await logout(); navigate("/login"); };
@@ -65,9 +68,13 @@ export default function PesertaArea({ user }) {
             <span className="font-heading font-bold text-sm">E-KERTALANGU</span>
           </div>
           <div className="flex items-center gap-1">
-            <button data-testid="peserta-bell" onClick={openBell} className="relative h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white/10" title="Pengumuman">
+            <button data-testid="peserta-bell" onClick={openBell} className="relative h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white/10" title="Notifikasi">
               <Bell size={18} />
-              {hasNew && <span data-testid="peserta-bell-dot" className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-[#0D5C3A]" />}
+              {unread > 0 && (
+                <span data-testid="peserta-bell-count" className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-[#0D5C3A]">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
             </button>
             {multiRole && (
               <button data-testid="peserta-switch-role" onClick={() => navigate("/roles")} className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white/10" title="Ganti Peran">
@@ -80,6 +87,44 @@ export default function PesertaArea({ user }) {
           </div>
         </div>
       </header>
+
+      {/* FASE 12 — panel notifikasi peserta */}
+      {panel && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setPanel(false)} />
+          <div className="sticky top-14 z-40 max-w-lg mx-auto px-4">
+            <div className="mt-2 bg-white rounded-2xl border border-[#E5E7EB] shadow-xl overflow-hidden" data-testid="peserta-notif-panel">
+              <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
+                <div className="font-heading font-bold text-[#111827] text-sm inline-flex items-center gap-2"><Bell size={15} className="text-[#0D5C3A]" /> Notifikasi</div>
+                <button onClick={() => setPanel(false)} data-testid="peserta-notif-close" className="h-8 w-8 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F2F5F2]"><X size={16} /></button>
+              </div>
+              <div className="max-h-[60vh] overflow-y-auto divide-y divide-[#F1F2F0]">
+                {updates.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-[#6B7280]">Belum ada kegiatan atau pengumuman baru.</div>
+                ) : updates.map((u) => (
+                  <button
+                    key={`${u.type}-${u.id}`}
+                    data-testid={`peserta-notif-${u.type}-${u.id}`}
+                    onClick={() => { setPanel(false); setTab(u.type === "kegiatan" ? "kegiatan" : "beranda"); }}
+                    className="w-full text-left px-4 py-3 hover:bg-[#F9FAFB] flex gap-3"
+                  >
+                    <span className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center ${u.type === "kegiatan" ? "bg-[#E8F5EE] text-[#0D5C3A]" : "bg-[#FEF3C7] text-[#92400E]"}`}>
+                      {u.type === "kegiatan" ? <CalendarDays size={17} /> : <Megaphone size={17} />}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
+                        {u.type === "kegiatan" ? "Kegiatan baru" : "Pengumuman"}
+                      </span>
+                      <span className="block font-semibold text-sm text-[#111827] truncate">{u.title}</span>
+                      {u.subtitle && <span className="block text-xs text-[#6B7280] truncate">{u.subtitle}</span>}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       <main className="max-w-lg mx-auto px-4 py-4">
         {tab === "beranda" && <Beranda user={user} onGoto={setTab} />}

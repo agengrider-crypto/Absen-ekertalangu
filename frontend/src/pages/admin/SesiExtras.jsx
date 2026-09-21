@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   X, Loader2, Layers, Search, CalendarDays, Clock, MapPin, User, Copy,
-  Plus, Trash2, AlertTriangle, ClipboardCopy,
+  Plus, Trash2, AlertTriangle, ClipboardCopy, Link2, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import { PercentBar } from "@/pages/PublicRekapGabungan";
 import { tanggalPanjang, tanggalSingkat, hhmm, TYPE_LABEL, TYPE_COLOR } from "./kegiatanUtils";
 
 function Shell({ title, subtitle, children, onClose, testid, wide }) {
@@ -40,6 +41,36 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [mode, setMode] = useState("semua"); // semua | hadir | tidak
+  const [share, setShare] = useState(null);
+  const [sharing, setSharing] = useState(false);
+
+  const getLink = async () => {
+    if (share) return share;
+    setSharing(true);
+    try {
+      const { data: d } = await api.post(`/admin/kegiatan/${kegiatanId}/share-gabungan`);
+      setShare(d);
+      return d;
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail) || "Gagal membuat tautan");
+      return null;
+    } finally { setSharing(false); }
+  };
+
+  const copyLink = async () => {
+    const d = await getLink();
+    if (!d) return;
+    try {
+      await navigator.clipboard.writeText(d.link);
+      toast.success("Tautan rekap gabungan disalin.");
+    } catch { toast.info("Tautan siap disalin manual dari kotak di atas."); }
+  };
+
+  const shareWa = async () => {
+    const d = await getLink();
+    if (!d) return;
+    window.open(`https://wa.me/?text=${encodeURIComponent(d.wa_text)}`, "_blank");
+  };
 
   const load = useCallback(() => {
     setErr("");
@@ -108,22 +139,52 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
             <span className="inline-flex items-center gap-1"><Layers size={12} /> {data.sessions.length} sesi</span>
           </div>
 
-          {/* Per sesi */}
-          <div className="grid gap-2 sm:grid-cols-3" data-testid="rekap-gabungan-per-sesi">
+          {/* Bar persen ringkasan gabungan */}
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 space-y-3.5" data-testid="rekap-gabungan-bars">
+            <PercentBar label="Hadir minimal 1 sesi" value={s.ratio_min_1} sub={`${s.hadir_min_1}/${s.total}`} testid="gab-bar-min1" />
+            <PercentBar label="Hadir semua sesi" value={s.ratio_semua} sub={`${s.hadir_semua}/${s.total}`} color="#14532D" testid="gab-bar-semua" />
+          </div>
+
+          {/* Per sesi + bar persen */}
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 space-y-3.5" data-testid="rekap-gabungan-per-sesi">
+            <div className="text-sm font-semibold text-[#111827]">Kehadiran per Sesi</div>
             {data.sessions.map((x) => (
-              <div key={x.id} className="rounded-xl border border-[#E5E7EB] bg-white p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-bold text-[#0D5C3A]">{x.label}</span>
-                  <span className="text-lg font-bold text-[#0D5C3A]">{x.counts.ratio}%</span>
+              <div key={x.id}>
+                <PercentBar label={`${x.label} · ${x.start_time}–${x.end_time} WITA`} value={x.counts.ratio}
+                  sub={`${x.counts.hadir}/${x.counts.total}`} testid={`gab-bar-sesi-${x.id}`} />
+                <div className="text-[11px] text-[#9CA3AF] mt-1 flex flex-wrap gap-x-3">
+                  <span>H {x.counts.hadir}</span><span>I {x.counts.izin}</span><span>A {x.counts.alpha}</span>
+                  {x.counts.sudah_sesi_lain > 0 && <span>Sudah hadir sesi lain {x.counts.sudah_sesi_lain}</span>}
+                  {x.teacher && <span className="inline-flex items-center gap-1"><User size={11} /> {x.teacher}</span>}
+                  {x.location && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {x.location}</span>}
                 </div>
-                <div className="text-[11px] text-[#6B7280] inline-flex items-center gap-1 mt-0.5"><Clock size={11} /> {x.start_time}–{x.end_time} WITA</div>
-                <div className="text-xs text-[#4B5563] mt-1">H {x.counts.hadir} · I {x.counts.izin} · A {x.counts.alpha} · dari {x.counts.total}</div>
               </div>
             ))}
           </div>
 
+          {/* Bagikan sebagai LINK (seperti rekap kegiatan biasa) */}
+          <div className="rounded-2xl border-2 border-[#CDEBD9] bg-[#F0FAF4] p-4 space-y-2.5" data-testid="rekap-gabungan-share">
+            <div className="text-sm font-bold text-[#065F46] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap ini sebagai tautan</div>
+            <p className="text-[11px] text-[#065F46]/80 leading-relaxed">
+              Tautan publik berisi bar persentase kehadiran semua sesi — bisa dibuka siapa pun tanpa login (berlaku 7 hari).
+            </p>
+            {share && (
+              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#CDEBD9] px-2.5 py-2 text-[#065F46]" data-testid="rekap-gabungan-link">{share.link}</div>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={shareWa} disabled={sharing} data-testid="rekap-gabungan-share-wa"
+                className="h-11 rounded-xl bg-[#25D366] text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:brightness-95 disabled:opacity-60">
+                {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Bagikan ke WhatsApp
+              </button>
+              <button onClick={copyLink} disabled={sharing} data-testid="rekap-gabungan-copy-link"
+                className="h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#E8F5EE] disabled:opacity-60">
+                <Link2 size={15} /> Salin Tautan
+              </button>
+            </div>
+          </div>
+
           <button onClick={copyText} data-testid="rekap-gabungan-copy"
-            className="w-full h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#E8F5EE]">
+            className="w-full h-11 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
             <ClipboardCopy size={16} /> Salin Ringkasan (teks WhatsApp)
           </button>
 

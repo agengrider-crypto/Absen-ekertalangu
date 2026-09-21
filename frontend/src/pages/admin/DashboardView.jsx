@@ -31,7 +31,7 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
   );
 }
 
-export default function DashboardView({ user, onGoto }) {
+export default function DashboardView({ user, onGoto, role = "admin" }) {
   const [d, setD] = useState(null);
   const [qr, setQr] = useState(null);
   const [actQr, setActQr] = useState(null);
@@ -43,11 +43,13 @@ export default function DashboardView({ user, onGoto }) {
     api.get("/admin/dashboard").then(({ data }) => setD(data)).catch(() => setD(false));
     api.get("/qr/public").then(({ data }) => setQr(data)).catch(() => {});
     api.get("/admin/users/kelengkapan").then(({ data }) => setLengkap(data)).catch(() => {});
+    // FASE 12 — Pantau Login hanya untuk ADMIN
+    if (role !== "admin") { setLoginMon(false); return undefined; }
     const loadLogin = () => api.get("/staff/login-monitor?limit=8").then(({ data }) => setLoginMon(data)).catch(() => setLoginMon(false));
     loadLogin();
     const iv = setInterval(loadLogin, 60000);
     return () => clearInterval(iv);
-  }, []);
+  }, [role]);
 
   const openActQr = () => {
     setShowActQr(true);
@@ -122,8 +124,8 @@ export default function DashboardView({ user, onGoto }) {
         </button>
       )}
 
-      {/* FASE 11 — Pantau Login ringkas */}
-      {loginMon && (
+      {/* FASE 11 — Pantau Login ringkas (khusus admin) */}
+      {role === "admin" && loginMon && (
         <div className="mb-6 bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid="dashboard-pantau-login">
           <div className="px-5 py-3.5 flex items-center justify-between gap-3 border-b border-[#E5E7EB]">
             <div className="flex items-center gap-2 font-bold text-[#0D5C3A]"><MonitorSmartphone size={18} /> Pantau Login</div>

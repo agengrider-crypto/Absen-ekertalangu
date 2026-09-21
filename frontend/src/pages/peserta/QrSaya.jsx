@@ -40,7 +40,7 @@ export default function QrSaya({ user }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-heading text-2xl font-bold text-[#111827]">Barcode / QR Pribadi Saya</h1>
+      <h1 className="font-heading text-2xl font-bold text-[#111827]">QR Pribadi Saya</h1>
       <p className="text-sm text-[#6B7280]">Tunjukkan QR ini kepada pengurus untuk absen dibantu. Demi keamanan, kode berganti otomatis secara berkala.</p>
 
       <div className="bg-white rounded-3xl border border-[#E5E7EB] p-6 flex flex-col items-center">

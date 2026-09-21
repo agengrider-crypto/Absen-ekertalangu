@@ -9,6 +9,8 @@ import Activate from "@/pages/Activate";
 import RoleDashboard from "@/pages/RoleDashboard";
 import RoleArea from "@/pages/RoleArea";
 import PublicRekap from "@/pages/PublicRekap";
+import PublicRekapGabungan from "@/pages/PublicRekapGabungan";
+import PublicMusyawarah from "@/pages/PublicMusyawarah";
 import PublicLaporan from "@/pages/PublicLaporan";
 import SelfAbsen from "@/pages/SelfAbsen";
 import PublicAbsensi from "@/pages/PublicAbsensi";
@@ -70,6 +72,8 @@ function AppRoutes() {
       <Route path="/activate" element={<Activate />} />
       <Route path="/lengkapi-akun" element={<ProfileGate />} />
       <Route path="/rekap/:token" element={<PublicRekap />} />
+      <Route path="/rekap-gabungan/:token" element={<PublicRekapGabungan />} />
+      <Route path="/musyawarah/:token" element={<PublicMusyawarah />} />
       <Route path="/laporan/:token" element={<PublicLaporan />} />
       {/* Absen mandiri: wajib login & fokus 1 peserta (halaman menangani sesinya sendiri) */}
       <Route path="/absen/:token" element={<SelfAbsen />} />

@@ -351,13 +351,20 @@ export default function PublicAbsensi() {
                     {r.status === "hadir" && r.arrival_time && (
                       <span className="font-mono text-[11px] text-[#4B5563]">{hhmm(r.arrival_time)}</span>
                     )}
+                    {r.attended_other && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[#E8F5EE] text-[#065F46]">
+                        Sudah hadir sesi {r.attended_other_label}
+                      </span>
+                    )}
                     {r.queued && (
                       <span className="text-[11px] font-semibold text-[#B45309]">menunggu dikirim</span>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  {["hadir", "izin", "alpha"].map((s) => {
+                  {r.attended_other ? (
+                    <span className="text-[11px] font-semibold text-[#9CA3AF]" data-testid={`absensi-locked-${r.user_id}`}>tidak perlu diabsen lagi</span>
+                  ) : ["hadir", "izin", "alpha"].map((s) => {
                     const on = r.status === s;
                     const cfg = STATUS_BTN[s];
                     return (

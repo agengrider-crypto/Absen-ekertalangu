@@ -143,7 +143,7 @@ export default function Beranda({ user, onGoto }) {
         </div>
       ))}
 
-      {/* Pintasan cepat peserta — Barcode Saya & Scan Barcode */}
+      {/* Pintasan cepat peserta — QR Pribadi Saya & Scan QR */}
       <div className="grid grid-cols-2 gap-3" data-testid="peserta-shortcuts">
         <button
           type="button"
@@ -152,12 +152,12 @@ export default function Beranda({ user, onGoto }) {
           className="rounded-2xl bg-[#0D5C3A] text-white p-4 text-left shadow-sm hover:bg-[#094229] transition-colors"
         >
           <span className="h-10 w-10 rounded-xl bg-white/15 flex items-center justify-center"><QrCode size={20} /></span>
-          <span className="block font-heading font-bold mt-2.5">Barcode Saya</span>
+          <span className="block font-heading font-bold mt-2.5">QR Pribadi Saya</span>
           <span className="block text-xs text-white/80 mt-0.5 leading-snug">
-            Tunjukkan barcode ini ke petugas untuk diabsen
+            Tunjukkan QR ini ke petugas untuk diabsen
           </span>
           <span className="inline-flex items-center gap-1 text-xs font-semibold mt-2">
-            Buka halaman barcode <ChevronRight size={14} />
+            Buka QR pribadi saya <ChevronRight size={14} />
           </span>
         </button>
         <button
@@ -167,9 +167,9 @@ export default function Beranda({ user, onGoto }) {
           className="rounded-2xl bg-white border-2 border-[#CDEBD9] p-4 text-left hover:border-[#0D5C3A] transition-colors"
         >
           <span className="h-10 w-10 rounded-xl bg-[#E8F5EE] text-[#0D5C3A] flex items-center justify-center"><ScanLine size={20} /></span>
-          <span className="block font-heading font-bold text-[#111827] mt-2.5">Scan Barcode</span>
+          <span className="block font-heading font-bold text-[#111827] mt-2.5">Scan QR Kegiatan</span>
           <span className="block text-xs text-[#6B7280] mt-0.5 leading-snug">
-            Absen mandiri dengan memindai barcode kegiatan
+            Absen mandiri dengan memindai QR kegiatan
           </span>
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D5C3A] mt-2">
             Buka pemindai <ChevronRight size={14} />

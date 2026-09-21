@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Plus, Loader2, Trash2, Send, Download, Check, FileText, Calendar,
+  Plus, Loader2, Trash2, Send, Download, Check, FileText, Calendar, Link2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -8,7 +8,10 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 const CATS = [
   { key: "4S", label: "4S" },
   { key: "tim7", label: "Tim 7" },
+  { key: "pleno", label: "Pleno" },
 ];
+
+const CAT_LABEL = { "4S": "Musyawarah 4S", tim7: "Musyawarah Tim 7", pleno: "Musyawarah Pleno" };
 
 function todayYmd() {
   const n = new Date();
@@ -16,7 +19,7 @@ function todayYmd() {
 }
 
 function catLabel(c) {
-  return c === "4S" ? "Musyawarah 4S" : "Musyawarah Tim 7";
+  return CAT_LABEL[c] || "Musyawarah";
 }
 
 export default function MusyawarahView() {
@@ -26,6 +29,7 @@ export default function MusyawarahView() {
   const [content, setContent] = useState("");
   const [date, setDate] = useState(todayYmd());
   const [saveState, setSaveState] = useState("idle"); // idle | saving | saved
+  const [shareLink, setShareLink] = useState("");
   const [exFrom, setExFrom] = useState(() => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-01`; });
   const [exTo, setExTo] = useState(todayYmd());
   const timer = useRef(null);
@@ -48,6 +52,7 @@ export default function MusyawarahView() {
     setActiveId(m.id);
     setContent(m.content || "");
     setDate(m.date || todayYmd());
+    setShareLink("");
     setSaveState("idle");
   };
 
@@ -86,9 +91,25 @@ export default function MusyawarahView() {
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
   };
 
-  const shareWa = () => {
-    const text = `*${catLabel(cat)}* (${date})\n\n${content || "(kosong)"}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  const shareWa = async () => {
+    if (!activeId) return;
+    try {
+      const { data } = await api.post(`/staff/musyawarah/${activeId}/share`);
+      setShareLink(data.link);
+      window.open(`https://wa.me/?text=${encodeURIComponent(data.wa_text)}`, "_blank");
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail) || "Gagal membuat tautan"); }
+  };
+
+  const copyShareLink = async () => {
+    if (!activeId) return;
+    try {
+      const { data } = await api.post(`/staff/musyawarah/${activeId}/share`);
+      setShareLink(data.link);
+      try {
+        await navigator.clipboard.writeText(data.link);
+        toast.success("Tautan musyawarah disalin.");
+      } catch { toast.info("Tautan siap disalin manual dari kotak di bawah."); }
+    } catch (e) { toast.error("Gagal membuat tautan musyawarah"); }
   };
 
   const downloadPdf = async () => {
@@ -151,7 +172,7 @@ export default function MusyawarahView() {
           <label className="block text-xs font-semibold text-[#6B7280] mb-1">sampai</label>
           <input data-testid="musy-export-to" type="date" value={exTo} onChange={(e) => setExTo(e.target.value)} className="h-10 px-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A]" />
         </div>
-        <button data-testid="musy-export-period" onClick={exportPeriod} className="h-10 px-4 rounded-xl border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE] inline-flex items-center gap-2"><Download size={16} /> Ekspor PDF ({cat === "4S" ? "4S" : "Tim 7"})</button>
+        <button data-testid="musy-export-period" onClick={exportPeriod} className="h-10 px-4 rounded-xl border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE] inline-flex items-center gap-2"><Download size={16} /> Ekspor PDF ({CATS.find((c) => c.key === cat)?.label})</button>
       </div>
 
       <div className="grid lg:grid-cols-[300px_1fr] gap-4">
@@ -204,10 +225,17 @@ export default function MusyawarahView() {
                 className="w-full px-4 py-3 rounded-xl border-2 border-[#E5E7EB] text-sm leading-6 outline-none focus:border-[#0D5C3A] resize-none"
               />
               <div className="flex items-center gap-2 flex-wrap">
-                <button data-testid="musy-share-wa" onClick={shareWa} className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229]"><Send size={16} /> Share WA</button>
+                <button data-testid="musy-share-wa" onClick={shareWa} className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#25D366] text-white font-semibold text-sm hover:brightness-95"><Send size={16} /> Share Link ke WA</button>
+                <button data-testid="musy-copy-link" onClick={copyShareLink} className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]"><Link2 size={16} /> Salin Tautan</button>
                 <button data-testid="musy-download-pdf" onClick={downloadPdf} className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]"><Download size={16} /> Download PDF</button>
                 <button data-testid="musy-delete" onClick={() => del(activeId)} className="ml-auto inline-flex items-center gap-2 h-10 px-3 rounded-xl text-[#DC2626] font-semibold text-sm hover:bg-red-50"><Trash2 size={16} /> Hapus</button>
               </div>
+              {shareLink && (
+                <div className="rounded-xl border-2 border-[#CDEBD9] bg-[#F0FAF4] px-3 py-2.5" data-testid="musy-share-link">
+                  <div className="text-[11px] font-bold text-[#065F46] mb-1">Tautan publik {catLabel(cat)}</div>
+                  <div className="text-[11px] font-mono break-all text-[#065F46]">{shareLink}</div>
+                </div>
+              )}
             </div>
           )}
         </div>

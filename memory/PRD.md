@@ -446,3 +446,33 @@ Pantau Login = panel ringkas Dashboard + halaman penuh; TANPA fitur keluarkan pa
   perangkat yang dipakai, daftar event).
 - `DashboardView.jsx`: panel "Pantau Login" ringkas (3 angka + 6 login terbaru, tombol
   "Lihat semua" → menu Pantau Login), refresh 60 detik.
+
+## FASE 12 — 8 Revisi (2026-09-21) — SELESAI (uji manual curl + screenshot, tanpa testing agent)
+1. **Rekap gabungan jadi LINK**: `POST /api/admin/kegiatan/{id}/share-gabungan` → token grup
+   (`group_share_token`, 7 hari) + publik `GET /api/rekap-gabungan/{token}` dan halaman
+   `/rekap-gabungan/:token` (`PublicRekapGabungan.jsx`) berisi **bar persen** (hadir ≥1 sesi,
+   hadir semua sesi, per sesi). Modal Rekap Gabungan kini punya "Bagikan ke WhatsApp" &
+   "Salin Tautan". Halaman `/rekap/:token` biasa juga dapat bar persen (hadir/izin/alpha + gender).
+2. **Kolom baru per sesi**: `SessionInput` + dokumen kegiatan menerima `teacher/material/location`
+   per sesi (kosong = warisi kegiatan induk). Form Tambah Kegiatan punya 3 input per baris sesi
+   (`keg-session-teacher-i`, `-material-i`, `-location-i`); kartu sesi & rekap menampilkannya.
+3. **Kata "barcode" dihapus di area peserta**: tab "QR Saya", judul "QR Pribadi Saya",
+   pintasan "QR Pribadi Saya" & "Scan QR Kegiatan".
+4. **Anti dobel sesi**: helper `attended_other_sessions()` + `assert_not_attended_other_session()`.
+   Peserta yang sudah HADIR di sesi lain hari yang sama: ditolak (400) di semua jalur absen
+   (admin, kode akses, scan QR, absen mandiri), dan di daftar absen namanya ditandai
+   "Sudah hadir sesi X" + tombol dimatikan. Tidak lagi dihitung total/alpha
+   (`counts.sudah_sesi_lain`).
+5. **QR kegiatan harian**: `kegiatan_barcode_expiry` = akhir hari kegiatan (23:59:59 WITA);
+   `ensure_absen_token` memakai SATU token untuk semua sesi hari itu; `kegiatan_by_absen_token()`
+   mengarahkan ke sesi yang sedang berjalan.
+6. **Lonceng peserta berangka**: `GET /api/me/updates` (kegiatan mendatang + pengumuman,
+   waktu dinormalkan ke UTC). Badge angka + panel notifikasi di `PesertaArea.jsx`,
+   auto-refresh 60 detik, tanda "sudah dibaca" di localStorage `upd_seen_<id>`.
+7. **Musyawarah Pleno + share link**: kategori `pleno` (`MUSY_CATEGORIES`/`MUSY_LABEL`),
+   tab "Pleno", `POST /api/staff/musyawarah/{id}/share` → `/musyawarah/:token`
+   (`PublicMusyawarah.jsx`), tombol "Share Link ke WA" & "Salin Tautan"; PDF ikut label Pleno.
+8. **Pantau Login khusus admin**: endpoint `login-monitor*` kini `require_admin` (pengurus 403),
+   menu & panel dashboard disembunyikan untuk pengurus.
+
+Script verifikasi: `/app/tests/fase12_check.py`.

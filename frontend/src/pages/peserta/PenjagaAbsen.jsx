@@ -18,7 +18,7 @@ const STATUS_BTN = {
  * Area "Penjaga Absen" untuk peserta yang menerima delegasi dari pengurus.
  * Menyediakan DUA cara mengabsen:
  *   1. Absen Manual   — daftar nama peserta (termasuk yang belum aktivasi)
- *   2. Scan Barcode   — scan QR pribadi peserta
+ *   2. Scan QR   — scan QR pribadi peserta
  */
 export default function PenjagaAbsen() {
   const [delegs, setDelegs] = useState(null);
@@ -44,7 +44,7 @@ export default function PenjagaAbsen() {
           <ShieldCheck size={22} className="text-[#0D5C3A]" /> Penjaga Absen
         </h1>
         <p className="text-sm text-[#6B7280] mt-1">
-          Anda dipercaya mengisi absen kegiatan berikut. Tersedia <b>absen manual</b> dan <b>scan barcode</b>.
+          Anda dipercaya mengisi absen kegiatan berikut. Tersedia <b>absen manual</b> dan <b>scan QR</b>.
         </p>
       </div>
 
@@ -203,7 +203,7 @@ function PenjagaKegiatan({ deleg, onBack }) {
             mode === "scan" ? "bg-[#0D5C3A] text-white" : "text-[#4B5563] hover:bg-[#F2F5F2]"
           }`}
         >
-          <ScanLine size={17} /> Scan Barcode
+          <ScanLine size={17} /> Scan QR
         </button>
       </div>
 

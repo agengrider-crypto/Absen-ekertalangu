@@ -28,7 +28,7 @@ const MENU = [
   { key: "musyawarah", label: "Musyawarah", icon: MessagesSquare, roles: ["admin", "pengurus"] },
   { key: "pengumuman", label: "Pengumuman", icon: Megaphone, roles: ["admin", "pengurus"] },
   { key: "laporan", label: "Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"] },
-  { key: "pantau-login", label: "Pantau Login", icon: MonitorSmartphone, roles: ["admin", "pengurus"] },
+  { key: "pantau-login", label: "Pantau Login", icon: MonitorSmartphone, roles: ["admin"] },
   { key: "kelompok", label: "Kelompok Sambung", icon: Layers, roles: ["admin"] },
   { key: "log", label: "Log Aktivitas", icon: ScrollText, roles: ["admin"] },
   { key: "hakakses", label: "Hak Akses", icon: ShieldCheck, roles: ["admin"] },
@@ -141,13 +141,13 @@ export default function AdminLayout({ user, role = "admin" }) {
         </header>
 
         <main className="px-4 sm:px-6 py-6 max-w-6xl mx-auto">
-          {active === "dashboard" && <DashboardView user={user} onGoto={go} />}
+          {active === "dashboard" && <DashboardView user={user} onGoto={go} role={role} />}
           {active === "peserta" && <Peserta role={role} />}
           {active === "kegiatan" && <KegiatanView />}
           {active === "musyawarah" && <MusyawarahView />}
           {active === "pengumuman" && <PengumumanView />}
           {active === "laporan" && <LaporanView />}
-          {active === "pantau-login" && <PantauLoginView />}
+          {active === "pantau-login" && role === "admin" && <PantauLoginView />}
           {active === "kelompok" && role === "admin" && <KelompokView />}
           {active === "log" && role === "admin" && <LogAktivitas />}
           {active === "hakakses" && role === "admin" && <HakAkses currentUserId={user?.id} />}

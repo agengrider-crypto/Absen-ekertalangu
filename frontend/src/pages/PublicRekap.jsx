@@ -5,6 +5,9 @@ import { api } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import PesertaRekapList from "@/components/PesertaRekapList";
 import { TYPE_LABEL, tanggalPanjang } from "./admin/kegiatanUtils";
+import { PercentBar } from "./PublicRekapGabungan";
+
+const pct = (n, total) => (total ? Math.round(((Number(n) || 0) / total) * 1000) / 10 : 0);
 
 export default function PublicRekap() {
   const { token } = useParams();
@@ -66,17 +69,20 @@ export default function PublicRekap() {
           <div className="rounded-xl bg-white border border-[#E5E7EB] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{c.alpha}</div><div className="text-xs text-[#6B7280]">Alpha</div></div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[#0D5C3A] font-semibold"><CheckCircle2 size={18} /> Tingkat Kehadiran</div>
-          <div className="text-2xl font-bold text-[#0D5C3A]">{c.ratio}%</div>
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 mb-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[#0D5C3A] font-semibold"><CheckCircle2 size={18} /> Tingkat Kehadiran</div>
+            <div className="text-2xl font-bold text-[#0D5C3A] tabular-nums">{c.ratio}%</div>
+          </div>
+          <PercentBar label="Hadir" value={c.ratio} sub={`${c.hadir}/${c.total}`} testid="bar-hadir" />
+          <PercentBar label="Izin" value={pct(c.izin, c.total)} sub={`${c.izin} orang`} color="#D97706" testid="bar-izin" />
+          <PercentBar label="Alpha" value={pct(c.alpha, c.total)} sub={`${c.alpha} orang`} color="#DC2626" testid="bar-alpha" />
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 mb-4">
-          <div className="text-sm font-semibold text-[#111827] mb-1">Kehadiran per Jenis Kelamin</div>
-          <div className="flex gap-4 text-sm text-[#4B5563]">
-            <span>Laki-laki: <b className="text-[#0D5C3A]">{data.gender?.L ?? 0}</b></span>
-            <span>Perempuan: <b className="text-[#D97706]">{data.gender?.P ?? 0}</b></span>
-          </div>
+        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 mb-4 space-y-4">
+          <div className="text-sm font-semibold text-[#111827]">Kehadiran per Jenis Kelamin</div>
+          <PercentBar label={`Laki-laki (${data.gender?.L ?? 0})`} value={pct(data.gender?.L, c.hadir)} color="#0D5C3A" testid="bar-gender-l" />
+          <PercentBar label={`Perempuan (${data.gender?.P ?? 0})`} value={pct(data.gender?.P, c.hadir)} color="#D97706" testid="bar-gender-p" />
         </div>
 
         <PesertaRekapList
