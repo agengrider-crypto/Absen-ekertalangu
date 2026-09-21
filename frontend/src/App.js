@@ -1,8 +1,8 @@
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import GlobalLoading, { SplashLoading } from "@/components/GlobalLoading";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Activate from "@/pages/Activate";
@@ -10,6 +10,7 @@ import RoleDashboard from "@/pages/RoleDashboard";
 import RoleArea from "@/pages/RoleArea";
 import PublicRekap from "@/pages/PublicRekap";
 import PublicRekapGabungan from "@/pages/PublicRekapGabungan";
+import PublicRekapBulanan from "@/pages/PublicRekapBulanan";
 import PublicMusyawarah from "@/pages/PublicMusyawarah";
 import PublicLaporan from "@/pages/PublicLaporan";
 import SelfAbsen from "@/pages/SelfAbsen";
@@ -19,11 +20,7 @@ import KodeAbsen from "@/pages/KodeAbsen";
 import CompleteProfile from "@/pages/CompleteProfile";
 
 function Loading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFBF9]">
-      <Loader2 className="animate-spin text-[#0D5C3A]" size={40} />
-    </div>
-  );
+  return <SplashLoading />;
 }
 
 /**
@@ -73,6 +70,7 @@ function AppRoutes() {
       <Route path="/lengkapi-akun" element={<ProfileGate />} />
       <Route path="/rekap/:token" element={<PublicRekap />} />
       <Route path="/rekap-gabungan/:token" element={<PublicRekapGabungan />} />
+      <Route path="/rekap-bulanan/:token" element={<PublicRekapBulanan />} />
       <Route path="/musyawarah/:token" element={<PublicMusyawarah />} />
       <Route path="/laporan/:token" element={<PublicLaporan />} />
       {/* Absen mandiri: wajib login & fokus 1 peserta (halaman menangani sesinya sendiri) */}
@@ -95,6 +93,7 @@ function App() {
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>
+        <GlobalLoading />
         <Toaster position="top-center" richColors />
       </AuthProvider>
     </div>

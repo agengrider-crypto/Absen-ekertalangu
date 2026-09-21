@@ -24,6 +24,43 @@ export const api = axios.create({
  */
 const MAX_RETRY = 2;
 
+/**
+ * Indikator "loading" global.
+ *
+ * Setiap permintaan ke server menaikkan penghitung; komponen GlobalLoading
+ * menampilkan bar + tulisan "Memuat…" bila ada permintaan yang tertunda
+ * lebih dari sekejap (mis. laporan, absen, rekap saat jaringan lambat).
+ */
+let pending = 0;
+
+function emitPending() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("api-pending", { detail: pending }));
+}
+
+export function apiPendingCount() {
+  return pending;
+}
+
+api.interceptors.request.use((cfg) => {
+  pending += 1;
+  emitPending();
+  return cfg;
+});
+
+api.interceptors.response.use(
+  (res) => {
+    pending = Math.max(0, pending - 1);
+    emitPending();
+    return res;
+  },
+  (error) => {
+    pending = Math.max(0, pending - 1);
+    emitPending();
+    return Promise.reject(error);
+  },
+);
+
 api.interceptors.response.use(
   (res) => res,
   async (error) => {

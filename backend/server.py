@@ -4311,6 +4311,10 @@ BULAN_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
 
 @api_router.get("/staff/rekap-bulanan")
 async def rekap_bulanan(month: Optional[str] = None, staff: dict = Depends(require_staff)):
+    return await build_rekap_bulanan(month)
+
+
+async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
     """FASE 13 — Rekap absen BULANAN per jamaah.
 
     1 pertemuan = 1 hari kegiatan (semua sesi hari itu dihitung SEKALI); hadir di
@@ -4354,6 +4358,7 @@ async def rekap_bulanan(month: Optional[str] = None, staff: dict = Depends(requi
                              "last_date": None} for p in peserta}
 
     meeting_rows = []
+    sesi_summary: dict = {}   # label sesi -> ringkasan sebulan
     for mt in sorted(meetings.values(), key=lambda x: x["date"] or ""):
         req_docs = [d for d in mt["docs"] if d.get("session_required", True)] or mt["docs"]
         n_h = n_i = n_a = 0
@@ -4374,10 +4379,41 @@ async def rekap_bulanan(month: Optional[str] = None, staff: dict = Depends(requi
                 t["alpha"] += 1
                 n_a += 1
         total_p = n_h + n_i + n_a
+
+        # Rincian tiap sesi pada pertemuan ini (mis. Pagi / Sore / Malam)
+        sesi_rows = []
+        for d in sorted(mt["docs"], key=lambda x: (x.get("session_index") or 0, x.get("start_time") or "")):
+            eids = elig_by_doc[d["_id"]]
+            sh = sum(1 for pid in eids if status_by.get((d["_id"], pid)) == "hadir")
+            si = sum(1 for pid in eids if status_by.get((d["_id"], pid)) == "izin")
+            label = d.get("session_label") or "Sesi tunggal"
+            sesi_rows.append({
+                "label": label, "start_time": d.get("start_time"), "end_time": d.get("end_time"),
+                "required": bool(d.get("session_required", True)),
+                "teacher": d.get("teacher"), "material": d.get("material"),
+                "peserta": len(eids), "hadir": sh, "izin": si,
+                "alpha": max(len(eids) - sh - si, 0),
+                "ratio": round((sh / len(eids)) * 100, 1) if eids else 0.0,
+            })
+            agg = sesi_summary.setdefault(label, {"label": label, "pertemuan": 0, "hadir": 0,
+                                                  "peserta": 0, "izin": 0, "alpha": 0,
+                                                  "required": bool(d.get("session_required", True))})
+            agg["pertemuan"] += 1
+            agg["hadir"] += sh
+            agg["izin"] += si
+            agg["alpha"] += max(len(eids) - sh - si, 0)
+            agg["peserta"] += len(eids)
+
         meeting_rows.append({"date": mt["date"], "name": mt["name"], "type": mt["type"],
                              "sessions": len(mt["docs"]), "peserta": total_p,
                              "hadir": n_h, "izin": n_i, "alpha": n_a,
-                             "ratio": round((n_h / total_p) * 100, 1) if total_p else 0.0})
+                             "ratio": round((n_h / total_p) * 100, 1) if total_p else 0.0,
+                             "sesi": sesi_rows})
+
+    per_sesi = sorted(
+        [{**v, "ratio": round((v["hadir"] / v["peserta"]) * 100, 1) if v["peserta"] else 0.0}
+         for v in sesi_summary.values()],
+        key=lambda x: (-x["pertemuan"], x["label"]))
 
     rows = []
     for t in tally.values():
@@ -4390,6 +4426,23 @@ async def rekap_bulanan(month: Optional[str] = None, staff: dict = Depends(requi
     cukup = sum(1 for r in aktif if 50 <= r["ratio"] < 80)
     jarang = sum(1 for r in aktif if r["ratio"] < 50)
     belum = sum(1 for r in aktif if r["hadir"] == 0)
+
+    # Pisah Laki-laki / Perempuan
+    gender_out = {}
+    for g in ("L", "P"):
+        grp = [r for r in aktif if r["gender"] == g]
+        slot = sum(r["pertemuan"] for r in grp)
+        hadir = sum(r["hadir"] for r in grp)
+        gender_out[g] = {
+            "jamaah": len([r for r in rows if r["gender"] == g]),
+            "hadir": hadir, "pertemuan": slot,
+            "izin": sum(r["izin"] for r in grp),
+            "alpha": sum(r["alpha"] for r in grp),
+            "rajin": sum(1 for r in grp if r["ratio"] >= 80),
+            "jarang": sum(1 for r in grp if r["ratio"] < 50),
+            "ratio": round((hadir / slot) * 100, 1) if slot else 0.0,
+        }
+
     return {
         "month": month,
         "label": f"{BULAN_ID[m - 1]} {y}",
@@ -4401,9 +4454,48 @@ async def rekap_bulanan(month: Optional[str] = None, staff: dict = Depends(requi
             "rata_rata": round(sum(r["ratio"] for r in aktif) / len(aktif), 1) if aktif else 0.0,
             "rajin": rajin, "cukup": cukup, "jarang": jarang, "belum_pernah": belum,
         },
+        "gender": gender_out,
+        "per_sesi": per_sesi,
         "per_pertemuan": meeting_rows,
         "rows": rows,
     }
+
+
+# ------------------------- Tautan publik Rekap Bulanan -------------------------
+@api_router.post("/staff/rekap-bulanan/share")
+async def share_rekap_bulanan(request: Request, month: Optional[str] = None,
+                              staff: dict = Depends(require_staff)):
+    """FASE 14 — tautan publik rekap bulanan (permanen, tanpa login)."""
+    month = month or now_wita().strftime("%Y-%m")
+    existing = await db.bulanan_links.find_one({"month": month})
+    if existing:
+        token = existing["_id"]
+    else:
+        token = secrets.token_urlsafe(10)
+        await db.bulanan_links.insert_one({
+            "_id": token, "month": month,
+            "created_by": str(staff["_id"]), "created_by_name": staff.get("name"),
+            "created_at": datetime.now(timezone.utc).isoformat()})
+    link = f"{resolve_base_url(request)}/rekap-bulanan/{token}"
+    data = await build_rekap_bulanan(month)
+    wa_text = (
+        "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
+        f"Berikut rekap absen bulan {data['label']}\n"
+        f"Jumlah pertemuan: {data['total_pertemuan']}\n"
+        f"Rata-rata kehadiran: {data['summary']['rata_rata']}%\n"
+        f"{link}\n\n"
+        "Silakan dibuka untuk melihat kehadiran tiap jamaah. Jazakumullahu khoiro."
+    )
+    return {"token": token, "link": link, "month": month, "label": data["label"],
+            "wa_text": wa_text}
+
+
+@api_router.get("/rekap-bulanan/{token}")
+async def public_rekap_bulanan(token: str):
+    doc = await db.bulanan_links.find_one({"_id": token})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Tautan rekap bulanan tidak ditemukan")
+    return await build_rekap_bulanan(doc.get("month"))
 
 
 async def build_laporan(date_from: str, date_to: str) -> dict:

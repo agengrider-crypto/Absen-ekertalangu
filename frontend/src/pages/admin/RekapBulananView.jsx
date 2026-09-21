@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  CalendarRange, Loader2, Search, Users, TrendingUp, TrendingDown, ClipboardCopy,
-  ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle,
+  CalendarRange, Loader2, Search, Users, TrendingUp, TrendingDown, Link2, Send,
+  ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PercentBar } from "@/pages/PublicRekapGabungan";
+import { SkeletonList } from "@/components/GlobalLoading";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
   "Agustus", "September", "Oktober", "November", "Desember"];
@@ -35,6 +36,9 @@ export default function RekapBulananView() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("semua"); // semua | jarang | rajin | belum
+  const [gender, setGender] = useState("semua"); // semua | L | P
+  const [share, setShare] = useState(null);
+  const [sharing, setSharing] = useState(false);
 
   const load = (m) => {
     setLoading(true);
@@ -44,33 +48,45 @@ export default function RekapBulananView() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(month); }, [month]);
+  useEffect(() => { load(month); setShare(null); }, [month]);
 
   const rows = useMemo(() => {
     let list = data?.rows || [];
+    if (gender !== "semua") list = list.filter((r) => r.gender === gender);
     const s = q.trim().toLowerCase();
     if (s) list = list.filter((r) => (r.name || "").toLowerCase().includes(s));
     if (filter === "jarang") list = list.filter((r) => r.pertemuan > 0 && r.ratio < 50);
     if (filter === "rajin") list = list.filter((r) => r.ratio >= 80 && r.pertemuan > 0);
     if (filter === "belum") list = list.filter((r) => r.pertemuan > 0 && r.hadir === 0);
     return list;
-  }, [data, q, filter]);
+  }, [data, q, filter, gender]);
 
-  const copyWa = async () => {
-    if (!data) return;
-    const top = (data.rows || []).filter((r) => r.pertemuan > 0 && r.ratio < 50).slice(0, 20);
-    const text =
-      `*Rekap Absen Bulanan — ${data.label}*\n` +
-      `Jumlah pertemuan: ${data.total_pertemuan}\n` +
-      `Rata-rata kehadiran: ${data.summary.rata_rata}%\n\n` +
-      (top.length
-        ? `Jamaah yang perlu diperhatikan (hadir < 50%):\n` +
-          top.map((r, i) => `${i + 1}. ${r.name} — ${r.hadir}/${r.pertemuan} (${r.ratio}%)`).join("\n")
-        : "Alhamdulillah, semua jamaah hadir di atas 50%.");
+  const getLink = async () => {
+    if (share) return share;
+    setSharing(true);
     try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Ringkasan bulanan disalin.");
-    } catch { toast.info("Tidak bisa menyalin otomatis di perangkat ini."); }
+      const { data: d } = await api.post(`/staff/rekap-bulanan/share?month=${month}`);
+      setShare(d);
+      return d;
+    } catch {
+      toast.error("Gagal membuat tautan rekap bulanan");
+      return null;
+    } finally { setSharing(false); }
+  };
+
+  const copyLink = async () => {
+    const d = await getLink();
+    if (!d) return;
+    try {
+      await navigator.clipboard.writeText(d.link);
+      toast.success("Tautan rekap bulanan disalin.");
+    } catch { toast.info("Tautan siap disalin manual dari kotak di bawah."); }
+  };
+
+  const shareWa = async () => {
+    const d = await getLink();
+    if (!d) return;
+    window.open(`https://wa.me/?text=${encodeURIComponent(d.wa_text)}`, "_blank");
   };
 
   const [y, m] = month.split("-").map(Number);
@@ -96,7 +112,15 @@ export default function RekapBulananView() {
       </div>
 
       {loading ? (
-        <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={30} /></div>
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 rounded-2xl bg-[#F1F3F1] animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />)}
+          </div>
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+            <div className="text-sm text-[#6B7280] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#0D5C3A]" /> Memuat rekap bulanan…</div>
+            <SkeletonList rows={6} testid="rekap-bulanan-skeleton" />
+          </div>
+        </div>
       ) : !data ? null : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -122,6 +146,49 @@ export default function RekapBulananView() {
             </div>
           </div>
 
+          {/* Bagikan sebagai tautan + WhatsApp */}
+          <div className="rounded-2xl border-2 border-[#CDEBD9] bg-[#F0FAF4] p-4 space-y-2.5" data-testid="rekap-bulanan-share">
+            <div className="text-sm font-bold text-[#065F46] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap bulan ini</div>
+            <p className="text-[11px] text-[#065F46]/80 leading-relaxed">
+              Tautan publik: siapa pun yang klik bisa langsung melihat siapa saja yang hadir,
+              berapa kali ikut, dan rincian sesinya — tanpa perlu login.
+            </p>
+            {share && (
+              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#CDEBD9] px-2.5 py-2 text-[#065F46]" data-testid="rekap-bulanan-link">{share.link}</div>
+            )}
+            <div className="grid grid-cols-2 gap-2 max-w-md">
+              <button onClick={shareWa} disabled={sharing} data-testid="rekap-bulanan-share-wa"
+                className="h-11 rounded-xl bg-[#25D366] text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:brightness-95 disabled:opacity-60">
+                {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Bagikan ke WhatsApp
+              </button>
+              <button onClick={copyLink} disabled={sharing} data-testid="rekap-bulanan-copy-link"
+                className="h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#E8F5EE] disabled:opacity-60">
+                <Link2 size={15} /> Salin Tautan
+              </button>
+            </div>
+          </div>
+
+          {/* Pisah Laki-laki / Perempuan */}
+          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 space-y-4" data-testid="rekap-bulanan-gender">
+            <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Users size={16} className="text-[#0D5C3A]" /> Pisah Laki-laki &amp; Perempuan</div>
+            <PercentBar label={`Laki-laki (${data.gender?.L?.jamaah || 0} jamaah · rajin ${data.gender?.L?.rajin || 0} · jarang ${data.gender?.L?.jarang || 0})`}
+              value={data.gender?.L?.ratio || 0} sub={`${data.gender?.L?.hadir || 0}/${data.gender?.L?.pertemuan || 0}`} testid="bar-gender-l" />
+            <PercentBar label={`Perempuan (${data.gender?.P?.jamaah || 0} jamaah · rajin ${data.gender?.P?.rajin || 0} · jarang ${data.gender?.P?.jarang || 0})`}
+              value={data.gender?.P?.ratio || 0} sub={`${data.gender?.P?.hadir || 0}/${data.gender?.P?.pertemuan || 0}`} color="#D97706" testid="bar-gender-p" />
+          </div>
+
+          {/* Ringkasan sesi sebulan */}
+          {data.per_sesi?.length > 0 && (
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 space-y-3.5" data-testid="rekap-bulanan-sesi">
+              <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Layers size={16} className="text-[#0D5C3A]" /> Ringkasan Sesi Selama Sebulan</div>
+              {data.per_sesi.map((x) => (
+                <PercentBar key={x.label}
+                  label={`${x.label}${x.required === false ? " · opsional" : ""} — ${x.pertemuan}x kegiatan`}
+                  value={x.ratio} sub={`${x.hadir}/${x.peserta}`} testid={`bar-sesi-bulanan-${x.label}`} />
+              ))}
+            </div>
+          )}
+
           <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
             <div className="flex flex-wrap items-center gap-2 justify-between mb-4">
               <div className="relative flex-1 min-w-[200px]">
@@ -130,16 +197,18 @@ export default function RekapBulananView() {
                   placeholder="Cari nama jamaah…"
                   className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A]" />
               </div>
+              <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1" data-testid="rekap-bulanan-gender-tabs">
+                {[["semua", "L/P"], ["L", "Laki-laki"], ["P", "Perempuan"]].map(([v, l]) => (
+                  <button key={v} data-testid={`rekap-bulanan-gender-${v}`} onClick={() => setGender(v)}
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#0D5C3A] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                ))}
+              </div>
               <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1">
                 {[["semua", "Semua"], ["jarang", "Jarang"], ["belum", "Belum hadir"], ["rajin", "Rajin"]].map(([v, l]) => (
                   <button key={v} data-testid={`rekap-bulanan-filter-${v}`} onClick={() => setFilter(v)}
                     className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#0D5C3A] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
-              <button data-testid="rekap-bulanan-copy" onClick={copyWa}
-                className="h-11 px-4 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#E8F5EE]">
-                <ClipboardCopy size={16} /> Salin Ringkasan
-              </button>
             </div>
 
             <div className="overflow-x-auto">
@@ -195,9 +264,17 @@ export default function RekapBulananView() {
             ) : (
               <div className="space-y-3" data-testid="rekap-bulanan-pertemuan">
                 {data.per_pertemuan.map((p, i) => (
-                  <div key={i}>
+                  <div key={i} className="rounded-xl border border-[#EEF1EE] p-3.5">
                     <PercentBar label={`${p.date} · ${p.name}${p.sessions > 1 ? ` (${p.sessions} sesi)` : ""}`}
                       value={p.ratio} sub={`${p.hadir}/${p.peserta}`} testid={`bar-pertemuan-${i}`} />
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {(p.sesi || []).map((x, j) => (
+                        <span key={j} title={[x.teacher, x.material].filter(Boolean).join(" · ")}
+                          className={`text-[11px] font-semibold px-2 py-1 rounded-lg ${x.required ? "bg-[#E8F5EE] text-[#065F46]" : "bg-[#EEF2FF] text-[#3730A3]"}`}>
+                          {x.label} {x.start_time}–{x.end_time} · {x.hadir}/{x.peserta} ({x.ratio}%)
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>

@@ -499,3 +499,19 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 - Menu baru **Rekap Bulanan** (`RekapBulananView.jsx`, ikon CalendarRange) untuk admin & pengurus:
   navigasi bulan, 4 kartu statistik, pencarian nama, filter Semua/Jarang/Belum hadir/Rajin,
   bar persen per jamaah + badge status, daftar pertemuan berbar, tombol "Salin Ringkasan" (teks WA).
+
+## FASE 14 — Tautan Bulanan, Loading Global, Pisah L/P, Ringkas Sesi (2026-09-21)
+- **Salin Ringkasan → Salin Tautan + Bagikan ke WhatsApp**: `POST /api/staff/rekap-bulanan/share?month=`
+  (koleksi `bulanan_links`, token permanen per bulan) + publik `GET /api/rekap-bulanan/{token}`
+  dan halaman `/rekap-bulanan/:token` (`PublicRekapBulanan.jsx`) — bisa dibuka siapa pun,
+  lengkap dengan filter nama, tab L/P, bar persen, dan rincian sesi.
+- **Loading global** (`components/GlobalLoading.jsx`): interceptor axios di `lib/api.js` menghitung
+  permintaan tertunda → bar tipis di atas + pil "Memuat…" bila delay > 450ms (berlaku untuk
+  laporan, absen, rekap, semua halaman). `SplashLoading` jadi layar pembuka saat web dibuka /
+  sesi diperiksa; `SkeletonList` untuk kerangka tabel. Keyframe `loadingslide` di `index.css`.
+- **Pisah L/P di rekap bulanan**: `gender` di respons (jamaah, hadir, pertemuan, izin, alpha,
+  rajin, jarang, ratio per L & P) → 2 bar "Pisah Laki-laki & Perempuan" + tab filter L/P
+  pada daftar jamaah (admin & halaman publik).
+- **Ringkas sesi 1 bulan**: `per_sesi` (agregat per label sesi: berapa kali kegiatan, hadir/peserta,
+  persen, wajib/opsional) + `per_pertemuan[].sesi` (rincian tiap sesi: jam, pengajar, materi,
+  hadir/peserta, persen) → panel "Ringkasan Sesi Selama Sebulan" dan chip sesi di daftar pertemuan.
