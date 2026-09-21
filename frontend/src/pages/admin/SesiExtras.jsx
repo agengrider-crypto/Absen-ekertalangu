@@ -30,6 +30,7 @@ const ST = {
   izin: { t: "I", cls: "bg-[#D97706] text-white", title: "Izin" },
   alpha: { t: "A", cls: "bg-[#FEE2E2] text-[#991B1B]", title: "Alpha" },
   exempt: { t: "✓", cls: "bg-[#F3F4F6] text-[#9CA3AF]", title: "Sudah hadir di sesi sebelumnya — tidak dihitung" },
+  optional: { t: "·", cls: "bg-[#EEF2FF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
 };
 
 /**
@@ -146,7 +147,8 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
             <PercentBar label="Hadir semua sesi" value={s.ratio_semua} sub={`${s.hadir_semua}/${s.total}`} color="#14532D" testid="gab-bar-semua" />
             <p className="text-[11px] text-[#9CA3AF] leading-relaxed pt-0.5">
               Jamaah yang sudah hadir di sesi sebelumnya <b>tidak dihitung Alpha</b> pada sesi berikutnya
-              (kolomnya dikosongkan ✓). Tanda <b>“2 sesi”</b> berarti jamaah tersebut terdaftar di beberapa sesi hari ini.
+              (kolomnya dikosongkan ✓). Tanda <b>“Wajib Pagi + Sore”</b> berarti jamaah tersebut wajib hadir
+              di beberapa sesi hari ini; sesi <b>opsional</b> ditandai titik dan tidak dihitung Alpha.
             </p>
           </div>
 
@@ -155,7 +157,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
             <div className="text-sm font-semibold text-[#111827]">Kehadiran per Sesi</div>
             {data.sessions.map((x) => (
               <div key={x.id}>
-                <PercentBar label={`${x.label} · ${x.start_time}–${x.end_time} WITA`} value={x.counts.ratio}
+                <PercentBar label={`${x.label} · ${x.start_time}–${x.end_time} WITA${x.required === false ? " · Opsional" : ""}`} value={x.counts.ratio}
                   sub={`${x.counts.hadir}/${x.counts.total}`} testid={`gab-bar-sesi-${x.id}`} />
                 <div className="text-[11px] text-[#9CA3AF] mt-1 flex flex-wrap gap-x-3">
                   <span>H {x.counts.hadir}</span><span>I {x.counts.izin}</span><span>A {x.counts.alpha}</span>
@@ -212,7 +214,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                 <thead className="sticky top-0 bg-[#F8FAF8] text-[#6B7280] text-left">
                   <tr>
                     <th className="px-3 py-2 font-semibold">Nama</th>
-                    {data.sessions.map((x) => <th key={x.id} className="px-2 py-2 font-semibold text-center whitespace-nowrap">{x.label}</th>)}
+                    {data.sessions.map((x) => <th key={x.id} className="px-2 py-2 font-semibold text-center whitespace-nowrap">{x.label}{x.required === false ? <span className="block text-[9px] font-bold text-[#6366F1]">opsional</span> : null}</th>)}
                     <th className="px-2 py-2 font-semibold text-center">Hadir</th>
                   </tr>
                 </thead>
@@ -225,10 +227,10 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                         <div className="font-semibold text-[#111827] truncate max-w-[180px] sm:max-w-none flex items-center gap-1.5">
                           <span className="truncate">{r.name}</span>
                           {r.multi_sesi && (
-                            <span title="Jamaah ini terdaftar di beberapa sesi hari ini"
+                            <span title={`Wajib hadir di sesi: ${(r.required_labels || []).join(", ")}`}
                               data-testid={`gab-multi-sesi-${r.user_id}`}
                               className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
-                              <Layers size={10} /> {r.required_sessions} sesi
+                              <Layers size={10} /> Wajib {(r.required_labels || []).join(" + ")}
                             </span>
                           )}
                         </div>

@@ -445,8 +445,8 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
   // FASE 9 — beberapa waktu/sesi dalam 1 hari
   const [multi, setMulti] = useState(false);
   const [sessions, setSessions] = useState([
-    { label: "Pagi", start_time: "08:00", end_time: "10:00", teacher: "", material: "", location: "" },
-    { label: "Sore", start_time: "16:00", end_time: "17:30", teacher: "", material: "", location: "" },
+    { label: "Pagi", start_time: "08:00", end_time: "10:00", teacher: "", material: "", location: "", required: true },
+    { label: "Sore", start_time: "16:00", end_time: "17:30", teacher: "", material: "", location: "", required: true },
   ]);
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
@@ -461,7 +461,7 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
     const used = p.map((s) => s.label);
     const next = SESSION_LABEL_PRESETS.find((l) => !used.includes(l)) || `Sesi ${p.length + 1}`;
     const [st, en] = SESSION_DEFAULT_TIME[next] || ["08:00", "10:00"];
-    return [...p, { label: next, start_time: st, end_time: en, teacher: "", material: "", location: "" }];
+    return [...p, { label: next, start_time: st, end_time: en, teacher: "", material: "", location: "", required: true }];
   });
   const removeSession = (i) => setSessions((p) => p.filter((_, idx) => idx !== i));
 
@@ -598,6 +598,19 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
                       <p className="sm:col-span-3 text-[11px] text-[#9CA3AF] leading-relaxed">
                         Dikosongkan = memakai pengajar / materi / lokasi kegiatan di bawah.
                       </p>
+                      <label className="sm:col-span-3 flex items-start gap-2.5 rounded-xl border-2 border-[#E5E7EB] bg-white px-3 py-2.5 cursor-pointer hover:border-[#0D5C3A]">
+                        <input type="checkbox" data-testid={`keg-session-required-${i}`}
+                          checked={s.required !== false}
+                          onChange={(e) => setSession(i, "required", e.target.checked)}
+                          className="mt-0.5 h-4 w-4 accent-[#0D5C3A]" />
+                        <span className="leading-snug">
+                          <span className="block text-xs font-bold text-[#111827]">Sesi ini WAJIB dihadiri</span>
+                          <span className="block text-[11px] text-[#6B7280]">
+                            Dicentang = jamaah wajib hadir (muncul tanda “Wajib {s.label || "sesi"}” di rekap gabungan).
+                            Dilepas = sesi opsional/tambahan, tidak dihitung Alpha.
+                          </span>
+                        </span>
+                      </label>
                     </div>
                   </div>
                 ))}

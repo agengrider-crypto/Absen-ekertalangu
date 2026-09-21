@@ -10,6 +10,7 @@ const ST = {
   izin: { t: "I", cls: "bg-[#D97706] text-white", title: "Izin" },
   alpha: { t: "A", cls: "bg-[#FEE2E2] text-[#991B1B]", title: "Alpha" },
   exempt: { t: "✓", cls: "bg-[#F3F4F6] text-[#9CA3AF]", title: "Sudah hadir di sesi sebelumnya — tidak dihitung" },
+  optional: { t: "·", cls: "bg-[#EEF2FF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
 };
 
 export function PercentBar({ label, value, sub, color = "#0D5C3A", testid }) {
@@ -106,7 +107,7 @@ export default function PublicRekapGabungan() {
           {data.sessions.map((x) => (
             <div key={x.id}>
               <PercentBar
-                label={`${x.label} · ${x.start_time}–${x.end_time} WITA`}
+                label={`${x.label} · ${x.start_time}–${x.end_time} WITA${x.required === false ? " · Opsional" : ""}`}
                 value={x.counts.ratio}
                 sub={`${x.counts.hadir}/${x.counts.total}`}
                 testid={`bar-sesi-${x.id}`}
@@ -129,7 +130,7 @@ export default function PublicRekapGabungan() {
               <thead className="bg-[#F8FAF8] text-[#6B7280] text-left">
                 <tr>
                   <th className="px-3 py-2 font-semibold">Nama</th>
-                  {data.sessions.map((x) => <th key={x.id} className="px-2 py-2 font-semibold text-center whitespace-nowrap">{x.label}</th>)}
+                  {data.sessions.map((x) => <th key={x.id} className="px-2 py-2 font-semibold text-center whitespace-nowrap">{x.label}{x.required === false ? <span className="block text-[9px] font-bold text-[#6366F1]">opsional</span> : null}</th>)}
                   <th className="px-2 py-2 font-semibold text-center">Hadir</th>
                 </tr>
               </thead>
@@ -140,10 +141,10 @@ export default function PublicRekapGabungan() {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span>{r.name}</span>
                         {r.multi_sesi && (
-                          <span title="Jamaah ini terdaftar di beberapa sesi hari ini"
+                          <span title={`Wajib hadir di sesi: ${(r.required_labels || []).join(", ")}`}
                             data-testid={`multi-sesi-${r.user_id}`}
                             className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
-                            <Layers size={10} /> Wajib {r.required_sessions} sesi
+                            <Layers size={10} /> Wajib {(r.required_labels || []).join(" + ")}
                           </span>
                         )}
                       </div>

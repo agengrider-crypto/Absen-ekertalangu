@@ -1461,6 +1461,7 @@ class SessionInput(BaseModel):
     teacher: Optional[str] = None
     material: Optional[str] = None
     location: Optional[str] = None
+    required: bool = True   # FASE 13 — sesi WAJIB dihadiri (False = opsional/tambahan)
 
 
 class KegiatanInput(BaseModel):
@@ -1567,6 +1568,7 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
         "session_group_id": k.get("session_group_id"),
         "session_index": k.get("session_index"),
         "session_total": k.get("session_total") or 1,
+        "session_required": bool(k.get("session_required", True)),
         "phase": kegiatan_phase(k),
         "created_at": k.get("created_at"),
     }
@@ -1884,13 +1886,14 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
         sessions.append({"label": label, "start_time": s.start_time, "end_time": s.end_time,
                          "teacher": (s.teacher or "").strip() or None,
                          "material": (s.material or "").strip() or None,
-                         "location": (s.location or "").strip() or None})
+                         "location": (s.location or "").strip() or None,
+                         "required": bool(s.required)})
     if len(sessions) > 6:
         raise HTTPException(status_code=400, detail="Maksimal 6 waktu/sesi dalam 1 hari")
     multi = len(sessions) > 1
     if not sessions:
         sessions = [{"label": None, "start_time": body.start_time, "end_time": body.end_time,
-                     "teacher": None, "material": None, "location": None}]
+                     "teacher": None, "material": None, "location": None, "required": True}]
 
     occurrences = 4 if body.recurring else 1
     group_id = str(uuid.uuid4()) if body.recurring else None
@@ -1909,6 +1912,7 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
                 "session_group_id": session_group_id,
                 "session_index": idx if multi else None,
                 "session_total": len(sessions) if multi else 1,
+                "session_required": bool(s.get("required", True)),
                 "type": body.type,
                 "date": d.strftime("%Y-%m-%d"),
                 "start_time": s["start_time"],
@@ -2247,6 +2251,7 @@ async def build_rekap_gabungan(docs: list) -> dict:
             "material": d.get("material"),
             "location": d.get("location"),
             "status": d.get("status", "open"),
+            "required": bool(d.get("session_required", True)),
             "counts": counts,
         })
 
@@ -2255,18 +2260,24 @@ async def build_rekap_gabungan(docs: list) -> dict:
     for pid, p in sorted(peserta_union.items(), key=lambda x: (x[1].get("name") or "").lower()):
         per = []
         n_hadir = n_izin = n_eligible = 0
-        required = 0
+        req_labels = []
         done = False   # sudah hadir di sesi sebelumnya pada hari yang sama
         for d in docs:
             if pid not in eligible_by_keg[d["_id"]]:
                 per.append(None)   # tidak termasuk daftar sesi ini
                 continue
-            required += 1
+            is_req = bool(d.get("session_required", True))
+            if is_req:
+                req_labels.append(d.get("session_label") or d.get("name"))
             a = abs_by_keg.get(d["_id"], {}).get(pid)
-            st = a["status"] if a else "alpha"
-            if done and st in ("alpha", None):
+            st = a["status"] if a else ("alpha" if is_req else "optional")
+            if done and st in ("alpha", "optional"):
                 # REVISI — sudah hadir sesi sebelumnya: dikosongkan, bukan Alpha
                 per.append({"status": "exempt", "arrival_time": None})
+                continue
+            if st == "optional":
+                # FASE 13 — sesi opsional & tidak diabsen: tidak dihitung Alpha
+                per.append({"status": "optional", "arrival_time": None})
                 continue
             n_eligible += 1
             per.append({"status": st, "arrival_time": a.get("arrival_time") if a else None})
@@ -2287,8 +2298,9 @@ async def build_rekap_gabungan(docs: list) -> dict:
             "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
             "account_status": p.get("status", "active"),
             "sessions": per, "hadir": n_hadir, "izin": n_izin, "eligible": n_eligible,
-            "required_sessions": required,
-            "multi_sesi": required > 1,
+            "required_sessions": len(req_labels),
+            "required_labels": req_labels,
+            "multi_sesi": len(req_labels) > 1,
         })
 
     total = len(rows)
@@ -2408,6 +2420,7 @@ async def salin_jadwal_kegiatan(kegiatan_id: str, body: SalinJadwalInput,
                 "session_group_id": session_group_id,
                 "session_index": d.get("session_index") if multi else None,
                 "session_total": len(docs) if multi else 1,
+                "session_required": bool(d.get("session_required", True)),
                 "type": d.get("type", "rutin"),
                 "date": dt,
                 "start_time": d.get("start_time"),
@@ -4292,6 +4305,107 @@ async def admin_dashboard(admin: dict = Depends(require_staff)):
 
 
 # ------------------------- Laporan + Export -------------------------
+BULAN_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
+            "Agustus", "September", "Oktober", "November", "Desember"]
+
+
+@api_router.get("/staff/rekap-bulanan")
+async def rekap_bulanan(month: Optional[str] = None, staff: dict = Depends(require_staff)):
+    """FASE 13 — Rekap absen BULANAN per jamaah.
+
+    1 pertemuan = 1 hari kegiatan (semua sesi hari itu dihitung SEKALI); hadir di
+    salah satu sesi wajib = hadir pada pertemuan tersebut. Sesi yang ditandai
+    "opsional" tidak menambah kewajiban pertemuan.
+    """
+    now = now_wita()
+    month = month or now.strftime("%Y-%m")
+    try:
+        y, m = (int(x) for x in month.split("-"))
+        start = datetime(y, m, 1, tzinfo=WITA)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Format bulan harus YYYY-MM")
+    nxt = datetime(y + 1, 1, 1, tzinfo=WITA) if m == 12 else datetime(y, m + 1, 1, tzinfo=WITA)
+    date_from = start.strftime("%Y-%m-%d")
+    date_to = (nxt - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    kegiatans = await db.kegiatans.find({"date": {"$gte": date_from, "$lte": date_to}}).sort("date", 1).to_list(3000)
+    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
+    kelompoks = await db.kelompoks.find().to_list(500)
+    kmap = {k["_id"]: k.get("name") for k in kelompoks}
+    keg_ids = [k["_id"] for k in kegiatans]
+    absens = await db.absensis.find({"kegiatan_id": {"$in": keg_ids}}).to_list(200000) if keg_ids else []
+    status_by = {(a["kegiatan_id"], a["user_id"]): a.get("status") for a in absens}
+    elig_by_doc = {k["_id"]: {str(p["_id"]) for p in filter_peserta_for_kegiatan(k, peserta)}
+                   for k in kegiatans}
+
+    meetings: dict = {}
+    for k in kegiatans:
+        key = k.get("session_group_id") or k["_id"]
+        mt = meetings.setdefault(key, {"date": k.get("date"),
+                                       "name": k.get("base_name") or k.get("name"),
+                                       "type": k.get("type", "rutin"), "docs": []})
+        mt["docs"].append(k)
+
+    tally = {str(p["_id"]): {"user_id": str(p["_id"]), "name": p.get("name"),
+                             "gender": _derive_gender(p),
+                             "kelompok_name": kmap.get(p.get("kelompok_id")),
+                             "account_status": p.get("status", "active"),
+                             "pertemuan": 0, "hadir": 0, "izin": 0, "alpha": 0,
+                             "last_date": None} for p in peserta}
+
+    meeting_rows = []
+    for mt in sorted(meetings.values(), key=lambda x: x["date"] or ""):
+        req_docs = [d for d in mt["docs"] if d.get("session_required", True)] or mt["docs"]
+        n_h = n_i = n_a = 0
+        for pid, t in tally.items():
+            docs_p = [d for d in req_docs if pid in elig_by_doc[d["_id"]]]
+            if not docs_p:
+                continue
+            t["pertemuan"] += 1
+            sts = [status_by.get((d["_id"], pid), "alpha") for d in docs_p]
+            if "hadir" in sts:
+                t["hadir"] += 1
+                t["last_date"] = mt["date"]
+                n_h += 1
+            elif "izin" in sts:
+                t["izin"] += 1
+                n_i += 1
+            else:
+                t["alpha"] += 1
+                n_a += 1
+        total_p = n_h + n_i + n_a
+        meeting_rows.append({"date": mt["date"], "name": mt["name"], "type": mt["type"],
+                             "sessions": len(mt["docs"]), "peserta": total_p,
+                             "hadir": n_h, "izin": n_i, "alpha": n_a,
+                             "ratio": round((n_h / total_p) * 100, 1) if total_p else 0.0})
+
+    rows = []
+    for t in tally.values():
+        ratio = round((t["hadir"] / t["pertemuan"]) * 100, 1) if t["pertemuan"] else 0.0
+        rows.append({**t, "ratio": ratio})
+    rows.sort(key=lambda x: (x["ratio"], -x["pertemuan"], (x["name"] or "").lower()))
+
+    aktif = [r for r in rows if r["pertemuan"] > 0]
+    rajin = sum(1 for r in aktif if r["ratio"] >= 80)
+    cukup = sum(1 for r in aktif if 50 <= r["ratio"] < 80)
+    jarang = sum(1 for r in aktif if r["ratio"] < 50)
+    belum = sum(1 for r in aktif if r["hadir"] == 0)
+    return {
+        "month": month,
+        "label": f"{BULAN_ID[m - 1]} {y}",
+        "date_from": date_from, "date_to": date_to,
+        "total_pertemuan": len(meetings),
+        "total_kegiatan": len(kegiatans),
+        "total_peserta": len(rows),
+        "summary": {
+            "rata_rata": round(sum(r["ratio"] for r in aktif) / len(aktif), 1) if aktif else 0.0,
+            "rajin": rajin, "cukup": cukup, "jarang": jarang, "belum_pernah": belum,
+        },
+        "per_pertemuan": meeting_rows,
+        "rows": rows,
+    }
+
+
 async def build_laporan(date_from: str, date_to: str) -> dict:
     if not date_from or not date_to:
         now = now_wita()

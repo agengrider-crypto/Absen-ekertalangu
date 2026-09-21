@@ -483,3 +483,19 @@ Script verifikasi: `/app/tests/fase12_check.py`.
   Ikut memperbaiki metrik "Hadir semua sesi".
 - Baris jamaah menambah `required_sessions` & `multi_sesi` → badge "Wajib N sesi" (kuning) pada
   nama yang terdaftar di beberapa sesi, di modal admin maupun halaman publik rekap gabungan.
+
+## FASE 13 — Sesi Wajib & Rekap Bulanan (2026-09-21) — SELESAI (uji manual, tanpa testing agent)
+- **Aturan sesi wajib**: `SessionInput.required` (default True) → dokumen `session_required`,
+  ikut di `serialize_kegiatan` & Salin Jadwal. Checkbox "Sesi ini WAJIB dihadiri" per baris sesi
+  di form Tambah Kegiatan (`keg-session-required-i`).
+  Rekap gabungan: `sessions[].required`, baris jamaah membawa `required_labels`
+  → badge **"Wajib Pagi + Sore"** (bukan lagi "N sesi"); sesi opsional yang tidak diabsen
+  berstatus `optional` (titik ungu) dan TIDAK dihitung Alpha.
+- **Rekap Absen Bulanan** (`GET /api/staff/rekap-bulanan?month=YYYY-MM`, require_staff → admin &
+  pengurus): 1 pertemuan = 1 hari kegiatan (hadir di salah satu sesi WAJIB = hadir pertemuan itu).
+  Mengembalikan `total_pertemuan`, ringkasan (rata-rata, rajin ≥80%, cukup, jarang <50%,
+  belum pernah hadir), `rows` per jamaah (hadir/pertemuan, izin, alpha, ratio, last_date,
+  kelompok) diurutkan dari yang paling jarang hadir, serta `per_pertemuan`.
+- Menu baru **Rekap Bulanan** (`RekapBulananView.jsx`, ikon CalendarRange) untuk admin & pengurus:
+  navigasi bulan, 4 kartu statistik, pencarian nama, filter Semua/Jarang/Belum hadir/Rajin,
+  bar persen per jamaah + badge status, daftar pertemuan berbar, tombol "Salin Ringkasan" (teks WA).

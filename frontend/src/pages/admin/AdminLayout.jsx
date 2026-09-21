@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
   ShieldCheck, Menu, X, LogOut, ArrowLeftRight, MessagesSquare, Megaphone, UserCog, Layers,
-  MonitorSmartphone,
+  MonitorSmartphone, CalendarRange,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
@@ -19,6 +19,7 @@ import PengumumanView from "./PengumumanView";
 import PenjagaAbsenView from "./PenjagaAbsenView";
 import KelompokView from "./KelompokView";
 import PantauLoginView from "./PantauLoginView";
+import RekapBulananView from "./RekapBulananView";
 
 const MENU = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "pengurus"] },
@@ -28,6 +29,7 @@ const MENU = [
   { key: "musyawarah", label: "Musyawarah", icon: MessagesSquare, roles: ["admin", "pengurus"] },
   { key: "pengumuman", label: "Pengumuman", icon: Megaphone, roles: ["admin", "pengurus"] },
   { key: "laporan", label: "Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"] },
+  { key: "rekap-bulanan", label: "Rekap Bulanan", icon: CalendarRange, roles: ["admin", "pengurus"] },
   { key: "pantau-login", label: "Pantau Login", icon: MonitorSmartphone, roles: ["admin"] },
   { key: "kelompok", label: "Kelompok Sambung", icon: Layers, roles: ["admin"] },
   { key: "log", label: "Log Aktivitas", icon: ScrollText, roles: ["admin"] },
@@ -147,6 +149,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "musyawarah" && <MusyawarahView />}
           {active === "pengumuman" && <PengumumanView />}
           {active === "laporan" && <LaporanView />}
+          {active === "rekap-bulanan" && <RekapBulananView />}
           {active === "pantau-login" && role === "admin" && <PantauLoginView />}
           {active === "kelompok" && role === "admin" && <KelompokView />}
           {active === "log" && role === "admin" && <LogAktivitas />}
