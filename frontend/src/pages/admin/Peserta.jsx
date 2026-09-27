@@ -193,7 +193,7 @@ export default function Peserta({ role = "admin" }) {
             className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white"
           />
         </div>
-        {isAdmin && selected.size > 0 && (
+        {selected.size > 0 && (
           <button data-testid="button-bulk-delete" onClick={bulkDelete}
             className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#DC2626] text-white font-semibold text-sm hover:bg-[#B91C1C]">
             <Trash2 size={16} /> Hapus Terpilih ({selected.size})

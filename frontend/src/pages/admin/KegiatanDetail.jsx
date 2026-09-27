@@ -28,10 +28,11 @@ import {
  * kotak pesan/saran.
  */
 
+// Singkatan H / I / A supaya baris absen tetap ringkas di HP.
 const STATUS_BTN = {
-  hadir: { label: "Hadir", on: "bg-[#0D5C3A] text-white", off: "text-[#065F46]" },
-  izin: { label: "Izin", on: "bg-[#D97706] text-white", off: "text-[#92400E]" },
-  alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
+  hadir: { label: "H", full: "Hadir", on: "bg-[#0D5C3A] text-white", off: "text-[#065F46]" },
+  izin: { label: "I", full: "Izin", on: "bg-[#D97706] text-white", off: "text-[#92400E]" },
+  alpha: { label: "A", full: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
 };
 
 const FOLLOWUP_META = {
@@ -422,7 +423,9 @@ function AbsenManual({ kegiatanId, rows, closed, onReload }) {
                       data-testid={`detail-btn-${s}-${r.user_id}`}
                       disabled={busy === r.user_id + s}
                       onClick={() => mark(r.user_id, s)}
-                      className={`h-8 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E5E7EB] hover:border-current`}`}
+                      title={cfg.full}
+                      aria-label={cfg.full}
+                      className={`h-8 w-9 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E5E7EB] hover:border-current`}`}
                     >
                       {cfg.label}
                     </button>

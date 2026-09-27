@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Pin, AlertCircle, CalendarDays, Clock, MapPin, ShieldCheck, X, Search, QrCode, ScanLine, ChevronRight } from "lucide-react";
+import { Loader2, Pin, AlertCircle, CalendarDays, Clock, MapPin, ShieldCheck, X, Search, QrCode, ScanLine, ChevronRight, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
@@ -121,6 +121,25 @@ export default function Beranda({ user, onGoto }) {
         <p className="text-[#6B7280] text-sm">{greeting},</p>
         <h1 className="font-heading text-2xl font-bold text-[#111827]" data-testid="peserta-greeting">{user?.name}</h1>
       </div>
+
+      {/* Kelengkapan data diri → arahkan ke Profil (akun pribadi) */}
+      {(user?.missing_fields || []).length > 0 && (
+        <button
+          type="button"
+          data-testid="peserta-kelengkapan-banner"
+          onClick={() => onGoto("profil")}
+          className="w-full text-left rounded-2xl border-2 border-[#FDE68A] bg-[#FFFBEB] p-4 flex items-center gap-3 hover:border-[#92400E] transition-colors"
+        >
+          <span className="h-10 w-10 rounded-xl bg-[#92400E] text-white flex items-center justify-center shrink-0"><UserCog size={19} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-[#92400E]">Data diri Anda belum lengkap</span>
+            <span className="block text-xs text-[#92400E]/80 mt-0.5">
+              Belum diisi: {(user.missing_fields || []).join(", ")}. Tap di sini untuk melengkapi di akun pribadi Anda.
+            </span>
+          </span>
+          <ChevronRight size={18} className="text-[#92400E] shrink-0" />
+        </button>
+      )}
 
       {/* Delegation banner */}
       {delegs.map((d) => (

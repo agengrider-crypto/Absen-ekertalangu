@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X } from "lucide-react";
+import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, MessageSquareHeart } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import RoleSwitcher from "@/components/RoleSwitcher";
 import Beranda from "./peserta/Beranda";
 import KegiatanList from "./peserta/KegiatanList";
 import ScanTab from "./peserta/ScanTab";
 import QrSaya from "./peserta/QrSaya";
 import ProfilTab from "./peserta/ProfilTab";
+import Pengaduan from "./peserta/Pengaduan";
 import PenjagaAbsen from "./peserta/PenjagaAbsen";
 
 const BASE_TABS = [
@@ -15,6 +17,7 @@ const BASE_TABS = [
   { key: "kegiatan", label: "Kegiatan", icon: CalendarDays },
   { key: "scan", label: "Scan", icon: ScanLine },
   { key: "qr", label: "QR Saya", icon: QrCode },
+  { key: "curhat", label: "Curhat", icon: MessageSquareHeart },
   { key: "profil", label: "Profil", icon: User },
 ];
 
@@ -27,6 +30,7 @@ export default function PesertaArea({ user }) {
   const [updates, setUpdates] = useState([]);
   const [unread, setUnread] = useState(0);
   const [panel, setPanel] = useState(false);
+  const [switcher, setSwitcher] = useState(false);
   const multiRole = (user?.roles?.length || 0) > 1;
   const seenKey = `upd_seen_${user?.id || "me"}`;
 
@@ -77,7 +81,7 @@ export default function PesertaArea({ user }) {
               )}
             </button>
             {multiRole && (
-              <button data-testid="peserta-switch-role" onClick={() => navigate("/roles")} className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white/10" title="Ganti Peran">
+              <button data-testid="peserta-switch-role" onClick={() => setSwitcher(true)} className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white/10" title="Ganti Peran">
                 <ArrowLeftRight size={18} />
               </button>
             )}
@@ -131,6 +135,7 @@ export default function PesertaArea({ user }) {
         {tab === "kegiatan" && <KegiatanList />}
         {tab === "scan" && <ScanTab />}
         {tab === "qr" && <QrSaya user={user} />}
+        {tab === "curhat" && <Pengaduan />}
         {tab === "profil" && <ProfilTab user={user} />}
       </main>
 
@@ -154,6 +159,8 @@ export default function PesertaArea({ user }) {
           })}
         </div>
       </nav>
+
+      {switcher && <RoleSwitcher current="peserta" onClose={() => setSwitcher(false)} />}
     </div>
   );
 }

@@ -526,3 +526,38 @@ Script verifikasi: `/app/tests/fase12_check.py`.
   (7 pertemuan, rata-rata 63,3%, L 83,3% vs P 48,2%).
 - Diverifikasi manual via screenshot (tanpa testing agent): panel admin Rekap Bulanan &
   halaman publik `/rekap-bulanan/JtTEuE5k-dW6ew`.
+
+## FASE 15 — Sidebar Grouping, Ganti Peran Instan & Pengaduan Jamaah (27 Sep 2026, uji manual tanpa testing agent)
+### Sidebar admin/pengurus jadi bergrup (AdminLayout.jsx)
+- Dashboard (panel Pantau Login DIHAPUS dari dashboard).
+- Grup **Peserta**: User/Jamaah · Bulk Data (halaman sendiri) · Cek Duplikat · Rekap Login
+  (khusus admin, halaman sendiri) · Kelompok Sambung (dipindah ke grup Peserta).
+- Grup **Kegiatan**: Daftar Kegiatan · Kode Akses · Scan Presensi · Pengumuman.
+- Grup **Laporan & Rekap**: Laporan · Rekap Bulanan · Rekap Harian (ComingSoon).
+- Menu tunggal: Musyawarah, Pengaduan Jamaah, Log Aktivitas (admin), Hak Akses (admin).
+- Pengurus: Dashboard, grup Peserta (tanpa Rekap Login), grup Kegiatan, Musyawarah,
+  grup Laporan, Pengaduan Jamaah. Pengurus kini boleh menghapus peserta
+  (`DELETE /admin/users/{id}` & `/admin/users/bulk-delete` → require_staff).
+### Halaman baru
+- `KodeAksesView.jsx` + `GET /api/staff/kode-akses?month=` — tiap kegiatan otomatis punya kode
+  akses 6 digit + tautan; tombol Salin Kode/Tautan, Bagikan WhatsApp, Lihat QR, Perbarui Kode.
+  Pembuatan kode otomatis dicatat di Log Aktivitas (`buat_kode_akses`).
+- `ScanPresensiView.jsx` + `GET /api/staff/scan-presensi?date=` — daftar kegiatan 1 tanggal
+  beserta QR kegiatan (unduh/salin tautan) + tombol "Scan QR Jamaah" (kamera).
+- `PesertaBulkView.jsx` — grid bulk data + Import Excel + Template.
+- `PesertaDuplikat.jsx` + `GET /api/admin/users/duplikat` — grup nama kembar, tanda
+  "Tanggal lahir sama", aksi Detail/Hapus.
+- `PengaduanView.jsx` + `GET /api/staff/pengaduan`, `POST /api/staff/pengaduan/{id}/baca`.
+- `HakAkses.jsx` dirombak: kolom pencarian (min 2 huruf) + daftar pemegang hak akses saat ini.
+- Pengumuman: pilih kegiatan terkait lalu 3 **template siap pakai**
+  (Undangan Kegiatan / Pengingat Hari-H / Perubahan Jadwal) mengisi judul & isi otomatis.
+- Absen manual kegiatan: tombol status disingkat **H / I / A** (tooltip nama lengkap).
+### Ganti peran tanpa logout
+- `components/RoleSwitcher.jsx` (ActionModal) dipakai di header panel, sidebar, ProfileMenu,
+  dan header area jamaah → klik langsung `navigate('/area/<role>')` tanpa keluar akun.
+### Peran peserta
+- Tab baru **Curhat** (`peserta/Pengaduan.jsx`): kategori Curhat/Saran/Pengaduan, opsi tanpa nama,
+  kata pembuka yang baik, riwayat pesan + status "sudah dibaca pengurus".
+  Backend: `POST/GET /api/me/pengaduan` (koleksi `pengaduans`, minimal 10 huruf).
+- `peserta/TutorialQr.jsx` — tutorial 3 langkah, tampil di QR Saya (QR pribadi) & Scan (QR kegiatan).
+- Banner kelengkapan data di Beranda peserta → mengarah ke tab Profil (akun pribadi).

@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import ProfileModal from "@/components/ProfileModal";
 import ActionModal from "@/components/ActionModal";
+import RoleSwitcher from "@/components/RoleSwitcher";
 
 /**
  * Menu akun di kanan atas.
@@ -16,6 +17,7 @@ export default function ProfileMenu({ subtitle }) {
   const navigate = useNavigate();
   const [openMenu, setOpenMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showSwitcher, setShowSwitcher] = useState(false);
   const [photo, setPhoto] = useState(null);
 
   const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -69,9 +71,9 @@ export default function ProfileMenu({ subtitle }) {
               key: "ganti-peran",
               testid: "menu-switch-role",
               label: "Ganti Peran",
-              desc: "Pindah ke area peran lain",
+              desc: "Pindah area tanpa keluar akun",
               icon: RefreshCw,
-              onClick: () => navigate("/roles"),
+              onClick: () => setShowSwitcher(true),
             },
             {
               key: "keluar",
@@ -97,6 +99,8 @@ export default function ProfileMenu({ subtitle }) {
       {showProfile && (
         <ProfileModal photo={photo} onPhotoChange={setPhoto} onClose={() => setShowProfile(false)} />
       )}
+
+      {showSwitcher && <RoleSwitcher onClose={() => setShowSwitcher(false)} />}
     </>
   );
 }

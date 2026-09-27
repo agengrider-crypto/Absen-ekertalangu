@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Download, RefreshCw, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import TutorialQr from "./TutorialQr";
 
 export default function QrSaya({ user }) {
   const [qr, setQr] = useState(null);
@@ -70,6 +71,8 @@ export default function QrSaya({ user }) {
         <QrCode size={18} className="shrink-0 mt-0.5" />
         <span>QR bersifat rahasia & berganti berkala sehingga aman meski sempat terlihat orang lain.</span>
       </div>
+
+      <TutorialQr variant="pribadi" />
     </div>
   );
 }

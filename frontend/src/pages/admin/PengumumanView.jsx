@@ -1,12 +1,77 @@
 import { useEffect, useState } from "react";
 import {
-  Plus, Loader2, Trash2, Pin, PinOff, AlertCircle, X, Pencil, Megaphone,
+  Plus, Loader2, Trash2, Pin, PinOff, AlertCircle, X, Pencil, Megaphone, LayoutTemplate,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 
 const ROLE_LABEL = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta" };
 const MAX_PINNED = 3;
+
+const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
+  "Agustus", "September", "Oktober", "November", "Desember"];
+
+function tglIndo(ymd) {
+  const p = String(ymd || "").slice(0, 10).split("-");
+  if (p.length !== 3) return ymd || "-";
+  return `${parseInt(p[2], 10)} ${BULAN[parseInt(p[1], 10) - 1]} ${p[0]}`;
+}
+
+/** Template pengumuman siap pakai berdasarkan kegiatan yang dipilih. */
+const TEMPLATES = [
+  {
+    key: "undangan",
+    label: "Undangan Kegiatan",
+    build: (k) => ({
+      title: k ? `Undangan ${k.base_name || k.name}` : "Undangan Pengajian",
+      body: [
+        "Assalamu'alaikum warahmatullahi wabarakatuh",
+        "",
+        "Bismillah, dengan ini kami mengundang jamaah untuk menghadiri:",
+        `📌 Kegiatan : ${k ? (k.base_name || k.name) : "-"}`,
+        `🗓️ Tanggal  : ${k ? tglIndo(k.date) : "-"}`,
+        `⏰ Waktu    : ${k ? `${k.start_time}–${k.end_time} WITA` : "-"}${k?.session_label ? ` (sesi ${k.session_label})` : ""}`,
+        `📍 Tempat   : ${k?.location || "-"}`,
+        `👤 Pengajar : ${k?.teacher || "-"}`,
+        k?.material ? `📖 Materi   : ${k.material}` : "",
+        "",
+        "Mohon hadir tepat waktu. Jazakumullahu khoiro.",
+      ].filter((x) => x !== "").join("\n"),
+    }),
+  },
+  {
+    key: "pengingat",
+    label: "Pengingat Hari-H",
+    build: (k) => ({
+      title: k ? `Pengingat: ${k.base_name || k.name} hari ini` : "Pengingat Pengajian",
+      body: [
+        "Assalamu'alaikum warahmatullahi wabarakatuh",
+        "",
+        `Mengingatkan kembali kegiatan ${k ? (k.base_name || k.name) : "pengajian"} ${k ? `pada ${tglIndo(k.date)}` : ""}`,
+        `pukul ${k ? `${k.start_time}–${k.end_time} WITA` : "-"}${k?.location ? ` di ${k.location}` : ""}.`,
+        "",
+        "Jangan lupa membawa HP untuk absen QR. Jazakumullahu khoiro.",
+      ].join("\n"),
+    }),
+  },
+  {
+    key: "perubahan",
+    label: "Perubahan Jadwal",
+    build: (k) => ({
+      title: k ? `Perubahan jadwal ${k.base_name || k.name}` : "Perubahan Jadwal Pengajian",
+      body: [
+        "Assalamu'alaikum warahmatullahi wabarakatuh",
+        "",
+        `Mohon perhatian, ada perubahan pada kegiatan ${k ? (k.base_name || k.name) : "pengajian"}:`,
+        `• Jadwal semula : ${k ? `${tglIndo(k.date)}, ${k.start_time}–${k.end_time} WITA` : "-"}`,
+        "• Jadwal baru   : (tulis di sini)",
+        "• Alasan        : (tulis di sini)",
+        "",
+        "Mohon dimaklumi. Jazakumullahu khoiro.",
+      ].join("\n"),
+    }),
+  },
+];
 
 function Field({ label, children }) {
   return (
@@ -60,23 +125,49 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
           <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
         </div>
         <div className="p-5 space-y-4">
+          <Field label="Kegiatan terkait (untuk mengisi template)">
+            <select data-testid="peng-kegiatan" value={f.kegiatan_id} onChange={(e) => set("kegiatan_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white">
+              <option value="">— Tidak terkait kegiatan —</option>
+              {kegiatanOptions.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {tglIndo(k.date)} · {k.base_name || k.name}{k.session_label ? ` (${k.session_label})` : ""}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <div className="rounded-2xl border border-[#CDEBD9] bg-[#F0FAF4] p-3">
+            <div className="text-sm font-semibold text-[#065F46] inline-flex items-center gap-1.5"><LayoutTemplate size={15} /> Template siap pakai</div>
+            <p className="text-xs text-[#4B5563] mt-0.5">Tap salah satu, judul &amp; isi langsung terisi rapi (masih bisa diedit).</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {TEMPLATES.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  data-testid={`peng-template-${t.key}`}
+                  onClick={() => {
+                    const keg = kegiatanOptions.find((k) => k.id === f.kegiatan_id) || null;
+                    const res = t.build(keg);
+                    setF((p) => ({ ...p, title: res.title, body: res.body, pengajar: keg?.teacher || p.pengajar }));
+                    toast.success(`Template "${t.label}" diterapkan`);
+                  }}
+                  className="h-9 px-3 rounded-lg border-2 border-[#0D5C3A] bg-white text-[#0D5C3A] text-xs font-semibold hover:bg-[#E8F5EE]"
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <Field label="Judul">
             <input data-testid="peng-title" value={f.title} onChange={(e) => set("title", e.target.value)} className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A]" />
           </Field>
           <Field label="Isi Pengumuman">
-            <textarea data-testid="peng-body" value={f.body} onChange={(e) => set("body", e.target.value)} rows={4} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] resize-none" />
+            <textarea data-testid="peng-body" value={f.body} onChange={(e) => set("body", e.target.value)} rows={9} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] resize-none leading-relaxed" />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Kegiatan (terkait)">
-              <select data-testid="peng-kegiatan" value={f.kegiatan_id} onChange={(e) => set("kegiatan_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white">
-                <option value="">— Tidak ada —</option>
-                {kegiatanOptions.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Pengajar">
-              <input data-testid="peng-pengajar" value={f.pengajar} onChange={(e) => set("pengajar", e.target.value)} className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A]" />
-            </Field>
-          </div>
+          <Field label="Pengajar">
+            <input data-testid="peng-pengajar" value={f.pengajar} onChange={(e) => set("pengajar", e.target.value)} className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A]" />
+          </Field>
 
           <label className="flex items-center gap-3 cursor-pointer">
             <input data-testid="peng-important" type="checkbox" checked={f.important} onChange={(e) => set("important", e.target.checked)} className="h-4 w-4 accent-[#DC2626]" />
