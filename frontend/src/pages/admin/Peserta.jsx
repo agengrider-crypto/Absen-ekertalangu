@@ -123,6 +123,7 @@ export default function Peserta({ role = "admin" }) {
 
   return (
     <div>
+      {/* FASE 15 — Bulk data & import dipindah ke halaman Bulk Data tersendiri */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2 text-[#0D5C3A] font-bold text-lg">
           <Users size={20} /> Peserta

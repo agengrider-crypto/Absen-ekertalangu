@@ -1,3 +1,4 @@
+// FASE 15 — Sidebar panel: menu datar berlabel seksi (Peserta / Kegiatan / Laporan & Rekap).
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {

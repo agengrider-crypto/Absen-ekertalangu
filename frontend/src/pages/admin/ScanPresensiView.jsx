@@ -1,3 +1,4 @@
+// FASE 15 — Halaman "Scan Presensi": daftar kegiatan per tanggal + QR kegiatan & kamera scan QR jamaah.
 import { useCallback, useEffect, useState } from "react";
 import {
   ScanLine, Loader2, Copy, Download, Clock, MapPin, User, QrCode, Camera,

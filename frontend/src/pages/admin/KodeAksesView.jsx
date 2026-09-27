@@ -1,3 +1,4 @@
+// FASE 15 — Halaman "Kode Akses": tiap kegiatan otomatis punya kode 6 digit + tautan/QR absensi.
 import { useCallback, useEffect, useState } from "react";
 import {
   KeyRound, Loader2, Copy, RefreshCw, ChevronLeft, ChevronRight, Send, QrCode, X, Download,

@@ -1,3 +1,4 @@
+// FASE 15 — Panel admin/pengurus untuk membaca pengaduan & curhat jamaah (tanpa fitur balasan).
 import { useEffect, useState } from "react";
 import { MessageSquareHeart, Loader2, Search, CheckCheck, UserRound, Clock } from "lucide-react";
 import { toast } from "sonner";

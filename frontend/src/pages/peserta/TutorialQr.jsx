@@ -1,3 +1,4 @@
+// FASE 15 — Tutorial singkat pemakaian QR, ditampilkan di dashboard jamaah.
 import { QrCode, ScanLine, ShieldCheck } from "lucide-react";
 
 /**

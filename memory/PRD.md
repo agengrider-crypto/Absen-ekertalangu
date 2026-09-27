@@ -577,3 +577,10 @@ Script verifikasi: `/app/tests/fase12_check.py`.
    (maks 3000 huruf), status "terkirim". Backend `GET/POST /api/me/kesan-pesan`
    (koleksi `feedbacks`, hanya kegiatan yang benar-benar dihadiri; upsert per jamaah+kegiatan).
    CATATAN: fitur foto selfie pada contoh screenshot BELUM dibuat.
+
+### 27 Sep 2026 — Komentar kode + teks PR
+- Ditambahkan komentar penjelas 1 baris di file-file yang diubah sesi ini (AdminLayout, Peserta,
+  PesertaBulkView, PesertaDuplikat, KodeAksesView, ScanPresensiView, PengaduanView, HakAkses,
+  peserta/Pengaduan, peserta/KesanPesan, peserta/TutorialQr, peserta/Beranda).
+- Deskripsi Pull Request siap tempel diberikan ke user (branch "update - terbaru"); PR dibuat
+  manual di GitHub.com karena Save to GitHub hanya push branch.

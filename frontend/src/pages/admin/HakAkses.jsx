@@ -1,3 +1,4 @@
+// FASE 15 — Hak Akses berbasis pencarian: cari jamaah, lalu beri/cabut peran admin & pengurus.
 import { useEffect, useMemo, useState } from "react";
 import { ShieldCheck, Loader2, Save, Search, UserRound } from "lucide-react";
 import { toast } from "sonner";

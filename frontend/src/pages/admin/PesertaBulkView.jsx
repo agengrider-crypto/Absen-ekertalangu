@@ -1,3 +1,4 @@
+// FASE 15 — Halaman "Bulk Data": entri banyak jamaah sekaligus (manual / tempel dari Excel).
 import { useRef, useState } from "react";
 import { ListPlus, Loader2, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";

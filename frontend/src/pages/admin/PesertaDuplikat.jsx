@@ -1,3 +1,4 @@
+// FASE 15 — Halaman "Cek Duplikat": kelompokkan jamaah bernama sama agar data ganda mudah dirapikan.
 import { useEffect, useState } from "react";
 import { CopyCheck, Loader2, Eye, Trash2, CalendarDays, Phone, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
