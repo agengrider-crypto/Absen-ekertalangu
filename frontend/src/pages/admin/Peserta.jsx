@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Users, Search, Loader2, UserPlus, Trash2, FileSpreadsheet, Download,
-  ListPlus, X, Eye, AlertTriangle, Plus, ClipboardList, CalendarDays, Heart,
+  Users, Search, Loader2, UserPlus, Trash2, X, Eye, AlertTriangle,
+  ClipboardList, CalendarDays, Heart,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, API, formatApiErrorDetail } from "@/lib/api";
@@ -55,8 +55,6 @@ export default function Peserta({ role = "admin" }) {
   const [selected, setSelected] = useState(new Set());
   const [detailId, setDetailId] = useState(null);
   const [modal, setModal] = useState(null); // "add" | "bulk" | null
-  const [importing, setImporting] = useState(false);
-  const fileRef = useRef(null);
 
   const load = () =>
     api.get("/admin/users")
@@ -123,37 +121,6 @@ export default function Peserta({ role = "admin" }) {
     }
   };
 
-  const downloadTemplate = async () => {
-    try {
-      const res = await api.get("/admin/import-template", { responseType: "blob" });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement("a");
-      a.href = url; a.download = "template_peserta_ekertalangu.xlsx";
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    } catch { toast.error("Gagal mengunduh template"); }
-  };
-
-  const handleImport = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setImporting(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const { data } = await api.post("/admin/users/import", fd, { headers: { "Content-Type": "multipart/form-data" } });
-      const flag = data.flagged?.length ? `, ${data.flagged.length} nama kembar ditandai "perlu dilengkapi"` : "";
-      const bad = data.invalid_dates?.length ? `, ${data.invalid_dates.length} tanggal tak terbaca` : "";
-      toast.success(`${data.count} peserta diimpor${flag}${bad}.`);
-      load();
-    } catch (e2) {
-      toast.error(formatApiErrorDetail(e2.response?.data?.detail));
-    } finally {
-      setImporting(false);
-    }
-  };
-
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -165,18 +132,6 @@ export default function Peserta({ role = "admin" }) {
           <button data-testid="button-open-add" onClick={() => setModal("add")}
             className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229]">
             <UserPlus size={16} /> Tambah Peserta
-          </button>
-          <button data-testid="button-open-bulk" onClick={() => setModal("bulk")}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]">
-            <ListPlus size={16} /> Bulk Data
-          </button>
-          <label data-testid="button-import" className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE] cursor-pointer">
-            {importing ? <Loader2 className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} Import Excel
-            <input ref={fileRef} type="file" accept=".xlsx,.xlsm,.csv,.txt" className="hidden" onChange={handleImport} disabled={importing} data-testid="input-import" />
-          </label>
-          <button data-testid="button-template" onClick={downloadTemplate}
-            className="inline-flex items-center gap-2 h-10 px-3 rounded-xl text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]">
-            <Download size={16} /> Template
           </button>
         </div>
       </div>
@@ -357,7 +312,6 @@ export default function Peserta({ role = "admin" }) {
         />
       )}
       {modal === "add" && <AddModal kelompok={kelompok} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
-      {modal === "bulk" && <BulkModal kelompok={kelompok} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
     </div>
   );
 }
@@ -432,144 +386,3 @@ function AddModal({ kelompok, onClose, onDone }) {
   );
 }
 
-function normG(v) {
-  const s = String(v || "").trim().toLowerCase();
-  if (["l", "laki-laki", "laki", "pria", "male", "m", "lk"].includes(s)) return "L";
-  if (["p", "perempuan", "wanita", "female", "f", "pr"].includes(s)) return "P";
-  return "";
-}
-
-const emptyRow = () => ({ name: "", gender: "", birthplace: "", dob: "", phone: "" });
-
-function BulkModal({ kelompok, onClose, onDone }) {
-  const [rows, setRows] = useState(() => [emptyRow(), emptyRow(), emptyRow()]);
-  const [kid, setKid] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const setCell = (i, key, val) => setRows((prev) => {
-    const next = [...prev];
-    next[i] = { ...next[i], [key]: val };
-    return next;
-  });
-  const addRow = () => setRows((prev) => [...prev, emptyRow()]);
-  const removeRow = (i) => setRows((prev) => (prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev));
-
-  // Tempel dari Excel/Sheets: parse tab/baris ke dalam grid mulai dari baris ini
-  const handlePaste = (rowIndex) => (e) => {
-    const text = e.clipboardData.getData("text");
-    if (!text.includes("\n") && !text.includes("\t")) return; // tempel biasa 1 sel
-    e.preventDefault();
-    const lines = text.split(/\r?\n/).filter((l) => l.trim());
-    const parsed = lines.map((line) => {
-      const c = line.includes("\t") ? line.split("\t") : line.split(/[;,]/);
-      return {
-        name: (c[0] || "").trim(),
-        gender: normG(c[1]),
-        birthplace: (c[2] || "").trim(),
-        dob: (c[3] || "").trim(),
-        phone: (c[4] || "").trim(),
-      };
-    });
-    setRows((prev) => {
-      const next = [...prev];
-      parsed.forEach((p, i) => { next[rowIndex + i] = p; });
-      return next;
-    });
-  };
-
-  const submit = async (e) => {
-    e.preventDefault();
-    const entries = rows
-      .map((r) => ({
-        name: (r.name || "").trim(),
-        gender: r.gender || null,
-        birthplace: (r.birthplace || "").trim() || null,
-        dob: (r.dob || "").trim() || null,
-        phone: (r.phone || "").trim() || null,
-      }))
-      .filter((r) => r.name);
-    if (entries.length === 0) { toast.error("Isi minimal satu baris (nama wajib)"); return; }
-    setSaving(true);
-    try {
-      const { data } = await api.post("/admin/users/bulk", { entries, kelompok_id: kid || null });
-      const flag = data.flagged?.length ? `, ${data.flagged.length} nama kembar ditandai` : "";
-      const bad = data.invalid_dates?.length ? `, ${data.invalid_dates.length} tanggal tak terbaca` : "";
-      toast.success(`${data.count} peserta ditambahkan${flag}${bad}.`);
-      onDone();
-    } catch (e2) {
-      toast.error(formatApiErrorDetail(e2.response?.data?.detail));
-    } finally { setSaving(false); }
-  };
-
-  const cell = "h-10 px-2.5 rounded-lg border border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white w-full";
-
-  return (
-    <ModalShell title="Bulk Data Peserta" onClose={onClose} testid="modal-bulk" wide>
-      <form onSubmit={submit}>
-        <p className="text-sm text-[#6B7280] mb-3">
-          Isi seperti tabel Excel. Anda juga bisa <span className="font-semibold">menyalin dari Excel/Spreadsheet</span> lalu tempel (Ctrl+V) di kolom Nama untuk mengisi banyak baris sekaligus. Hanya <span className="font-semibold">Nama</span> yang wajib.
-        </p>
-
-        <div className="overflow-x-auto -mx-1 px-1">
-          <table className="w-full border-separate border-spacing-y-1.5 min-w-[640px]">
-            <thead>
-              <tr className="text-left text-xs font-semibold text-[#6B7280]">
-                <th className="w-6" />
-                <th className="px-1 min-w-[150px]">Nama *</th>
-                <th className="px-1 w-[120px]">Jenis Kelamin</th>
-                <th className="px-1 min-w-[120px]">Tempat Lahir</th>
-                <th className="px-1 w-[130px]">Tanggal Lahir</th>
-                <th className="px-1 min-w-[120px]">No HP</th>
-                <th className="w-8" />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i} data-testid={`bulk-row-${i}`}>
-                  <td className="text-center text-xs text-[#9CA3AF] font-medium">{i + 1}</td>
-                  <td className="px-1">
-                    <input data-testid={`bulk-name-${i}`} className={cell} value={r.name}
-                      onChange={(e) => setCell(i, "name", e.target.value)} onPaste={handlePaste(i)} placeholder="Nama lengkap" />
-                  </td>
-                  <td className="px-1">
-                    <select data-testid={`bulk-gender-${i}`} className={cell} value={r.gender} onChange={(e) => setCell(i, "gender", e.target.value)}>
-                      <option value="">-</option>
-                      <option value="L">Laki-laki</option>
-                      <option value="P">Perempuan</option>
-                    </select>
-                  </td>
-                  <td className="px-1">
-                    <input className={cell} value={r.birthplace} onChange={(e) => setCell(i, "birthplace", e.target.value)} placeholder="Kota" />
-                  </td>
-                  <td className="px-1">
-                    <input data-testid={`bulk-dob-${i}`} className={cell} value={r.dob} onChange={(e) => setCell(i, "dob", e.target.value)} placeholder="DD-MM-YYYY" />
-                  </td>
-                  <td className="px-1">
-                    <input className={cell} value={r.phone} onChange={(e) => setCell(i, "phone", e.target.value)} placeholder="08xxxx" />
-                  </td>
-                  <td className="text-center">
-                    <button type="button" onClick={() => removeRow(i)} className="h-8 w-8 flex items-center justify-center rounded-lg text-[#DC2626] hover:bg-red-50"><Trash2 size={15} /></button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <button type="button" data-testid="button-add-row" onClick={addRow}
-          className="mt-1 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border-2 border-dashed border-[#CBD5E1] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
-          <Plus size={16} /> Tambah Baris
-        </button>
-
-        <select data-testid="bulk-kelompok" value={kid} onChange={(e) => setKid(e.target.value)} className={`${inp} mt-3`}>
-          <option value="">- Tanpa Kelompok -</option>
-          {kelompok.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
-        </select>
-        <button data-testid="button-submit-bulk" type="submit" disabled={saving}
-          className="mt-3 w-full h-12 rounded-xl bg-[#0D5C3A] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60">
-          {saving ? <Loader2 className="animate-spin" size={18} /> : <ListPlus size={18} />} Simpan Semua
-        </button>
-      </form>
-    </ModalShell>
-  );
-}

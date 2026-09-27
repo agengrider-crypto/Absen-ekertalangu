@@ -33,7 +33,7 @@ const MENU = [
   {
     group: "grup-peserta", label: "Peserta", icon: Users, roles: ["admin", "pengurus"],
     items: [
-      { key: "peserta", label: "User / Jamaah", icon: UserCog, roles: ["admin", "pengurus"] },
+      { key: "peserta", label: "User", icon: UserCog, roles: ["admin", "pengurus"] },
       { key: "peserta-bulk", label: "Bulk Data", icon: ListPlus, roles: ["admin", "pengurus"] },
       { key: "peserta-duplikat", label: "Cek Duplikat", icon: CopyCheck, roles: ["admin", "pengurus"] },
       { key: "pantau-login", label: "Rekap Login", icon: MonitorSmartphone, roles: ["admin"] },
@@ -70,31 +70,23 @@ function buildMenu(role) {
     .filter((m) => !m.items || m.items.length > 0);
 }
 
-function NavButton({ item, active, onNav, nested }) {
+function NavButton({ item, active, onNav }) {
   const Icon = item.icon;
   const on = active === item.key;
   return (
     <button
       data-testid={`nav-${item.key}`}
       onClick={() => onNav(item.key)}
-      className={`w-full flex items-center gap-3 rounded-xl font-semibold transition-colors ${
-        nested ? "pl-9 pr-3 h-10 text-[13px]" : "px-3.5 h-11 text-sm"
-      } ${on ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"}`}
+      className={`w-full flex items-center gap-3 px-3.5 h-11 rounded-xl font-semibold text-sm transition-colors ${
+        on ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+      }`}
     >
-      <Icon size={nested ? 16 : 19} /> {item.label}
+      <Icon size={19} /> {item.label}
     </button>
   );
 }
 
 function SidebarInner({ active, onNav, onSwitch, onLogout, role, menu }) {
-  const [open, setOpen] = useState(() => {
-    const init = {};
-    menu.forEach((m) => {
-      if (m.items) init[m.group] = m.items.some((i) => i.key === active);
-    });
-    return init;
-  });
-
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-5 flex items-center gap-2 border-b border-white/10">
@@ -107,26 +99,14 @@ function SidebarInner({ active, onNav, onSwitch, onLogout, role, menu }) {
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {menu.map((m) => {
           if (!m.items) return <NavButton key={m.key} item={m} active={active} onNav={onNav} />;
-          const Icon = m.icon;
-          const expanded = !!open[m.group];
-          const hasActive = m.items.some((i) => i.key === active);
           return (
-            <div key={m.group}>
-              <button
-                data-testid={`nav-${m.group}`}
-                onClick={() => setOpen((p) => ({ ...p, [m.group]: !p[m.group] }))}
-                className={`w-full flex items-center gap-3 px-3.5 h-11 rounded-xl font-semibold text-sm transition-colors ${
-                  hasActive && !expanded ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <Icon size={19} /> <span className="flex-1 text-left">{m.label}</span>
-                <ChevronDown size={16} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
-              </button>
-              {expanded && (
-                <div className="mt-1 space-y-1" data-testid={`submenu-${m.group}`}>
-                  {m.items.map((i) => <NavButton key={i.key} item={i} active={active} onNav={onNav} nested />)}
-                </div>
-              )}
+            <div key={m.group} className="pt-3" data-testid={`submenu-${m.group}`}>
+              <div className="px-3.5 pb-1 text-[11px] font-bold uppercase tracking-wider text-white/40">
+                {m.label}
+              </div>
+              <div className="space-y-1">
+                {m.items.map((i) => <NavButton key={i.key} item={i} active={active} onNav={onNav} />)}
+              </div>
             </div>
           );
         })}
@@ -209,15 +189,6 @@ export default function AdminLayout({ user, role = "admin" }) {
               <Logo size={32} />
             </div>
             <div className="flex items-center gap-2">
-              {(user?.roles || []).length > 1 && (
-                <button
-                  data-testid="header-switch-role"
-                  onClick={() => setSwitcher(true)}
-                  className="inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-[#E5E7EB] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]"
-                >
-                  <ArrowLeftRight size={16} /> <span className="hidden sm:inline">Ganti Peran</span>
-                </button>
-              )}
               <ProfileMenu subtitle={role === "pengurus" ? "Pengurus" : "Administrator"} />
             </div>
           </div>

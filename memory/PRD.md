@@ -561,3 +561,19 @@ Script verifikasi: `/app/tests/fase12_check.py`.
   Backend: `POST/GET /api/me/pengaduan` (koleksi `pengaduans`, minimal 10 huruf).
 - `peserta/TutorialQr.jsx` — tutorial 3 langkah, tampil di QR Saya (QR pribadi) & Scan (QR kegiatan).
 - Banner kelengkapan data di Beranda peserta → mengarah ke tab Profil (akun pribadi).
+
+### Revisi FASE 15 (27 Sep 2026, uji manual)
+1. Tombol "Ganti Peran" di header panel DIHAPUS — cukup lewat menu profil (dropdown) & sidebar bawah.
+2. Sidebar tidak lagi memakai dropdown: semua menu tampil datar dengan label seksi
+   (PESERTA / KEGIATAN / LAPORAN & REKAP).
+3. Menu "User / Jamaah" → **User**; tombol Bulk Data, Import Excel & Template dihapus dari halaman
+   User (sudah ada di Bulk Data). Import Excel & Template juga dihapus dari halaman Bulk Data
+   (khusus entri manual/tempel dari Excel).
+4. Tutorial QR (pribadi & kegiatan) dipindah ke **dashboard jamaah** (Beranda), tidak lagi di
+   halaman Scan/QR Saya.
+5. Banner "data belum lengkap" di dashboard jamaah mengarah ke tab Profil (akun pribadi).
+6. Panel **Kesan & Pesan Kegiatan** di dashboard jamaah (`peserta/KesanPesan.jsx`):
+   daftar kegiatan yang dihadiri 30 hari terakhir → modal Suka / Tidak Suka + kesan & pesan
+   (maks 3000 huruf), status "terkirim". Backend `GET/POST /api/me/kesan-pesan`
+   (koleksi `feedbacks`, hanya kegiatan yang benar-benar dihadiri; upsert per jamaah+kegiatan).
+   CATATAN: fitur foto selfie pada contoh screenshot BELUM dibuat.

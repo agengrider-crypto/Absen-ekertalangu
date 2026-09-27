@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { ScanLine, Info, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import QrScanner from "@/components/QrScanner";
-import TutorialQr from "./TutorialQr";
 
 // Ambil token absen dari hasil scan, baik berupa URL lengkap
 // (https://host/absen/<token>) maupun token mentah.
@@ -66,7 +65,6 @@ export default function ScanTab() {
         <span>Pastikan kegiatan masih berlangsung. Bila sudah ditutup, mohon menghubungi pengurus untuk absen susulan.</span>
       </div>
 
-      <TutorialQr variant="kegiatan" />
     </div>
   );
 }

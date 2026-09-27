@@ -4951,6 +4951,67 @@ async def baca_pengaduan(pengaduan_id: str, staff: dict = Depends(require_staff)
     return {"ok": True}
 
 
+class KesanPesanInput(BaseModel):
+    kegiatan_id: str
+    sentiment: str = "suka"      # suka | tidak_suka
+    message: str
+
+
+@api_router.get("/me/kesan-pesan")
+async def my_kesan_pesan(user: dict = Depends(get_current_user)):
+    """Kegiatan yang SAYA HADIRI (30 hari terakhir) + status kesan & pesan."""
+    uid = str(user["_id"])
+    since = (now_wita() - timedelta(days=30)).strftime("%Y-%m-%d")
+    absens = await db.absensis.find({"user_id": uid, "status": "hadir"}).to_list(2000)
+    ids = [a["kegiatan_id"] for a in absens]
+    if not ids:
+        return {"items": []}
+    kegiatans = await db.kegiatans.find(
+        {"_id": {"$in": ids}, "date": {"$gte": since}}
+    ).sort([("date", -1), ("start_time", -1)]).to_list(100)
+    mine = await db.feedbacks.find({"user_id": uid}).to_list(2000)
+    sent = {f["kegiatan_id"]: f for f in mine}
+    items = []
+    for k in kegiatans:
+        f = sent.get(k["_id"])
+        items.append({
+            "kegiatan_id": k["_id"],
+            "name": k.get("base_name") or k.get("name"),
+            "session_label": k.get("session_label"),
+            "date": k.get("date"),
+            "start_time": k.get("start_time"), "end_time": k.get("end_time"),
+            "teacher": k.get("teacher"), "location": k.get("location"),
+            "sudah_kirim": bool(f),
+            "sentiment": (f or {}).get("sentiment"),
+            "message": (f or {}).get("message"),
+        })
+    return {"items": items}
+
+
+@api_router.post("/me/kesan-pesan")
+async def send_kesan_pesan(body: KesanPesanInput, user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    k = await db.kegiatans.find_one({"_id": body.kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    hadir = await db.absensis.find_one({"kegiatan_id": body.kegiatan_id,
+                                        "user_id": uid, "status": "hadir"})
+    if not hadir:
+        raise HTTPException(status_code=403,
+                            detail="Kesan & pesan hanya untuk kegiatan yang Anda hadiri.")
+    msg = (body.message or "").strip()
+    if len(msg) < 5:
+        raise HTTPException(status_code=400, detail="Mohon tuliskan kesan & pesan Anda terlebih dahulu.")
+    sentiment = body.sentiment if body.sentiment in ("suka", "tidak_suka") else "suka"
+    await db.feedbacks.update_one(
+        {"kegiatan_id": body.kegiatan_id, "user_id": uid},
+        {"$set": {"kegiatan_id": body.kegiatan_id, "user_id": uid,
+                  "name": user.get("name") or "Jamaah", "sentiment": sentiment,
+                  "message": msg[:3000], "created_at": now_wita().isoformat()}},
+        upsert=True)
+    return {"message": "Alhamdulillah, jazakumullahu khoiro. Kesan & pesan Anda sudah terkirim."}
+
+
 @api_router.get("/health")
 async def health():
     """Health check + verifikasi koneksi database (berguna setelah deploy ke Vercel)."""

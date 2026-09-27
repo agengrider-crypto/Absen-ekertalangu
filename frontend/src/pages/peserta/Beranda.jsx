@@ -6,6 +6,8 @@ import {
 } from "recharts";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { TYPE_LABEL, TYPE_COLOR, tanggalPanjang } from "@/pages/admin/kegiatanUtils";
+import TutorialQr from "./TutorialQr";
+import KesanPesan from "./KesanPesan";
 
 function Ring({ value }) {
   const r = 46, c = 2 * Math.PI * r;
@@ -195,6 +197,11 @@ export default function Beranda({ user, onGoto }) {
           </span>
         </button>
       </div>
+
+      <TutorialQr variant="pribadi" />
+      <TutorialQr variant="kegiatan" />
+
+      <KesanPesan />
 
       {/* Attendance ring */}
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 flex items-center gap-5">

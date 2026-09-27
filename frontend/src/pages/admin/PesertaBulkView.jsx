@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ListPlus, Loader2, Trash2, Plus, FileSpreadsheet, Download } from "lucide-react";
+import { ListPlus, Loader2, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 
@@ -20,7 +20,6 @@ export default function PesertaBulkView() {
   const [kelompok, setKelompok] = useState([]);
   const [kid, setKid] = useState("");
   const [saving, setSaving] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [lastResult, setLastResult] = useState(null);
   const loaded = useRef(false);
 
@@ -77,33 +76,6 @@ export default function PesertaBulkView() {
     } finally { setSaving(false); }
   };
 
-  const downloadTemplate = async () => {
-    try {
-      const res = await api.get("/admin/import-template", { responseType: "blob" });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement("a");
-      a.href = url; a.download = "template_peserta_ekertalangu.xlsx";
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    } catch { toast.error("Gagal mengunduh template"); }
-  };
-
-  const handleImport = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setImporting(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const { data } = await api.post("/admin/users/import", fd, { headers: { "Content-Type": "multipart/form-data" } });
-      toast.success(`${data.count} jamaah diimpor dari file.`);
-      setLastResult(data);
-    } catch (e2) {
-      toast.error(formatApiErrorDetail(e2.response?.data?.detail));
-    } finally { setImporting(false); }
-  };
-
   return (
     <div>
       <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
@@ -115,16 +87,6 @@ export default function PesertaBulkView() {
             Isi seperti tabel Excel, atau salin dari Excel/Spreadsheet lalu tempel (Ctrl+V) di kolom <b>Nama</b>.
             Hanya nama yang wajib.
           </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <label data-testid="bulk-import" className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE] cursor-pointer">
-            {importing ? <Loader2 className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} Import Excel
-            <input type="file" accept=".xlsx,.xlsm,.csv,.txt" className="hidden" onChange={handleImport} disabled={importing} data-testid="bulk-import-input" />
-          </label>
-          <button data-testid="bulk-template" onClick={downloadTemplate}
-            className="inline-flex items-center gap-2 h-10 px-3 rounded-xl text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]">
-            <Download size={16} /> Template
-          </button>
         </div>
       </div>
 
