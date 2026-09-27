@@ -1,5 +1,5 @@
 import json, requests, datetime
-API = "https://github-absen-preview.preview.emergentagent.com/api"
+API = "https://repo-showcase-21.preview.emergentagent.com/api"
 s = requests.Session()
 r = s.post(f"{API}/auth/login", json={"identifier": "ageng.rider@gmail.com", "password": "jokam354"})
 print("login", r.status_code)

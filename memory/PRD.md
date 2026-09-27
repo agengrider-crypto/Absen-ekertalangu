@@ -185,7 +185,7 @@ Penyebab: `get_or_create_public_qr()` menyimpan `link` + `image` PERMANEN di
 `app_settings._id="public_qr"`. Sandbox dan produksi memakai database Atlas yang SAMA,
 sehingga QR yang pertama kali dibuat di sandbox (domain preview Emergent) terus
 disajikan di produksi Vercel. Dibuktikan: dokumen berisi
-`link: "https://github-absen-preview.preview.emergentagent.com/register?token=..."`.
+`link: "https://repo-showcase-21.preview.emergentagent.com/register?token=..."`.
 
 Perbaikan:
 - `app_settings.public_qr` sekarang menyimpan **hanya `token`** + `created_at`.
@@ -515,3 +515,14 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 - **Ringkas sesi 1 bulan**: `per_sesi` (agregat per label sesi: berapa kali kegiatan, hadir/peserta,
   persen, wajib/opsional) + `per_pertemuan[].sesi` (rincian tiap sesi: jam, pengajar, materi,
   hadir/peserta, persen) → panel "Ringkasan Sesi Selama Sebulan" dan chip sesi di daftar pertemuan.
+
+## 27 Sep 2026 — Peninjauan Update Terbaru + Data Contoh Preview
+- Lingkungan preview dipulihkan: `qrcode`/`pillow` terpasang ulang (backend gagal start) dan
+  `yarn install` (craco hilang) → backend & frontend RUNNING.
+- Update terbaru yang ditinjau = commit `14f83d5` (FASE 14): tautan publik rekap bulanan +
+  tombol WhatsApp, loading global, panel Pisah L/P, Ringkasan Sesi Sebulan.
+- Ditambahkan `scripts/seed_demo.py`: 12 jamaah contoh (6 L / 6 P), 7 hari kegiatan September 2026
+  (3 sesi: Pagi/Sore/Malam-opsional) dan 77 absensi → rekap bulanan menampilkan data nyata
+  (7 pertemuan, rata-rata 63,3%, L 83,3% vs P 48,2%).
+- Diverifikasi manual via screenshot (tanpa testing agent): panel admin Rekap Bulanan &
+  halaman publik `/rekap-bulanan/JtTEuE5k-dW6ew`.
