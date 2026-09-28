@@ -6,7 +6,7 @@ import { todayIndo } from "./adminUtils";
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
-    <div className="bg-white rounded-2xl p-5 border border-[#E5E7EB]" data-testid={`stat-${label}`}>
+    <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]" data-testid={`stat-${label}`}>
       <div className="flex items-center gap-3">
         <div className="h-11 w-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${color}1a`, color }}>
           <Icon size={22} />
@@ -31,7 +31,7 @@ export default function Dashboard({ user }) {
   }, []);
 
   if (!users) {
-    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={32} /></div>;
+    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>;
   }
 
   const peserta = users.filter((u) => u.roles?.includes("peserta"));
@@ -43,8 +43,8 @@ export default function Dashboard({ user }) {
   const pending = users.filter((u) => u.status === "pending").length;
 
   const pieData = [
-    { name: "Laki-laki", value: lakiCount, color: "#0D5C3A" },
-    { name: "Perempuan", value: perempuanCount, color: "#D97706" },
+    { name: "Laki-laki", value: lakiCount, color: "#111114" },
+    { name: "Perempuan", value: perempuanCount, color: "#9CA3AF" },
     { name: "Belum diisi", value: totalPeserta - lakiCount - perempuanCount, color: "#CBD5E1" },
   ].filter((d) => d.value > 0);
 
@@ -56,7 +56,7 @@ export default function Dashboard({ user }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-        <StatCard icon={Users} label="Total Peserta" value={totalPeserta} color="#0D5C3A"
+        <StatCard icon={Users} label="Total Peserta" value={totalPeserta} color="#111114"
           sub={`${lakiCount} Laki-laki · ${perempuanCount} Perempuan`} />
         <StatCard icon={UserCheck} label="Akun Aktif" value={aktif} color="#0284C7"
           sub={`${pending} menunggu aktivasi`} />
@@ -65,7 +65,7 @@ export default function Dashboard({ user }) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB]" data-testid="chart-gender">
+        <div className="bg-white rounded-2xl p-6 border border-[#E8E8E4]" data-testid="chart-gender">
           <h2 className="font-heading font-bold text-[#111827] mb-2">Komposisi Jenis Kelamin</h2>
           {pieData.length === 0 ? (
             <p className="text-[#6B7280] py-10 text-center">Belum ada data peserta.</p>
@@ -81,9 +81,9 @@ export default function Dashboard({ user }) {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB]" data-testid="upcoming-activities">
+        <div className="bg-white rounded-2xl p-6 border border-[#E8E8E4]" data-testid="upcoming-activities">
           <h2 className="font-heading font-bold text-[#111827] mb-3">Kegiatan Mendatang</h2>
-          <div className="rounded-xl bg-[#F8FAF8] border border-dashed border-[#CBD5E1] p-6 text-center">
+          <div className="rounded-xl bg-[#FAFAF8] border border-dashed border-[#CBD5E1] p-6 text-center">
             <CalendarDays size={28} className="mx-auto text-[#9CA3AF] mb-2" />
             <p className="text-[#6B7280] text-sm">Modul Kegiatan & Absensi akan aktif pada tahap berikutnya (2C). Statistik kehadiran akan muncul di sini.</p>
           </div>

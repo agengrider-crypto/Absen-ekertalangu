@@ -3,7 +3,7 @@ import { ChevronDown, Search, UserRound, AlertTriangle } from "lucide-react";
 import { hhmm } from "@/pages/admin/kegiatanUtils";
 
 const STATUS_META = {
-  hadir: { label: "Hadir", cls: "bg-[#E8F5EE] text-[#065F46] border-[#A7F3D0]" },
+  hadir: { label: "Hadir", cls: "bg-[#F1F1EE] text-[#111114] border-[#D5D5CE]" },
   izin: { label: "Izin", cls: "bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]" },
   alpha: { label: "Alpha", cls: "bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]" },
 };
@@ -46,16 +46,16 @@ export default function PesertaRekapList({
   const shown = counts || { total: rows.length, ...tally };
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid={testid}>
+    <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid={testid}>
       {/* Header dropdown */}
       <button
         data-testid={`${testid}-toggle`}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFBF9] transition-colors"
+        className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8] transition-colors"
       >
         <span className="flex items-center gap-2.5 min-w-0">
-          <span className="h-9 w-9 shrink-0 rounded-xl bg-[#E8F5EE] text-[#0D5C3A] flex items-center justify-center">
+          <span className="h-9 w-9 shrink-0 rounded-xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center">
             <UserRound size={18} />
           </span>
           <span className="min-w-0">
@@ -69,9 +69,9 @@ export default function PesertaRekapList({
       </button>
 
       {open && (
-        <div className="border-t border-[#E5E7EB]" data-testid={`${testid}-body`}>
+        <div className="border-t border-[#E8E8E4]" data-testid={`${testid}-body`}>
           {/* Filter + cari */}
-          <div className="p-3 space-y-2.5 bg-[#FAFBF9]">
+          <div className="p-3 space-y-2.5 bg-[#FAFAF8]">
             {searchable && (
               <div className="relative">
                 <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
@@ -80,7 +80,7 @@ export default function PesertaRekapList({
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari nama peserta..."
-                  className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E5E7EB] bg-white text-sm outline-none focus:border-[#0D5C3A]"
+                  className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] bg-white text-sm outline-none focus:border-[#111114]"
                 />
               </div>
             )}
@@ -97,8 +97,8 @@ export default function PesertaRekapList({
                   onClick={() => setFilter(k)}
                   className={`h-8 px-3 rounded-full text-xs font-semibold border transition-colors ${
                     filter === k
-                      ? "bg-[#0D5C3A] text-white border-[#0D5C3A]"
-                      : "bg-white text-[#4B5563] border-[#E5E7EB] hover:border-[#0D5C3A]"
+                      ? "bg-[#111114] text-white border-[#111114]"
+                      : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114]"
                   }`}
                 >
                   {label}
@@ -108,13 +108,13 @@ export default function PesertaRekapList({
           </div>
 
           {/* Judul kolom */}
-          <div className="px-4 py-2 grid grid-cols-[1fr_auto_auto] items-center gap-4 bg-[#F8FAF8] border-y border-[#E5E7EB] text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
+          <div className="px-4 py-2 grid grid-cols-[1fr_auto_auto] items-center gap-4 bg-[#FAFAF8] border-y border-[#E8E8E4] text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
             <span>Nama</span>
             <span className="w-14 text-center">Jam</span>
             <span className="w-20 text-right">Status</span>
           </div>
 
-          <ul className="divide-y divide-[#F1F2F0] max-h-[52vh] overflow-y-auto">
+          <ul className="divide-y divide-[#ECECE8] max-h-[52vh] overflow-y-auto">
             {filtered.length === 0 ? (
               <li className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Tidak ada peserta yang cocok.</li>
             ) : filtered.map((r, i) => {

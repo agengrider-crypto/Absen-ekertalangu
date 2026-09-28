@@ -11,13 +11,13 @@ import { tanggalPanjang, tanggalSingkat, hhmm, TYPE_LABEL, TYPE_COLOR } from "./
 function Shell({ title, subtitle, children, onClose, testid, wide }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
-      <div className={`bg-[#FAFBF9] w-full ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E5E7EB] px-5 py-3.5 flex items-center justify-between z-10 gap-3">
+      <div className={`bg-[#FAFAF8] w-full ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
+        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E8E8E4] px-5 py-3.5 flex items-center justify-between z-10 gap-3">
           <div className="min-w-0">
             <h2 className="font-heading font-bold text-[#111827] truncate">{title}</h2>
             {subtitle && <p className="text-xs text-[#6B7280] truncate">{subtitle}</p>}
           </div>
-          <button onClick={onClose} className="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F2F5F2]" data-testid={`${testid}-close`}><X size={20} /></button>
+          <button onClick={onClose} className="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]" data-testid={`${testid}-close`}><X size={20} /></button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -26,8 +26,8 @@ function Shell({ title, subtitle, children, onClose, testid, wide }) {
 }
 
 const ST = {
-  hadir: { t: "H", cls: "bg-[#0D5C3A] text-white", title: "Hadir" },
-  izin: { t: "I", cls: "bg-[#D97706] text-white", title: "Izin" },
+  hadir: { t: "H", cls: "bg-[#111114] text-white", title: "Hadir" },
+  izin: { t: "I", cls: "bg-[#9CA3AF] text-white", title: "Izin" },
   alpha: { t: "A", cls: "bg-[#FEE2E2] text-[#991B1B]", title: "Alpha" },
   exempt: { t: "✓", cls: "bg-[#F3F4F6] text-[#9CA3AF]", title: "Sudah hadir di sesi sebelumnya — tidak dihitung" },
   optional: { t: "·", cls: "bg-[#EEF2FF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
@@ -121,28 +121,28 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
       {err && !data ? (
         <div className="p-8 text-center">
           <p className="text-sm text-[#DC2626] mb-3" data-testid="rekap-gabungan-error">{err}</p>
-          <button onClick={load} className="h-10 px-4 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm">Coba lagi</button>
+          <button onClick={load} className="h-10 px-4 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm">Coba lagi</button>
         </div>
       ) : !data ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : (
         <div className="space-y-4">
           {/* Ringkasan gabungan */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-testid="rekap-gabungan-summary">
-            <div className="rounded-xl bg-[#F2F5F2] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{s.total}</div><div className="text-xs text-[#6B7280]">Total Jamaah</div></div>
-            <div className="rounded-xl bg-[#E8F5EE] p-3 text-center"><div className="text-xl font-bold text-[#065F46]">{s.hadir_min_1} <span className="text-xs font-semibold">({s.ratio_min_1}%)</span></div><div className="text-xs text-[#6B7280]">Hadir ≥ 1 Sesi</div></div>
+            <div className="rounded-xl bg-[#F4F4F1] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{s.total}</div><div className="text-xs text-[#6B7280]">Total Jamaah</div></div>
+            <div className="rounded-xl bg-[#F1F1EE] p-3 text-center"><div className="text-xl font-bold text-[#111114]">{s.hadir_min_1} <span className="text-xs font-semibold">({s.ratio_min_1}%)</span></div><div className="text-xs text-[#6B7280]">Hadir ≥ 1 Sesi</div></div>
             <div className="rounded-xl bg-[#DCFCE7] p-3 text-center"><div className="text-xl font-bold text-[#14532D]">{s.hadir_semua} <span className="text-xs font-semibold">({s.ratio_semua}%)</span></div><div className="text-xs text-[#6B7280]">Hadir Semua Sesi</div></div>
             <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{s.tidak_hadir}</div><div className="text-xs text-[#6B7280]">Tidak Hadir Sama Sekali</div></div>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
             <span className="px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] font-semibold">Izin saja: {s.izin_saja}</span>
-            {s.tamu > 0 && <span className="px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3] font-semibold">Tamu: {s.tamu}</span>}
+            {s.tamu > 0 && <span className="px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#111114] font-semibold">Tamu: {s.tamu}</span>}
             {(data.filter_labels || []).map((l) => <span key={l} className="px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D] font-semibold">{l}</span>)}
             <span className="inline-flex items-center gap-1"><Layers size={12} /> {data.sessions.length} sesi</span>
           </div>
 
           {/* Bar persen ringkasan gabungan */}
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 space-y-3.5" data-testid="rekap-gabungan-bars">
+          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4 space-y-3.5" data-testid="rekap-gabungan-bars">
             <PercentBar label="Hadir minimal 1 sesi" value={s.ratio_min_1} sub={`${s.hadir_min_1}/${s.total}`} testid="gab-bar-min1" />
             <PercentBar label="Hadir semua sesi" value={s.ratio_semua} sub={`${s.hadir_semua}/${s.total}`} color="#14532D" testid="gab-bar-semua" />
             <p className="text-[11px] text-[#9CA3AF] leading-relaxed pt-0.5">
@@ -153,7 +153,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
           </div>
 
           {/* Per sesi + bar persen */}
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4 space-y-3.5" data-testid="rekap-gabungan-per-sesi">
+          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4 space-y-3.5" data-testid="rekap-gabungan-per-sesi">
             <div className="text-sm font-semibold text-[#111827]">Kehadiran per Sesi</div>
             {data.sessions.map((x) => (
               <div key={x.id}>
@@ -170,13 +170,13 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
           </div>
 
           {/* Bagikan sebagai LINK (seperti rekap kegiatan biasa) */}
-          <div className="rounded-2xl border-2 border-[#CDEBD9] bg-[#F0FAF4] p-4 space-y-2.5" data-testid="rekap-gabungan-share">
-            <div className="text-sm font-bold text-[#065F46] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap ini sebagai tautan</div>
-            <p className="text-[11px] text-[#065F46]/80 leading-relaxed">
+          <div className="rounded-2xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-4 space-y-2.5" data-testid="rekap-gabungan-share">
+            <div className="text-sm font-bold text-[#111114] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap ini sebagai tautan</div>
+            <p className="text-[11px] text-[#111114]/80 leading-relaxed">
               Tautan publik berisi bar persentase kehadiran semua sesi — bisa dibuka siapa pun tanpa login (berlaku 7 hari).
             </p>
             {share && (
-              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#CDEBD9] px-2.5 py-2 text-[#065F46]" data-testid="rekap-gabungan-link">{share.link}</div>
+              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#E8E8E4] px-2.5 py-2 text-[#111114]" data-testid="rekap-gabungan-link">{share.link}</div>
             )}
             <div className="grid grid-cols-2 gap-2">
               <button onClick={shareWa} disabled={sharing} data-testid="rekap-gabungan-share-wa"
@@ -184,41 +184,41 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                 {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Bagikan ke WhatsApp
               </button>
               <button onClick={copyLink} disabled={sharing} data-testid="rekap-gabungan-copy-link"
-                className="h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#E8F5EE] disabled:opacity-60">
+                className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#F1F1EE] disabled:opacity-60">
                 <Link2 size={15} /> Salin Tautan
               </button>
             </div>
           </div>
 
           <button onClick={copyText} data-testid="rekap-gabungan-copy"
-            className="w-full h-11 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
+            className="w-full h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:border-[#111114] hover:text-[#111114]">
             <ClipboardCopy size={16} /> Salin Ringkasan (teks WhatsApp)
           </button>
 
           {/* Tabel jamaah × sesi */}
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
-            <div className="p-3 bg-[#FAFBF9] flex flex-col sm:flex-row gap-2">
+          <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
+            <div className="p-3 bg-[#FAFAF8] flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-                <input data-testid="rekap-gabungan-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama jamaah..." className="w-full h-10 pl-10 pr-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white" />
+                <input data-testid="rekap-gabungan-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama jamaah..." className="w-full h-10 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
               </div>
-              <div className="flex gap-1 bg-white border border-[#E5E7EB] rounded-xl p-1">
+              <div className="flex gap-1 bg-white border border-[#E8E8E4] rounded-xl p-1">
                 {[["semua", "Semua"], ["hadir", "Hadir ≥1"], ["tidak", "Tidak hadir"]].map(([v, l]) => (
                   <button key={v} type="button" data-testid={`rekap-gabungan-mode-${v}`} onClick={() => setMode(v)}
-                    className={`h-8 px-3 rounded-lg text-xs font-semibold ${mode === v ? "bg-[#E8F5EE] text-[#065F46]" : "text-[#6B7280]"}`}>{l}</button>
+                    className={`h-8 px-3 rounded-lg text-xs font-semibold ${mode === v ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
             </div>
             <div className="overflow-x-auto max-h-[46vh] overflow-y-auto">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-[#F8FAF8] text-[#6B7280] text-left">
+                <thead className="sticky top-0 bg-[#FAFAF8] text-[#6B7280] text-left">
                   <tr>
                     <th className="px-3 py-2 font-semibold">Nama</th>
                     {data.sessions.map((x) => <th key={x.id} className="px-2 py-2 font-semibold text-center whitespace-nowrap">{x.label}{x.required === false ? <span className="block text-[9px] font-bold text-[#6366F1]">opsional</span> : null}</th>)}
                     <th className="px-2 py-2 font-semibold text-center">Hadir</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F1F2F0]">
+                <tbody className="divide-y divide-[#ECECE8]">
                   {rows.length === 0 ? (
                     <tr><td colSpan={data.sessions.length + 2} className="p-8 text-center text-[#6B7280]">Tidak ada jamaah.</td></tr>
                   ) : rows.map((r) => (
@@ -248,7 +248,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                           )}
                         </td>
                       ))}
-                      <td className="px-2 py-2 text-center font-bold tabular-nums text-[#0D5C3A]">{r.hadir}/{r.eligible}</td>
+                      <td className="px-2 py-2 text-center font-bold tabular-nums text-[#111114]">{r.hadir}/{r.eligible}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -302,13 +302,13 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
     } finally { setSaving(false); }
   };
 
-  const chip = "h-9 px-3 rounded-full border-2 border-[#E5E7EB] bg-white text-xs font-semibold text-[#4B5563] hover:border-[#0D5C3A] hover:text-[#0D5C3A]";
+  const chip = "h-9 px-3 rounded-full border-2 border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] hover:border-[#111114] hover:text-[#111114]";
 
   return (
     <Shell title="Salin Jadwal ke Tanggal Lain" subtitle={`${first.base_name || first.name} · ${tanggalSingkat(first.date)}`} onClose={onClose} testid="modal-salin-jadwal">
       <form onSubmit={submit} className="space-y-4">
         {/* Pola yang akan disalin */}
-        <div className="rounded-xl border border-[#E5E7EB] bg-white p-3.5" data-testid="salin-pola">
+        <div className="rounded-xl border border-[#E8E8E4] bg-white p-3.5" data-testid="salin-pola">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[first.type]}1a`, color: TYPE_COLOR[first.type] }}>{TYPE_LABEL[first.type]}</span>
             {items.length > 1 && (
@@ -323,9 +323,9 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
           </div>
           <div className="mt-2 grid gap-1">
             {items.map((k) => (
-              <div key={k.id} className="text-xs text-[#4B5563] inline-flex items-center gap-1.5 rounded-lg bg-[#FAFBF9] px-2.5 py-1.5">
-                <Clock size={12} className="text-[#0D5C3A]" />
-                <b className="text-[#0D5C3A]">{k.session_label || "Jadwal"}</b> {k.start_time}–{k.end_time} WITA
+              <div key={k.id} className="text-xs text-[#4B5563] inline-flex items-center gap-1.5 rounded-lg bg-[#FAFAF8] px-2.5 py-1.5">
+                <Clock size={12} className="text-[#111114]" />
+                <b className="text-[#111114]">{k.session_label || "Jadwal"}</b> {k.start_time}–{k.end_time} WITA
               </div>
             ))}
           </div>
@@ -345,16 +345,16 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
                 <div className="relative flex-1">
                   <CalendarDays size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] pointer-events-none" />
                   <input data-testid={`salin-date-${i}`} type="date" required value={d} onChange={(e) => setDate(i, e.target.value)}
-                    className="w-full h-11 pl-10 pr-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white" />
+                    className="w-full h-11 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
                 </div>
                 <span className="hidden sm:block text-xs text-[#6B7280] w-[150px] truncate">{d ? tanggalPanjang(d) : ""}</span>
                 <button type="button" data-testid={`salin-date-remove-${i}`} onClick={() => removeDate(i)} disabled={dates.length <= 1}
-                  className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-2 border-[#E5E7EB] text-[#DC2626] hover:border-[#DC2626] disabled:opacity-40 disabled:cursor-not-allowed bg-white"><Trash2 size={16} /></button>
+                  className="h-11 w-11 shrink-0 flex items-center justify-center rounded-xl border-2 border-[#E8E8E4] text-[#DC2626] hover:border-[#DC2626] disabled:opacity-40 disabled:cursor-not-allowed bg-white"><Trash2 size={16} /></button>
               </div>
             ))}
           </div>
           <button type="button" data-testid="salin-date-add" onClick={addDate} disabled={dates.length >= 12}
-            className="mt-2 w-full h-10 rounded-xl border-2 border-dashed border-[#0D5C3A] text-[#0D5C3A] font-semibold text-xs inline-flex items-center justify-center gap-1.5 hover:bg-[#E8F5EE] disabled:opacity-40">
+            className="mt-2 w-full h-10 rounded-xl border-2 border-dashed border-[#111114] text-[#111114] font-semibold text-xs inline-flex items-center justify-center gap-1.5 hover:bg-[#F1F1EE] disabled:opacity-40">
             <Plus size={15} /> Tambah tanggal lain
           </button>
         </div>
@@ -366,7 +366,7 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
         </p>
 
         <button type="submit" data-testid="salin-submit" disabled={saving}
-          className="w-full h-12 rounded-xl bg-[#0D5C3A] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60">
+          className="w-full h-12 rounded-xl bg-[#111114] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
           {saving ? <Loader2 className="animate-spin" size={18} /> : <Copy size={18} />}
           Salin ke {dates.filter(Boolean).length} tanggal ({dates.filter(Boolean).length * items.length} jadwal)
         </button>

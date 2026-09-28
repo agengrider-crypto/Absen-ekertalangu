@@ -1,43 +1,56 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Instrument+Sans:wght@500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Tema "Clean" — off-white lapang, garis hairline, aksen hitam pekat (monokrom). */
+:root {
+    --bg-app: #FAFAF8;
+    --bg-surface: #FFFFFF;
+    --hairline: #E8E8E4;
+    --ink: #111114;
+    --ink-muted: #6B7280;
+    --accent: #111114;
+    --accent-soft: #F1F1EE;
+}
+
 body {
     margin: 0;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #FAFBF9;
-    color: #111827;
+    background-color: var(--bg-app);
+    color: var(--ink);
+    letter-spacing: -0.005em;
 }
 
 .font-heading {
-    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+    font-family: 'Instrument Sans', 'Hanken Grotesk', sans-serif;
+    letter-spacing: -0.02em;
 }
 
 @layer base {
     :root {
         --background: 0 0% 100%;
-        --foreground: 0 0% 3.9%;
+        --foreground: 240 6% 7%;
         --card: 0 0% 100%;
-        --card-foreground: 0 0% 3.9%;
+        --card-foreground: 240 6% 7%;
         --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 3.9%;
-        --primary: 152 75% 21%;
+        --popover-foreground: 240 6% 7%;
+        --primary: 240 6% 7%;
         --primary-foreground: 0 0% 98%;
-        --secondary: 0 0% 96.1%;
+        --secondary: 40 14% 96%;
         --secondary-foreground: 0 0% 9%;
-        --muted: 0 0% 96.1%;
-        --muted-foreground: 0 0% 45.1%;
-        --accent: 152 40% 93%;
-        --accent-foreground: 152 75% 21%;
+        --muted: 40 14% 96%;
+        --muted-foreground: 220 9% 46%;
+        --accent: 60 9% 94%;
+        --accent-foreground: 240 6% 7%;
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 89.8%;
-        --input: 0 0% 89.8%;
-        --ring: 152 75% 21%;
-        --radius: 0.75rem;
+        --border: 45 10% 90%;
+        --input: 45 10% 90%;
+        --ring: 240 6% 7%;
+        --radius: 0.875rem;
     }
 }
 
@@ -51,7 +64,7 @@ body {
 }
 
 ::selection {
-    background: #0D5C3A;
+    background: #111114;
     color: #fff;
 }
 
@@ -69,4 +82,13 @@ body {
     0% { transform: translateX(-120%); }
     50% { transform: translateX(120%); }
     100% { transform: translateX(320%); }
+}
+
+/* FASE 16 — masuk halus tiap layar (gaya clean, animasi sangat tipis) */
+@keyframes riseIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+}
+main > * {
+    animation: riseIn 0.32s ease-out both;
 }

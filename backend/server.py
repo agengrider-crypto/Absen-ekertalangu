@@ -415,7 +415,7 @@ def make_qr_data_url(data: str) -> str:
                        error_correction=qrcode.constants.ERROR_CORRECT_M)
     qr.add_data(data)
     qr.make(fit=True)
-    img = qr.make_image(fill_color="#0D5C3A", back_color="white")
+    img = qr.make_image(fill_color="#111114", back_color="white")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
@@ -922,6 +922,40 @@ async def admin_users_kelengkapan(admin: dict = Depends(require_staff)):
     }
 
 
+@api_router.get("/admin/users/duplikat")
+async def admin_users_duplikat(admin: dict = Depends(require_staff)):
+    """FASE 15 — Cek data ganda: jamaah dengan NAMA sama (huruf besar/kecil & spasi diabaikan).
+
+    Didefinisikan SEBELUM `/admin/users/{user_id}` agar tidak tertangkap route generik.
+    """
+    users = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
+    groups: dict = {}
+    for u in users:
+        key = re.sub(r"\s+", " ", (u.get("name") or "").strip().lower())
+        if not key:
+            continue
+        groups.setdefault(key, []).append(u)
+    out = []
+    for items in groups.values():
+        if len(items) < 2:
+            continue
+        rows = [{
+            "id": str(u["_id"]), "name": u.get("name"), "phone": u.get("phone"),
+            "dob": u.get("dob"), "gender": _derive_gender(u),
+            "status": u.get("status", "active"), "kelompok_id": u.get("kelompok_id"),
+            "needs_completion": bool(u.get("needs_completion")),
+            "pernah_login": bool(u.get("last_login_at")),
+            "created_at": u.get("created_at"),
+        } for u in items]
+        dobs = {r["dob"] for r in rows if r["dob"]}
+        out.append({"name": items[0].get("name"), "count": len(rows), "rows": rows,
+                    "same_dob": len(dobs) <= 1})
+    out.sort(key=lambda g: (-g["count"], g["name"] or ""))
+    return {"total_peserta": len(users), "total_grup": len(out),
+            "total_duplikat": sum(g["count"] for g in out), "groups": out}
+
+
+
 @api_router.get("/admin/users/{user_id}/photo")
 async def admin_user_photo(user_id: str, admin: dict = Depends(require_staff)):
     user = await db.users.find_one({"_id": parse_object_id(user_id)})
@@ -940,7 +974,7 @@ async def admin_user_photo(user_id: str, admin: dict = Depends(require_staff)):
                     headers={"Cache-Control": "private, max-age=60"})
 
 @api_router.delete("/admin/users/{user_id}")
-async def admin_delete_user(user_id: str, admin: dict = Depends(require_admin)):
+async def admin_delete_user(user_id: str, admin: dict = Depends(require_staff)):
     if user_id == str(admin["_id"]):
         raise HTTPException(status_code=400, detail="Tidak dapat menghapus akun sendiri")
     target = await db.users.find_one({"_id": parse_object_id(user_id)})
@@ -1263,7 +1297,7 @@ async def admin_bulk_create(body: BulkCreateInput, admin: dict = Depends(require
     return {"count": len(created), "flagged": flagged, "invalid_dates": invalid_dates}
 
 @api_router.post("/admin/users/bulk-delete")
-async def admin_bulk_delete(body: BulkDeleteInput, admin: dict = Depends(require_admin)):
+async def admin_bulk_delete(body: BulkDeleteInput, admin: dict = Depends(require_staff)):
     ids = [i for i in body.ids if i != str(admin["_id"])]
     oids = []
     for i in ids:
@@ -3552,7 +3586,7 @@ async def musyawarah_pdf(musy_id: str, staff: dict = Depends(require_staff)):
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=2 * cm, bottomMargin=2 * cm,
                             leftMargin=2 * cm, rightMargin=2 * cm)
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#0D5C3A")
+    title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#111114")
     cat_label = MUSY_LABEL.get(m.get("category"), "Musyawarah")
     body_style = ParagraphStyle("b", parent=styles["Normal"], fontSize=11, leading=17)
     elems = [Paragraph("E-KERTALANGU", title_style),
@@ -3590,7 +3624,7 @@ async def musyawarah_export_pdf(category: str = "", date_from: str = "", date_to
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=2 * cm, bottomMargin=2 * cm,
                             leftMargin=2 * cm, rightMargin=2 * cm)
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#0D5C3A")
+    title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#111114")
     body_style = ParagraphStyle("b", parent=styles["Normal"], fontSize=11, leading=17)
     cat_label = MUSY_LABEL.get(category, "Musyawarah 4S, Tim 7 & Pleno")
     periode = ""
@@ -4697,7 +4731,7 @@ async def admin_laporan_export(admin: dict = Depends(require_staff),
             tdata.append([r["date"], r["name"], r["hadir"], r["izin"], r["alpha"], f"{r['ratio']}%"])
         t = Table(tdata, repeatRows=1)
         t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0D5C3A")),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111114")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
             ("FONTSIZE", (0, 0), (-1, -1), 9),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
@@ -4778,6 +4812,251 @@ async def cron_auto_close(request: Request):
     await auto_close_kegiatan()
     after = await db.kegiatans.count_documents({"status": "open"})
     return {"ok": True, "closed": max(before - after, 0), "open_remaining": after}
+
+
+# ===========================================================================
+# FASE 15 — Halaman Kode Akses, Scan Presensi & Pengaduan/Curhat Jamaah
+# ===========================================================================
+@api_router.get("/staff/kode-akses")
+async def staff_kode_akses(request: Request, staff: dict = Depends(require_staff),
+                           month: str = ""):
+    """Daftar kegiatan + kode akses 6 digit. Kode dibuat OTOMATIS bila belum ada."""
+    month = month.strip() or now_wita().strftime("%Y-%m")
+    kegiatans = await db.kegiatans.find(
+        {"date": {"$regex": f"^{re.escape(month)}"}}
+    ).sort([("date", -1), ("start_time", 1)]).to_list(500)
+    rows, created = [], 0
+    for k in kegiatans:
+        punya = len(str(k.get("access_code") or "")) == ACCESS_CODE_LEN and bool(k.get("akses_token"))
+        info = await ensure_kegiatan_access(k["_id"], request)
+        if not punya:
+            created += 1
+        rows.append({
+            "id": k["_id"], "name": k.get("name"),
+            "base_name": k.get("base_name") or k.get("name"),
+            "session_label": k.get("session_label"), "date": k.get("date"),
+            "start_time": k.get("start_time"), "end_time": k.get("end_time"),
+            "status": k.get("status", "open"), "code": info["code"],
+            "link": info["link"], "token": info["token"],
+            "image": info["image"], "wa_text": info["wa_text"],
+            "valid_until": info["valid_until"],
+        })
+    if created:
+        await log_activity(staff, "buat_kode_akses",
+                           f"Kode akses dibuat otomatis untuk {created} kegiatan bulan {month}")
+    return {"month": month, "total": len(rows), "created": created, "rows": rows}
+
+
+@api_router.get("/staff/scan-presensi")
+async def staff_scan_presensi(request: Request, staff: dict = Depends(require_staff),
+                              date: str = ""):
+    """Daftar kegiatan pada 1 tanggal beserta QR absen kegiatannya (untuk dipindai jamaah)."""
+    d = date.strip() or now_wita().strftime("%Y-%m-%d")
+    kegiatans = await db.kegiatans.find({"date": d}).sort("start_time", 1).to_list(200)
+    rows = []
+    for k in kegiatans:
+        info = await ensure_absen_token(k["_id"], request)
+        rows.append({
+            "id": k["_id"], "name": k.get("name"),
+            "base_name": k.get("base_name") or k.get("name"),
+            "session_label": k.get("session_label"), "date": k.get("date"),
+            "start_time": k.get("start_time"), "end_time": k.get("end_time"),
+            "teacher": k.get("teacher"), "location": k.get("location"),
+            "status": k.get("status", "open"), "phase": kegiatan_phase(k),
+            "link": info["link"], "image": make_qr_data_url(info["link"]),
+            "expires_at": info["expires_at"], "sessions": info.get("sessions", 1),
+            "counts": await kegiatan_counts(k),
+        })
+    return {"date": d, "total": len(rows), "rows": rows}
+
+
+PENGADUAN_CATEGORIES = ["curhat", "saran", "pengaduan", "kendala", "pertanyaan"]
+PENGADUAN_LABEL = {
+    "curhat": "Curhat / Konsultasi",
+    "saran": "Saran & Masukan",
+    "pengaduan": "Pengaduan",
+    "kendala": "Kendala Hadir",
+    "pertanyaan": "Pertanyaan Keagamaan",
+}
+PENGADUAN_MAX = 5000
+
+
+class PengaduanInput(BaseModel):
+    message: str
+    category: str = "curhat"
+    anonymous: bool = False
+
+
+def serialize_pengaduan(p: dict, for_staff: bool = False) -> dict:
+    return {
+        "id": p["_id"],
+        "category": p.get("category", "curhat"),
+        "category_label": PENGADUAN_LABEL.get(p.get("category", "curhat"), "Curhat"),
+        "message": p.get("message"),
+        "anonymous": bool(p.get("anonymous")),
+        "name": ("Jamaah (tanpa nama)" if p.get("anonymous") else (p.get("name") or "Jamaah")),
+        "phone": None if p.get("anonymous") else p.get("phone"),
+        "at": p.get("at"),
+        "dibaca": bool(p.get("read_by")),
+        "dibaca_oleh": (p.get("read_by") or [{}])[-1].get("name") if p.get("read_by") else None,
+    } if for_staff else {
+        "id": p["_id"], "category": p.get("category", "curhat"),
+        "category_label": PENGADUAN_LABEL.get(p.get("category", "curhat"), "Curhat"),
+        "message": p.get("message"), "anonymous": bool(p.get("anonymous")),
+        "at": p.get("at"), "dibaca": bool(p.get("read_by")),
+    }
+
+
+@api_router.post("/me/pengaduan")
+async def create_pengaduan(body: PengaduanInput, user: dict = Depends(get_current_user)):
+    msg = (body.message or "").strip()
+    if len(msg) < 10:
+        raise HTTPException(status_code=400,
+                            detail="Mohon tuliskan pesan minimal 10 huruf agar pengurus dapat memahami keadaan Anda.")
+    cat = body.category if body.category in PENGADUAN_CATEGORIES else "curhat"
+    doc = {
+        "_id": str(uuid.uuid4()), "user_id": str(user["_id"]),
+        "name": user.get("name"), "phone": user.get("phone"),
+        "anonymous": bool(body.anonymous), "category": cat, "message": msg[:PENGADUAN_MAX],
+        "kelompok_id": user.get("kelompok_id"), "read_by": [],
+        "at": now_wita().isoformat(),
+    }
+    await db.pengaduans.insert_one(doc)
+    return {"id": doc["_id"],
+            "message": "Jazakumullahu khoiro. Pesan Anda sudah kami terima dan akan dibaca pengurus."}
+
+
+@api_router.get("/me/pengaduan")
+async def my_pengaduan(user: dict = Depends(get_current_user)):
+    items = await db.pengaduans.find({"user_id": str(user["_id"])}).sort("at", -1).to_list(100)
+    return {"items": [serialize_pengaduan(p) for p in items],
+            "categories": [{"value": c, "label": PENGADUAN_LABEL[c]} for c in PENGADUAN_CATEGORIES],
+            "max_length": PENGADUAN_MAX}
+
+
+@api_router.delete("/me/pengaduan/{pengaduan_id}")
+async def delete_my_pengaduan(pengaduan_id: str, user: dict = Depends(get_current_user)):
+    res = await db.pengaduans.delete_one({"_id": pengaduan_id, "user_id": str(user["_id"])})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Pesan tidak ditemukan")
+    return {"ok": True}
+
+
+@api_router.delete("/me/pengaduan")
+async def clear_my_pengaduan(user: dict = Depends(get_current_user)):
+    res = await db.pengaduans.delete_many({"user_id": str(user["_id"])})
+    return {"ok": True, "deleted": res.deleted_count}
+
+
+@api_router.get("/staff/pengaduan")
+async def staff_pengaduan(staff: dict = Depends(require_staff), q: str = "", limit: int = 200):
+    limit = max(1, min(limit, 500))
+    items = await db.pengaduans.find().sort("at", -1).to_list(limit)
+    rows = [serialize_pengaduan(p, for_staff=True) for p in items]
+    t = q.strip().lower()
+    if t:
+        rows = [r for r in rows if t in (r["message"] or "").lower() or t in (r["name"] or "").lower()]
+    return {
+        "total": len(rows),
+        "belum_dibaca": len([r for r in rows if not r["dibaca"]]),
+        "rows": rows,
+    }
+
+
+@api_router.get("/staff/pengaduan/unread-count")
+async def pengaduan_unread_count(staff: dict = Depends(require_staff)):
+    """FASE 16 — angka lonceng notifikasi Ruang Teduh di panel."""
+    total = await db.pengaduans.count_documents({})
+    belum = await db.pengaduans.count_documents({"read_by": {"$size": 0}})
+    return {"total": total, "belum_dibaca": belum}
+
+
+@api_router.post("/staff/pengaduan/{pengaduan_id}/baca")
+async def baca_pengaduan(pengaduan_id: str, staff: dict = Depends(require_staff)):
+    p = await db.pengaduans.find_one({"_id": pengaduan_id})
+    if not p:
+        raise HTTPException(status_code=404, detail="Pesan tidak ditemukan")
+    await db.pengaduans.update_one({"_id": pengaduan_id}, {"$push": {"read_by": {
+        "id": str(staff["_id"]), "name": staff.get("name"), "at": now_wita().isoformat()}}})
+    return {"ok": True}
+
+
+@api_router.delete("/staff/pengaduan/{pengaduan_id}")
+async def hapus_pengaduan(pengaduan_id: str, staff: dict = Depends(require_staff)):
+    res = await db.pengaduans.delete_one({"_id": pengaduan_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Pesan tidak ditemukan")
+    await log_activity(staff, "hapus_ruang_teduh", "Menghapus satu pesan Ruang Teduh")
+    return {"ok": True}
+
+
+@api_router.delete("/staff/pengaduan")
+async def hapus_semua_pengaduan(staff: dict = Depends(require_staff)):
+    res = await db.pengaduans.delete_many({})
+    await log_activity(staff, "hapus_ruang_teduh",
+                       f"Menghapus seluruh riwayat Ruang Teduh ({res.deleted_count} pesan)")
+    return {"ok": True, "deleted": res.deleted_count}
+
+
+class KesanPesanInput(BaseModel):
+    kegiatan_id: str
+    sentiment: str = "suka"      # suka | tidak_suka
+    message: str
+
+
+@api_router.get("/me/kesan-pesan")
+async def my_kesan_pesan(user: dict = Depends(get_current_user)):
+    """Kegiatan yang SAYA HADIRI (30 hari terakhir) + status kesan & pesan."""
+    uid = str(user["_id"])
+    since = (now_wita() - timedelta(days=30)).strftime("%Y-%m-%d")
+    absens = await db.absensis.find({"user_id": uid, "status": "hadir"}).to_list(2000)
+    ids = [a["kegiatan_id"] for a in absens]
+    if not ids:
+        return {"items": []}
+    kegiatans = await db.kegiatans.find(
+        {"_id": {"$in": ids}, "date": {"$gte": since}}
+    ).sort([("date", -1), ("start_time", -1)]).to_list(100)
+    mine = await db.feedbacks.find({"user_id": uid}).to_list(2000)
+    sent = {f["kegiatan_id"]: f for f in mine}
+    items = []
+    for k in kegiatans:
+        f = sent.get(k["_id"])
+        items.append({
+            "kegiatan_id": k["_id"],
+            "name": k.get("base_name") or k.get("name"),
+            "session_label": k.get("session_label"),
+            "date": k.get("date"),
+            "start_time": k.get("start_time"), "end_time": k.get("end_time"),
+            "teacher": k.get("teacher"), "location": k.get("location"),
+            "sudah_kirim": bool(f),
+            "sentiment": (f or {}).get("sentiment"),
+            "message": (f or {}).get("message"),
+        })
+    return {"items": items}
+
+
+@api_router.post("/me/kesan-pesan")
+async def send_kesan_pesan(body: KesanPesanInput, user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    k = await db.kegiatans.find_one({"_id": body.kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    hadir = await db.absensis.find_one({"kegiatan_id": body.kegiatan_id,
+                                        "user_id": uid, "status": "hadir"})
+    if not hadir:
+        raise HTTPException(status_code=403,
+                            detail="Kesan & pesan hanya untuk kegiatan yang Anda hadiri.")
+    msg = (body.message or "").strip()
+    if len(msg) < 5:
+        raise HTTPException(status_code=400, detail="Mohon tuliskan kesan & pesan Anda terlebih dahulu.")
+    sentiment = body.sentiment if body.sentiment in ("suka", "tidak_suka") else "suka"
+    await db.feedbacks.update_one(
+        {"kegiatan_id": body.kegiatan_id, "user_id": uid},
+        {"$set": {"kegiatan_id": body.kegiatan_id, "user_id": uid,
+                  "name": user.get("name") or "Jamaah", "sentiment": sentiment,
+                  "message": msg[:3000], "created_at": now_wita().isoformat()}},
+        upsert=True)
+    return {"message": "Alhamdulillah, jazakumullahu khoiro. Kesan & pesan Anda sudah terkirim."}
 
 
 @api_router.get("/health")

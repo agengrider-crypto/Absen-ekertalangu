@@ -10,7 +10,7 @@ export const Logo = ({ size = 44, showText = true }) => (
     />
     {showText && (
       <div className="leading-tight">
-        <div className="font-heading font-extrabold text-[#0D5C3A] tracking-tight text-lg">
+        <div className="font-heading font-extrabold text-[#111114] tracking-tight text-lg">
           E-KERTALANGU
         </div>
         <div className="text-xs text-[#6B7280] font-medium">Absensi Pengajian</div>

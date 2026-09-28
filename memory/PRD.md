@@ -185,7 +185,7 @@ Penyebab: `get_or_create_public_qr()` menyimpan `link` + `image` PERMANEN di
 `app_settings._id="public_qr"`. Sandbox dan produksi memakai database Atlas yang SAMA,
 sehingga QR yang pertama kali dibuat di sandbox (domain preview Emergent) terus
 disajikan di produksi Vercel. Dibuktikan: dokumen berisi
-`link: "https://github-absen-preview.preview.emergentagent.com/register?token=..."`.
+`link: "https://repo-showcase-21.preview.emergentagent.com/register?token=..."`.
 
 Perbaikan:
 - `app_settings.public_qr` sekarang menyimpan **hanya `token`** + `created_at`.
@@ -515,3 +515,114 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 - **Ringkas sesi 1 bulan**: `per_sesi` (agregat per label sesi: berapa kali kegiatan, hadir/peserta,
   persen, wajib/opsional) + `per_pertemuan[].sesi` (rincian tiap sesi: jam, pengajar, materi,
   hadir/peserta, persen) → panel "Ringkasan Sesi Selama Sebulan" dan chip sesi di daftar pertemuan.
+
+## 27 Sep 2026 — Peninjauan Update Terbaru + Data Contoh Preview
+- Lingkungan preview dipulihkan: `qrcode`/`pillow` terpasang ulang (backend gagal start) dan
+  `yarn install` (craco hilang) → backend & frontend RUNNING.
+- Update terbaru yang ditinjau = commit `14f83d5` (FASE 14): tautan publik rekap bulanan +
+  tombol WhatsApp, loading global, panel Pisah L/P, Ringkasan Sesi Sebulan.
+- Ditambahkan `scripts/seed_demo.py`: 12 jamaah contoh (6 L / 6 P), 7 hari kegiatan September 2026
+  (3 sesi: Pagi/Sore/Malam-opsional) dan 77 absensi → rekap bulanan menampilkan data nyata
+  (7 pertemuan, rata-rata 63,3%, L 83,3% vs P 48,2%).
+- Diverifikasi manual via screenshot (tanpa testing agent): panel admin Rekap Bulanan &
+  halaman publik `/rekap-bulanan/JtTEuE5k-dW6ew`.
+
+## FASE 15 — Sidebar Grouping, Ganti Peran Instan & Pengaduan Jamaah (27 Sep 2026, uji manual tanpa testing agent)
+### Sidebar admin/pengurus jadi bergrup (AdminLayout.jsx)
+- Dashboard (panel Pantau Login DIHAPUS dari dashboard).
+- Grup **Peserta**: User/Jamaah · Bulk Data (halaman sendiri) · Cek Duplikat · Rekap Login
+  (khusus admin, halaman sendiri) · Kelompok Sambung (dipindah ke grup Peserta).
+- Grup **Kegiatan**: Daftar Kegiatan · Kode Akses · Scan Presensi · Pengumuman.
+- Grup **Laporan & Rekap**: Laporan · Rekap Bulanan · Rekap Harian (ComingSoon).
+- Menu tunggal: Musyawarah, Pengaduan Jamaah, Log Aktivitas (admin), Hak Akses (admin).
+- Pengurus: Dashboard, grup Peserta (tanpa Rekap Login), grup Kegiatan, Musyawarah,
+  grup Laporan, Pengaduan Jamaah. Pengurus kini boleh menghapus peserta
+  (`DELETE /admin/users/{id}` & `/admin/users/bulk-delete` → require_staff).
+### Halaman baru
+- `KodeAksesView.jsx` + `GET /api/staff/kode-akses?month=` — tiap kegiatan otomatis punya kode
+  akses 6 digit + tautan; tombol Salin Kode/Tautan, Bagikan WhatsApp, Lihat QR, Perbarui Kode.
+  Pembuatan kode otomatis dicatat di Log Aktivitas (`buat_kode_akses`).
+- `ScanPresensiView.jsx` + `GET /api/staff/scan-presensi?date=` — daftar kegiatan 1 tanggal
+  beserta QR kegiatan (unduh/salin tautan) + tombol "Scan QR Jamaah" (kamera).
+- `PesertaBulkView.jsx` — grid bulk data + Import Excel + Template.
+- `PesertaDuplikat.jsx` + `GET /api/admin/users/duplikat` — grup nama kembar, tanda
+  "Tanggal lahir sama", aksi Detail/Hapus.
+- `PengaduanView.jsx` + `GET /api/staff/pengaduan`, `POST /api/staff/pengaduan/{id}/baca`.
+- `HakAkses.jsx` dirombak: kolom pencarian (min 2 huruf) + daftar pemegang hak akses saat ini.
+- Pengumuman: pilih kegiatan terkait lalu 3 **template siap pakai**
+  (Undangan Kegiatan / Pengingat Hari-H / Perubahan Jadwal) mengisi judul & isi otomatis.
+- Absen manual kegiatan: tombol status disingkat **H / I / A** (tooltip nama lengkap).
+### Ganti peran tanpa logout
+- `components/RoleSwitcher.jsx` (ActionModal) dipakai di header panel, sidebar, ProfileMenu,
+  dan header area jamaah → klik langsung `navigate('/area/<role>')` tanpa keluar akun.
+### Peran peserta
+- Tab baru **Curhat** (`peserta/Pengaduan.jsx`): kategori Curhat/Saran/Pengaduan, opsi tanpa nama,
+  kata pembuka yang baik, riwayat pesan + status "sudah dibaca pengurus".
+  Backend: `POST/GET /api/me/pengaduan` (koleksi `pengaduans`, minimal 10 huruf).
+- `peserta/TutorialQr.jsx` — tutorial 3 langkah, tampil di QR Saya (QR pribadi) & Scan (QR kegiatan).
+- Banner kelengkapan data di Beranda peserta → mengarah ke tab Profil (akun pribadi).
+
+### Revisi FASE 15 (27 Sep 2026, uji manual)
+1. Tombol "Ganti Peran" di header panel DIHAPUS — cukup lewat menu profil (dropdown) & sidebar bawah.
+2. Sidebar tidak lagi memakai dropdown: semua menu tampil datar dengan label seksi
+   (PESERTA / KEGIATAN / LAPORAN & REKAP).
+3. Menu "User / Jamaah" → **User**; tombol Bulk Data, Import Excel & Template dihapus dari halaman
+   User (sudah ada di Bulk Data). Import Excel & Template juga dihapus dari halaman Bulk Data
+   (khusus entri manual/tempel dari Excel).
+4. Tutorial QR (pribadi & kegiatan) dipindah ke **dashboard jamaah** (Beranda), tidak lagi di
+   halaman Scan/QR Saya.
+5. Banner "data belum lengkap" di dashboard jamaah mengarah ke tab Profil (akun pribadi).
+6. Panel **Kesan & Pesan Kegiatan** di dashboard jamaah (`peserta/KesanPesan.jsx`):
+   daftar kegiatan yang dihadiri 30 hari terakhir → modal Suka / Tidak Suka + kesan & pesan
+   (maks 3000 huruf), status "terkirim". Backend `GET/POST /api/me/kesan-pesan`
+   (koleksi `feedbacks`, hanya kegiatan yang benar-benar dihadiri; upsert per jamaah+kegiatan).
+   CATATAN: fitur foto selfie pada contoh screenshot BELUM dibuat.
+
+### 27 Sep 2026 — Komentar kode + teks PR
+- Ditambahkan komentar penjelas 1 baris di file-file yang diubah sesi ini (AdminLayout, Peserta,
+  PesertaBulkView, PesertaDuplikat, KodeAksesView, ScanPresensiView, PengaduanView, HakAkses,
+  peserta/Pengaduan, peserta/KesanPesan, peserta/TutorialQr, peserta/Beranda).
+- Deskripsi Pull Request siap tempel diberikan ke user (branch "update - terbaru"); PR dibuat
+  manual di GitHub.com karena Save to GitHub hanya push branch.
+
+## FASE 16 — Tema "Clean" + Ruang Teduh + Perbaikan Peran (28 Sep 2026, uji manual)
+### Tema baru (pilihan user: opsi B dipadukan opsi A)
+- Palet: latar off-white `#FAFAF8`, kartu putih, garis hairline `#E8E8E4`, satu aksen indigo kalem
+  `#3730A3` (soft `#EEEFFB`, deep `#312E81`, hover `#2A2480`). Semua hex hijau lama
+  (#0D5C3A/#094229/#065F46/#E8F5EE/#F0FAF4/dll) dimigrasi otomatis di 63 file.
+- Font: body **Hanken Grotesk**, heading **Instrument Sans** (index.css ditulis ulang + token CSS
+  dan variabel shadcn disesuaikan). Animasi masuk halus `riseIn` untuk tiap halaman.
+- Sidebar panel kini **putih dengan border hairline**, item aktif indigo lembut; header & konten
+  lebih lapang (`py-8 sm:py-10`, sidebar 264px).
+### Ruang Teduh (pengganti nama Pengaduan/Curhat di semua peran)
+- `admin/RuangTeduhView.jsx` & `peserta/RuangTeduh.jsx` (file Pengaduan lama dihapus).
+- 6 jenis pesan: Curhat/Konsultasi, Saran & Masukan, Pengaduan, Permohonan Doa, Kendala Hadir,
+  Pertanyaan Keagamaan (dikirim backend lewat `GET /api/me/pengaduan`).
+- Batas pesan **5000 huruf** (`PENGADUAN_MAX`), minimal 10 huruf.
+- Hapus riwayat: `DELETE /api/me/pengaduan/{id}`, `DELETE /api/me/pengaduan` (semua, milik sendiri),
+  `DELETE /api/staff/pengaduan/{id}`, `DELETE /api/staff/pengaduan` (semua, tercatat di Log Aktivitas).
+### Peran & dashboard
+- Label peran: **Adminator / Pengurus / Peserta** (`src/lib/roles.js` → `roleLabel`, `rolesLabel`).
+- Tombol "Ganti Peran" di sidebar dihapus (cukup dari menu profil).
+- Akun berperan tunggal (mis. jamaah) **langsung masuk areanya** tanpa halaman Pilih Peran
+  (Login.jsx `autoRoleTarget` + redirect di RoleDashboard).
+- Judul dashboard: label peran + "Selamat datang, {nama} 👋" (admin/pengurus & jamaah).
+- Kartu **"Lengkapi Profil Kamu"** di dashboard jamaah: persentase + bar + daftar data kosong,
+  tap → tab Profil (`profileCompletion` dari 10 field termasuk foto). Diuji: Budi Santoso 60%.
+
+### Revisi FASE 16 (28 Sep 2026, uji manual)
+- Aksen indigo dihapus → **tema monokrom**: putih/off-white dengan aksen hitam `#111114`
+  (soft `#F1F1EE`, hover `#000000`); warna grafik sekunder jadi abu netral `#9CA3AF`.
+  Token shadcn di index.css disesuaikan (primary/ring/accent → hitam).
+- **Lonceng notifikasi Ruang Teduh** (`components/RuangTeduhBell.jsx`) di header panel
+  admin/pengurus: angka pesan belum dibaca (polling 45 detik), klik langsung membuka Ruang Teduh.
+  Backend baru: `GET /api/staff/pengaduan/unread-count`.
+- Jenis pesan **Permohonan Doa dihapus** → tersisa 5: Curhat/Konsultasi, Saran & Masukan,
+  Pengaduan, Kendala Hadir, Pertanyaan Keagamaan.
+
+### Revisi FASE 16 lanjutan (28 Sep 2026, uji manual)
+- Area jamaah: header hitam diganti **putih dengan tulisan hitam** (border hairline), latar `#FAFAF8`;
+  ikon lonceng/keluar jadi abu gelap dengan hover lembut, badge notifikasi hitam.
+- **Semua QR jadi hitam**: `make_qr_data_url` fill_color `#0D5C3A` → `#111114` (berlaku untuk QR
+  pribadi jamaah, QR absen kegiatan, QR kode akses, QR pendaftaran publik — semuanya digenerate
+  saat request, jadi langsung ikut berubah). Warna judul PDF & header Excel juga jadi hitam.

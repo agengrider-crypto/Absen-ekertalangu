@@ -11,11 +11,11 @@ import { useAuth } from "@/context/AuthContext";
 import { formatTanggal, MARITAL_OPTIONS, maritalLabel } from "@/pages/admin/adminUtils";
 
 const ROLE_LABEL = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta" };
-const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white";
+const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white";
 
 function Row({ icon: Icon, label, value }) {
   return (
-    <div className="flex items-start gap-3 py-2.5 border-b border-[#F1F2F0] last:border-0">
+    <div className="flex items-start gap-3 py-2.5 border-b border-[#ECECE8] last:border-0">
       <Icon size={16} className="text-[#9CA3AF] mt-0.5 shrink-0" />
       <div className="min-w-0">
         <div className="text-xs text-[#9CA3AF]">{label}</div>
@@ -136,15 +136,15 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" onClick={onClose} />
       <div
-        className="relative bg-[#FAFBF9] w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto shadow-2xl"
+        className="relative bg-[#FAFAF8] w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto shadow-2xl"
         data-testid="profile-modal"
       >
         <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-white">
-          <div className="h-1.5 w-11 rounded-full bg-[#E5E7EB]" />
+          <div className="h-1.5 w-11 rounded-full bg-[#E8E8E4]" />
         </div>
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E5E7EB] px-5 py-3.5 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E8E8E4] px-5 py-3.5 flex items-center justify-between z-10">
           <h2 className="font-heading font-bold text-[#111827]">Profil Saya</h2>
-          <button data-testid="button-close-profile" onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F2F5F2]"><X size={20} /></button>
+          <button data-testid="button-close-profile" onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"><X size={20} /></button>
         </div>
 
         <div className="p-5 space-y-4">
@@ -159,7 +159,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
 
           {/* Foto */}
           <div className="flex flex-col items-center gap-3">
-            <div className="h-28 w-28 rounded-full overflow-hidden bg-[#0D5C3A] text-white flex items-center justify-center text-3xl font-bold border-4 border-white shadow">
+            <div className="h-28 w-28 rounded-full overflow-hidden bg-[#111114] text-white flex items-center justify-center text-3xl font-bold border-4 border-white shadow">
               {preview ? (
                 <img src={preview} alt="Foto profil" className="h-full w-full object-cover" data-testid="profile-photo" />
               ) : initials}
@@ -169,7 +169,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                 data-testid="button-upload-photo"
                 onClick={() => fileRef.current?.click()}
                 disabled={busy}
-                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#094229] disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000] disabled:opacity-60"
               >
                 {busy ? <Loader2 className="animate-spin" size={16} /> : <Camera size={16} />} {preview ? "Ganti Foto" : "Unggah Foto"}
               </button>
@@ -191,12 +191,12 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
           {/* Peran */}
           <div className="flex flex-wrap gap-1.5 justify-center">
             {(user?.roles || []).map((r) => (
-              <span key={r} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#E8F5EE] text-[#065F46]">{ROLE_LABEL[r] || r}</span>
+              <span key={r} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#F1F1EE] text-[#111114]">{ROLE_LABEL[r] || r}</span>
             ))}
           </div>
 
           {editing ? (
-            <div className="bg-white rounded-2xl p-4 border border-[#E5E7EB] space-y-3.5" data-testid="profile-edit-form">
+            <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4] space-y-3.5" data-testid="profile-edit-form">
               <Field label="Nama Lengkap" required>
                 <input data-testid="profile-edit-name" value={f.name} onChange={(e) => set("name", e.target.value)} className={inp} />
               </Field>
@@ -240,14 +240,14 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                   value={f.address}
                   onChange={(e) => set("address", e.target.value)}
                   rows={2}
-                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] resize-none bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] resize-none bg-white"
                 />
               </Field>
               <div className="flex gap-2 pt-1">
                 <button
                   data-testid="profile-edit-cancel"
                   onClick={() => setEditing(false)}
-                  className="h-12 px-4 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold hover:bg-[#F2F5F2]"
+                  className="h-12 px-4 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold hover:bg-[#F4F4F1]"
                 >
                   Batal
                 </button>
@@ -255,7 +255,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                   data-testid="profile-edit-save"
                   onClick={save}
                   disabled={saving}
-                  className="flex-1 h-12 rounded-xl bg-[#0D5C3A] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60"
+                  className="flex-1 h-12 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Simpan Profil
                 </button>
@@ -263,7 +263,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
             </div>
           ) : (
             <>
-              <div className="bg-white rounded-2xl p-4 border border-[#E5E7EB]" data-testid="profile-view">
+              <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]" data-testid="profile-view">
                 <div className="text-base font-bold text-[#111827] mb-2">{user?.name}</div>
                 <Row icon={UserIcon} label="Username" value={user?.username} />
                 <Row icon={UserIcon} label="Jenis Kelamin" value={user?.gender === "L" ? "Laki-laki" : user?.gender === "P" ? "Perempuan" : null} />
@@ -288,7 +288,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                   });
                   setEditing(true);
                 }}
-                className="w-full h-12 rounded-xl bg-[#0D5C3A] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#094229]"
+                className="w-full h-12 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#000000]"
               >
                 <Pencil size={18} /> Ubah Data Profil
               </button>

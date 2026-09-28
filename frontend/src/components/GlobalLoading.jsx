@@ -35,10 +35,10 @@ export default function GlobalLoading({ delay = 450 }) {
 
   return (
     <>
-      <div className="fixed top-0 left-0 right-0 h-[3px] z-[100] overflow-hidden bg-[#0D5C3A]/10" data-testid="global-loading-bar">
-        <div className="h-full w-1/3 bg-[#0D5C3A] rounded-full animate-[loadingslide_1.1s_ease-in-out_infinite]" />
+      <div className="fixed top-0 left-0 right-0 h-[3px] z-[100] overflow-hidden bg-[#111114]/10" data-testid="global-loading-bar">
+        <div className="h-full w-1/3 bg-[#111114] rounded-full animate-[loadingslide_1.1s_ease-in-out_infinite]" />
       </div>
-      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[100] px-3.5 h-9 rounded-full bg-[#0D5C3A] text-white text-xs font-semibold shadow-lg inline-flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2"
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[100] px-3.5 h-9 rounded-full bg-[#111114] text-white text-xs font-semibold shadow-lg inline-flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2"
         data-testid="global-loading-pill">
         <Loader2 size={14} className="animate-spin" /> Memuat…
       </div>
@@ -49,13 +49,13 @@ export default function GlobalLoading({ delay = 450 }) {
 /** Layar pembuka saat aplikasi pertama dibuka / sesi sedang diperiksa. */
 export function SplashLoading({ label = "Memuat aplikasi…" }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAFBF9] px-6" data-testid="splash-loading">
-      <div className="h-20 w-20 rounded-3xl bg-white shadow-sm border border-[#E5E7EB] flex items-center justify-center overflow-hidden p-2 animate-in zoom-in duration-500">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#FAFAF8] px-6" data-testid="splash-loading">
+      <div className="h-20 w-20 rounded-3xl bg-white shadow-sm border border-[#E8E8E4] flex items-center justify-center overflow-hidden p-2 animate-in zoom-in duration-500">
         <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
       </div>
-      <div className="font-heading text-lg font-bold text-[#0D5C3A] mt-4 tracking-wide">E-KERTALANGU</div>
-      <div className="mt-4 h-1.5 w-40 rounded-full bg-[#E8F5EE] overflow-hidden">
-        <div className="h-full w-1/2 bg-[#0D5C3A] rounded-full animate-[loadingslide_1.1s_ease-in-out_infinite]" />
+      <div className="font-heading text-lg font-bold text-[#111114] mt-4 tracking-wide">E-KERTALANGU</div>
+      <div className="mt-4 h-1.5 w-40 rounded-full bg-[#F1F1EE] overflow-hidden">
+        <div className="h-full w-1/2 bg-[#111114] rounded-full animate-[loadingslide_1.1s_ease-in-out_infinite]" />
       </div>
       <p className="text-xs text-[#6B7280] mt-3">{label}</p>
     </div>

@@ -13,9 +13,9 @@ export const TYPE_LABEL = {
 };
 
 export const TYPE_COLOR = {
-  rutin: "#0D5C3A",
+  rutin: "#111114",
   khusus: "#0284C7",
-  asad: "#D97706",
+  asad: "#9CA3AF",
 };
 
 /* ------------------------- FASE 8 ------------------------- */
@@ -121,7 +121,7 @@ export function groupSessions(items) {
 // Fase waktu kegiatan → dipakai untuk urutan daftar
 export const PHASE_META = {
   akan_datang: { label: "Akan Datang", badge: "Akan Datang", cls: "bg-[#E0F2FE] text-[#075985]" },
-  berlangsung: { label: "Berlangsung", badge: "Berlangsung", cls: "bg-[#E8F5EE] text-[#065F46]" },
+  berlangsung: { label: "Berlangsung", badge: "Berlangsung", cls: "bg-[#F1F1EE] text-[#111114]" },
   selesai: { label: "Selesai", badge: "Selesai", cls: "bg-[#F3F4F6] text-[#4B5563]" },
 };
 

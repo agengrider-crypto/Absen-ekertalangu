@@ -6,7 +6,7 @@ import { ACTION_LABELS, formatDateTime } from "./adminUtils";
 
 const ACTION_COLORS = {
   login: "bg-[#E0F2FE] text-[#075985]",
-  buat_akun: "bg-[#E8F5EE] text-[#065F46]",
+  buat_akun: "bg-[#F1F1EE] text-[#111114]",
   hapus_akun: "bg-[#FEE2E2] text-[#991B1B]",
   hapus_massal: "bg-[#FEE2E2] text-[#991B1B]",
   reset_sandi: "bg-[#FEF3C7] text-[#92400E]",
@@ -26,28 +26,28 @@ export default function LogAktivitas() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 text-[#0D5C3A] font-bold text-lg">
+        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
           <ScrollText size={20} /> Log Aktivitas
         </div>
         <button
           data-testid="button-refresh-logs"
           onClick={load}
-          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-[#E5E7EB] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114]"
         >
           <RefreshCw size={16} /> Muat Ulang
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid="logs-panel">
+      <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="logs-panel">
         {!logs ? (
-          <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>
+          <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
         ) : logs.length === 0 ? (
           <div className="p-10 text-center text-[#6B7280]">Belum ada aktivitas tercatat.</div>
         ) : (
-          <ul className="divide-y divide-[#E5E7EB]">
+          <ul className="divide-y divide-[#E8E8E4]">
             {logs.map((l) => (
               <li key={l.id} data-testid={`log-row-${l.id}`} className="px-5 py-3.5 flex items-start gap-3">
-                <span className={`shrink-0 mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${ACTION_COLORS[l.action] || "bg-[#F2F5F2] text-[#4B5563]"}`}>
+                <span className={`shrink-0 mt-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${ACTION_COLORS[l.action] || "bg-[#F4F4F1] text-[#4B5563]"}`}>
                   {ACTION_LABELS[l.action] || l.action}
                 </span>
                 <div className="min-w-0 flex-1">

@@ -102,7 +102,7 @@ export default function QrScanner({ onDetected, paused = false }) {
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4 text-center">
           {status === "starting" && (
             <div className="flex flex-col items-center gap-2 text-[#6B7280]">
-              <Loader2 className="animate-spin text-[#0D5C3A]" size={28} />
+              <Loader2 className="animate-spin text-[#111114]" size={28} />
               <span className="text-sm">Menyalakan kamera…</span>
             </div>
           )}

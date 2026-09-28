@@ -9,8 +9,8 @@ import QrScanner from "@/components/QrScanner";
 import { TYPE_LABEL, TYPE_COLOR, tanggalSingkat, hhmm } from "@/pages/admin/kegiatanUtils";
 
 const STATUS_BTN = {
-  hadir: { label: "Hadir", on: "bg-[#0D5C3A] text-white", off: "text-[#065F46]" },
-  izin: { label: "Izin", on: "bg-[#D97706] text-white", off: "text-[#92400E]" },
+  hadir: { label: "Hadir", on: "bg-[#111114] text-white", off: "text-[#111114]" },
+  izin: { label: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#92400E]" },
   alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
 };
 
@@ -41,7 +41,7 @@ export default function PenjagaAbsen() {
     <div className="space-y-4" data-testid="penjaga-absen-tab">
       <div>
         <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-          <ShieldCheck size={22} className="text-[#0D5C3A]" /> Penjaga Absen
+          <ShieldCheck size={22} className="text-[#111114]" /> Penjaga Absen
         </h1>
         <p className="text-sm text-[#6B7280] mt-1">
           Anda dipercaya mengisi absen kegiatan berikut. Tersedia <b>absen manual</b> dan <b>scan QR</b>.
@@ -49,17 +49,17 @@ export default function PenjagaAbsen() {
       </div>
 
       {delegs === null ? (
-        <div className="p-14 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>
+        <div className="p-14 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : delegs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-8 text-center" data-testid="penjaga-empty">
-          <div className="h-14 w-14 rounded-2xl bg-[#F2F5F2] text-[#9CA3AF] flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-8 text-center" data-testid="penjaga-empty">
+          <div className="h-14 w-14 rounded-2xl bg-[#F4F4F1] text-[#9CA3AF] flex items-center justify-center mx-auto">
             <ShieldCheck size={26} />
           </div>
           <p className="text-sm text-[#6B7280] mt-3 leading-relaxed">
             Saat ini Anda belum diberi hak penjaga absen.<br />
             Hak ini diberikan pengurus saat beliau tidak berada di lokasi kegiatan.
           </p>
-          <button onClick={load} className="mt-4 inline-flex items-center gap-2 h-10 px-4 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]">
+          <button onClick={load} className="mt-4 inline-flex items-center gap-2 h-10 px-4 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE]">
             <RefreshCw size={16} /> Muat Ulang
           </button>
         </div>
@@ -68,12 +68,12 @@ export default function PenjagaAbsen() {
           {delegs.map((d) => {
             const k = d.kegiatan || {};
             return (
-              <div key={d.id} className="bg-white rounded-2xl border border-[#E5E7EB] p-4" data-testid={`penjaga-deleg-${d.id}`}>
+              <div key={d.id} className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid={`penjaga-deleg-${d.id}`}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>
                     {TYPE_LABEL[k.type] || k.type}
                   </span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E8F5EE] text-[#065F46]">Berlangsung</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">Berlangsung</span>
                 </div>
                 <h3 className="font-heading font-bold text-[#111827] mt-1.5">{k.name}</h3>
                 <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
@@ -85,7 +85,7 @@ export default function PenjagaAbsen() {
                 <button
                   data-testid={`penjaga-open-${d.id}`}
                   onClick={() => setActive(d)}
-                  className="mt-3 w-full h-11 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#094229]"
+                  className="mt-3 w-full h-11 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#000000]"
                 >
                   <ListChecks size={17} /> Mulai Mengabsen
                 </button>
@@ -164,12 +164,12 @@ function PenjagaKegiatan({ deleg, onBack }) {
       <button
         data-testid="penjaga-back"
         onClick={onBack}
-        className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-[#E5E7EB] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+        className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114]"
       >
         <ArrowLeft size={17} /> Kembali
       </button>
 
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4">
+      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
         <h2 className="font-heading font-bold text-[#111827]">{k?.name || deleg.kegiatan_name}</h2>
         {k && (
           <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
@@ -178,20 +178,20 @@ function PenjagaKegiatan({ deleg, onBack }) {
           </div>
         )}
         <div className="grid grid-cols-4 gap-2 mt-3">
-          <div className="rounded-xl bg-[#F2F5F2] p-2.5 text-center"><div className="text-lg font-bold text-[#111827]">{counts.total}</div><div className="text-[11px] text-[#6B7280]">Total</div></div>
-          <div className="rounded-xl bg-[#E8F5EE] p-2.5 text-center"><div className="text-lg font-bold text-[#065F46]">{counts.hadir}</div><div className="text-[11px] text-[#6B7280]">Hadir</div></div>
+          <div className="rounded-xl bg-[#F4F4F1] p-2.5 text-center"><div className="text-lg font-bold text-[#111827]">{counts.total}</div><div className="text-[11px] text-[#6B7280]">Total</div></div>
+          <div className="rounded-xl bg-[#F1F1EE] p-2.5 text-center"><div className="text-lg font-bold text-[#111114]">{counts.hadir}</div><div className="text-[11px] text-[#6B7280]">Hadir</div></div>
           <div className="rounded-xl bg-[#FEF3C7] p-2.5 text-center"><div className="text-lg font-bold text-[#92400E]">{counts.izin}</div><div className="text-[11px] text-[#6B7280]">Izin</div></div>
           <div className="rounded-xl bg-[#FEE2E2] p-2.5 text-center"><div className="text-lg font-bold text-[#991B1B]">{counts.alpha}</div><div className="text-[11px] text-[#6B7280]">Alpha</div></div>
         </div>
       </div>
 
       {/* Pilihan cara absen */}
-      <div className="grid grid-cols-2 gap-2 bg-white p-1.5 rounded-2xl border border-[#E5E7EB]">
+      <div className="grid grid-cols-2 gap-2 bg-white p-1.5 rounded-2xl border border-[#E8E8E4]">
         <button
           data-testid="penjaga-mode-manual"
           onClick={() => setMode("manual")}
           className={`h-12 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 transition-colors ${
-            mode === "manual" ? "bg-[#0D5C3A] text-white" : "text-[#4B5563] hover:bg-[#F2F5F2]"
+            mode === "manual" ? "bg-[#111114] text-white" : "text-[#4B5563] hover:bg-[#F4F4F1]"
           }`}
         >
           <ListChecks size={17} /> Absen Manual
@@ -200,7 +200,7 @@ function PenjagaKegiatan({ deleg, onBack }) {
           data-testid="penjaga-mode-scan"
           onClick={() => setMode("scan")}
           className={`h-12 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 transition-colors ${
-            mode === "scan" ? "bg-[#0D5C3A] text-white" : "text-[#4B5563] hover:bg-[#F2F5F2]"
+            mode === "scan" ? "bg-[#111114] text-white" : "text-[#4B5563] hover:bg-[#F4F4F1]"
           }`}
         >
           <ScanLine size={17} /> Scan QR
@@ -208,29 +208,29 @@ function PenjagaKegiatan({ deleg, onBack }) {
       </div>
 
       {data === null ? (
-        <div className="p-14 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>
+        <div className="p-14 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : data === false ? (
         <div className="bg-white rounded-2xl border border-[#FCA5A5] p-6 text-center text-sm text-[#991B1B]">
           Mohon maaf, hak penjaga absen untuk kegiatan ini sudah tidak aktif.
         </div>
       ) : mode === "scan" ? (
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 space-y-3" data-testid="penjaga-scan-panel">
+        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 space-y-3" data-testid="penjaga-scan-panel">
           <p className="text-sm text-[#6B7280] flex items-start gap-2">
-            <ScanLine size={16} className="text-[#0D5C3A] shrink-0 mt-0.5" />
+            <ScanLine size={16} className="text-[#111114] shrink-0 mt-0.5" />
             Arahkan kamera ke <b>QR pribadi peserta</b> (menu “QR Saya” pada akun peserta) untuk menandai hadir.
           </p>
           <QrScanner onDetected={onDetected} paused={scanBusy} />
           {lastScan && (
-            <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl p-3 text-center" data-testid="penjaga-scan-result">
-              <CheckCircle2 className="mx-auto text-[#0D5C3A]" size={26} />
-              <div className="font-bold text-[#065F46] mt-1">{lastScan.name}</div>
+            <div className="bg-[#F0FDF4] border border-[#E8E8E4] rounded-xl p-3 text-center" data-testid="penjaga-scan-result">
+              <CheckCircle2 className="mx-auto text-[#111114]" size={26} />
+              <div className="font-bold text-[#111114] mt-1">{lastScan.name}</div>
               <div className="text-xs text-[#4B5563] mt-0.5">{lastScan.message}</div>
             </div>
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid="penjaga-manual-panel">
-          <div className="p-3 bg-[#FAFBF9] border-b border-[#E5E7EB]">
+        <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="penjaga-manual-panel">
+          <div className="p-3 bg-[#FAFAF8] border-b border-[#E8E8E4]">
             <div className="relative">
               <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
               <input
@@ -238,11 +238,11 @@ function PenjagaKegiatan({ deleg, onBack }) {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Cari nama peserta..."
-                className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E5E7EB] bg-white text-sm outline-none focus:border-[#0D5C3A]"
+                className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] bg-white text-sm outline-none focus:border-[#111114]"
               />
             </div>
           </div>
-          <ul className="divide-y divide-[#F1F2F0] max-h-[58vh] overflow-y-auto">
+          <ul className="divide-y divide-[#ECECE8] max-h-[58vh] overflow-y-auto">
             {rows.length === 0 ? (
               <li className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Tidak ada peserta yang cocok.</li>
             ) : rows.map((p) => (
@@ -270,7 +270,7 @@ function PenjagaKegiatan({ deleg, onBack }) {
                           disabled={busy === p.id + s}
                           onClick={() => mark(p.id, s)}
                           className={`h-9 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${
-                            on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E5E7EB] hover:border-current`
+                            on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`
                           }`}
                         >
                           {cfg.label}
