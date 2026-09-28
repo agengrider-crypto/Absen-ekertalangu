@@ -27,7 +27,7 @@ function FormModal({ item, onClose, onDone }) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/45" onClick={onClose} />
       <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid="modal-kesan-pesan">
-        <div className="sticky top-0 bg-white border-b border-[#E5E7EB] px-5 py-4 flex items-start justify-between gap-3">
+        <div className="sticky top-0 bg-white border-b border-[#E8E8E4] px-5 py-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="font-heading font-bold text-[#111827]">Kesan &amp; Pesan</h3>
             <p className="text-xs text-[#6B7280] truncate">{item.name}{item.session_label ? ` (${item.session_label})` : ""}</p>
@@ -50,10 +50,10 @@ function FormModal({ item, onClose, onDone }) {
                     type="button"
                     data-testid={`kesan-sentiment-${o.key}`}
                     onClick={() => setSentiment(o.key)}
-                    className={`rounded-2xl border-2 p-3 text-center transition-colors ${on ? "border-[#0D5C3A] bg-[#E8F5EE]" : "border-[#E5E7EB] bg-white"}`}
+                    className={`rounded-2xl border-2 p-3 text-center transition-colors ${on ? "border-[#3730A3] bg-[#EEEFFB]" : "border-[#E8E8E4] bg-white"}`}
                   >
-                    <Icon size={22} className={`mx-auto ${on ? "text-[#0D5C3A]" : "text-[#9CA3AF]"}`} />
-                    <div className={`mt-1.5 font-semibold text-sm ${on ? "text-[#065F46]" : "text-[#374151]"}`}>{o.label}</div>
+                    <Icon size={22} className={`mx-auto ${on ? "text-[#3730A3]" : "text-[#9CA3AF]"}`} />
+                    <div className={`mt-1.5 font-semibold text-sm ${on ? "text-[#312E81]" : "text-[#374151]"}`}>{o.label}</div>
                     <div className="text-[11px] text-[#6B7280] mt-0.5 leading-snug">{o.desc}</div>
                   </button>
                 );
@@ -69,7 +69,7 @@ function FormModal({ item, onClose, onDone }) {
               onChange={(e) => setMessage(e.target.value.slice(0, 3000))}
               rows={5}
               placeholder="Tulis kesan dan pesan Anda di sini…"
-              className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] resize-none"
+              className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] resize-none"
             />
             <div className="text-right text-xs text-[#9CA3AF] mt-1">{message.length}/3000</div>
           </div>
@@ -78,7 +78,7 @@ function FormModal({ item, onClose, onDone }) {
             data-testid="kesan-kirim"
             onClick={kirim}
             disabled={saving}
-            className="w-full h-12 rounded-xl bg-[#0D5C3A] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60"
+            className="w-full h-12 rounded-xl bg-[#3730A3] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60"
           >
             {saving ? <Loader2 className="animate-spin" size={18} /> : <MessageSquareQuote size={18} />} Kirim Kesan &amp; Pesan
           </button>
@@ -97,18 +97,18 @@ export default function KesanPesan() {
   useEffect(() => { load(); }, []);
 
   if (items === null) {
-    return <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={22} /></div>;
+    return <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={22} /></div>;
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5" data-testid="kesan-pesan-panel">
-      <div className="flex items-center gap-2 text-[#0D5C3A] font-heading font-bold">
+    <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5" data-testid="kesan-pesan-panel">
+      <div className="flex items-center gap-2 text-[#3730A3] font-heading font-bold">
         <MessageSquareQuote size={18} /> Kesan &amp; Pesan Kegiatan
       </div>
       <p className="text-xs text-[#6B7280] mt-0.5">Sampaikan kesan dan pesan Anda setelah mengikuti kegiatan.</p>
 
       {items.length === 0 ? (
-        <div className="mt-3 rounded-xl bg-[#F8FAF8] border border-dashed border-[#CBD5E1] p-5 text-center text-sm text-[#6B7280]" data-testid="kesan-empty">
+        <div className="mt-3 rounded-xl bg-[#FAFAF8] border border-dashed border-[#CBD5E1] p-5 text-center text-sm text-[#6B7280]" data-testid="kesan-empty">
           Belum ada kegiatan yang Anda hadiri dalam 30 hari terakhir.
         </div>
       ) : (
@@ -119,7 +119,7 @@ export default function KesanPesan() {
               type="button"
               data-testid={`kesan-item-${it.kegiatan_id}`}
               onClick={() => setActive(it)}
-              className="w-full text-left rounded-xl border-2 border-[#E5E7EB] p-3 hover:border-[#0D5C3A] hover:bg-[#F0FAF4] transition-colors"
+              className="w-full text-left rounded-xl border-2 border-[#E8E8E4] p-3 hover:border-[#3730A3] hover:bg-[#F5F5FD] transition-colors"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -131,7 +131,7 @@ export default function KesanPesan() {
                   </div>
                 </div>
                 {it.sudah_kirim ? (
-                  <span className="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-full bg-[#E8F5EE] text-[#065F46] inline-flex items-center gap-1">
+                  <span className="shrink-0 text-[11px] font-semibold px-2 py-1 rounded-full bg-[#EEEFFB] text-[#312E81] inline-flex items-center gap-1">
                     <CheckCircle2 size={12} /> terkirim
                   </span>
                 ) : (

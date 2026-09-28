@@ -49,12 +49,12 @@ export default function Register() {
   const showForm = !!tokenFromUrl;
 
   return (
-    <div className="min-h-screen px-4 py-8 bg-[#FAFBF9]">
+    <div className="min-h-screen px-4 py-8 bg-[#FAFAF8]">
       <div className="max-w-md mx-auto">
         <button
           data-testid="button-back-login"
           onClick={() => navigate("/login")}
-          className="inline-flex items-center gap-1.5 text-[#4B5563] font-medium mb-6 hover:text-[#0D5C3A]"
+          className="inline-flex items-center gap-1.5 text-[#4B5563] font-medium mb-6 hover:text-[#3730A3]"
         >
           <ArrowLeft size={20} /> Kembali ke Login
         </button>
@@ -64,8 +64,8 @@ export default function Register() {
         </div>
 
         {!showForm ? (
-          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(13,92,58,0.14)] border border-[#E5E7EB] text-center" data-testid="qr-panel">
-            <div className="inline-flex items-center gap-2 bg-[#E8F5EE] text-[#065F46] px-3 py-1 rounded-full text-sm font-semibold mb-4">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(17,17,24,0.14)] border border-[#E8E8E4] text-center" data-testid="qr-panel">
+            <div className="inline-flex items-center gap-2 bg-[#EEEFFB] text-[#312E81] px-3 py-1 rounded-full text-sm font-semibold mb-4">
               <QrCode size={16} /> QR Pendaftaran
             </div>
             <h1 className="font-heading text-2xl font-bold text-[#111827]">Scan untuk Daftar</h1>
@@ -77,27 +77,27 @@ export default function Register() {
                 data-testid="img-public-qr"
                 src={qr.image}
                 alt="QR Pendaftaran"
-                className="mx-auto w-56 h-56 rounded-xl border border-[#E5E7EB] p-2 bg-white"
+                className="mx-auto w-56 h-56 rounded-xl border border-[#E8E8E4] p-2 bg-white"
               />
             ) : (
-              <div className="mx-auto w-56 h-56 rounded-xl bg-[#F2F5F2] flex items-center justify-center">
-                <Loader2 className="animate-spin text-[#0D5C3A]" size={32} />
+              <div className="mx-auto w-56 h-56 rounded-xl bg-[#F4F4F1] flex items-center justify-center">
+                <Loader2 className="animate-spin text-[#3730A3]" size={32} />
               </div>
             )}
             <button
               data-testid="button-open-register-form"
               onClick={() => window.location.assign(`/register?token=${token}`)}
               disabled={!token}
-              className="mt-6 w-full h-[52px] rounded-xl bg-[#0D5C3A] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#094229] transition-colors disabled:opacity-60"
+              className="mt-6 w-full h-[52px] rounded-xl bg-[#3730A3] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#2A2480] transition-colors disabled:opacity-60"
             >
               <UserPlus size={22} /> Isi Form Pendaftaran
             </button>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(13,92,58,0.14)] border border-[#E5E7EB]">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(17,17,24,0.14)] border border-[#E8E8E4]">
             <h1 className="font-heading text-2xl font-bold text-[#111827]">Pendaftaran Peserta</h1>
             <p className="text-[#6B7280] text-base mt-1 mb-2">Akun langsung aktif dengan peran Peserta.</p>
-            <div className="inline-flex items-center gap-1.5 text-xs text-[#065F46] bg-[#E8F5EE] px-2.5 py-1 rounded-full mb-5">
+            <div className="inline-flex items-center gap-1.5 text-xs text-[#312E81] bg-[#EEEFFB] px-2.5 py-1 rounded-full mb-5">
               <ShieldCheck size={14} /> Data Anda terpantau administrator
             </div>
 
@@ -116,7 +116,7 @@ export default function Register() {
                 data-testid="button-register-submit"
                 type="submit"
                 disabled={loading}
-                className="w-full h-[54px] rounded-xl bg-[#0D5C3A] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#094229] transition-colors disabled:opacity-60"
+                className="w-full h-[54px] rounded-xl bg-[#3730A3] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#2A2480] transition-colors disabled:opacity-60"
               >
                 {loading ? <Loader2 className="animate-spin" size={22} /> : <UserPlus size={22} />}
                 Daftar Sekarang
@@ -141,7 +141,7 @@ function Field({ label, testid, type = "text", value, onChange, placeholder, min
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E5E7EB] text-base outline-none transition-colors focus:border-[#0D5C3A] bg-white"
+        className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#3730A3] bg-white"
       />
     </div>
   );

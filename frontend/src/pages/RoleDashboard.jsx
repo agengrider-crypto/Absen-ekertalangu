@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Shield, Users, UserCheck, LogOut, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -8,11 +8,11 @@ import ProfileMenu from "@/components/ProfileMenu";
 const ROLE_META = {
   admin: {
     icon: Shield,
-    title: "Admin (Pengelola Sistem)",
+    title: "Adminator (Pengelola Sistem)",
     description:
       "Kelola pengguna, buat & atur jadwal pengajian, kelola QR code publik, dan lihat laporan presensi lengkap.",
     badge: "Akses Penuh",
-    action: "Masuk sebagai Admin",
+    action: "Masuk sebagai Adminator",
     color: "#D97706",
     bg: "#FEF3C7",
     text: "#92400E",
@@ -37,10 +37,10 @@ const ROLE_META = {
       "Lakukan presensi cepat via QR code, cek jadwal pengajian terkini, dan lihat riwayat kehadiran Anda.",
     badge: "Jamaah",
     action: "Masuk sebagai Peserta",
-    color: "#0D5C3A",
-    bg: "#E8F5EE",
-    text: "#065F46",
-    border: "#A7F3D0",
+    color: "#3730A3",
+    bg: "#EEEFFB",
+    text: "#312E81",
+    border: "#C9C9EE",
   },
 };
 
@@ -51,6 +51,9 @@ export default function RoleDashboard() {
   if (!user) return null;
 
   const roles = user.roles || [];
+
+  // FASE 16 — akun dengan satu peran (mis. jamaah) langsung masuk areanya.
+  if (roles.length === 1) return <Navigate to={`/area/${roles[0]}`} replace />;
   const incomplete = (user.missing_fields || []).length > 0;
 
   const handleLogout = async () => {
@@ -60,13 +63,13 @@ export default function RoleDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFBF9]">
-      <header className="sticky top-0 z-40 bg-[#FAFBF9]/90 backdrop-blur-md border-b border-[#E5E7EB]">
+    <div className="min-h-screen bg-[#FAFAF8]">
+      <header className="sticky top-0 z-40 bg-[#FAFAF8]/90 backdrop-blur-md border-b border-[#E8E8E4]">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
             data-testid="button-account-switcher"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E5E7EB] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A] transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#3730A3] hover:text-[#3730A3] transition-colors"
           >
             <RefreshCw size={18} /> Ganti Akun
           </button>
@@ -85,7 +88,7 @@ export default function RoleDashboard() {
             Pilih Peran Anda
           </h1>
           <p className="text-[#4B5563] text-lg mt-2">
-            Halo <span className="font-semibold text-[#0D5C3A]">{user.name}</span>, pilih area yang ingin Anda buka.
+            Halo <span className="font-semibold text-[#3730A3]">{user.name}</span>, pilih area yang ingin Anda buka.
           </p>
         </div>
 
@@ -109,7 +112,7 @@ export default function RoleDashboard() {
               <div
                 key={rid}
                 data-testid={`card-role-${rid}`}
-                className="bg-white rounded-2xl p-6 border border-[#E5E7EB] shadow-[0_4px_20px_-2px_rgba(13,92,58,0.08)] flex flex-col hover:shadow-[0_10px_32px_-6px_rgba(13,92,58,0.18)] hover:-translate-y-1 transition-all duration-200"
+                className="bg-white rounded-2xl p-6 border border-[#E8E8E4] shadow-[0_4px_20px_-2px_rgba(17,17,24,0.08)] flex flex-col hover:shadow-[0_10px_32px_-6px_rgba(17,17,24,0.18)] hover:-translate-y-1 transition-all duration-200"
               >
                 <div
                   className="h-14 w-14 rounded-2xl flex items-center justify-center mb-4"
@@ -148,7 +151,7 @@ export default function RoleDashboard() {
           <button
             data-testid="button-logout"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 text-[#6B7280] font-medium hover:text-[#0D5C3A]"
+            className="inline-flex items-center gap-2 text-[#6B7280] font-medium hover:text-[#3730A3]"
           >
             <LogOut size={18} /> Keluar
           </button>

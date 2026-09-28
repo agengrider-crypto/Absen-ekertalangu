@@ -584,3 +584,28 @@ Script verifikasi: `/app/tests/fase12_check.py`.
   peserta/Pengaduan, peserta/KesanPesan, peserta/TutorialQr, peserta/Beranda).
 - Deskripsi Pull Request siap tempel diberikan ke user (branch "update - terbaru"); PR dibuat
   manual di GitHub.com karena Save to GitHub hanya push branch.
+
+## FASE 16 — Tema "Clean" + Ruang Teduh + Perbaikan Peran (28 Sep 2026, uji manual)
+### Tema baru (pilihan user: opsi B dipadukan opsi A)
+- Palet: latar off-white `#FAFAF8`, kartu putih, garis hairline `#E8E8E4`, satu aksen indigo kalem
+  `#3730A3` (soft `#EEEFFB`, deep `#312E81`, hover `#2A2480`). Semua hex hijau lama
+  (#0D5C3A/#094229/#065F46/#E8F5EE/#F0FAF4/dll) dimigrasi otomatis di 63 file.
+- Font: body **Hanken Grotesk**, heading **Instrument Sans** (index.css ditulis ulang + token CSS
+  dan variabel shadcn disesuaikan). Animasi masuk halus `riseIn` untuk tiap halaman.
+- Sidebar panel kini **putih dengan border hairline**, item aktif indigo lembut; header & konten
+  lebih lapang (`py-8 sm:py-10`, sidebar 264px).
+### Ruang Teduh (pengganti nama Pengaduan/Curhat di semua peran)
+- `admin/RuangTeduhView.jsx` & `peserta/RuangTeduh.jsx` (file Pengaduan lama dihapus).
+- 6 jenis pesan: Curhat/Konsultasi, Saran & Masukan, Pengaduan, Permohonan Doa, Kendala Hadir,
+  Pertanyaan Keagamaan (dikirim backend lewat `GET /api/me/pengaduan`).
+- Batas pesan **5000 huruf** (`PENGADUAN_MAX`), minimal 10 huruf.
+- Hapus riwayat: `DELETE /api/me/pengaduan/{id}`, `DELETE /api/me/pengaduan` (semua, milik sendiri),
+  `DELETE /api/staff/pengaduan/{id}`, `DELETE /api/staff/pengaduan` (semua, tercatat di Log Aktivitas).
+### Peran & dashboard
+- Label peran: **Adminator / Pengurus / Peserta** (`src/lib/roles.js` → `roleLabel`, `rolesLabel`).
+- Tombol "Ganti Peran" di sidebar dihapus (cukup dari menu profil).
+- Akun berperan tunggal (mis. jamaah) **langsung masuk areanya** tanpa halaman Pilih Peran
+  (Login.jsx `autoRoleTarget` + redirect di RoleDashboard).
+- Judul dashboard: label peran + "Selamat datang, {nama} 👋" (admin/pengurus & jamaah).
+- Kartu **"Lengkapi Profil Kamu"** di dashboard jamaah: persentase + bar + daftar data kosong,
+  tap → tab Profil (`profileCompletion` dari 10 field termasuk foto). Diuji: Budi Santoso 60%.

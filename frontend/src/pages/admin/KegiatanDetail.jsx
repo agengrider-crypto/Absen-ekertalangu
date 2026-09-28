@@ -30,7 +30,7 @@ import {
 
 // Singkatan H / I / A supaya baris absen tetap ringkas di HP.
 const STATUS_BTN = {
-  hadir: { label: "H", full: "Hadir", on: "bg-[#0D5C3A] text-white", off: "text-[#065F46]" },
+  hadir: { label: "H", full: "Hadir", on: "bg-[#3730A3] text-white", off: "text-[#312E81]" },
   izin: { label: "I", full: "Izin", on: "bg-[#D97706] text-white", off: "text-[#92400E]" },
   alpha: { label: "A", full: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
 };
@@ -38,7 +38,7 @@ const STATUS_BTN = {
 const FOLLOWUP_META = {
   belum_dihubungi: { label: "Belum dihubungi", cls: "bg-[#F3F4F6] text-[#4B5563]" },
   sudah_dihubungi: { label: "Sudah dihubungi", cls: "bg-[#E0F2FE] text-[#075985]" },
-  akan_hadir: { label: "Akan hadir", cls: "bg-[#E8F5EE] text-[#065F46]" },
+  akan_hadir: { label: "Akan hadir", cls: "bg-[#EEEFFB] text-[#312E81]" },
   tidak_bisa: { label: "Tidak bisa hadir", cls: "bg-[#FEE2E2] text-[#991B1B]" },
 };
 
@@ -83,7 +83,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
     return (
       <div>
         <BackBar onBack={onBack} title="Detail Kegiatan" />
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>
         {err && <p className="text-center text-sm text-[#DC2626]">{err}</p>}
       </div>
     );
@@ -99,14 +99,14 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
         <button
           data-testid="kegiatan-detail-actions-button"
           onClick={() => setShowActions(true)}
-          className="ml-auto h-10 px-3.5 rounded-xl border-2 border-[#E5E7EB] bg-white text-[#4B5563] font-semibold text-sm inline-flex items-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+          className="ml-auto h-10 px-3.5 rounded-xl border-2 border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm inline-flex items-center gap-2 hover:border-[#3730A3] hover:text-[#3730A3]"
         >
           <MoreHorizontal size={17} /> Aksi Kegiatan
         </button>
       </div>
 
       {/* Kartu info kegiatan */}
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 sm:p-5">
+      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 sm:p-5">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pm.cls}`}>{pm.badge}</span>
@@ -135,11 +135,11 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
         {(k.session_total || 1) > 1 && k.session_group_id && (
           <div className="mt-3 flex flex-wrap gap-2" data-testid="detail-sesi-actions">
             <button type="button" data-testid="detail-rekap-gabungan" onClick={() => onRekapGabungan && onRekapGabungan(k)}
-              className="h-10 px-3.5 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#094229]">
+              className="h-10 px-3.5 rounded-xl bg-[#3730A3] text-white font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#2A2480]">
               <FileBarChart2 size={16} /> Rekap Gabungan 1 Hari ({k.session_total} sesi)
             </button>
             <button type="button" data-testid="detail-salin-jadwal" onClick={() => onSalinJadwal && onSalinJadwal(k)}
-              className="h-10 px-3.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#E8F5EE]">
+              className="h-10 px-3.5 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#EEEFFB]">
               <Copy size={16} /> Salin Jadwal Sesi
             </button>
           </div>
@@ -147,7 +147,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
       </div>
 
       {/* NAVIGASI BAR HORIZONTAL */}
-      <div className="sticky top-0 z-20 -mx-4 px-4 py-2 mt-3 bg-[#FAFBF9]/95 backdrop-blur border-b border-[#E5E7EB]">
+      <div className="sticky top-0 z-20 -mx-4 px-4 py-2 mt-3 bg-[#FAFAF8]/95 backdrop-blur border-b border-[#E8E8E4]">
         <div className="flex gap-2 overflow-x-auto no-scrollbar" data-testid="kegiatan-detail-tabs">
           {TABS.map((t) => {
             const Icon = t.icon;
@@ -158,7 +158,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
                 data-testid={`keg-tab-${t.key}`}
                 onClick={() => setTab(t.key)}
                 className={`shrink-0 h-10 px-3.5 rounded-xl font-semibold text-sm inline-flex items-center gap-2 border-2 transition-colors ${
-                  on ? "bg-[#0D5C3A] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E5E7EB] hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+                  on ? "bg-[#3730A3] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#3730A3] hover:text-[#3730A3]"
                 }`}
               >
                 <Icon size={16} /> {t.label}
@@ -251,11 +251,11 @@ function BackBar({ onBack, title }) {
       <button
         data-testid="kegiatan-detail-back"
         onClick={onBack}
-        className="h-10 px-3 rounded-xl border border-[#E5E7EB] bg-white text-[#4B5563] font-semibold text-sm inline-flex items-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+        className="h-10 px-3 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm inline-flex items-center gap-2 hover:border-[#3730A3] hover:text-[#3730A3]"
       >
         <ArrowLeft size={17} /> Kembali
       </button>
-      <div className="font-bold text-[#0D5C3A] truncate">{title}</div>
+      <div className="font-bold text-[#3730A3] truncate">{title}</div>
     </div>
   );
 }
@@ -279,7 +279,7 @@ function BarcodePublikPanel({ kegiatanId }) {
       .catch((e) => toast.error(formatApiErrorDetail(e.response?.data?.detail)));
   }, [kegiatanId]);
 
-  if (!info) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>;
+  if (!info) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={28} /></div>;
 
   const download = () => {
     const a = document.createElement("a");
@@ -289,10 +289,10 @@ function BarcodePublikPanel({ kegiatanId }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 text-center" data-testid="detail-publik-panel">
-      <img src={info.image} alt="Barcode Publik" className="mx-auto w-48 h-48 rounded-xl border border-[#E5E7EB] p-2" data-testid="detail-publik-qr" />
-      <div className="mt-4 bg-[#F0FAF4] border border-[#CDEBD9] rounded-xl p-3.5 text-left">
-        <p className="text-sm font-semibold text-[#065F46] flex items-center gap-1.5"><QrCode size={15} /> Barcode absen untuk jamaah umum</p>
+    <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 text-center" data-testid="detail-publik-panel">
+      <img src={info.image} alt="Barcode Publik" className="mx-auto w-48 h-48 rounded-xl border border-[#E8E8E4] p-2" data-testid="detail-publik-qr" />
+      <div className="mt-4 bg-[#F5F5FD] border border-[#DCDCF5] rounded-xl p-3.5 text-left">
+        <p className="text-sm font-semibold text-[#312E81] flex items-center gap-1.5"><QrCode size={15} /> Barcode absen untuk jamaah umum</p>
         <p className="text-xs text-[#4B5563] mt-1.5 leading-relaxed">
           Kegiatan ini <b>terbuka</b>, sehingga jamaah yang <b>belum aktivasi akun</b> cukup
           scan barcode ini, <b>mengisi nama</b>, lalu kehadiran <b>langsung tercatat</b> —
@@ -303,11 +303,11 @@ function BarcodePublikPanel({ kegiatanId }) {
       <div className="grid sm:grid-cols-2 gap-2 mt-3">
         <button onClick={() => { navigator.clipboard.writeText(info.link); toast.success("Tautan absen publik disalin"); }}
           data-testid="detail-publik-copy"
-          className="h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#E8F5EE]">
+          className="h-11 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#EEEFFB]">
           <Copy size={16} /> Salin Tautan
         </button>
         <button onClick={download} data-testid="detail-publik-download"
-          className="h-11 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold inline-flex items-center justify-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
+          className="h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold inline-flex items-center justify-center gap-2 hover:border-[#3730A3] hover:text-[#3730A3]">
           <Download size={16} /> Unduh Barcode
         </button>
       </div>
@@ -375,8 +375,8 @@ function AbsenManual({ kegiatanId, rows, closed, onReload }) {
           <span>Kegiatan sudah selesai. Absen susulan masih bisa dicatat oleh admin/pengurus.</span>
         </div>
       )}
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid="detail-absen-manual">
-        <div className="p-3 bg-[#FAFBF9] border-b border-[#E5E7EB]">
+      <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="detail-absen-manual">
+        <div className="p-3 bg-[#FAFAF8] border-b border-[#E8E8E4]">
           <div className="relative">
             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
             <input
@@ -384,11 +384,11 @@ function AbsenManual({ kegiatanId, rows, closed, onReload }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Cari nama peserta..."
-              className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E5E7EB] outline-none focus:border-[#0D5C3A] bg-white"
+              className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3] bg-white"
             />
           </div>
         </div>
-        <div className="divide-y divide-[#F1F2F0] max-h-[60vh] overflow-y-auto">
+        <div className="divide-y divide-[#ECECE8] max-h-[60vh] overflow-y-auto">
           {list.length === 0 ? (
             <div className="p-8 text-center text-sm text-[#6B7280]">Tidak ada peserta pada kegiatan ini.</div>
           ) : list.map((r) => (
@@ -404,7 +404,7 @@ function AbsenManual({ kegiatanId, rows, closed, onReload }) {
                     <span className="font-mono text-[11px] text-[#4B5563]">{hhmm(r.arrival_time)}</span>
                   )}
                   {r.attended_other && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[#E8F5EE] text-[#065F46]">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]">
                       Sudah hadir sesi {r.attended_other_label}
                     </span>
                   )}
@@ -425,7 +425,7 @@ function AbsenManual({ kegiatanId, rows, closed, onReload }) {
                       onClick={() => mark(r.user_id, s)}
                       title={cfg.full}
                       aria-label={cfg.full}
-                      className={`h-8 w-9 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E5E7EB] hover:border-current`}`}
+                      className={`h-8 w-9 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
                     >
                       {cfg.label}
                     </button>
@@ -439,7 +439,7 @@ function AbsenManual({ kegiatanId, rows, closed, onReload }) {
       <button
         data-testid="detail-absen-reload"
         onClick={onReload}
-        className="w-full h-11 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold inline-flex items-center justify-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+        className="w-full h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold inline-flex items-center justify-center gap-2 hover:border-[#3730A3] hover:text-[#3730A3]"
       >
         <RefreshCw size={16} /> Muat Ulang Data
       </button>
@@ -472,9 +472,9 @@ function ScanTabPanel({ kegiatanId, closed, onReload }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4" data-testid="detail-scan-panel">
+    <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid="detail-scan-panel">
       <p className="text-sm text-[#4B5563] mb-3">
-        <ScanLine size={16} className="text-[#0D5C3A] inline mr-1.5 -mt-0.5" />
+        <ScanLine size={16} className="text-[#3730A3] inline mr-1.5 -mt-0.5" />
         Arahkan kamera ke <b>QR pribadi peserta</b> (menu &quot;QR Saya&quot;) untuk mencatat kehadiran.
         Mode ini memerlukan internet.
       </p>
@@ -484,7 +484,7 @@ function ScanTabPanel({ kegiatanId, closed, onReload }) {
         </div>
       ) : <QrScanner onDetected={onDetected} />}
       {last && (
-        <div className="mt-3 bg-[#F0FAF4] border border-[#CDEBD9] rounded-xl p-3 flex items-center gap-2 text-sm text-[#065F46]" data-testid="detail-scan-result">
+        <div className="mt-3 bg-[#F5F5FD] border border-[#DCDCF5] rounded-xl p-3 flex items-center gap-2 text-sm text-[#312E81]" data-testid="detail-scan-result">
           <CheckCircle2 size={18} /> <b>{last.name}</b> — {last.already ? "sudah tercatat hadir" : "tercatat hadir"}
           {last.arrival_time ? ` (${hhmm(last.arrival_time)})` : ""}
         </div>
@@ -523,8 +523,8 @@ function TamuPanel({ kegiatanId, guests, onReload }) {
 
   return (
     <div className="space-y-3" data-testid="detail-tamu-panel">
-      <form onSubmit={add} className="bg-white rounded-2xl border border-[#E5E7EB] p-4">
-        <div className="font-bold text-[#111827] text-[15px] flex items-center gap-2"><UserPlus size={17} className="text-[#0D5C3A]" /> Tambah Tamu (tanpa akun)</div>
+      <form onSubmit={add} className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
+        <div className="font-bold text-[#111827] text-[15px] flex items-center gap-2"><UserPlus size={17} className="text-[#3730A3]" /> Tambah Tamu (tanpa akun)</div>
         <p className="text-sm text-[#6B7280] mt-1">
           Kegiatan terbuka/publik: jamaah yang belum aktivasi akun cukup dicatat namanya saja.
         </p>
@@ -534,27 +534,27 @@ function TamuPanel({ kegiatanId, guests, onReload }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nama tamu"
-            className="flex-1 min-w-[180px] h-11 px-3.5 rounded-xl border-2 border-[#E5E7EB] outline-none focus:border-[#0D5C3A] bg-white"
+            className="flex-1 min-w-[180px] h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3] bg-white"
           />
           <button
             data-testid="tamu-add-button"
             type="submit"
             disabled={saving}
-            className="h-11 px-4 rounded-xl bg-[#0D5C3A] text-white font-semibold inline-flex items-center gap-2 hover:bg-[#094229] disabled:opacity-60"
+            className="h-11 px-4 rounded-xl bg-[#3730A3] text-white font-semibold inline-flex items-center gap-2 hover:bg-[#2A2480] disabled:opacity-60"
           >
             {saving ? <Loader2 className="animate-spin" size={17} /> : <UserPlus size={17} />} Catat Hadir
           </button>
         </div>
       </form>
 
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#E5E7EB] font-semibold text-[#111827] text-sm">
+      <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#E8E8E4] font-semibold text-[#111827] text-sm">
           Daftar Tamu ({guests.length})
         </div>
         {guests.length === 0 ? (
           <div className="p-8 text-center text-sm text-[#9CA3AF]">Belum ada tamu yang dicatat.</div>
         ) : (
-          <div className="divide-y divide-[#F1F2F0]">
+          <div className="divide-y divide-[#ECECE8]">
             {guests.map((g) => (
               <div key={g.id} data-testid={`tamu-row-${g.id}`} className="px-4 py-3 flex items-center justify-between gap-3">
                 <div>
@@ -605,12 +605,12 @@ function TindakLanjut({ kegiatanId }) {
   };
 
   if (!data) {
-    return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>;
+    return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={28} /></div>;
   }
 
   if (!data.previous) {
     return (
-      <div className="bg-white rounded-2xl border border-dashed border-[#E5E7EB] p-8 text-center text-sm text-[#6B7280]" data-testid="tindak-empty">
+      <div className="bg-white rounded-2xl border border-dashed border-[#E8E8E4] p-8 text-center text-sm text-[#6B7280]" data-testid="tindak-empty">
         Belum ada kegiatan sebelumnya untuk dijadikan rujukan rekap ketidakhadiran.
       </div>
     );
@@ -619,8 +619,8 @@ function TindakLanjut({ kegiatanId }) {
   const c = data.counts || {};
   return (
     <div className="space-y-3" data-testid="detail-tindak-panel">
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4">
-        <div className="font-bold text-[#111827] text-[15px] flex items-center gap-2"><ClipboardList size={17} className="text-[#0D5C3A]" /> Rekap Tidak Hadir Kegiatan Sebelumnya</div>
+      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
+        <div className="font-bold text-[#111827] text-[15px] flex items-center gap-2"><ClipboardList size={17} className="text-[#3730A3]" /> Rekap Tidak Hadir Kegiatan Sebelumnya</div>
         <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
           Daftar jamaah yang <b>tidak hadir</b> pada kegiatan <b>{data.previous.name}</b>{" "}
           ({tanggalSingkat(data.previous.date)}). Silakan hubungi lewat WhatsApp / telepon,
@@ -628,14 +628,14 @@ function TindakLanjut({ kegiatanId }) {
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
           <Stat value={c.total} label="Tidak hadir" bg="#FEE2E2" fg="#991B1B" testid="tindak-total" />
-          <Stat value={c.akan_hadir} label="Akan hadir" bg="#E8F5EE" fg="#065F46" testid="tindak-akan" />
+          <Stat value={c.akan_hadir} label="Akan hadir" bg="#EEEFFB" fg="#312E81" testid="tindak-akan" />
           <Stat value={c.tidak_bisa} label="Tidak bisa" bg="#FEF3C7" fg="#92400E" testid="tindak-tidak" />
-          <Stat value={c.belum_dihubungi} label="Belum dihubungi" bg="#F2F5F2" fg="#111827" testid="tindak-belum" />
+          <Stat value={c.belum_dihubungi} label="Belum dihubungi" bg="#F4F4F1" fg="#111827" testid="tindak-belum" />
         </div>
       </div>
 
       {data.rows.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E5E7EB] p-8 text-center text-sm text-[#065F46]">
+        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-8 text-center text-sm text-[#312E81]">
           Alhamdulillah, semua jamaah hadir pada kegiatan sebelumnya.
         </div>
       ) : (
@@ -649,7 +649,7 @@ function TindakLanjut({ kegiatanId }) {
               `kami dari pengurus pengajian. Mohon izin menanyakan, apakah bisa hadir pada kegiatan berikutnya? ` +
               "Jazakumullahu khoiro.");
             return (
-              <div key={r.user_id} data-testid={`tindak-row-${r.user_id}`} className="bg-white rounded-2xl border border-[#E5E7EB] p-4">
+              <div key={r.user_id} data-testid={`tindak-row-${r.user_id}`} className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="min-w-0">
                     <div className="font-semibold text-[#111827] text-sm">{r.name}</div>
@@ -680,7 +680,7 @@ function TindakLanjut({ kegiatanId }) {
                     <a
                       data-testid={`tindak-call-${r.user_id}`}
                       href={`tel:${String(r.phone).replace(/\s+/g, "")}`}
-                      className="h-10 px-3.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#E8F5EE]"
+                      className="h-10 px-3.5 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#EEEFFB]"
                     >
                       <PhoneCall size={15} /> Telepon
                     </a>
@@ -692,7 +692,7 @@ function TindakLanjut({ kegiatanId }) {
                   value={notes[r.user_id] ?? (fu.note || "")}
                   onChange={(e) => setNotes((p) => ({ ...p, [r.user_id]: e.target.value }))}
                   placeholder="Catatan (mis. sedang sakit, luar kota)"
-                  className="mt-2 w-full h-11 px-3.5 rounded-xl border-2 border-[#E5E7EB] outline-none focus:border-[#0D5C3A] bg-white text-sm"
+                  className="mt-2 w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3] bg-white text-sm"
                 />
 
                 <div className="grid grid-cols-3 gap-2 mt-2">
@@ -700,7 +700,7 @@ function TindakLanjut({ kegiatanId }) {
                     data-testid={`tindak-set-akan-${r.user_id}`}
                     disabled={busy === r.user_id + "akan_hadir"}
                     onClick={() => setStatus(r, "akan_hadir")}
-                    className="h-10 rounded-xl bg-[#0D5C3A] text-white font-semibold text-xs sm:text-sm hover:bg-[#094229] disabled:opacity-60"
+                    className="h-10 rounded-xl bg-[#3730A3] text-white font-semibold text-xs sm:text-sm hover:bg-[#2A2480] disabled:opacity-60"
                   >
                     Akan Hadir
                   </button>
@@ -716,7 +716,7 @@ function TindakLanjut({ kegiatanId }) {
                     data-testid={`tindak-set-hubungi-${r.user_id}`}
                     disabled={busy === r.user_id + "sudah_dihubungi"}
                     onClick={() => setStatus(r, "sudah_dihubungi")}
-                    className="h-10 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold text-xs sm:text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A] disabled:opacity-60"
+                    className="h-10 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold text-xs sm:text-sm hover:border-[#3730A3] hover:text-[#3730A3] disabled:opacity-60"
                   >
                     Sudah Dihubungi
                   </button>
@@ -746,7 +746,7 @@ function KodeAksesPanel({ kegiatanId }) {
 
   useEffect(() => { load(); }, [load]);
 
-  if (!info) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>;
+  if (!info) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={28} /></div>;
 
   const regenerate = async () => {
     setBusy(true);
@@ -764,31 +764,31 @@ function KodeAksesPanel({ kegiatanId }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 text-center" data-testid="detail-kode-panel">
-      <img src={info.image} alt="QR Absensi Kegiatan" className="mx-auto w-48 h-48 rounded-xl border border-[#E5E7EB] p-2" data-testid="detail-akses-qr" />
-      <div className="mt-4 rounded-2xl border-2 border-dashed border-[#0D5C3A] bg-[#F0FAF4] p-4">
-        <div className="text-xs font-semibold text-[#065F46] flex items-center justify-center gap-1.5"><KeyRound size={14} /> KODE AKSES ABSENSI</div>
-        <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#0D5C3A]" data-testid="detail-akses-code">{info.code}</div>
+    <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 text-center" data-testid="detail-kode-panel">
+      <img src={info.image} alt="QR Absensi Kegiatan" className="mx-auto w-48 h-48 rounded-xl border border-[#E8E8E4] p-2" data-testid="detail-akses-qr" />
+      <div className="mt-4 rounded-2xl border-2 border-dashed border-[#3730A3] bg-[#F5F5FD] p-4">
+        <div className="text-xs font-semibold text-[#312E81] flex items-center justify-center gap-1.5"><KeyRound size={14} /> KODE AKSES ABSENSI</div>
+        <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#3730A3]" data-testid="detail-akses-code">{info.code}</div>
         <div className="text-xs text-[#4B5563] mt-1">Berlaku sampai kegiatan ditutup/selesai</div>
       </div>
       <p className="text-xs text-[#9CA3AF] mt-3 break-all px-2">{info.link}</p>
       <div className="grid sm:grid-cols-2 gap-2 mt-3">
         <button onClick={() => { navigator.clipboard.writeText(info.code); toast.success("Kode akses disalin"); }}
           data-testid="detail-copy-code"
-          className="h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#E8F5EE]">
+          className="h-11 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#EEEFFB]">
           <Copy size={16} /> Salin Kode
         </button>
         <button onClick={() => { navigator.clipboard.writeText(info.link); toast.success("Tautan absensi disalin"); }}
           data-testid="detail-copy-link"
-          className="h-11 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold inline-flex items-center justify-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
+          className="h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold inline-flex items-center justify-center gap-2 hover:border-[#3730A3] hover:text-[#3730A3]">
           <Copy size={16} /> Salin Tautan
         </button>
         <button onClick={download} data-testid="detail-download-qr"
-          className="h-11 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold inline-flex items-center justify-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
+          className="h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold inline-flex items-center justify-center gap-2 hover:border-[#3730A3] hover:text-[#3730A3]">
           <Download size={16} /> Unduh QR
         </button>
         <button onClick={regenerate} disabled={busy} data-testid="detail-regenerate-code"
-          className="h-11 rounded-xl bg-[#0D5C3A] text-white font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60">
+          className="h-11 rounded-xl bg-[#3730A3] text-white font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60">
           {busy ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />} Perbarui Kode
         </button>
       </div>
@@ -812,17 +812,17 @@ function PesanPanel({ kegiatanId }) {
       .catch((e) => { toast.error(formatApiErrorDetail(e.response?.data?.detail)); setItems([]); });
   }, [kegiatanId]);
 
-  if (items === null) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={28} /></div>;
+  if (items === null) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={28} /></div>;
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid="detail-pesan-panel">
-      <div className="px-4 py-3 border-b border-[#E5E7EB] font-semibold text-[#111827] text-sm">
+    <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="detail-pesan-panel">
+      <div className="px-4 py-3 border-b border-[#E8E8E4] font-semibold text-[#111827] text-sm">
         Kotak Pesan / Saran ({items.length})
       </div>
       {items.length === 0 ? (
         <div className="p-8 text-center text-sm text-[#9CA3AF]">Belum ada pesan / saran dari peserta.</div>
       ) : (
-        <div className="divide-y divide-[#F1F2F0] max-h-[60vh] overflow-y-auto">
+        <div className="divide-y divide-[#ECECE8] max-h-[60vh] overflow-y-auto">
           {items.map((f) => (
             <div key={f.id} className="px-4 py-3">
               <div className="flex items-center justify-between gap-2">

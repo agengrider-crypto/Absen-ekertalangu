@@ -34,9 +34,9 @@ export default function ContactButtons({ phone, whatsapp, name, testidPrefix = "
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 border border-[#E5E7EB]" data-testid={`${testidPrefix}-section`}>
+    <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]" data-testid={`${testidPrefix}-section`}>
       <div className="text-sm font-semibold text-[#111827] mb-2.5 flex items-center gap-1.5">
-        <Phone size={15} className="text-[#0D5C3A]" /> {label}
+        <Phone size={15} className="text-[#3730A3]" /> {label}
       </div>
       {kosong ? (
         <p className="text-sm text-[#9CA3AF] flex items-center gap-1.5">
@@ -49,7 +49,7 @@ export default function ContactButtons({ phone, whatsapp, name, testidPrefix = "
             data-testid={`${testidPrefix}-call`}
             onClick={callNow}
             disabled={!tel}
-            className="flex-1 h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#E8F5EE] disabled:opacity-50"
+            className="flex-1 h-11 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#EEEFFB] disabled:opacity-50"
           >
             <Phone size={16} /> Telepon
           </button>

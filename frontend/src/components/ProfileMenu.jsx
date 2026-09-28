@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import ProfileModal from "@/components/ProfileModal";
 import ActionModal from "@/components/ActionModal";
 import RoleSwitcher from "@/components/RoleSwitcher";
+import { rolesLabel } from "@/lib/roles";
 
 /**
  * Menu akun di kanan atas.
@@ -39,7 +40,7 @@ export default function ProfileMenu({ subtitle }) {
       <button
         data-testid="button-profile-menu"
         onClick={() => setOpenMenu(true)}
-        className="relative flex items-center gap-2.5 rounded-full pl-1 pr-2 py-1 hover:bg-[#F2F5F2] transition-colors"
+        className="relative flex items-center gap-2.5 rounded-full pl-1 pr-2 py-1 hover:bg-[#F4F4F1] transition-colors"
       >
         <div className="text-right hidden sm:block leading-tight">
           <div className="font-semibold text-[#111827] text-sm">{user?.name}</div>
@@ -56,7 +57,7 @@ export default function ProfileMenu({ subtitle }) {
         <ActionModal
           testid="profile-action-modal"
           title={user?.name || "Akun Saya"}
-          subtitle={(user?.roles || []).join(" · ")}
+          subtitle={rolesLabel(user?.roles)}
           onClose={() => setOpenMenu(false)}
           actions={[
             {
@@ -86,7 +87,7 @@ export default function ProfileMenu({ subtitle }) {
             },
           ]}
         >
-          <div className="px-3.5 py-3 mb-1 flex items-center gap-3.5 rounded-2xl bg-[#FAFBF9] border border-[#F1F2F0]">
+          <div className="px-3.5 py-3 mb-1 flex items-center gap-3.5 rounded-2xl bg-[#FAFAF8] border border-[#ECECE8]">
             <Avatar size={52} photo={photo} initials={initials} />
             <div className="min-w-0">
               <div className="font-bold text-[#111827] text-sm truncate">{user?.name}</div>
@@ -112,7 +113,7 @@ export default function ProfileMenu({ subtitle }) {
 function Avatar({ size = 40, photo, initials }) {
   return (
     <div
-      className="rounded-full overflow-hidden bg-[#0D5C3A] text-white flex items-center justify-center font-bold shrink-0 border-2 border-white shadow-sm"
+      className="rounded-full overflow-hidden bg-[#3730A3] text-white flex items-center justify-center font-bold shrink-0 border-2 border-white shadow-sm"
       style={{ height: size, width: size, fontSize: size * 0.34 }}
     >
       {photo ? <img src={photo} alt="Foto profil" className="h-full w-full object-cover" /> : initials}

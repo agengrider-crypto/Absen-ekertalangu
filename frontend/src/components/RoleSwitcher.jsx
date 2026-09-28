@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import ActionModal from "@/components/ActionModal";
 
 const META = {
-  admin: { icon: Shield, label: "Area Admin", desc: "Kelola jamaah, kegiatan & laporan" },
+  admin: { icon: Shield, label: "Area Adminator", desc: "Kelola jamaah, kegiatan & laporan" },
   pengurus: { icon: Users, label: "Area Pengurus", desc: "Presensi, musyawarah & rekap" },
   peserta: { icon: UserCheck, label: "Area Jamaah", desc: "QR pribadi, absen & curhat" },
 };

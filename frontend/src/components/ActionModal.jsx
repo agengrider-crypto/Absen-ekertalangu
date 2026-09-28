@@ -36,10 +36,10 @@ export default function ActionModal({ title, subtitle, actions = [], onClose, te
       >
         {/* Handle bar (mobile) */}
         <div className="sm:hidden pt-2.5 pb-1 flex justify-center">
-          <div className="h-1.5 w-11 rounded-full bg-[#E5E7EB]" />
+          <div className="h-1.5 w-11 rounded-full bg-[#E8E8E4]" />
         </div>
 
-        <div className="px-5 pt-3 pb-3 border-b border-[#F1F2F0] flex items-start justify-between gap-3">
+        <div className="px-5 pt-3 pb-3 border-b border-[#ECECE8] flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="font-heading font-bold text-[#111827] text-base leading-tight">{title}</h3>
             {subtitle && <p className="text-sm text-[#6B7280] mt-0.5 truncate">{subtitle}</p>}
@@ -48,7 +48,7 @@ export default function ActionModal({ title, subtitle, actions = [], onClose, te
             data-testid={`${testid}-close`}
             onClick={onClose}
             aria-label="Tutup"
-            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F2F5F2]"
+            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F4F4F1]"
           >
             <X size={19} />
           </button>
@@ -65,14 +65,14 @@ export default function ActionModal({ title, subtitle, actions = [], onClose, te
                 disabled={a.disabled}
                 onClick={() => { onClose?.(); a.onClick?.(); }}
                 className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-left transition-colors disabled:opacity-45 disabled:cursor-not-allowed ${
-                  a.danger ? "hover:bg-red-50" : "hover:bg-[#F0FAF4]"
+                  a.danger ? "hover:bg-red-50" : "hover:bg-[#F5F5FD]"
                 }`}
               >
                 <span
                   className="h-10 w-10 shrink-0 rounded-xl flex items-center justify-center"
                   style={{
-                    backgroundColor: a.danger ? "#FEE2E2" : "#E8F5EE",
-                    color: a.danger ? "#DC2626" : "#0D5C3A",
+                    backgroundColor: a.danger ? "#FEE2E2" : "#EEEFFB",
+                    color: a.danger ? "#DC2626" : "#3730A3",
                   }}
                 >
                   {Icon && <Icon size={19} />}
@@ -88,11 +88,11 @@ export default function ActionModal({ title, subtitle, actions = [], onClose, te
           })}
         </div>
 
-        <div className="px-3 pb-3 pt-1 border-t border-[#F1F2F0]">
+        <div className="px-3 pb-3 pt-1 border-t border-[#ECECE8]">
           <button
             data-testid={`${testid}-cancel`}
             onClick={onClose}
-            className="w-full h-12 rounded-2xl bg-[#F2F5F2] text-[#4B5563] font-semibold hover:bg-[#E9EDE9]"
+            className="w-full h-12 rounded-2xl bg-[#F4F4F1] text-[#4B5563] font-semibold hover:bg-[#E9EDE9]"
           >
             Tutup
           </button>

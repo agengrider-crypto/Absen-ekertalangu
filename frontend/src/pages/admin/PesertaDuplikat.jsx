@@ -35,31 +35,31 @@ export default function PesertaDuplikat() {
       <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-            <CopyCheck size={22} className="text-[#0D5C3A]" /> Cek Duplikat
+            <CopyCheck size={22} className="text-[#3730A3]" /> Cek Duplikat
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
             Jamaah dengan nama sama akan dikelompokkan di sini. Periksa tanggal lahir &amp; No. HP sebelum menghapus.
           </p>
         </div>
         <button data-testid="duplikat-refresh" onClick={() => { setData(null); load(); }}
-          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-sm hover:bg-[#E8F5EE]">
+          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm hover:bg-[#EEEFFB]">
           <RefreshCw size={16} /> Periksa Ulang
         </button>
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>
       ) : data === false ? (
         <div className="p-10 text-center text-[#6B7280]">Gagal memuat data.</div>
       ) : (
         <>
           <div className="grid grid-cols-3 gap-3 my-4">
             {[
-              { label: "Total jamaah", value: data.total_peserta, color: "#0D5C3A" },
+              { label: "Total jamaah", value: data.total_peserta, color: "#3730A3" },
               { label: "Nama kembar", value: data.total_grup, color: "#D97706" },
               { label: "Data terlibat", value: data.total_duplikat, color: "#DC2626" },
             ].map((s) => (
-              <div key={s.label} className="bg-white rounded-2xl border border-[#E5E7EB] p-4" data-testid={`duplikat-stat-${s.label}`}>
+              <div key={s.label} className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid={`duplikat-stat-${s.label}`}>
                 <div className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</div>
                 <div className="text-xs text-[#6B7280] mt-1">{s.label}</div>
               </div>
@@ -67,22 +67,22 @@ export default function PesertaDuplikat() {
           </div>
 
           {data.groups.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-[#CDEBD9] p-10 text-center" data-testid="duplikat-empty">
-              <CopyCheck size={30} className="mx-auto text-[#0D5C3A] mb-2" />
-              <p className="text-[#065F46] font-semibold">Alhamdulillah, tidak ada nama jamaah yang kembar.</p>
+            <div className="bg-white rounded-2xl border border-[#DCDCF5] p-10 text-center" data-testid="duplikat-empty">
+              <CopyCheck size={30} className="mx-auto text-[#3730A3] mb-2" />
+              <p className="text-[#312E81] font-semibold">Alhamdulillah, tidak ada nama jamaah yang kembar.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {data.groups.map((g) => (
-                <div key={g.name} className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid={`duplikat-group-${g.name}`}>
-                  <div className="px-5 py-3 border-b border-[#E5E7EB] flex items-center justify-between gap-3 bg-[#FFFBEB]">
+                <div key={g.name} className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid={`duplikat-group-${g.name}`}>
+                  <div className="px-5 py-3 border-b border-[#E8E8E4] flex items-center justify-between gap-3 bg-[#FFFBEB]">
                     <div className="font-heading font-bold text-[#92400E]">{g.name}</div>
                     <div className="flex items-center gap-2">
                       {g.same_dob && <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEE2E2] text-[#991B1B]">Tanggal lahir sama</span>}
                       <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]">{g.count} data</span>
                     </div>
                   </div>
-                  <ul className="divide-y divide-[#F1F2F0]">
+                  <ul className="divide-y divide-[#ECECE8]">
                     {g.rows.map((r) => {
                       const b = statusBadge(r.status, r.needs_completion);
                       const kel = kelompok.find((k) => k.id === r.kelompok_id);
@@ -95,12 +95,12 @@ export default function PesertaDuplikat() {
                               <span className="inline-flex items-center gap-1"><Phone size={12} /> {r.phone || "-"}</span>
                               <span>{genderLabel(r.gender)}</span>
                               {kel && <span>{kel.name}</span>}
-                              {r.pernah_login && <span className="text-[#065F46] font-semibold">pernah login</span>}
+                              {r.pernah_login && <span className="text-[#312E81] font-semibold">pernah login</span>}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <button data-testid={`duplikat-detail-${r.id}`} onClick={() => setDetailId(r.id)}
-                              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E5E7EB] text-[#0D5C3A] font-semibold text-sm hover:border-[#0D5C3A] hover:bg-[#E8F5EE]">
+                              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#3730A3] font-semibold text-sm hover:border-[#3730A3] hover:bg-[#EEEFFB]">
                               <Eye size={15} /> Detail
                             </button>
                             <button data-testid={`duplikat-hapus-${r.id}`} onClick={() => hapus(r)}

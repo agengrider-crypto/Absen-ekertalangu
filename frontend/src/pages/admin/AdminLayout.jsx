@@ -3,14 +3,14 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
-  ShieldCheck, Menu, X, LogOut, ArrowLeftRight, MessagesSquare, Megaphone, UserCog, Layers,
+  ShieldCheck, Menu, X, LogOut, MessagesSquare, Megaphone, UserCog, Layers,
   MonitorSmartphone, CalendarRange, ListPlus, CopyCheck, KeyRound, ScanLine,
-  ClipboardList, CalendarCheck, MessageSquareHeart, ChevronDown,
+  ClipboardList, CalendarCheck, HeartHandshake,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
-import RoleSwitcher from "@/components/RoleSwitcher";
+import { roleLabel } from "@/lib/roles";
 import DashboardView from "./DashboardView";
 import Peserta from "./Peserta";
 import PesertaBulkView from "./PesertaBulkView";
@@ -23,7 +23,7 @@ import LogAktivitas from "./LogAktivitas";
 import HakAkses from "./HakAkses";
 import MusyawarahView from "./MusyawarahView";
 import PengumumanView from "./PengumumanView";
-import PengaduanView from "./PengaduanView";
+import RuangTeduhView from "./RuangTeduhView";
 import KelompokView from "./KelompokView";
 import PantauLoginView from "./PantauLoginView";
 import RekapBulananView from "./RekapBulananView";
@@ -59,7 +59,7 @@ const MENU = [
     ],
   },
   { key: "musyawarah", label: "Musyawarah", icon: MessagesSquare, roles: ["admin", "pengurus"] },
-  { key: "pengaduan", label: "Pengaduan Jamaah", icon: MessageSquareHeart, roles: ["admin", "pengurus"] },
+  { key: "pengaduan", label: "Ruang Teduh", icon: HeartHandshake, roles: ["admin", "pengurus"] },
   { key: "log", label: "Log Aktivitas", icon: ScrollText, roles: ["admin"] },
   { key: "hakakses", label: "Hak Akses", icon: ShieldCheck, roles: ["admin"] },
 ];
@@ -78,8 +78,8 @@ function NavButton({ item, active, onNav }) {
     <button
       data-testid={`nav-${item.key}`}
       onClick={() => onNav(item.key)}
-      className={`w-full flex items-center gap-3 px-3.5 h-11 rounded-xl font-semibold text-sm transition-colors ${
-        on ? "bg-white/15 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+      className={`w-full flex items-center gap-3 px-3.5 h-11 rounded-xl font-medium text-sm transition-colors ${
+        on ? "bg-[#EEEFFB] text-[#312E81] font-semibold" : "text-[#6B7280] hover:bg-[#F4F4F1] hover:text-[#111114]"
       }`}
     >
       <Icon size={19} /> {item.label}
@@ -87,22 +87,22 @@ function NavButton({ item, active, onNav }) {
   );
 }
 
-function SidebarInner({ active, onNav, onSwitch, onLogout, role, menu }) {
+function SidebarInner({ active, onNav, onLogout, role, menu }) {
   return (
     <div className="flex flex-col h-full">
-      <div className="px-5 py-5 flex items-center gap-2 border-b border-white/10">
-        <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" /></div>
+      <div className="px-5 py-5 flex items-center gap-2.5 border-b border-[#E8E8E4]">
+        <div className="h-9 w-9 rounded-xl bg-[#EEEFFB] flex items-center justify-center overflow-hidden p-1"><img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" /></div>
         <div className="leading-tight">
-          <div className="text-white font-bold font-heading">E-KERTALANGU</div>
-          <div className="text-white/60 text-xs">{role === "pengurus" ? "Panel Pengurus" : "Panel Admin"}</div>
+          <div className="text-[#111114] font-bold font-heading">E-KERTALANGU</div>
+          <div className="text-[#9CA3AF] text-xs">{role === "pengurus" ? "Panel Pengurus" : "Panel Adminator"}</div>
         </div>
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
         {menu.map((m) => {
           if (!m.items) return <NavButton key={m.key} item={m} active={active} onNav={onNav} />;
           return (
-            <div key={m.group} className="pt-3" data-testid={`submenu-${m.group}`}>
-              <div className="px-3.5 pb-1 text-[11px] font-bold uppercase tracking-wider text-white/40">
+            <div key={m.group} className="pt-5" data-testid={`submenu-${m.group}`}>
+              <div className="px-3.5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF]">
                 {m.label}
               </div>
               <div className="space-y-1">
@@ -112,18 +112,11 @@ function SidebarInner({ active, onNav, onSwitch, onLogout, role, menu }) {
           );
         })}
       </nav>
-      <div className="p-3 border-t border-white/10 space-y-1">
-        <button
-          data-testid="button-switch-role"
-          onClick={onSwitch}
-          className="w-full flex items-center gap-3 px-3.5 h-11 rounded-xl text-white/70 hover:bg-white/10 hover:text-white font-semibold text-sm"
-        >
-          <ArrowLeftRight size={18} /> Ganti Peran
-        </button>
+      <div className="p-3 border-t border-[#E8E8E4]">
         <button
           data-testid="button-logout"
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-3.5 h-11 rounded-xl text-white/70 hover:bg-white/10 hover:text-white font-semibold text-sm"
+          className="w-full flex items-center gap-3 px-3.5 h-11 rounded-xl text-[#6B7280] hover:bg-[#F4F4F1] hover:text-[#DC2626] font-medium text-sm transition-colors"
         >
           <LogOut size={18} /> Keluar
         </button>
@@ -138,7 +131,6 @@ export default function AdminLayout({ user, role = "admin" }) {
   const menu = buildMenu(role);
   const [active, setActive] = useState("dashboard");
   const [drawer, setDrawer] = useState(false);
-  const [switcher, setSwitcher] = useState(false);
 
   const allKeys = menu.flatMap((m) => (m.items ? m.items.map((i) => i.key) : [m.key]));
 
@@ -153,49 +145,47 @@ export default function AdminLayout({ user, role = "admin" }) {
     navigate("/login");
   };
 
-  const openSwitcher = () => { setDrawer(false); setSwitcher(true); };
-
   return (
-    <div className="min-h-screen bg-[#F5F7F4]">
+    <div className="min-h-screen bg-[#F7F7F5]">
       {/* Sidebar desktop */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 bg-[#0D5C3A] flex-col z-30">
-        <SidebarInner active={active} onNav={go} onSwitch={openSwitcher} onLogout={doLogout} role={role} menu={menu} />
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[264px] bg-white border-r border-[#E8E8E4] flex-col z-30">
+        <SidebarInner active={active} onNav={go} onLogout={doLogout} role={role} menu={menu} />
       </aside>
 
       {/* Drawer mobile */}
       {drawer && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setDrawer(false)} />
-          <aside className="relative w-64 bg-[#0D5C3A] flex flex-col">
-            <button onClick={() => setDrawer(false)} className="absolute top-4 right-3 text-white/80 h-8 w-8 flex items-center justify-center">
+          <aside className="relative w-[264px] bg-white flex flex-col">
+            <button onClick={() => setDrawer(false)} className="absolute top-4 right-3 text-[#6B7280] h-8 w-8 flex items-center justify-center">
               <X size={20} />
             </button>
-            <SidebarInner active={active} onNav={go} onSwitch={openSwitcher} onLogout={doLogout} role={role} menu={menu} />
+            <SidebarInner active={active} onNav={go} onLogout={doLogout} role={role} menu={menu} />
           </aside>
         </div>
       )}
 
-      <div className="lg:pl-64">
+      <div className="lg:pl-[264px]">
         {/* Topbar */}
-        <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-[#E5E7EB]">
+        <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-[#E8E8E4]">
           <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 data-testid="button-open-drawer"
                 onClick={() => setDrawer(true)}
-                className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg border border-[#E5E7EB] text-[#4B5563]"
+                className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg border border-[#E8E8E4] text-[#4B5563]"
               >
                 <Menu size={20} />
               </button>
               <Logo size={32} />
             </div>
             <div className="flex items-center gap-2">
-              <ProfileMenu subtitle={role === "pengurus" ? "Pengurus" : "Administrator"} />
+              <ProfileMenu subtitle={roleLabel(role)} />
             </div>
           </div>
         </header>
 
-        <main className="px-4 sm:px-6 py-6 max-w-6xl mx-auto">
+        <main className="px-4 sm:px-8 py-8 sm:py-10 max-w-6xl mx-auto">
           {active === "dashboard" && <DashboardView user={user} onGoto={go} role={role} />}
           {active === "peserta" && <Peserta role={role} />}
           {active === "peserta-bulk" && <PesertaBulkView />}
@@ -205,7 +195,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "scan-presensi" && <ScanPresensiView />}
           {active === "musyawarah" && <MusyawarahView />}
           {active === "pengumuman" && <PengumumanView />}
-          {active === "pengaduan" && <PengaduanView />}
+          {active === "pengaduan" && <RuangTeduhView />}
           {active === "laporan" && <LaporanView />}
           {active === "rekap-bulanan" && <RekapBulananView />}
           {active === "rekap-harian" && (
@@ -220,8 +210,6 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "hakakses" && role === "admin" && <HakAkses currentUserId={user?.id} />}
         </main>
       </div>
-
-      {switcher && <RoleSwitcher current={role} onClose={() => setSwitcher(false)} />}
     </div>
   );
 }

@@ -27,7 +27,7 @@ function badgeOf(r) {
   if (r.hadir === 0) return { t: "Belum pernah hadir", cls: "bg-[#FEE2E2] text-[#991B1B]" };
   if (r.ratio < 50) return { t: "Jarang hadir", cls: "bg-[#FEF3C7] text-[#92400E]" };
   if (r.ratio < 80) return { t: "Cukup aktif", cls: "bg-[#E0F2FE] text-[#075985]" };
-  return { t: "Rajin hadir", cls: "bg-[#E8F5EE] text-[#065F46]" };
+  return { t: "Rajin hadir", cls: "bg-[#EEEFFB] text-[#312E81]" };
 }
 
 export default function RekapBulananView() {
@@ -102,12 +102,12 @@ export default function RekapBulananView() {
         </div>
         <div className="flex items-center gap-2">
           <button data-testid="bulan-prev" onClick={() => setMonth(shiftMonth(month, -1))}
-            className="h-11 w-11 rounded-xl border-2 border-[#E5E7EB] flex items-center justify-center text-[#4B5563] hover:border-[#0D5C3A] hover:text-[#0D5C3A]"><ChevronLeft size={18} /></button>
-          <div className="h-11 px-4 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm inline-flex items-center gap-2" data-testid="bulan-aktif">
+            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#3730A3] hover:text-[#3730A3]"><ChevronLeft size={18} /></button>
+          <div className="h-11 px-4 rounded-xl bg-[#3730A3] text-white font-semibold text-sm inline-flex items-center gap-2" data-testid="bulan-aktif">
             <CalendarRange size={16} /> {BULAN[m - 1]} {y}
           </div>
           <button data-testid="bulan-next" onClick={() => setMonth(shiftMonth(month, 1))}
-            className="h-11 w-11 rounded-xl border-2 border-[#E5E7EB] flex items-center justify-center text-[#4B5563] hover:border-[#0D5C3A] hover:text-[#0D5C3A]"><ChevronRight size={18} /></button>
+            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#3730A3] hover:text-[#3730A3]"><ChevronRight size={18} /></button>
         </div>
       </div>
 
@@ -116,30 +116,30 @@ export default function RekapBulananView() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 rounded-2xl bg-[#F1F3F1] animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />)}
           </div>
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
-            <div className="text-sm text-[#6B7280] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#0D5C3A]" /> Memuat rekap bulanan…</div>
+          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5">
+            <div className="text-sm text-[#6B7280] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#3730A3]" /> Memuat rekap bulanan…</div>
             <SkeletonList rows={6} testid="rekap-bulanan-skeleton" />
           </div>
         </div>
       ) : !data ? null : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4" data-testid="stat-pertemuan">
+            <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-pertemuan">
               <div className="text-xs font-semibold text-[#6B7280] inline-flex items-center gap-1.5"><CalendarRange size={14} /> Pertemuan bulan ini</div>
               <div className="text-3xl font-bold text-[#111827] mt-1 tabular-nums">{data.total_pertemuan}</div>
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">{data.total_kegiatan} jadwal termasuk sesi</div>
             </div>
-            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4" data-testid="stat-jamaah">
+            <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-jamaah">
               <div className="text-xs font-semibold text-[#6B7280] inline-flex items-center gap-1.5"><Users size={14} /> Jumlah jamaah</div>
               <div className="text-3xl font-bold text-[#111827] mt-1 tabular-nums">{data.total_peserta}</div>
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">Rata-rata hadir {data.summary.rata_rata}%</div>
             </div>
-            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4" data-testid="stat-rajin">
-              <div className="text-xs font-semibold text-[#065F46] inline-flex items-center gap-1.5"><TrendingUp size={14} /> Rajin hadir (≥80%)</div>
-              <div className="text-3xl font-bold text-[#0D5C3A] mt-1 tabular-nums">{data.summary.rajin}</div>
+            <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-rajin">
+              <div className="text-xs font-semibold text-[#312E81] inline-flex items-center gap-1.5"><TrendingUp size={14} /> Rajin hadir (≥80%)</div>
+              <div className="text-3xl font-bold text-[#3730A3] mt-1 tabular-nums">{data.summary.rajin}</div>
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">Cukup aktif: {data.summary.cukup}</div>
             </div>
-            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4" data-testid="stat-jarang">
+            <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-jarang">
               <div className="text-xs font-semibold text-[#92400E] inline-flex items-center gap-1.5"><TrendingDown size={14} /> Jarang hadir (&lt;50%)</div>
               <div className="text-3xl font-bold text-[#B45309] mt-1 tabular-nums">{data.summary.jarang}</div>
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">Belum pernah hadir: {data.summary.belum_pernah}</div>
@@ -147,14 +147,14 @@ export default function RekapBulananView() {
           </div>
 
           {/* Bagikan sebagai tautan + WhatsApp */}
-          <div className="rounded-2xl border-2 border-[#CDEBD9] bg-[#F0FAF4] p-4 space-y-2.5" data-testid="rekap-bulanan-share">
-            <div className="text-sm font-bold text-[#065F46] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap bulan ini</div>
-            <p className="text-[11px] text-[#065F46]/80 leading-relaxed">
+          <div className="rounded-2xl border-2 border-[#DCDCF5] bg-[#F5F5FD] p-4 space-y-2.5" data-testid="rekap-bulanan-share">
+            <div className="text-sm font-bold text-[#312E81] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap bulan ini</div>
+            <p className="text-[11px] text-[#312E81]/80 leading-relaxed">
               Tautan publik: siapa pun yang klik bisa langsung melihat siapa saja yang hadir,
               berapa kali ikut, dan rincian sesinya — tanpa perlu login.
             </p>
             {share && (
-              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#CDEBD9] px-2.5 py-2 text-[#065F46]" data-testid="rekap-bulanan-link">{share.link}</div>
+              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#DCDCF5] px-2.5 py-2 text-[#312E81]" data-testid="rekap-bulanan-link">{share.link}</div>
             )}
             <div className="grid grid-cols-2 gap-2 max-w-md">
               <button onClick={shareWa} disabled={sharing} data-testid="rekap-bulanan-share-wa"
@@ -162,15 +162,15 @@ export default function RekapBulananView() {
                 {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Bagikan ke WhatsApp
               </button>
               <button onClick={copyLink} disabled={sharing} data-testid="rekap-bulanan-copy-link"
-                className="h-11 rounded-xl border-2 border-[#0D5C3A] text-[#0D5C3A] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#E8F5EE] disabled:opacity-60">
+                className="h-11 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#EEEFFB] disabled:opacity-60">
                 <Link2 size={15} /> Salin Tautan
               </button>
             </div>
           </div>
 
           {/* Pisah Laki-laki / Perempuan */}
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 space-y-4" data-testid="rekap-bulanan-gender">
-            <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Users size={16} className="text-[#0D5C3A]" /> Pisah Laki-laki &amp; Perempuan</div>
+          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 space-y-4" data-testid="rekap-bulanan-gender">
+            <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Users size={16} className="text-[#3730A3]" /> Pisah Laki-laki &amp; Perempuan</div>
             <PercentBar label={`Laki-laki (${data.gender?.L?.jamaah || 0} jamaah · rajin ${data.gender?.L?.rajin || 0} · jarang ${data.gender?.L?.jarang || 0})`}
               value={data.gender?.L?.ratio || 0} sub={`${data.gender?.L?.hadir || 0}/${data.gender?.L?.pertemuan || 0}`} testid="bar-gender-l" />
             <PercentBar label={`Perempuan (${data.gender?.P?.jamaah || 0} jamaah · rajin ${data.gender?.P?.rajin || 0} · jarang ${data.gender?.P?.jarang || 0})`}
@@ -179,8 +179,8 @@ export default function RekapBulananView() {
 
           {/* Ringkasan sesi sebulan */}
           {data.per_sesi?.length > 0 && (
-            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 space-y-3.5" data-testid="rekap-bulanan-sesi">
-              <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Layers size={16} className="text-[#0D5C3A]" /> Ringkasan Sesi Selama Sebulan</div>
+            <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 space-y-3.5" data-testid="rekap-bulanan-sesi">
+              <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Layers size={16} className="text-[#3730A3]" /> Ringkasan Sesi Selama Sebulan</div>
               {data.per_sesi.map((x) => (
                 <PercentBar key={x.label}
                   label={`${x.label}${x.required === false ? " · opsional" : ""} — ${x.pertemuan}x kegiatan`}
@@ -189,31 +189,31 @@ export default function RekapBulananView() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5">
             <div className="flex flex-wrap items-center gap-2 justify-between mb-4">
               <div className="relative flex-1 min-w-[200px]">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
                 <input data-testid="rekap-bulanan-search" value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari nama jamaah…"
-                  className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A]" />
+                  className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3]" />
               </div>
               <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1" data-testid="rekap-bulanan-gender-tabs">
                 {[["semua", "L/P"], ["L", "Laki-laki"], ["P", "Perempuan"]].map(([v, l]) => (
                   <button key={v} data-testid={`rekap-bulanan-gender-${v}`} onClick={() => setGender(v)}
-                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#0D5C3A] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#3730A3] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
               <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1">
                 {[["semua", "Semua"], ["jarang", "Jarang"], ["belum", "Belum hadir"], ["rajin", "Rajin"]].map(([v, l]) => (
                   <button key={v} data-testid={`rekap-bulanan-filter-${v}`} onClick={() => setFilter(v)}
-                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#0D5C3A] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#3730A3] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm" data-testid="rekap-bulanan-table">
-                <thead className="bg-[#F8FAF8] text-[#6B7280] text-left">
+                <thead className="bg-[#FAFAF8] text-[#6B7280] text-left">
                   <tr>
                     <th className="px-3 py-2 font-semibold">Nama Jamaah</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Ikut</th>
@@ -223,13 +223,13 @@ export default function RekapBulananView() {
                     <th className="px-3 py-2 font-semibold whitespace-nowrap">Terakhir hadir</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F1F2F0]">
+                <tbody className="divide-y divide-[#ECECE8]">
                   {rows.length === 0 ? (
                     <tr><td colSpan={6} className="p-10 text-center text-[#6B7280]">Tidak ada data jamaah.</td></tr>
                   ) : rows.map((r) => {
                     const b = badgeOf(r);
                     return (
-                      <tr key={r.user_id} data-testid={`rekap-bulanan-row-${r.user_id}`} className="hover:bg-[#FAFBF9]">
+                      <tr key={r.user_id} data-testid={`rekap-bulanan-row-${r.user_id}`} className="hover:bg-[#FAFAF8]">
                         <td className="px-3 py-2.5">
                           <div className="font-semibold text-[#111827] flex items-center gap-1.5 flex-wrap">
                             {r.name}
@@ -240,11 +240,11 @@ export default function RekapBulananView() {
                             {r.kelompok_name ? ` · ${r.kelompok_name}` : ""}
                           </div>
                         </td>
-                        <td className="px-3 py-2.5 text-center font-bold tabular-nums text-[#0D5C3A] whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-center font-bold tabular-nums text-[#3730A3] whitespace-nowrap">
                           {r.hadir}<span className="text-[#9CA3AF] font-semibold">/{r.pertemuan}</span>
                         </td>
                         <td className="px-3 py-2.5">
-                          <PercentBar label="" value={r.ratio} color={r.ratio >= 80 ? "#0D5C3A" : r.ratio >= 50 ? "#0369A1" : "#D97706"} testid={`bar-bulanan-${r.user_id}`} />
+                          <PercentBar label="" value={r.ratio} color={r.ratio >= 80 ? "#3730A3" : r.ratio >= 50 ? "#0369A1" : "#D97706"} testid={`bar-bulanan-${r.user_id}`} />
                         </td>
                         <td className="px-3 py-2.5 text-center tabular-nums text-[#B45309]">{r.izin}</td>
                         <td className="px-3 py-2.5 text-center tabular-nums text-[#DC2626]">{r.alpha}</td>
@@ -257,7 +257,7 @@ export default function RekapBulananView() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5">
+          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5">
             <div className="font-semibold text-[#111827] text-sm mb-3">Daftar Pertemuan {data.label}</div>
             {data.per_pertemuan.length === 0 ? (
               <div className="text-sm text-[#6B7280] inline-flex items-center gap-2"><AlertTriangle size={15} /> Belum ada kegiatan pada bulan ini.</div>
@@ -270,7 +270,7 @@ export default function RekapBulananView() {
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {(p.sesi || []).map((x, j) => (
                         <span key={j} title={[x.teacher, x.material].filter(Boolean).join(" · ")}
-                          className={`text-[11px] font-semibold px-2 py-1 rounded-lg ${x.required ? "bg-[#E8F5EE] text-[#065F46]" : "bg-[#EEF2FF] text-[#3730A3]"}`}>
+                          className={`text-[11px] font-semibold px-2 py-1 rounded-lg ${x.required ? "bg-[#EEEFFB] text-[#312E81]" : "bg-[#EEF2FF] text-[#3730A3]"}`}>
                           {x.label} {x.start_time}–{x.end_time} · {x.hadir}/{x.peserta} ({x.ratio}%)
                         </span>
                       ))}

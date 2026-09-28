@@ -4870,9 +4870,16 @@ async def staff_scan_presensi(request: Request, staff: dict = Depends(require_st
     return {"date": d, "total": len(rows), "rows": rows}
 
 
-PENGADUAN_CATEGORIES = ["curhat", "saran", "pengaduan"]
-PENGADUAN_LABEL = {"curhat": "Curhat / Konsultasi", "saran": "Saran & Masukan",
-                   "pengaduan": "Pengaduan"}
+PENGADUAN_CATEGORIES = ["curhat", "saran", "pengaduan", "doa", "kendala", "pertanyaan"]
+PENGADUAN_LABEL = {
+    "curhat": "Curhat / Konsultasi",
+    "saran": "Saran & Masukan",
+    "pengaduan": "Pengaduan",
+    "doa": "Permohonan Doa",
+    "kendala": "Kendala Hadir",
+    "pertanyaan": "Pertanyaan Keagamaan",
+}
+PENGADUAN_MAX = 5000
 
 
 class PengaduanInput(BaseModel):
@@ -4911,7 +4918,7 @@ async def create_pengaduan(body: PengaduanInput, user: dict = Depends(get_curren
     doc = {
         "_id": str(uuid.uuid4()), "user_id": str(user["_id"]),
         "name": user.get("name"), "phone": user.get("phone"),
-        "anonymous": bool(body.anonymous), "category": cat, "message": msg[:4000],
+        "anonymous": bool(body.anonymous), "category": cat, "message": msg[:PENGADUAN_MAX],
         "kelompok_id": user.get("kelompok_id"), "read_by": [],
         "at": now_wita().isoformat(),
     }
@@ -4923,7 +4930,23 @@ async def create_pengaduan(body: PengaduanInput, user: dict = Depends(get_curren
 @api_router.get("/me/pengaduan")
 async def my_pengaduan(user: dict = Depends(get_current_user)):
     items = await db.pengaduans.find({"user_id": str(user["_id"])}).sort("at", -1).to_list(100)
-    return {"items": [serialize_pengaduan(p) for p in items]}
+    return {"items": [serialize_pengaduan(p) for p in items],
+            "categories": [{"value": c, "label": PENGADUAN_LABEL[c]} for c in PENGADUAN_CATEGORIES],
+            "max_length": PENGADUAN_MAX}
+
+
+@api_router.delete("/me/pengaduan/{pengaduan_id}")
+async def delete_my_pengaduan(pengaduan_id: str, user: dict = Depends(get_current_user)):
+    res = await db.pengaduans.delete_one({"_id": pengaduan_id, "user_id": str(user["_id"])})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Pesan tidak ditemukan")
+    return {"ok": True}
+
+
+@api_router.delete("/me/pengaduan")
+async def clear_my_pengaduan(user: dict = Depends(get_current_user)):
+    res = await db.pengaduans.delete_many({"user_id": str(user["_id"])})
+    return {"ok": True, "deleted": res.deleted_count}
 
 
 @api_router.get("/staff/pengaduan")
@@ -4949,6 +4972,23 @@ async def baca_pengaduan(pengaduan_id: str, staff: dict = Depends(require_staff)
     await db.pengaduans.update_one({"_id": pengaduan_id}, {"$push": {"read_by": {
         "id": str(staff["_id"]), "name": staff.get("name"), "at": now_wita().isoformat()}}})
     return {"ok": True}
+
+
+@api_router.delete("/staff/pengaduan/{pengaduan_id}")
+async def hapus_pengaduan(pengaduan_id: str, staff: dict = Depends(require_staff)):
+    res = await db.pengaduans.delete_one({"_id": pengaduan_id})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Pesan tidak ditemukan")
+    await log_activity(staff, "hapus_ruang_teduh", "Menghapus satu pesan Ruang Teduh")
+    return {"ok": True}
+
+
+@api_router.delete("/staff/pengaduan")
+async def hapus_semua_pengaduan(staff: dict = Depends(require_staff)):
+    res = await db.pengaduans.delete_many({})
+    await log_activity(staff, "hapus_ruang_teduh",
+                       f"Menghapus seluruh riwayat Ruang Teduh ({res.deleted_count} pesan)")
+    return {"ok": True, "deleted": res.deleted_count}
 
 
 class KesanPesanInput(BaseModel):

@@ -4,8 +4,8 @@ import { ListPlus, Loader2, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 
-const cell = "h-10 px-2.5 rounded-lg border border-[#E5E7EB] text-sm outline-none focus:border-[#0D5C3A] bg-white w-full";
-const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E5E7EB] text-base outline-none focus:border-[#0D5C3A] bg-white";
+const cell = "h-10 px-2.5 rounded-lg border border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white w-full";
+const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3] bg-white";
 
 function normG(v) {
   const s = String(v || "").trim().toLowerCase();
@@ -82,7 +82,7 @@ export default function PesertaBulkView() {
       <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-            <ListPlus size={22} className="text-[#0D5C3A]" /> Bulk Data Jamaah
+            <ListPlus size={22} className="text-[#3730A3]" /> Bulk Data Jamaah
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
             Isi seperti tabel Excel, atau salin dari Excel/Spreadsheet lalu tempel (Ctrl+V) di kolom <b>Nama</b>.
@@ -92,14 +92,14 @@ export default function PesertaBulkView() {
       </div>
 
       {lastResult && (
-        <div className="mb-4 rounded-2xl border border-[#CDEBD9] bg-[#F0FAF4] p-4 text-sm text-[#065F46]" data-testid="bulk-result">
+        <div className="mb-4 rounded-2xl border border-[#DCDCF5] bg-[#F5F5FD] p-4 text-sm text-[#312E81]" data-testid="bulk-result">
           <b>{lastResult.count}</b> jamaah tersimpan.
           {lastResult.flagged?.length ? ` ${lastResult.flagged.length} nama kembar ditandai "perlu dilengkapi".` : ""}
           {lastResult.invalid_dates?.length ? ` ${lastResult.invalid_dates.length} tanggal tidak terbaca.` : ""}
         </div>
       )}
 
-      <form onSubmit={submit} className="bg-white rounded-2xl border border-[#E5E7EB] p-4">
+      <form onSubmit={submit} className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
         <div className="overflow-x-auto -mx-1 px-1">
           <table className="w-full border-separate border-spacing-y-1.5 min-w-[640px]">
             <thead>
@@ -147,7 +147,7 @@ export default function PesertaBulkView() {
         </div>
 
         <button type="button" data-testid="button-add-row" onClick={addRow}
-          className="mt-1 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border-2 border-dashed border-[#CBD5E1] text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A]">
+          className="mt-1 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border-2 border-dashed border-[#CBD5E1] text-[#4B5563] font-semibold text-sm hover:border-[#3730A3] hover:text-[#3730A3]">
           <Plus size={16} /> Tambah Baris
         </button>
 
@@ -156,7 +156,7 @@ export default function PesertaBulkView() {
           {kelompok.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
         </select>
         <button data-testid="button-submit-bulk" type="submit" disabled={saving}
-          className="mt-3 w-full h-12 rounded-xl bg-[#0D5C3A] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60">
+          className="mt-3 w-full h-12 rounded-xl bg-[#3730A3] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60">
           {saving ? <Loader2 className="animate-spin" size={18} /> : <ListPlus size={18} />} Simpan Semua
         </button>
       </form>

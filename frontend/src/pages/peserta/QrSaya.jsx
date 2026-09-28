@@ -43,12 +43,12 @@ export default function QrSaya({ user }) {
       <h1 className="font-heading text-2xl font-bold text-[#111827]">QR Pribadi Saya</h1>
       <p className="text-sm text-[#6B7280]">Tunjukkan QR ini kepada pengurus untuk absen dibantu. Demi keamanan, kode berganti otomatis secara berkala.</p>
 
-      <div className="bg-white rounded-3xl border border-[#E5E7EB] p-6 flex flex-col items-center">
+      <div className="bg-white rounded-3xl border border-[#E8E8E4] p-6 flex flex-col items-center">
         {qr === null ? (
-          <div className="h-56 w-56 flex items-center justify-center"><Loader2 className="animate-spin text-[#0D5C3A]" size={32} /></div>
+          <div className="h-56 w-56 flex items-center justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={32} /></div>
         ) : (
           <>
-            <div className="p-3 bg-white rounded-2xl border border-[#E5E7EB]">
+            <div className="p-3 bg-white rounded-2xl border border-[#E8E8E4]">
               <img data-testid="personal-qr-image" src={qr.image} alt="QR Pribadi" className="h-56 w-56 object-contain" />
             </div>
             <div className="mt-4 text-center">
@@ -62,11 +62,11 @@ export default function QrSaya({ user }) {
       </div>
 
       <div className="flex gap-2">
-        <button data-testid="qr-download" onClick={download} disabled={!qr} className="flex-1 h-12 rounded-xl bg-[#0D5C3A] text-white font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-60"><Download size={18} /> Download</button>
-        <button data-testid="qr-refresh" onClick={fetchQr} className="h-12 px-4 rounded-xl border border-[#0D5C3A] text-[#0D5C3A] font-semibold inline-flex items-center justify-center gap-2"><RefreshCw size={18} /></button>
+        <button data-testid="qr-download" onClick={download} disabled={!qr} className="flex-1 h-12 rounded-xl bg-[#3730A3] text-white font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-60"><Download size={18} /> Download</button>
+        <button data-testid="qr-refresh" onClick={fetchQr} className="h-12 px-4 rounded-xl border border-[#3730A3] text-[#3730A3] font-semibold inline-flex items-center justify-center gap-2"><RefreshCw size={18} /></button>
       </div>
 
-      <div className="bg-[#F0FAF4] border border-[#BBF7D0] rounded-2xl p-4 text-sm text-[#065F46] flex gap-2">
+      <div className="bg-[#F5F5FD] border border-[#DCDCF5] rounded-2xl p-4 text-sm text-[#312E81] flex gap-2">
         <QrCode size={18} className="shrink-0 mt-0.5" />
         <span>QR bersifat rahasia & berganti berkala sehingga aman meski sempat terlihat orang lain.</span>
       </div>

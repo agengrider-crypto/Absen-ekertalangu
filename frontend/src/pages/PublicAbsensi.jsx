@@ -25,7 +25,7 @@ import { TYPE_LABEL, tanggalPanjang, hhmm, AUDIENCE_LABEL, GENDER_FILTER_LABEL }
  */
 
 const STATUS_BTN = {
-  hadir: { label: "Hadir", on: "bg-[#0D5C3A] text-white", off: "text-[#0D5C3A]" },
+  hadir: { label: "Hadir", on: "bg-[#3730A3] text-white", off: "text-[#3730A3]" },
   izin: { label: "Izin", on: "bg-[#D97706] text-white", off: "text-[#D97706]" },
   alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#DC2626]" },
 };
@@ -221,8 +221,8 @@ export default function PublicAbsensi() {
   if (!access || !data) {
     return (
       <Shell>
-        <form onSubmit={verify} className="bg-white rounded-2xl border border-[#E5E7EB] p-6" data-testid="absensi-gate">
-          <div className="h-12 w-12 rounded-2xl bg-[#E8F5EE] text-[#0D5C3A] flex items-center justify-center mx-auto">
+        <form onSubmit={verify} className="bg-white rounded-2xl border border-[#E8E8E4] p-6" data-testid="absensi-gate">
+          <div className="h-12 w-12 rounded-2xl bg-[#EEEFFB] text-[#3730A3] flex items-center justify-center mx-auto">
             <KeyRound size={24} />
           </div>
           <h1 className="font-heading text-xl font-bold text-[#111827] text-center mt-3">Kode Akses Absensi</h1>
@@ -236,7 +236,7 @@ export default function PublicAbsensi() {
             inputMode="numeric"
             autoComplete="one-time-code"
             placeholder="------"
-            className="mt-5 w-full h-14 text-center tracking-[0.6em] text-2xl font-bold rounded-xl border-2 border-[#E5E7EB] outline-none focus:border-[#0D5C3A]"
+            className="mt-5 w-full h-14 text-center tracking-[0.6em] text-2xl font-bold rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3]"
           />
           {err && (
             <p className="mt-2 text-sm text-[#DC2626] text-center" data-testid="absensi-code-error">{err}</p>
@@ -245,7 +245,7 @@ export default function PublicAbsensi() {
             type="submit"
             data-testid="absensi-code-submit"
             disabled={verifying}
-            className="mt-4 w-full h-12 rounded-xl bg-[#0D5C3A] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#094229] disabled:opacity-60"
+            className="mt-4 w-full h-12 rounded-xl bg-[#3730A3] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60"
           >
             {verifying ? <Loader2 className="animate-spin" size={18} /> : <KeyRound size={18} />} Buka Daftar Peserta
           </button>
@@ -266,12 +266,12 @@ export default function PublicAbsensi() {
 
   return (
     <Shell>
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5" data-testid="absensi-header">
+      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5" data-testid="absensi-header">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E8F5EE] text-[#065F46]">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]">
             {TYPE_LABEL[k.type] || "Kegiatan"}
           </span>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${closed ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#DCFCE7] text-[#065F46]"}`}>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${closed ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#DCFCE7] text-[#312E81]"}`}>
             {closed ? "Selesai" : "Berlangsung"}
           </span>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3]">
@@ -297,8 +297,8 @@ export default function PublicAbsensi() {
       </div>
 
       <div className="grid grid-cols-4 gap-2 mt-3" data-testid="absensi-counts">
-        <Stat value={c.total} label="Total" bg="#F2F5F2" fg="#111827" />
-        <Stat value={c.hadir} label="Hadir" bg="#E8F5EE" fg="#065F46" />
+        <Stat value={c.total} label="Total" bg="#F4F4F1" fg="#111827" />
+        <Stat value={c.hadir} label="Hadir" bg="#EEEFFB" fg="#312E81" />
         <Stat value={c.izin} label="Izin" bg="#FEF3C7" fg="#92400E" />
         <Stat value={c.alpha} label="Alpha" bg="#FEE2E2" fg="#991B1B" />
       </div>
@@ -321,8 +321,8 @@ export default function PublicAbsensi() {
       </div>
 
       {tab === "manual" && (
-        <div className="mt-3 bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden" data-testid="absensi-manual">
-          <div className="p-3 bg-[#FAFBF9] border-b border-[#E5E7EB]">
+        <div className="mt-3 bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="absensi-manual">
+          <div className="p-3 bg-[#FAFAF8] border-b border-[#E8E8E4]">
             <div className="relative">
               <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
               <input
@@ -330,11 +330,11 @@ export default function PublicAbsensi() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Cari nama peserta..."
-                className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E5E7EB] outline-none focus:border-[#0D5C3A] bg-white"
+                className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3] bg-white"
               />
             </div>
           </div>
-          <div className="divide-y divide-[#F1F2F0]">
+          <div className="divide-y divide-[#ECECE8]">
             {rows.length === 0 ? (
               <div className="p-8 text-center text-sm text-[#6B7280]">Tidak ada peserta.</div>
             ) : rows.map((r) => (
@@ -352,7 +352,7 @@ export default function PublicAbsensi() {
                       <span className="font-mono text-[11px] text-[#4B5563]">{hhmm(r.arrival_time)}</span>
                     )}
                     {r.attended_other && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[#E8F5EE] text-[#065F46]">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]">
                         Sudah hadir sesi {r.attended_other_label}
                       </span>
                     )}
@@ -373,7 +373,7 @@ export default function PublicAbsensi() {
                         data-testid={`absensi-btn-${s}-${r.user_id}`}
                         disabled={closed || busy === r.user_id + s}
                         onClick={() => mark(r.user_id, s)}
-                        className={`h-8 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E5E7EB] hover:border-current`}`}
+                        className={`h-8 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
                       >
                         {cfg.label}
                       </button>
@@ -387,9 +387,9 @@ export default function PublicAbsensi() {
       )}
 
       {tab === "scan" && (
-        <div className="mt-3 bg-white rounded-2xl border border-[#E5E7EB] p-4" data-testid="absensi-scan">
+        <div className="mt-3 bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid="absensi-scan">
           <p className="text-sm text-[#4B5563] mb-3">
-            <ScanLine size={16} className="text-[#0D5C3A] inline mr-1.5 -mt-0.5" />
+            <ScanLine size={16} className="text-[#3730A3] inline mr-1.5 -mt-0.5" />
             Arahkan kamera ke <b>QR pribadi peserta</b> (menu {"\"QR Saya\""} pada akun peserta) untuk mencatat kehadiran.
           </p>
           {!closed && <QrScanner onDetected={onScan} />}
@@ -399,7 +399,7 @@ export default function PublicAbsensi() {
             </p>
           )}
           {lastScan && (
-            <div className="mt-3 bg-[#F0FAF4] border border-[#CDEBD9] rounded-xl p-3 flex items-center gap-2 text-sm text-[#065F46]" data-testid="absensi-scan-result">
+            <div className="mt-3 bg-[#F5F5FD] border border-[#DCDCF5] rounded-xl p-3 flex items-center gap-2 text-sm text-[#312E81]" data-testid="absensi-scan-result">
               <CheckCircle2 size={18} /> <b>{lastScan.name}</b> — {lastScan.already ? "sudah tercatat hadir" : "tercatat hadir"}
               {lastScan.arrival_time ? ` (${hhmm(lastScan.arrival_time)})` : ""}
             </div>
@@ -409,9 +409,9 @@ export default function PublicAbsensi() {
 
       {tab === "tamu" && publik && (
         <div className="mt-3 space-y-3" data-testid="absensi-tamu">
-          <form onSubmit={addGuest} className="bg-white rounded-2xl border border-[#E5E7EB] p-4">
+          <form onSubmit={addGuest} className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
             <div className="font-bold text-[#111827] text-[15px] flex items-center gap-2">
-              <UserPlus size={17} className="text-[#0D5C3A]" /> Tambah Tamu (tanpa akun)
+              <UserPlus size={17} className="text-[#3730A3]" /> Tambah Tamu (tanpa akun)
             </div>
             <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
               Kegiatan ini <b>terbuka/publik</b>. Jamaah yang belum mengaktivasi akun cukup
@@ -423,13 +423,13 @@ export default function PublicAbsensi() {
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
                 placeholder="Nama tamu"
-                className="flex-1 min-w-[160px] h-11 px-3.5 rounded-xl border-2 border-[#E5E7EB] outline-none focus:border-[#0D5C3A] bg-white"
+                className="flex-1 min-w-[160px] h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3] bg-white"
               />
               <button
                 data-testid="absensi-tamu-add"
                 type="submit"
                 disabled={guestSaving || closed || !online}
-                className="h-11 px-4 rounded-xl bg-[#0D5C3A] text-white font-semibold inline-flex items-center gap-2 hover:bg-[#094229] disabled:opacity-60"
+                className="h-11 px-4 rounded-xl bg-[#3730A3] text-white font-semibold inline-flex items-center gap-2 hover:bg-[#2A2480] disabled:opacity-60"
               >
                 {guestSaving ? <Loader2 className="animate-spin" size={17} /> : <UserPlus size={17} />} Catat Hadir
               </button>
@@ -441,14 +441,14 @@ export default function PublicAbsensi() {
             )}
           </form>
 
-          <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#E5E7EB] font-semibold text-[#111827] text-sm flex items-center gap-2">
-              <Users size={16} className="text-[#0D5C3A]" /> Daftar Tamu ({guests.length})
+          <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
+            <div className="px-4 py-3 border-b border-[#E8E8E4] font-semibold text-[#111827] text-sm flex items-center gap-2">
+              <Users size={16} className="text-[#3730A3]" /> Daftar Tamu ({guests.length})
             </div>
             {guests.length === 0 ? (
               <div className="p-8 text-center text-sm text-[#9CA3AF]">Belum ada tamu yang dicatat.</div>
             ) : (
-              <div className="divide-y divide-[#F1F2F0]">
+              <div className="divide-y divide-[#ECECE8]">
                 {guests.map((g) => (
                   <div key={g.id} data-testid={`absensi-tamu-row-${g.id}`} className="px-4 py-3 flex items-center justify-between gap-3">
                     <div>
@@ -473,7 +473,7 @@ export default function PublicAbsensi() {
       <button
         data-testid="absensi-refresh"
         onClick={() => load(access)}
-        className="mt-3 w-full h-11 rounded-xl border-2 border-[#E5E7EB] text-[#4B5563] font-semibold flex items-center justify-center gap-2 hover:border-[#0D5C3A] hover:text-[#0D5C3A]"
+        className="mt-3 w-full h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold flex items-center justify-center gap-2 hover:border-[#3730A3] hover:text-[#3730A3]"
       >
         <RefreshCw size={16} /> Muat Ulang Data
       </button>
@@ -483,8 +483,8 @@ export default function PublicAbsensi() {
 
 function Shell({ children }) {
   return (
-    <div className="min-h-screen bg-[#FAFBF9]">
-      <header className="bg-white border-b border-[#E5E7EB]">
+    <div className="min-h-screen bg-[#FAFAF8]">
+      <header className="bg-white border-b border-[#E8E8E4]">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-center">
           <Logo />
         </div>
@@ -508,7 +508,7 @@ function TabBtn({ active, onClick, icon: Icon, label, testid }) {
     <button
       data-testid={testid}
       onClick={onClick}
-      className={`flex-1 h-11 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 border-2 transition-colors ${active ? "bg-[#0D5C3A] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E5E7EB] hover:border-[#0D5C3A] hover:text-[#0D5C3A]"}`}
+      className={`flex-1 h-11 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 border-2 transition-colors ${active ? "bg-[#3730A3] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#3730A3] hover:text-[#3730A3]"}`}
     >
       <Icon size={16} /> {label}
     </button>

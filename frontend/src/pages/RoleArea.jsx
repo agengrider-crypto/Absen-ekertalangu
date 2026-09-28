@@ -6,9 +6,9 @@ import AdminLayout from "@/pages/admin/AdminLayout";
 import PesertaArea from "@/pages/PesertaArea";
 
 const META = {
-  admin: { icon: Shield, title: "Area Admin", color: "#D97706" },
+  admin: { icon: Shield, title: "Area Adminator", color: "#D97706" },
   pengurus: { icon: Users, title: "Area Pengurus", color: "#0284C7" },
-  peserta: { icon: UserCheck, title: "Area Peserta", color: "#0D5C3A" },
+  peserta: { icon: UserCheck, title: "Area Peserta", color: "#3730A3" },
 };
 
 export default function RoleArea() {
@@ -35,13 +35,13 @@ export default function RoleArea() {
   const Icon = meta.icon;
 
   return (
-    <div className="min-h-screen bg-[#FAFBF9]">
-      <header className="sticky top-0 z-40 bg-[#FAFBF9]/90 backdrop-blur-md border-b border-[#E5E7EB]">
+    <div className="min-h-screen bg-[#FAFAF8]">
+      <header className="sticky top-0 z-40 bg-[#FAFAF8]/90 backdrop-blur-md border-b border-[#E8E8E4]">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
             data-testid="button-back-roles"
             onClick={() => navigate("/roles")}
-            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E5E7EB] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#0D5C3A] hover:text-[#0D5C3A] transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#3730A3] hover:text-[#3730A3] transition-colors"
           >
             <ArrowLeft size={18} /> Pilih Peran
           </button>
@@ -60,8 +60,8 @@ export default function RoleArea() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-8 border border-[#E5E7EB] text-center" data-testid="area-placeholder">
-          <div className="inline-flex items-center gap-2 bg-[#E8F5EE] text-[#065F46] px-3 py-1 rounded-full text-sm font-semibold mb-4">
+        <div className="bg-white rounded-2xl p-8 border border-[#E8E8E4] text-center" data-testid="area-placeholder">
+          <div className="inline-flex items-center gap-2 bg-[#EEEFFB] text-[#312E81] px-3 py-1 rounded-full text-sm font-semibold mb-4">
             Segera Hadir
           </div>
           <p className="text-[#4B5563] text-lg max-w-xl mx-auto">
