@@ -415,7 +415,7 @@ def make_qr_data_url(data: str) -> str:
                        error_correction=qrcode.constants.ERROR_CORRECT_M)
     qr.add_data(data)
     qr.make(fit=True)
-    img = qr.make_image(fill_color="#0D5C3A", back_color="white")
+    img = qr.make_image(fill_color="#111114", back_color="white")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
@@ -3586,7 +3586,7 @@ async def musyawarah_pdf(musy_id: str, staff: dict = Depends(require_staff)):
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=2 * cm, bottomMargin=2 * cm,
                             leftMargin=2 * cm, rightMargin=2 * cm)
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#0D5C3A")
+    title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#111114")
     cat_label = MUSY_LABEL.get(m.get("category"), "Musyawarah")
     body_style = ParagraphStyle("b", parent=styles["Normal"], fontSize=11, leading=17)
     elems = [Paragraph("E-KERTALANGU", title_style),
@@ -3624,7 +3624,7 @@ async def musyawarah_export_pdf(category: str = "", date_from: str = "", date_to
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=2 * cm, bottomMargin=2 * cm,
                             leftMargin=2 * cm, rightMargin=2 * cm)
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#0D5C3A")
+    title_style = ParagraphStyle("t", parent=styles["Title"], textColor="#111114")
     body_style = ParagraphStyle("b", parent=styles["Normal"], fontSize=11, leading=17)
     cat_label = MUSY_LABEL.get(category, "Musyawarah 4S, Tim 7 & Pleno")
     periode = ""
@@ -4731,7 +4731,7 @@ async def admin_laporan_export(admin: dict = Depends(require_staff),
             tdata.append([r["date"], r["name"], r["hadir"], r["izin"], r["alpha"], f"{r['ratio']}%"])
         t = Table(tdata, repeatRows=1)
         t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0D5C3A")),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111114")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
             ("FONTSIZE", (0, 0), (-1, -1), 9),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
