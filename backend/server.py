@@ -4352,6 +4352,10 @@ def _tanggal_indo(ymd: str) -> str:
 
 @api_router.get("/staff/rekap-harian")
 async def rekap_harian(date: Optional[str] = None, staff: dict = Depends(require_staff)):
+    return await build_rekap_harian(date)
+
+
+async def build_rekap_harian(date: Optional[str] = None) -> dict:
     """FASE 17 — Rekap absen HARIAN: rincian tiap sesi + status tiap peserta pada 1 tanggal."""
     d = (date or now_wita().strftime("%Y-%m-%d")).strip()
     docs = await db.kegiatans.find({"date": d}).sort("start_time", 1).to_list(200)
@@ -4638,6 +4642,48 @@ async def public_rekap_bulanan(token: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Tautan rekap bulanan tidak ditemukan")
     return await build_rekap_bulanan(doc.get("month"))
+
+
+# ------------------------- Tautan publik Rekap Harian -------------------------
+@api_router.post("/staff/rekap-harian/share")
+async def share_rekap_harian(request: Request, date: Optional[str] = None,
+                             staff: dict = Depends(require_staff)):
+    """FASE 17 — tautan publik rekap harian (permanen, tanpa login)."""
+    d = (date or now_wita().strftime("%Y-%m-%d")).strip()
+    existing = await db.harian_links.find_one({"date": d})
+    if existing:
+        token = existing["_id"]
+    else:
+        token = secrets.token_urlsafe(10)
+        await db.harian_links.insert_one({
+            "_id": token, "date": d,
+            "created_by": str(staff["_id"]), "created_by_name": staff.get("name"),
+            "created_at": datetime.now(timezone.utc).isoformat()})
+    link = f"{resolve_base_url(request)}/rekap-harian/{token}"
+    data = await build_rekap_harian(d)
+    s = data["summary"]
+    wa_text = (
+        "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
+        f"Berikut rekap absen harian {data.get('label') or d}\n"
+        f"Kegiatan: {', '.join(data.get('kegiatan') or []) or '-'}\n"
+        f"Jumlah sesi: {data.get('total_sesi', 0)}\n"
+        f"Hadir {s.get('hadir', 0)}x · Izin {s.get('izin', 0)}x · Alpha {s.get('alpha', 0)}x "
+        f"dari {s.get('slot', 0)} slot sesi ({s.get('ratio', 0)}%)\n"
+        f"{link}\n\n"
+        "Silakan dibuka untuk melihat rincian tiap sesi & keterangan tiap peserta. "
+        "Jazakumullahu khoiro."
+    )
+    await log_activity(staff, "bagikan_rekap_harian", f"Membagikan tautan rekap harian {d}")
+    return {"token": token, "link": link, "date": d, "label": data.get("label"),
+            "wa_text": wa_text}
+
+
+@api_router.get("/rekap-harian/{token}")
+async def public_rekap_harian(token: str):
+    doc = await db.harian_links.find_one({"_id": token})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Tautan rekap harian tidak ditemukan")
+    return await build_rekap_harian(doc.get("date"))
 
 
 async def build_laporan(date_from: str, date_to: str) -> dict:

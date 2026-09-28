@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarCheck, Loader2, Search, Users, Layers, ChevronLeft, ChevronRight,
-  Clock, User, MapPin, Info, ChevronDown,
+  Clock, User, MapPin, Info, ChevronDown, Link2, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -33,6 +33,8 @@ export default function RekapHarianView() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("semua"); // semua | hadir | izin | alpha
   const [open, setOpen] = useState(null);
+  const [share, setShare] = useState(null);
+  const [sharing, setSharing] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -42,7 +44,35 @@ export default function RekapHarianView() {
       .finally(() => setLoading(false));
   }, [date]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); setShare(null); }, [load]);
+
+  const getLink = async () => {
+    if (share) return share;
+    setSharing(true);
+    try {
+      const { data: d } = await api.post(`/staff/rekap-harian/share?date=${date}`);
+      setShare(d);
+      return d;
+    } catch {
+      toast.error("Gagal membuat tautan rekap harian");
+      return null;
+    } finally { setSharing(false); }
+  };
+
+  const copyLink = async () => {
+    const d = await getLink();
+    if (!d) return;
+    try {
+      await navigator.clipboard.writeText(d.link);
+      toast.success("Tautan rekap harian disalin.");
+    } catch { toast.info("Tautan siap disalin manual dari kotak di atas."); }
+  };
+
+  const shareWa = async () => {
+    const d = await getLink();
+    if (!d) return;
+    window.open(`https://wa.me/?text=${encodeURIComponent(d.wa_text)}`, "_blank");
+  };
 
   const rows = useMemo(() => {
     let list = data?.rows || [];
@@ -91,6 +121,27 @@ export default function RekapHarianView() {
             <div className="font-heading text-lg font-bold text-[#115E59]">{data.label}</div>
             <div className="text-sm text-[#0F766E] mt-0.5">
               {data.kegiatan.join(" · ")} — {data.total_sesi} sesi
+            </div>
+          </div>
+
+          <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#F0FDFA] p-4 space-y-2.5" data-testid="rekap-harian-share">
+            <div className="text-sm font-bold text-[#115E59] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap hari ini</div>
+            <p className="text-[11px] text-[#0F766E] leading-relaxed">
+              Tautan publik: siapa pun yang klik bisa langsung melihat rincian tiap sesi,
+              keterangan hitungan, dan status kehadiran tiap peserta pada tanggal ini — tanpa perlu login.
+            </p>
+            {share && (
+              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#E8E8E4] px-2.5 py-2 text-[#115E59]" data-testid="rekap-harian-link">{share.link}</div>
+            )}
+            <div className="grid grid-cols-2 gap-2 max-w-md">
+              <button onClick={shareWa} disabled={sharing} data-testid="rekap-harian-share-wa"
+                className="h-11 rounded-xl bg-[#25D366] text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:brightness-95 disabled:opacity-60">
+                {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Bagikan ke WhatsApp
+              </button>
+              <button onClick={copyLink} disabled={sharing} data-testid="rekap-harian-copy-link"
+                className="h-11 rounded-xl border-2 border-[#0F766E] text-[#0F766E] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#CCFBF1] disabled:opacity-60">
+                <Link2 size={15} /> Salin Tautan
+              </button>
             </div>
           </div>
 

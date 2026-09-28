@@ -651,3 +651,15 @@ Script verifikasi: `/app/tests/fase12_check.py`.
   status hari, rasio hadir/izin/alpha, ringkasan gender) + helper `_tanggal_indo`.
 - **Area peserta**: kartu Riwayat Kehadiran memakai warna rekap dan menampilkan keterangan
   hitungan bulan ini beserta rumus persennya.
+
+### FASE 17 lanjutan — Tautan Publik Rekap Harian (28 Sep 2026, uji manual)
+- Backend: `build_rekap_harian()` dipisah dari route; tambah `POST /api/staff/rekap-harian/share`
+  (token permanen per tanggal di koleksi `harian_links`, teks WhatsApp otomatis, tercatat di
+  Log Aktivitas sebagai `bagikan_rekap_harian`) dan `GET /api/rekap-harian/{token}` (publik).
+- Frontend: panel "Bagikan rekap hari ini" di Rekap Harian (tombol WhatsApp + Salin Tautan +
+  kotak tautan) dan halaman publik `pages/PublicRekapHarian.jsx` pada rute `/rekap-harian/:token`.
+- Halaman publik memuat: tanggal & nama kegiatan, kartu Peserta/Hadir/Izin/Alpha, bar kehadiran
+  tiap sesi (pengajar, lokasi, materi) + keterangan hitungan, pisah L/P, pencarian nama,
+  daftar peserta dengan chip persen + keterangan + rincian status tiap sesi (bisa dibuka),
+  serta blok keterangan rumus persen.
+- Diuji: tautan `/rekap-harian/u8TprXBkjQZ4ug` (23 Sep 2026) terbuka tanpa login, 3 sesi, 14 peserta.
