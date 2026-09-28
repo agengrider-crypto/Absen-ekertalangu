@@ -4343,6 +4343,114 @@ BULAN_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
             "Agustus", "September", "Oktober", "November", "Desember"]
 
 
+def _tanggal_indo(ymd: str) -> str:
+    p = str(ymd or "").split("-")
+    if len(p) != 3:
+        return ymd or "-"
+    return f"{int(p[2])} {BULAN_ID[int(p[1]) - 1]} {p[0]}"
+
+
+@api_router.get("/staff/rekap-harian")
+async def rekap_harian(date: Optional[str] = None, staff: dict = Depends(require_staff)):
+    """FASE 17 — Rekap absen HARIAN: rincian tiap sesi + status tiap peserta pada 1 tanggal."""
+    d = (date or now_wita().strftime("%Y-%m-%d")).strip()
+    docs = await db.kegiatans.find({"date": d}).sort("start_time", 1).to_list(200)
+    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
+    kelompoks = await db.kelompoks.find().to_list(500)
+    kmap = {k["_id"]: k.get("name") for k in kelompoks}
+
+    if not docs:
+        return {"date": d, "total_sesi": 0, "sesi": [], "rows": [],
+                "summary": {"peserta": 0, "hadir": 0, "izin": 0, "alpha": 0, "ratio": 0.0},
+                "gender": {}, "kegiatan": []}
+
+    absens = await db.absensis.find(
+        {"kegiatan_id": {"$in": [k["_id"] for k in docs]}}).to_list(100000)
+    status_by = {(a["kegiatan_id"], a["user_id"]): a.get("status") for a in absens}
+    elig = {k["_id"]: {str(p["_id"]) for p in filter_peserta_for_kegiatan(k, peserta)} for k in docs}
+
+    sesi_out = []
+    for k in sorted(docs, key=lambda x: (x.get("start_time") or "", x.get("session_index") or 0)):
+        ids = elig[k["_id"]]
+        h = sum(1 for pid in ids if status_by.get((k["_id"], pid)) == "hadir")
+        i = sum(1 for pid in ids if status_by.get((k["_id"], pid)) == "izin")
+        sesi_out.append({
+            "id": k["_id"], "label": k.get("session_label") or "Sesi tunggal",
+            "name": k.get("base_name") or k.get("name"),
+            "start_time": k.get("start_time"), "end_time": k.get("end_time"),
+            "teacher": k.get("teacher"), "material": k.get("material"),
+            "location": k.get("location"), "status": k.get("status", "open"),
+            "required": bool(k.get("session_required", True)),
+            "peserta": len(ids), "hadir": h, "izin": i, "alpha": max(len(ids) - h - i, 0),
+            "ratio": round((h / len(ids)) * 100, 1) if ids else 0.0,
+        })
+
+    rows = []
+    for p in peserta:
+        pid = str(p["_id"])
+        mine = [s for s in sesi_out if pid in elig[s["id"]]]
+        if not mine:
+            continue
+        detail, n_h, n_i, n_a = [], 0, 0, 0
+        for s in mine:
+            st = status_by.get((s["id"], pid)) or "alpha"
+            if st == "hadir":
+                n_h += 1
+            elif st == "izin":
+                n_i += 1
+            else:
+                st = "alpha"
+                n_a += 1
+            detail.append({"label": s["label"], "start_time": s["start_time"],
+                           "end_time": s["end_time"], "required": s["required"], "status": st})
+        total = len(mine)
+        wajib = [x for x in detail if x["required"]] or detail
+        hadir_wajib = any(x["status"] == "hadir" for x in wajib)
+        izin_wajib = any(x["status"] == "izin" for x in wajib)
+        rows.append({
+            "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
+            "kelompok_name": kmap.get(p.get("kelompok_id")),
+            "sesi_total": total, "hadir": n_h, "izin": n_i, "alpha": n_a,
+            "ratio": round((n_h / total) * 100, 1) if total else 0.0,
+            "izin_ratio": round((n_i / total) * 100, 1) if total else 0.0,
+            "alpha_ratio": round((n_a / total) * 100, 1) if total else 0.0,
+            "status_hari": "hadir" if hadir_wajib else ("izin" if izin_wajib else "alpha"),
+            "detail": detail,
+        })
+    rows.sort(key=lambda x: (x["ratio"], (x["name"] or "").lower()))
+
+    slot = sum(r["sesi_total"] for r in rows)
+    hadir = sum(r["hadir"] for r in rows)
+    gender_out = {}
+    for g in ("L", "P"):
+        grp = [r for r in rows if r["gender"] == g]
+        gslot = sum(r["sesi_total"] for r in grp)
+        ghadir = sum(r["hadir"] for r in grp)
+        gender_out[g] = {
+            "peserta": len(grp), "hadir": ghadir, "slot": gslot,
+            "izin": sum(r["izin"] for r in grp), "alpha": sum(r["alpha"] for r in grp),
+            "ratio": round((ghadir / gslot) * 100, 1) if gslot else 0.0,
+        }
+
+    return {
+        "date": d,
+        "label": _tanggal_indo(d),
+        "total_sesi": len(sesi_out),
+        "kegiatan": sorted({s["name"] for s in sesi_out}),
+        "sesi": sesi_out,
+        "rows": rows,
+        "summary": {
+            "peserta": len(rows), "slot": slot, "hadir": hadir,
+            "izin": sum(r["izin"] for r in rows), "alpha": sum(r["alpha"] for r in rows),
+            "ratio": round((hadir / slot) * 100, 1) if slot else 0.0,
+            "hadir_hari": sum(1 for r in rows if r["status_hari"] == "hadir"),
+            "izin_hari": sum(1 for r in rows if r["status_hari"] == "izin"),
+            "alpha_hari": sum(1 for r in rows if r["status_hari"] == "alpha"),
+        },
+        "gender": gender_out,
+    }
+
+
 @api_router.get("/staff/rekap-bulanan")
 async def rekap_bulanan(month: Optional[str] = None, staff: dict = Depends(require_staff)):
     return await build_rekap_bulanan(month)

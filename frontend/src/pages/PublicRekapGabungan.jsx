@@ -13,7 +13,8 @@ const ST = {
   optional: { t: "·", cls: "bg-[#EEF2FF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
 };
 
-export function PercentBar({ label, value, sub, color = "#111114", testid }) {
+// Rekap tetap berwarna: bar hijau sebagai warna dasar kehadiran.
+export function PercentBar({ label, value, sub, color = "#15803D", testid }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
   return (
     <div data-testid={testid}>

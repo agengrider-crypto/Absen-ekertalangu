@@ -28,7 +28,7 @@ import RuangTeduhView from "./RuangTeduhView";
 import KelompokView from "./KelompokView";
 import PantauLoginView from "./PantauLoginView";
 import RekapBulananView from "./RekapBulananView";
-import ComingSoon from "./ComingSoon";
+import RekapHarianView from "./RekapHarianView";
 
 const MENU = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "pengurus"] },
@@ -200,12 +200,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "pengaduan" && <RuangTeduhView />}
           {active === "laporan" && <LaporanView />}
           {active === "rekap-bulanan" && <RekapBulananView />}
-          {active === "rekap-harian" && (
-            <ComingSoon
-              title="Rekap Harian"
-              message="Rekap kehadiran per hari (semua sesi dalam satu tanggal, lengkap dengan persentase per sesi) sedang kami siapkan. Sementara ini gunakan Rekap Gabungan 1 Hari pada menu Daftar Kegiatan."
-            />
-          )}
+          {active === "rekap-harian" && <RekapHarianView />}
           {active === "pantau-login" && role === "admin" && <PantauLoginView />}
           {active === "kelompok" && <KelompokView />}
           {active === "log" && role === "admin" && <LogAktivitas />}

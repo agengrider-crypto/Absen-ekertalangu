@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PercentBar } from "@/pages/PublicRekapGabungan";
 import { SkeletonList } from "@/components/GlobalLoading";
+import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "./rekapUtils";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
   "Agustus", "September", "Oktober", "November", "Desember"];
@@ -27,7 +28,7 @@ function badgeOf(r) {
   if (r.hadir === 0) return { t: "Belum pernah hadir", cls: "bg-[#FEE2E2] text-[#991B1B]" };
   if (r.ratio < 50) return { t: "Jarang hadir", cls: "bg-[#FEF3C7] text-[#92400E]" };
   if (r.ratio < 80) return { t: "Cukup aktif", cls: "bg-[#E0F2FE] text-[#075985]" };
-  return { t: "Rajin hadir", cls: "bg-[#F1F1EE] text-[#111114]" };
+  return { t: "Rajin hadir", cls: "bg-[#DCFCE7] text-[#166534]" };
 }
 
 export default function RekapBulananView() {
@@ -102,12 +103,12 @@ export default function RekapBulananView() {
         </div>
         <div className="flex items-center gap-2">
           <button data-testid="bulan-prev" onClick={() => setMonth(shiftMonth(month, -1))}
-            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#111114] hover:text-[#111114]"><ChevronLeft size={18} /></button>
-          <div className="h-11 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center gap-2" data-testid="bulan-aktif">
+            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#0F766E] hover:text-[#0F766E]"><ChevronLeft size={18} /></button>
+          <div className="h-11 px-4 rounded-xl bg-[#0F766E] text-white font-semibold text-sm inline-flex items-center gap-2" data-testid="bulan-aktif">
             <CalendarRange size={16} /> {BULAN[m - 1]} {y}
           </div>
           <button data-testid="bulan-next" onClick={() => setMonth(shiftMonth(month, 1))}
-            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#111114] hover:text-[#111114]"><ChevronRight size={18} /></button>
+            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#0F766E] hover:text-[#0F766E]"><ChevronRight size={18} /></button>
         </div>
       </div>
 
@@ -117,7 +118,7 @@ export default function RekapBulananView() {
             {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 rounded-2xl bg-[#F1F3F1] animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />)}
           </div>
           <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5">
-            <div className="text-sm text-[#6B7280] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#111114]" /> Memuat rekap bulanan…</div>
+            <div className="text-sm text-[#6B7280] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#0F766E]" /> Memuat rekap bulanan…</div>
             <SkeletonList rows={6} testid="rekap-bulanan-skeleton" />
           </div>
         </div>
@@ -125,18 +126,18 @@ export default function RekapBulananView() {
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-pertemuan">
-              <div className="text-xs font-semibold text-[#6B7280] inline-flex items-center gap-1.5"><CalendarRange size={14} /> Pertemuan bulan ini</div>
-              <div className="text-3xl font-bold text-[#111827] mt-1 tabular-nums">{data.total_pertemuan}</div>
+              <div className="text-xs font-semibold text-[#0F766E] inline-flex items-center gap-1.5"><CalendarRange size={14} /> Pertemuan bulan ini</div>
+              <div className="text-3xl font-bold text-[#0F766E] mt-1 tabular-nums">{data.total_pertemuan}</div>
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">{data.total_kegiatan} jadwal termasuk sesi</div>
             </div>
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-jamaah">
-              <div className="text-xs font-semibold text-[#6B7280] inline-flex items-center gap-1.5"><Users size={14} /> Jumlah peserta</div>
-              <div className="text-3xl font-bold text-[#111827] mt-1 tabular-nums">{data.total_peserta}</div>
+              <div className="text-xs font-semibold text-[#2563EB] inline-flex items-center gap-1.5"><Users size={14} /> Jumlah peserta</div>
+              <div className="text-3xl font-bold text-[#2563EB] mt-1 tabular-nums">{data.total_peserta}</div>
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">Rata-rata hadir {data.summary.rata_rata}%</div>
             </div>
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-rajin">
-              <div className="text-xs font-semibold text-[#111114] inline-flex items-center gap-1.5"><TrendingUp size={14} /> Rajin hadir (≥80%)</div>
-              <div className="text-3xl font-bold text-[#111114] mt-1 tabular-nums">{data.summary.rajin}</div>
+              <div className="text-xs font-semibold text-[#15803D] inline-flex items-center gap-1.5"><TrendingUp size={14} /> Rajin hadir (≥80%)</div>
+              <div className="text-3xl font-bold text-[#15803D] mt-1 tabular-nums">{data.summary.rajin}</div>
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">Cukup aktif: {data.summary.cukup}</div>
             </div>
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-jarang">
@@ -147,9 +148,9 @@ export default function RekapBulananView() {
           </div>
 
           {/* Bagikan sebagai tautan + WhatsApp */}
-          <div className="rounded-2xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-4 space-y-2.5" data-testid="rekap-bulanan-share">
-            <div className="text-sm font-bold text-[#111114] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap bulan ini</div>
-            <p className="text-[11px] text-[#111114]/80 leading-relaxed">
+          <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#F0FDFA] p-4 space-y-2.5" data-testid="rekap-bulanan-share">
+            <div className="text-sm font-bold text-[#115E59] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap bulan ini</div>
+            <p className="text-[11px] text-[#0F766E] leading-relaxed">
               Tautan publik: siapa pun yang klik bisa langsung melihat siapa saja yang hadir,
               berapa kali ikut, dan rincian sesinya — tanpa perlu login.
             </p>
@@ -162,7 +163,7 @@ export default function RekapBulananView() {
                 {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Bagikan ke WhatsApp
               </button>
               <button onClick={copyLink} disabled={sharing} data-testid="rekap-bulanan-copy-link"
-                className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#F1F1EE] disabled:opacity-60">
+                className="h-11 rounded-xl border-2 border-[#0F766E] text-[#0F766E] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#CCFBF1] disabled:opacity-60">
                 <Link2 size={15} /> Salin Tautan
               </button>
             </div>
@@ -170,21 +171,21 @@ export default function RekapBulananView() {
 
           {/* Pisah Laki-laki / Perempuan */}
           <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 space-y-4" data-testid="rekap-bulanan-gender">
-            <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Users size={16} className="text-[#111114]" /> Pisah Laki-laki &amp; Perempuan</div>
+            <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Users size={16} style={{ color: REKAP.main }} /> Pisah Laki-laki &amp; Perempuan</div>
             <PercentBar label={`Laki-laki (${data.gender?.L?.peserta || 0} peserta · rajin ${data.gender?.L?.rajin || 0} · jarang ${data.gender?.L?.jarang || 0})`}
-              value={data.gender?.L?.ratio || 0} sub={`${data.gender?.L?.hadir || 0}/${data.gender?.L?.pertemuan || 0}`} testid="bar-gender-l" />
+              value={data.gender?.L?.ratio || 0} sub={`${data.gender?.L?.hadir || 0}/${data.gender?.L?.pertemuan || 0}`} color={REKAP.lk} testid="bar-gender-l" />
             <PercentBar label={`Perempuan (${data.gender?.P?.peserta || 0} peserta · rajin ${data.gender?.P?.rajin || 0} · jarang ${data.gender?.P?.jarang || 0})`}
-              value={data.gender?.P?.ratio || 0} sub={`${data.gender?.P?.hadir || 0}/${data.gender?.P?.pertemuan || 0}`} color="#9CA3AF" testid="bar-gender-p" />
+              value={data.gender?.P?.ratio || 0} sub={`${data.gender?.P?.hadir || 0}/${data.gender?.P?.pertemuan || 0}`} color={REKAP.pr} testid="bar-gender-p" />
           </div>
 
           {/* Ringkasan sesi sebulan */}
           {data.per_sesi?.length > 0 && (
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 space-y-3.5" data-testid="rekap-bulanan-sesi">
-              <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Layers size={16} className="text-[#111114]" /> Ringkasan Sesi Selama Sebulan</div>
+              <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Layers size={16} style={{ color: REKAP.main }} /> Ringkasan Sesi Selama Sebulan</div>
               {data.per_sesi.map((x) => (
                 <PercentBar key={x.label}
                   label={`${x.label}${x.required === false ? " · opsional" : ""} — ${x.pertemuan}x kegiatan`}
-                  value={x.ratio} sub={`${x.hadir}/${x.peserta}`} testid={`bar-sesi-bulanan-${x.label}`} />
+                  value={x.ratio} sub={`${x.hadir}/${x.peserta}`} color={ratioColor(x.ratio)} testid={`bar-sesi-bulanan-${x.label}`} />
               ))}
             </div>
           )}
@@ -195,18 +196,18 @@ export default function RekapBulananView() {
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
                 <input data-testid="rekap-bulanan-search" value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari nama peserta…"
-                  className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
+                  className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#0F766E]" />
               </div>
               <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1" data-testid="rekap-bulanan-gender-tabs">
                 {[["semua", "L/P"], ["L", "Laki-laki"], ["P", "Perempuan"]].map(([v, l]) => (
                   <button key={v} data-testid={`rekap-bulanan-gender-${v}`} onClick={() => setGender(v)}
-                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#0F766E] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
               <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1">
                 {[["semua", "Semua"], ["jarang", "Jarang"], ["belum", "Belum hadir"], ["rajin", "Rajin"]].map(([v, l]) => (
                   <button key={v} data-testid={`rekap-bulanan-filter-${v}`} onClick={() => setFilter(v)}
-                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#0F766E] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
             </div>
@@ -217,7 +218,7 @@ export default function RekapBulananView() {
                   <tr>
                     <th className="px-3 py-2 font-semibold">Nama Peserta</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Ikut</th>
-                    <th className="px-3 py-2 font-semibold w-[38%]">Tingkat kehadiran</th>
+                    <th className="px-3 py-2 font-semibold w-[40%]">Tingkat kehadiran &amp; keterangan</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Izin</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Alpha</th>
                     <th className="px-3 py-2 font-semibold whitespace-nowrap">Terakhir hadir</th>
@@ -240,14 +241,17 @@ export default function RekapBulananView() {
                             {r.kelompok_name ? ` · ${r.kelompok_name}` : ""}
                           </div>
                         </td>
-                        <td className="px-3 py-2.5 text-center font-bold tabular-nums text-[#111114] whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-center font-bold tabular-nums text-[#15803D] whitespace-nowrap">
                           {r.hadir}<span className="text-[#9CA3AF] font-semibold">/{r.pertemuan}</span>
                         </td>
                         <td className="px-3 py-2.5">
-                          <PercentBar label="" value={r.ratio} color={r.ratio >= 80 ? "#111114" : r.ratio >= 50 ? "#6B7280" : "#9CA3AF"} testid={`bar-bulanan-${r.user_id}`} />
+                          <PersenRingkas value={r.ratio} testid={`persen-bulanan-${r.user_id}`} />
+                          <div className="text-[11px] font-semibold text-[#4B5563] mt-1" data-testid={`keterangan-bulanan-${r.user_id}`}>
+                            {keteranganHitungan({ hadir: r.hadir, izin: r.izin, alpha: r.alpha, total: r.pertemuan })}
+                          </div>
                         </td>
-                        <td className="px-3 py-2.5 text-center tabular-nums text-[#B45309]">{r.izin}</td>
-                        <td className="px-3 py-2.5 text-center tabular-nums text-[#DC2626]">{r.alpha}</td>
+                        <td className="px-3 py-2.5 text-center tabular-nums text-[#D97706] font-semibold">{r.izin}</td>
+                        <td className="px-3 py-2.5 text-center tabular-nums text-[#DC2626] font-semibold">{r.alpha}</td>
                         <td className="px-3 py-2.5 text-[#6B7280] whitespace-nowrap">{r.last_date || "—"}</td>
                       </tr>
                     );
@@ -266,11 +270,11 @@ export default function RekapBulananView() {
                 {data.per_pertemuan.map((p, i) => (
                   <div key={i} className="rounded-xl border border-[#EEF1EE] p-3.5">
                     <PercentBar label={`${p.date} · ${p.name}${p.sessions > 1 ? ` (${p.sessions} sesi)` : ""}`}
-                      value={p.ratio} sub={`${p.hadir}/${p.peserta}`} testid={`bar-pertemuan-${i}`} />
+                      value={p.ratio} sub={`${p.hadir}/${p.peserta}`} color={ratioColor(p.ratio)} testid={`bar-pertemuan-${i}`} />
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {(p.sesi || []).map((x, j) => (
                         <span key={j} title={[x.teacher, x.material].filter(Boolean).join(" · ")}
-                          className={`text-[11px] font-semibold px-2 py-1 rounded-lg ${x.required ? "bg-[#F1F1EE] text-[#111114]" : "bg-[#EEF2FF] text-[#111114]"}`}>
+                          className={`text-[11px] font-semibold px-2 py-1 rounded-lg ${x.required ? "bg-[#CCFBF1] text-[#115E59]" : "bg-[#E0F2FE] text-[#075985]"}`}>
                           {x.label} {x.start_time}–{x.end_time} · {x.hadir}/{x.peserta} ({x.ratio}%)
                         </span>
                       ))}
@@ -281,9 +285,14 @@ export default function RekapBulananView() {
             )}
           </div>
 
-          <p className="text-xs text-[#9CA3AF] inline-flex items-center gap-1.5">
-            <CheckCircle2 size={14} /> Hadir di salah satu sesi wajib pada hari itu sudah dihitung hadir untuk pertemuan tersebut.
-          </p>
+          <div className="rounded-2xl border-2 border-dashed border-[#E8E8E4] bg-white p-4 text-xs text-[#4B5563] space-y-1.5" data-testid="rekap-bulanan-legend">
+            <div className="font-bold text-[#111114] inline-flex items-center gap-1.5"><CheckCircle2 size={14} /> Keterangan hitungan</div>
+            <p>Persen kehadiran = jumlah <b>Hadir</b> ÷ jumlah pertemuan × 100.</p>
+            <p>Hadir + Izin + Alpha selalu sama dengan jumlah pertemuan peserta tersebut, sehingga persennya berjumlah <b>100%</b>.
+              Contoh: Hadir 5× (71,4%) + Izin 1× (14,3%) + Alpha 1× (14,3%) = 100% dari 7 pertemuan.</p>
+            <p>Warna persen: <span className="font-bold text-[#166534]">hijau ≥80%</span>, <span className="font-bold text-[#92400E]">kuning 50–79%</span>, <span className="font-bold text-[#991B1B]">merah &lt;50%</span>.</p>
+            <p>Hadir di salah satu sesi wajib pada hari itu sudah dihitung hadir untuk pertemuan tersebut.</p>
+          </div>
         </>
       )}
     </div>

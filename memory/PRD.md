@@ -634,3 +634,20 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 - Kata **"jamaah" diganti "peserta"** di seluruh antarmuka (26 file frontend) dan pesan backend,
   termasuk kunci `gender.*.jamaah` → `gender.*.peserta` (frontend & backend diubah serempak).
   Akun contoh "Ibu Jamaah" di database ikut diganti menjadi "Ibu Peserta".
+
+## FASE 17 — Rekap Berwarna, Persen Ringkas & Rekap Harian Aktif (28 Sep 2026, uji manual)
+- **Halaman rekap dikecualikan dari tema monokrom** (`admin/rekapUtils.jsx`): palet hijau (hadir),
+  kuning (izin), merah (alpha), teal (aksen), biru/pink (L/P). `PercentBar` default kembali hijau,
+  sehingga rekap publik & rekap gabungan ikut berwarna.
+- **Rekap Bulanan**: daftar peserta kini memakai **chip persen ringkas** (bukan bar batangan) +
+  baris keterangan hitungan tiap peserta, mis. "Hadir 5× (71,4%) + Izin 1× (14,3%) +
+  Alpha 1× (14,3%) = 100% dari 7 pertemuan". Ditambah blok "Keterangan hitungan" di bawah tabel
+  (rumus persen, penjumlahan 100%, arti warna).
+- **Rekap Harian diaktifkan** (`admin/RekapHarianView.jsx`, ganti halaman ComingSoon):
+  navigasi tanggal, kartu Peserta/Hadir/Izin/Alpha, bar kehadiran tiap sesi + keterangan hitungan,
+  pisah L/P, daftar peserta dengan chip persen + keterangan + rincian status per sesi (bisa dibuka),
+  serta blok keterangan hitungan.
+  Backend baru: `GET /api/staff/rekap-harian?date=YYYY-MM-DD` (rincian sesi, status per peserta,
+  status hari, rasio hadir/izin/alpha, ringkasan gender) + helper `_tanggal_indo`.
+- **Area peserta**: kartu Riwayat Kehadiran memakai warna rekap dan menampilkan keterangan
+  hitungan bulan ini beserta rumus persennya.
