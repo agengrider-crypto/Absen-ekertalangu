@@ -97,7 +97,7 @@ export default function RekapBulananView() {
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#111827]">Rekap Absen Bulanan</h1>
           <p className="text-sm text-[#6B7280] mt-0.5">
-            Berapa kali setiap jamaah mengikuti pertemuan dalam satu bulan. Satu hari kegiatan dihitung satu pertemuan.
+            Berapa kali setiap peserta mengikuti pertemuan dalam satu bulan. Satu hari kegiatan dihitung satu pertemuan.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -130,7 +130,7 @@ export default function RekapBulananView() {
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">{data.total_kegiatan} jadwal termasuk sesi</div>
             </div>
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-jamaah">
-              <div className="text-xs font-semibold text-[#6B7280] inline-flex items-center gap-1.5"><Users size={14} /> Jumlah jamaah</div>
+              <div className="text-xs font-semibold text-[#6B7280] inline-flex items-center gap-1.5"><Users size={14} /> Jumlah peserta</div>
               <div className="text-3xl font-bold text-[#111827] mt-1 tabular-nums">{data.total_peserta}</div>
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">Rata-rata hadir {data.summary.rata_rata}%</div>
             </div>
@@ -171,9 +171,9 @@ export default function RekapBulananView() {
           {/* Pisah Laki-laki / Perempuan */}
           <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 space-y-4" data-testid="rekap-bulanan-gender">
             <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Users size={16} className="text-[#111114]" /> Pisah Laki-laki &amp; Perempuan</div>
-            <PercentBar label={`Laki-laki (${data.gender?.L?.jamaah || 0} jamaah · rajin ${data.gender?.L?.rajin || 0} · jarang ${data.gender?.L?.jarang || 0})`}
+            <PercentBar label={`Laki-laki (${data.gender?.L?.peserta || 0} peserta · rajin ${data.gender?.L?.rajin || 0} · jarang ${data.gender?.L?.jarang || 0})`}
               value={data.gender?.L?.ratio || 0} sub={`${data.gender?.L?.hadir || 0}/${data.gender?.L?.pertemuan || 0}`} testid="bar-gender-l" />
-            <PercentBar label={`Perempuan (${data.gender?.P?.jamaah || 0} jamaah · rajin ${data.gender?.P?.rajin || 0} · jarang ${data.gender?.P?.jarang || 0})`}
+            <PercentBar label={`Perempuan (${data.gender?.P?.peserta || 0} peserta · rajin ${data.gender?.P?.rajin || 0} · jarang ${data.gender?.P?.jarang || 0})`}
               value={data.gender?.P?.ratio || 0} sub={`${data.gender?.P?.hadir || 0}/${data.gender?.P?.pertemuan || 0}`} color="#9CA3AF" testid="bar-gender-p" />
           </div>
 
@@ -194,7 +194,7 @@ export default function RekapBulananView() {
               <div className="relative flex-1 min-w-[200px]">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
                 <input data-testid="rekap-bulanan-search" value={q} onChange={(e) => setQ(e.target.value)}
-                  placeholder="Cari nama jamaah…"
+                  placeholder="Cari nama peserta…"
                   className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
               </div>
               <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1" data-testid="rekap-bulanan-gender-tabs">
@@ -215,7 +215,7 @@ export default function RekapBulananView() {
               <table className="w-full text-sm" data-testid="rekap-bulanan-table">
                 <thead className="bg-[#FAFAF8] text-[#6B7280] text-left">
                   <tr>
-                    <th className="px-3 py-2 font-semibold">Nama Jamaah</th>
+                    <th className="px-3 py-2 font-semibold">Nama Peserta</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Ikut</th>
                     <th className="px-3 py-2 font-semibold w-[38%]">Tingkat kehadiran</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Izin</th>
@@ -225,7 +225,7 @@ export default function RekapBulananView() {
                 </thead>
                 <tbody className="divide-y divide-[#ECECE8]">
                   {rows.length === 0 ? (
-                    <tr><td colSpan={6} className="p-10 text-center text-[#6B7280]">Tidak ada data jamaah.</td></tr>
+                    <tr><td colSpan={6} className="p-10 text-center text-[#6B7280]">Tidak ada data peserta.</td></tr>
                   ) : rows.map((r) => {
                     const b = badgeOf(r);
                     return (

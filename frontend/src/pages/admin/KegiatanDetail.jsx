@@ -24,7 +24,7 @@ import {
  * Menggantikan modal absensi yang sempit: sekarang berupa halaman penuh dengan
  * NAVIGASI BAR HORIZONTAL (bisa digeser di HP) berisi seluruh pekerjaan absen
  * pada satu kegiatan — ringkasan, absen manual (mendukung mode offline), scan
- * barcode, daftar tamu, tindak lanjut jamaah yang tidak hadir, kode akses, dan
+ * barcode, daftar tamu, tindak lanjut peserta yang tidak hadir, kode akses, dan
  * kotak pesan/saran.
  */
 
@@ -292,9 +292,9 @@ function BarcodePublikPanel({ kegiatanId }) {
     <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 text-center" data-testid="detail-publik-panel">
       <img src={info.image} alt="Barcode Publik" className="mx-auto w-48 h-48 rounded-xl border border-[#E8E8E4] p-2" data-testid="detail-publik-qr" />
       <div className="mt-4 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl p-3.5 text-left">
-        <p className="text-sm font-semibold text-[#111114] flex items-center gap-1.5"><QrCode size={15} /> Barcode absen untuk jamaah umum</p>
+        <p className="text-sm font-semibold text-[#111114] flex items-center gap-1.5"><QrCode size={15} /> Barcode absen untuk peserta umum</p>
         <p className="text-xs text-[#4B5563] mt-1.5 leading-relaxed">
-          Kegiatan ini <b>terbuka</b>, sehingga jamaah yang <b>belum aktivasi akun</b> cukup
+          Kegiatan ini <b>terbuka</b>, sehingga peserta yang <b>belum aktivasi akun</b> cukup
           scan barcode ini, <b>mengisi nama</b>, lalu kehadiran <b>langsung tercatat</b> —
           tanpa perlu login maupun kode akses.
         </p>
@@ -526,7 +526,7 @@ function TamuPanel({ kegiatanId, guests, onReload }) {
       <form onSubmit={add} className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
         <div className="font-bold text-[#111827] text-[15px] flex items-center gap-2"><UserPlus size={17} className="text-[#111114]" /> Tambah Tamu (tanpa akun)</div>
         <p className="text-sm text-[#6B7280] mt-1">
-          Kegiatan terbuka/publik: jamaah yang belum aktivasi akun cukup dicatat namanya saja.
+          Kegiatan terbuka/publik: peserta yang belum aktivasi akun cukup dicatat namanya saja.
         </p>
         <div className="flex gap-2 mt-3 flex-wrap">
           <input
@@ -622,7 +622,7 @@ function TindakLanjut({ kegiatanId }) {
       <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
         <div className="font-bold text-[#111827] text-[15px] flex items-center gap-2"><ClipboardList size={17} className="text-[#111114]" /> Rekap Tidak Hadir Kegiatan Sebelumnya</div>
         <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
-          Daftar jamaah yang <b>tidak hadir</b> pada kegiatan <b>{data.previous.name}</b>{" "}
+          Daftar peserta yang <b>tidak hadir</b> pada kegiatan <b>{data.previous.name}</b>{" "}
           ({tanggalSingkat(data.previous.date)}). Silakan hubungi lewat WhatsApp / telepon,
           lalu tandai apakah mereka <b>akan hadir</b> pada kegiatan ini.
         </p>
@@ -636,7 +636,7 @@ function TindakLanjut({ kegiatanId }) {
 
       {data.rows.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-8 text-center text-sm text-[#111114]">
-          Alhamdulillah, semua jamaah hadir pada kegiatan sebelumnya.
+          Alhamdulillah, semua peserta hadir pada kegiatan sebelumnya.
         </div>
       ) : (
         <div className="space-y-2">

@@ -101,7 +101,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
       "",
       ...data.sessions.map((x) => `• ${x.label} (${x.start_time}–${x.end_time}): Hadir ${x.counts.hadir} / ${x.counts.total} (${x.counts.ratio}%)`),
       "",
-      `Total jamaah: ${s.total}`,
+      `Total peserta: ${s.total}`,
       `Hadir minimal 1 sesi: ${s.hadir_min_1} (${s.ratio_min_1}%)`,
       `Hadir semua sesi: ${s.hadir_semua} (${s.ratio_semua}%)`,
       `Izin (tidak hadir sama sekali): ${s.izin_saja}`,
@@ -129,7 +129,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
         <div className="space-y-4">
           {/* Ringkasan gabungan */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-testid="rekap-gabungan-summary">
-            <div className="rounded-xl bg-[#F4F4F1] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{s.total}</div><div className="text-xs text-[#6B7280]">Total Jamaah</div></div>
+            <div className="rounded-xl bg-[#F4F4F1] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{s.total}</div><div className="text-xs text-[#6B7280]">Total Peserta</div></div>
             <div className="rounded-xl bg-[#F1F1EE] p-3 text-center"><div className="text-xl font-bold text-[#111114]">{s.hadir_min_1} <span className="text-xs font-semibold">({s.ratio_min_1}%)</span></div><div className="text-xs text-[#6B7280]">Hadir ≥ 1 Sesi</div></div>
             <div className="rounded-xl bg-[#DCFCE7] p-3 text-center"><div className="text-xl font-bold text-[#14532D]">{s.hadir_semua} <span className="text-xs font-semibold">({s.ratio_semua}%)</span></div><div className="text-xs text-[#6B7280]">Hadir Semua Sesi</div></div>
             <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{s.tidak_hadir}</div><div className="text-xs text-[#6B7280]">Tidak Hadir Sama Sekali</div></div>
@@ -146,8 +146,8 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
             <PercentBar label="Hadir minimal 1 sesi" value={s.ratio_min_1} sub={`${s.hadir_min_1}/${s.total}`} testid="gab-bar-min1" />
             <PercentBar label="Hadir semua sesi" value={s.ratio_semua} sub={`${s.hadir_semua}/${s.total}`} color="#14532D" testid="gab-bar-semua" />
             <p className="text-[11px] text-[#9CA3AF] leading-relaxed pt-0.5">
-              Jamaah yang sudah hadir di sesi sebelumnya <b>tidak dihitung Alpha</b> pada sesi berikutnya
-              (kolomnya dikosongkan ✓). Tanda <b>“Wajib Pagi + Sore”</b> berarti jamaah tersebut wajib hadir
+              Peserta yang sudah hadir di sesi sebelumnya <b>tidak dihitung Alpha</b> pada sesi berikutnya
+              (kolomnya dikosongkan ✓). Tanda <b>“Wajib Pagi + Sore”</b> berarti peserta tersebut wajib hadir
               di beberapa sesi hari ini; sesi <b>opsional</b> ditandai titik dan tidak dihitung Alpha.
             </p>
           </div>
@@ -195,12 +195,12 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
             <ClipboardCopy size={16} /> Salin Ringkasan (teks WhatsApp)
           </button>
 
-          {/* Tabel jamaah × sesi */}
+          {/* Tabel peserta × sesi */}
           <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
             <div className="p-3 bg-[#FAFAF8] flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-                <input data-testid="rekap-gabungan-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama jamaah..." className="w-full h-10 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
+                <input data-testid="rekap-gabungan-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-10 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
               </div>
               <div className="flex gap-1 bg-white border border-[#E8E8E4] rounded-xl p-1">
                 {[["semua", "Semua"], ["hadir", "Hadir ≥1"], ["tidak", "Tidak hadir"]].map(([v, l]) => (
@@ -220,7 +220,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                 </thead>
                 <tbody className="divide-y divide-[#ECECE8]">
                   {rows.length === 0 ? (
-                    <tr><td colSpan={data.sessions.length + 2} className="p-8 text-center text-[#6B7280]">Tidak ada jamaah.</td></tr>
+                    <tr><td colSpan={data.sessions.length + 2} className="p-8 text-center text-[#6B7280]">Tidak ada peserta.</td></tr>
                   ) : rows.map((r) => (
                     <tr key={r.user_id} data-testid={`rekap-gabungan-row-${r.user_id}`}>
                       <td className="px-3 py-2">

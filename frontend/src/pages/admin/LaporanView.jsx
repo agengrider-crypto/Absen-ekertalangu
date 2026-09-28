@@ -183,7 +183,7 @@ export default function LaporanView() {
           {/* Rekap per peserta (dropdown) */}
           <PesertaLaporanList rows={data.per_peserta || []} />
 
-          {/* Daftar tamu TERPISAH dari jamaah terdaftar */}
+          {/* Daftar tamu TERPISAH dari peserta terdaftar */}
           <TamuLaporanList rows={data.tamu || []} />
         </div>
       )}

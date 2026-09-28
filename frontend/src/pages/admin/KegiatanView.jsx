@@ -539,8 +539,8 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
                 </span>
                 <span className="block text-xs text-[#6B7280] mt-1 leading-relaxed">
                   Setiap waktu menjadi <b>sesi tersendiri</b>: absensi, rekap, kode akses, dan barcode
-                  <b> terpisah</b>. Jamaah yang hadir sesi pagi <b>tidak</b> otomatis terhitung hadir di
-                  sesi sore/malam, dan jamaah lain tetap tampil pada rekap sesi berikutnya.
+                  <b> terpisah</b>. Peserta yang hadir sesi pagi <b>tidak</b> otomatis terhitung hadir di
+                  sesi sore/malam, dan peserta lain tetap tampil pada rekap sesi berikutnya.
                 </span>
               </span>
             </label>
@@ -606,7 +606,7 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
                         <span className="leading-snug">
                           <span className="block text-xs font-bold text-[#111827]">Sesi ini WAJIB dihadiri</span>
                           <span className="block text-[11px] text-[#6B7280]">
-                            Dicentang = jamaah wajib hadir (muncul tanda “Wajib {s.label || "sesi"}” di rekap gabungan).
+                            Dicentang = peserta wajib hadir (muncul tanda “Wajib {s.label || "sesi"}” di rekap gabungan).
                             Dilepas = sesi opsional/tambahan, tidak dihitung Alpha.
                           </span>
                         </span>
@@ -663,7 +663,7 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
           </div>
           <p className="text-xs text-[#6B7280] mt-1.5 leading-relaxed">
             Bila dipilih khusus laki-laki / perempuan, maka daftar absen, halaman
-            absensi, dan laporan kegiatan ini hanya berisi jamaah sesuai pilihan tersebut.
+            absensi, dan laporan kegiatan ini hanya berisi peserta sesuai pilihan tersebut.
           </p>
         </div>
 
@@ -676,7 +676,7 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
           <p className="text-xs text-[#4B5563] mt-1.5 leading-relaxed">
             Khususkan kegiatan menurut <b>status pernikahan</b> dan/atau <b>kelompok usia</b>.
             Daftar absen, halaman absensi, jadwal peserta, dan laporan otomatis hanya
-            berisi jamaah yang sesuai.
+            berisi peserta yang sesuai.
           </p>
 
           {/* Status pernikahan */}
@@ -728,7 +728,7 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
               <AlertTriangle size={13} className="mt-0.5 shrink-0" />
               <span>
                 Usia dihitung otomatis dari <b>tanggal lahir</b>, dan status pernikahan dari data
-                profil jamaah. Jamaah yang datanya <b>belum diisi</b> tidak masuk daftar kegiatan
+                profil peserta. Peserta yang datanya <b>belum diisi</b> tidak masuk daftar kegiatan
                 khusus ini — lengkapi dulu di menu Peserta.
               </span>
             </p>

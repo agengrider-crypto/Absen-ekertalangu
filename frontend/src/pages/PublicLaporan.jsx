@@ -181,7 +181,7 @@ export default function PublicLaporan() {
           )}
         </div>
 
-        {/* Daftar tamu TERPISAH dari jamaah terdaftar */}
+        {/* Daftar tamu TERPISAH dari peserta terdaftar */}
         <TamuLaporanList rows={data.tamu || []} />
 
         <p className="text-center text-xs text-[#9CA3AF] mt-8">

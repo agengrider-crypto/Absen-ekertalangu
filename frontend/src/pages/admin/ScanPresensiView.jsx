@@ -1,4 +1,4 @@
-// FASE 15 — Halaman "Scan Presensi": daftar kegiatan per tanggal + QR kegiatan & kamera scan QR jamaah.
+// FASE 15 — Halaman "Scan Presensi": daftar kegiatan per tanggal + QR kegiatan & kamera scan QR peserta.
 import { useCallback, useEffect, useState } from "react";
 import {
   ScanLine, Loader2, Copy, Download, Clock, MapPin, User, QrCode, Camera,
@@ -41,8 +41,8 @@ export default function ScanPresensiView() {
             <ScanLine size={22} className="text-[#111114]" /> Scan Presensi
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
-            Daftar kegiatan beserta <b>QR kegiatannya</b>. Tampilkan QR agar jamaah memindainya sendiri,
-            atau buka kamera untuk memindai QR pribadi jamaah.
+            Daftar kegiatan beserta <b>QR kegiatannya</b>. Tampilkan QR agar peserta memindainya sendiri,
+            atau buka kamera untuk memindai QR pribadi peserta.
           </p>
         </div>
         <input
@@ -105,7 +105,7 @@ export default function ScanPresensiView() {
                 onClick={() => setScanKegiatan({ id: r.id, name: r.base_name, status: r.status })}
                 className="mt-3 w-full h-11 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#000000]"
               >
-                <Camera size={17} /> Scan QR Jamaah
+                <Camera size={17} /> Scan QR Peserta
               </button>
             </div>
           ))}

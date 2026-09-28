@@ -213,7 +213,7 @@ export default function Beranda({ user, onGoto }) {
         </button>
       </div>
 
-      {/* FASE 15 — Tutorial QR & kesan-pesan kegiatan tampil di dashboard jamaah */}
+      {/* FASE 15 — Tutorial QR & kesan-pesan kegiatan tampil di dashboard peserta */}
       <TutorialQr variant="pribadi" />
       <TutorialQr variant="kegiatan" />
 

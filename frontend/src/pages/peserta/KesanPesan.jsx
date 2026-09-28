@@ -1,4 +1,4 @@
-// FASE 15 — Panel kesan & pesan kegiatan (Suka/Tidak Suka + pesan) di dashboard jamaah.
+// FASE 15 — Panel kesan & pesan kegiatan (Suka/Tidak Suka + pesan) di dashboard peserta.
 import { useEffect, useState } from "react";
 import { MessageSquareQuote, ThumbsUp, ThumbsDown, Loader2, X, CheckCircle2, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
@@ -88,7 +88,7 @@ function FormModal({ item, onClose, onDone }) {
   );
 }
 
-/** Kesan & pesan untuk kegiatan yang sudah dihadiri jamaah (tampil di dashboard). */
+/** Kesan & pesan untuk kegiatan yang sudah dihadiri peserta (tampil di dashboard). */
 export default function KesanPesan() {
   const [items, setItems] = useState(null);
   const [active, setActive] = useState(null);

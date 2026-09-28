@@ -1,4 +1,4 @@
-// FASE 16 — "Ruang Teduh": ruang aman jamaah untuk curhat, bertanya, atau menyampaikan kendala.
+// FASE 16 — "Ruang Teduh": ruang aman peserta untuk curhat, bertanya, atau menyampaikan kendala.
 import { useEffect, useState } from "react";
 import { HeartHandshake, Loader2, Send, Clock, CheckCheck, Trash2, Eraser } from "lucide-react";
 import { toast } from "sonner";

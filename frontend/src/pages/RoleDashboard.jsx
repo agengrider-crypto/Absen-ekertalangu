@@ -4,38 +4,39 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
+import { rolesLabel } from "@/lib/roles";
 
 const ROLE_META = {
   admin: {
     icon: Shield,
-    title: "Adminator (Pengelola Sistem)",
+    title: "Adminator",
     description:
       "Kelola pengguna, buat & atur jadwal pengajian, kelola QR code publik, dan lihat laporan presensi lengkap.",
     badge: "Akses Penuh",
     action: "Masuk sebagai Adminator",
-    color: "#9CA3AF",
-    bg: "#FEF3C7",
-    text: "#92400E",
-    border: "#FCD34D",
+    color: "#111114",
+    bg: "#F1F1EE",
+    text: "#111114",
+    border: "#D5D5CE",
   },
   pengurus: {
     icon: Users,
-    title: "Pengurus (Petugas Sesi)",
+    title: "Pengurus",
     description:
-      "Buka sesi presensi pengajian, verifikasi kehadiran jamaah, dan pantau rekap kehadiran harian.",
+      "Buka sesi presensi pengajian, verifikasi kehadiran peserta, dan pantau rekap kehadiran harian.",
     badge: "Akses Operasional",
     action: "Masuk sebagai Pengurus",
-    color: "#0284C7",
-    bg: "#E0F2FE",
-    text: "#075985",
-    border: "#7DD3FC",
+    color: "#4B5563",
+    bg: "#F1F1EE",
+    text: "#4B5563",
+    border: "#D5D5CE",
   },
   peserta: {
     icon: UserCheck,
-    title: "Peserta / Jamaah",
+    title: "Peserta",
     description:
       "Lakukan presensi cepat via QR code, cek jadwal pengajian terkini, dan lihat riwayat kehadiran Anda.",
-    badge: "Jamaah",
+    badge: "Akses Peserta",
     action: "Masuk sebagai Peserta",
     color: "#111114",
     bg: "#F1F1EE",
@@ -52,7 +53,7 @@ export default function RoleDashboard() {
 
   const roles = user.roles || [];
 
-  // FASE 16 — akun dengan satu peran (mis. jamaah) langsung masuk areanya.
+  // FASE 16 — akun dengan satu peran (mis. peserta) langsung masuk areanya.
   if (roles.length === 1) return <Navigate to={`/area/${roles[0]}`} replace />;
   const incomplete = (user.missing_fields || []).length > 0;
 
@@ -75,7 +76,7 @@ export default function RoleDashboard() {
           </button>
 
           {/* Foto profil + menu akun (tersedia di halaman peran juga) */}
-          <ProfileMenu subtitle={roles.join(" · ")} />
+          <ProfileMenu subtitle={rolesLabel(roles)} />
         </div>
       </header>
 

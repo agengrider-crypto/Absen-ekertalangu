@@ -882,9 +882,9 @@ async def admin_users(admin: dict = Depends(require_staff), include_system: bool
 
 @api_router.get("/admin/users/kelengkapan")
 async def admin_users_kelengkapan(admin: dict = Depends(require_staff)):
-    """FASE 10 — Daftar jamaah yang TANGGAL LAHIR atau STATUS PERNIKAHAN-nya
+    """FASE 10 — Daftar peserta yang TANGGAL LAHIR atau STATUS PERNIKAHAN-nya
     belum diisi. Data ini dipakai penyaringan kegiatan (kelompok usia & status
-    pernikahan); jamaah yang datanya kosong tidak akan masuk daftar kegiatan khusus.
+    pernikahan); peserta yang datanya kosong tidak akan masuk daftar kegiatan khusus.
 
     Didefinisikan SEBELUM `/admin/users/{user_id}` agar tidak tertangkap route generik.
     """
@@ -924,7 +924,7 @@ async def admin_users_kelengkapan(admin: dict = Depends(require_staff)):
 
 @api_router.get("/admin/users/duplikat")
 async def admin_users_duplikat(admin: dict = Depends(require_staff)):
-    """FASE 15 — Cek data ganda: jamaah dengan NAMA sama (huruf besar/kecil & spasi diabaikan).
+    """FASE 15 — Cek data ganda: peserta dengan NAMA sama (huruf besar/kecil & spasi diabaikan).
 
     Didefinisikan SEBELUM `/admin/users/{user_id}` agar tidak tertangkap route generik.
     """
@@ -1628,7 +1628,7 @@ def kegiatan_phase(k: dict) -> str:
 
 
 def gender_label(gf: str) -> str:
-    return {"L": "Khusus Laki-laki", "P": "Khusus Perempuan"}.get(gf, "Semua Jamaah")
+    return {"L": "Khusus Laki-laki", "P": "Khusus Perempuan"}.get(gf, "Semua Peserta")
 
 
 # --------------------------- FASE 9: usia & pernikahan ---------------------------
@@ -2244,8 +2244,8 @@ async def build_rekap_gabungan(docs: list) -> dict:
     """Ringkasan SATU HARI yang menggabungkan kehadiran semua sesi (pagi/sore/malam).
 
     - Setiap sesi tetap punya rekap terpisah (kolom per sesi).
-    - "hadir_min_1"   : jamaah hadir minimal pada 1 sesi.
-    - "hadir_semua"   : jamaah hadir pada SEMUA sesi.
+    - "hadir_min_1"   : peserta hadir minimal pada 1 sesi.
+    - "hadir_semua"   : peserta hadir pada SEMUA sesi.
     - "tidak_hadir"   : tidak hadir di sesi mana pun (dan tidak izin).
     """
     ids = [d["_id"] for d in docs]
@@ -3349,7 +3349,7 @@ async def scan_absensi_by_code(token: str, body: AbsensiScanInput):
 
 # ===========================================================================
 # REVISI — BARCODE PUBLIK KEGIATAN TERBUKA (tanpa login & tanpa kode akses)
-# Jamaah yang BELUM aktivasi akun cukup scan barcode ini, mengisi NAMA, lalu
+# Peserta yang BELUM aktivasi akun cukup scan barcode ini, mengisi NAMA, lalu
 # langsung tercatat hadir. Hanya tersedia untuk kegiatan bertipe Terbuka/Publik.
 # ===========================================================================
 class PublikHadirInput(BaseModel):
@@ -4349,7 +4349,7 @@ async def rekap_bulanan(month: Optional[str] = None, staff: dict = Depends(requi
 
 
 async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
-    """FASE 13 — Rekap absen BULANAN per jamaah.
+    """FASE 13 — Rekap absen BULANAN per peserta.
 
     1 pertemuan = 1 hari kegiatan (semua sesi hari itu dihitung SEKALI); hadir di
     salah satu sesi wajib = hadir pada pertemuan tersebut. Sesi yang ditandai
@@ -4468,7 +4468,7 @@ async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
         slot = sum(r["pertemuan"] for r in grp)
         hadir = sum(r["hadir"] for r in grp)
         gender_out[g] = {
-            "jamaah": len([r for r in rows if r["gender"] == g]),
+            "peserta": len([r for r in rows if r["gender"] == g]),
             "hadir": hadir, "pertemuan": slot,
             "izin": sum(r["izin"] for r in grp),
             "alpha": sum(r["alpha"] for r in grp),
@@ -4518,7 +4518,7 @@ async def share_rekap_bulanan(request: Request, month: Optional[str] = None,
         f"Jumlah pertemuan: {data['total_pertemuan']}\n"
         f"Rata-rata kehadiran: {data['summary']['rata_rata']}%\n"
         f"{link}\n\n"
-        "Silakan dibuka untuk melihat kehadiran tiap jamaah. Jazakumullahu khoiro."
+        "Silakan dibuka untuk melihat kehadiran tiap peserta. Jazakumullahu khoiro."
     )
     return {"token": token, "link": link, "month": month, "label": data["label"],
             "wa_text": wa_text}
@@ -4593,7 +4593,7 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
     tvals = list(tally.values())
     n_keg = len(kegiatans)
     keg_map = {k["_id"]: k for k in kegiatans}
-    # Daftar TAMU terpisah supaya mudah dibedakan dari jamaah terdaftar
+    # Daftar TAMU terpisah supaya mudah dibedakan dari peserta terdaftar
     guest_rows = sorted(
         [{"name": g.get("name"),
           "kegiatan_id": g.get("kegiatan_id"),
@@ -4739,10 +4739,10 @@ async def admin_laporan_export(admin: dict = Depends(require_staff),
         ]))
         elems.append(t)
 
-        # Daftar TAMU terpisah (bukan jamaah terdaftar)
+        # Daftar TAMU terpisah (bukan peserta terdaftar)
         elems.append(Spacer(1, 16))
         elems.append(Paragraph(
-            f"Daftar Tamu (bukan jamaah terdaftar) — {data.get('total_tamu', 0)} orang",
+            f"Daftar Tamu (bukan peserta terdaftar) — {data.get('total_tamu', 0)} orang",
             styles["Heading3"]))
         if data.get("tamu"):
             gdata = [["Tanggal", "Kegiatan", "Nama Tamu", "Jam Hadir"]]
@@ -4815,7 +4815,7 @@ async def cron_auto_close(request: Request):
 
 
 # ===========================================================================
-# FASE 15 — Halaman Kode Akses, Scan Presensi & Pengaduan/Curhat Jamaah
+# FASE 15 — Halaman Kode Akses, Scan Presensi & Pengaduan/Curhat Peserta
 # ===========================================================================
 @api_router.get("/staff/kode-akses")
 async def staff_kode_akses(request: Request, staff: dict = Depends(require_staff),
@@ -4850,7 +4850,7 @@ async def staff_kode_akses(request: Request, staff: dict = Depends(require_staff
 @api_router.get("/staff/scan-presensi")
 async def staff_scan_presensi(request: Request, staff: dict = Depends(require_staff),
                               date: str = ""):
-    """Daftar kegiatan pada 1 tanggal beserta QR absen kegiatannya (untuk dipindai jamaah)."""
+    """Daftar kegiatan pada 1 tanggal beserta QR absen kegiatannya (untuk dipindai peserta)."""
     d = date.strip() or now_wita().strftime("%Y-%m-%d")
     kegiatans = await db.kegiatans.find({"date": d}).sort("start_time", 1).to_list(200)
     rows = []
@@ -4894,7 +4894,7 @@ def serialize_pengaduan(p: dict, for_staff: bool = False) -> dict:
         "category_label": PENGADUAN_LABEL.get(p.get("category", "curhat"), "Curhat"),
         "message": p.get("message"),
         "anonymous": bool(p.get("anonymous")),
-        "name": ("Jamaah (tanpa nama)" if p.get("anonymous") else (p.get("name") or "Jamaah")),
+        "name": ("Peserta (tanpa nama)" if p.get("anonymous") else (p.get("name") or "Peserta")),
         "phone": None if p.get("anonymous") else p.get("phone"),
         "at": p.get("at"),
         "dibaca": bool(p.get("read_by")),
@@ -5053,7 +5053,7 @@ async def send_kesan_pesan(body: KesanPesanInput, user: dict = Depends(get_curre
     await db.feedbacks.update_one(
         {"kegiatan_id": body.kegiatan_id, "user_id": uid},
         {"$set": {"kegiatan_id": body.kegiatan_id, "user_id": uid,
-                  "name": user.get("name") or "Jamaah", "sentiment": sentiment,
+                  "name": user.get("name") or "Peserta", "sentiment": sentiment,
                   "message": msg[:3000], "created_at": now_wita().isoformat()}},
         upsert=True)
     return {"message": "Alhamdulillah, jazakumullahu khoiro. Kesan & pesan Anda sudah terkirim."}
@@ -5118,7 +5118,7 @@ async def seed_users():
         {"name": "Pak Pengurus", "email": "pengurus@ekertalangu.id", "username": "pengurus",
          "phone": "081200000002", "dob": "1985-05-10", "address": "Jl. Melati No. 2",
          "password": "Pengurus#2026", "roles": ["pengurus", "peserta"]},
-        {"name": "Ibu Jamaah", "email": "peserta@ekertalangu.id", "username": "peserta",
+        {"name": "Ibu Peserta", "email": "peserta@ekertalangu.id", "username": "peserta",
          "phone": "081300000003", "dob": "1970-08-17", "address": "Jl. Mawar No. 3",
          "password": "Peserta#2026", "roles": ["peserta"]},
     ]

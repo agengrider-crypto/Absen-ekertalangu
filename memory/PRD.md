@@ -626,3 +626,11 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 - **Semua QR jadi hitam**: `make_qr_data_url` fill_color `#0D5C3A` → `#111114` (berlaku untuk QR
   pribadi jamaah, QR absen kegiatan, QR kode akses, QR pendaftaran publik — semuanya digenerate
   saat request, jadi langsung ikut berubah). Warna judul PDF & header Excel juga jadi hitam.
+
+### Revisi teks (28 Sep 2026)
+- Judul kartu peran dibersihkan dari teks dalam tanda kurung: **Adminator**, **Pengurus**, **Peserta**
+  (sebelumnya "Adminator (Pengelola Sistem)", "Pengurus (Petugas Sesi)", "Peserta / Jamaah").
+  Kartu peran juga dibuat monokrom mengikuti tema.
+- Kata **"jamaah" diganti "peserta"** di seluruh antarmuka (26 file frontend) dan pesan backend,
+  termasuk kunci `gender.*.jamaah` → `gender.*.peserta` (frontend & backend diubah serempak).
+  Akun contoh "Ibu Jamaah" di database ikut diganti menjadi "Ibu Peserta".

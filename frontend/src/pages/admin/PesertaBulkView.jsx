@@ -1,4 +1,4 @@
-// FASE 15 — Halaman "Bulk Data": entri banyak jamaah sekaligus (manual / tempel dari Excel).
+// FASE 15 — Halaman "Bulk Data": entri banyak peserta sekaligus (manual / tempel dari Excel).
 import { useRef, useState } from "react";
 import { ListPlus, Loader2, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -69,7 +69,7 @@ export default function PesertaBulkView() {
     setSaving(true);
     try {
       const { data } = await api.post("/admin/users/bulk", { entries, kelompok_id: kid || null });
-      toast.success(`${data.count} jamaah ditambahkan.`);
+      toast.success(`${data.count} peserta ditambahkan.`);
       setLastResult(data);
       setRows([emptyRow(), emptyRow(), emptyRow(), emptyRow(), emptyRow()]);
     } catch (e2) {
@@ -82,7 +82,7 @@ export default function PesertaBulkView() {
       <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-            <ListPlus size={22} className="text-[#111114]" /> Bulk Data Jamaah
+            <ListPlus size={22} className="text-[#111114]" /> Bulk Data Peserta
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
             Isi seperti tabel Excel, atau salin dari Excel/Spreadsheet lalu tempel (Ctrl+V) di kolom <b>Nama</b>.
@@ -93,7 +93,7 @@ export default function PesertaBulkView() {
 
       {lastResult && (
         <div className="mb-4 rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-4 text-sm text-[#111114]" data-testid="bulk-result">
-          <b>{lastResult.count}</b> jamaah tersimpan.
+          <b>{lastResult.count}</b> peserta tersimpan.
           {lastResult.flagged?.length ? ` ${lastResult.flagged.length} nama kembar ditandai "perlu dilengkapi".` : ""}
           {lastResult.invalid_dates?.length ? ` ${lastResult.invalid_dates.length} tanggal tidak terbaca.` : ""}
         </div>

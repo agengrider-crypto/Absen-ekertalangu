@@ -1,4 +1,4 @@
-// FASE 16 — Panel "Ruang Teduh": admin & pengurus membaca pesan jamaah, menandai dibaca, atau menghapus riwayat.
+// FASE 16 — Panel "Ruang Teduh": admin & pengurus membaca pesan peserta, menandai dibaca, atau menghapus riwayat.
 import { useEffect, useState } from "react";
 import { HeartHandshake, Loader2, Search, CheckCheck, UserRound, Clock, Trash2, Eraser } from "lucide-react";
 import { toast } from "sonner";
@@ -62,7 +62,7 @@ export default function RuangTeduhView() {
             <HeartHandshake size={22} className="text-[#111114]" /> Ruang Teduh
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
-            Pesan jamaah: curhat, saran, pengaduan, kendala hadir, dan pertanyaan.
+            Pesan peserta: curhat, saran, pengaduan, kendala hadir, dan pertanyaan.
             Mohon disikapi dengan lembut dan dijaga kerahasiaannya.
           </p>
         </div>
@@ -93,7 +93,7 @@ export default function RuangTeduhView() {
           data-testid="ruangteduh-search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Cari isi pesan atau nama jamaah…"
+          placeholder="Cari isi pesan atau nama peserta…"
           className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white"
         />
       </div>
@@ -104,7 +104,7 @@ export default function RuangTeduhView() {
         <div className="p-10 text-center text-[#6B7280]">Gagal memuat pesan.</div>
       ) : rows.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center text-[#6B7280]" data-testid="ruangteduh-empty">
-          Belum ada pesan dari jamaah.
+          Belum ada pesan dari peserta.
         </div>
       ) : (
         <div className="space-y-3" data-testid="ruangteduh-list">
