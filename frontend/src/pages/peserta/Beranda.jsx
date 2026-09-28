@@ -17,10 +17,10 @@ function Ring({ value }) {
     <div className="relative h-32 w-32" data-testid="attendance-ring">
       <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
         <circle cx="60" cy="60" r={r} fill="none" stroke="#E8E8E4" strokeWidth="10" />
-        <circle cx="60" cy="60" r={r} fill="none" stroke="#3730A3" strokeWidth="10" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={off} />
+        <circle cx="60" cy="60" r={r} fill="none" stroke="#111114" strokeWidth="10" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={off} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold text-[#3730A3]">{value}%</span>
+        <span className="text-2xl font-bold text-[#111114]">{value}%</span>
         <span className="text-[11px] text-[#6B7280]">kehadiran</span>
       </div>
     </div>
@@ -69,10 +69,10 @@ function DelegasiFill({ deleg, onClose }) {
         <div className="p-4">
           <div className="relative mb-3">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama…" className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3]" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama…" className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
           </div>
           {data === null ? (
-            <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={26} /></div>
+            <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={26} /></div>
           ) : (
             <div className="space-y-1.5">
               {rows.map((p) => (
@@ -82,8 +82,8 @@ function DelegasiFill({ deleg, onClose }) {
                     <div className="text-xs text-[#9CA3AF]">{p.status}</div>
                   </div>
                   <div className="flex gap-1.5 shrink-0">
-                    {btn(p.id, "hadir", "H", p.status === "hadir" ? "bg-[#3730A3] text-white border-[#3730A3]" : "bg-white text-[#3730A3] border-[#3730A3]")}
-                    {btn(p.id, "izin", "I", p.status === "izin" ? "bg-[#D97706] text-white border-[#D97706]" : "bg-white text-[#D97706] border-[#F59E0B]")}
+                    {btn(p.id, "hadir", "H", p.status === "hadir" ? "bg-[#111114] text-white border-[#111114]" : "bg-white text-[#111114] border-[#111114]")}
+                    {btn(p.id, "izin", "I", p.status === "izin" ? "bg-[#9CA3AF] text-white border-[#9CA3AF]" : "bg-white text-[#9CA3AF] border-[#F59E0B]")}
                     {btn(p.id, "alpha", "A", p.status === "alpha" ? "bg-[#DC2626] text-white border-[#DC2626]" : "bg-white text-[#DC2626] border-[#FCA5A5]")}
                   </div>
                 </div>
@@ -116,7 +116,7 @@ export default function Beranda({ user, onGoto }) {
     return "Selamat malam";
   })();
 
-  if (data === null) return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>;
+  if (data === null) return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>;
 
   const completion = profileCompletion(user);
 
@@ -138,10 +138,10 @@ export default function Beranda({ user, onGoto }) {
           type="button"
           data-testid="peserta-kelengkapan-banner"
           onClick={() => onGoto("profil")}
-          className="w-full text-left rounded-2xl border border-[#E8E8E4] bg-white p-4 hover:border-[#3730A3] transition-colors"
+          className="w-full text-left rounded-2xl border border-[#E8E8E4] bg-white p-4 hover:border-[#111114] transition-colors"
         >
           <div className="flex items-center gap-3">
-            <span className="h-10 w-10 rounded-xl bg-[#EEEFFB] text-[#3730A3] flex items-center justify-center shrink-0"><UserCog size={19} /></span>
+            <span className="h-10 w-10 rounded-xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center shrink-0"><UserCog size={19} /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold text-[#111114]">Lengkapi Profil Kamu</span>
               <span className="block text-xs text-[#6B7280] mt-0.5">
@@ -149,11 +149,11 @@ export default function Beranda({ user, onGoto }) {
                 {completion.missing.length ? ` · belum: ${completion.missing.slice(0, 3).join(", ")}${completion.missing.length > 3 ? ", …" : ""}` : ""}
               </span>
             </span>
-            <span className="shrink-0 text-lg font-bold text-[#3730A3] tabular-nums" data-testid="peserta-kelengkapan-persen">{completion.percent}%</span>
+            <span className="shrink-0 text-lg font-bold text-[#111114] tabular-nums" data-testid="peserta-kelengkapan-persen">{completion.percent}%</span>
             <ChevronRight size={18} className="text-[#9CA3AF] shrink-0" />
           </div>
           <div className="mt-3 h-1.5 w-full rounded-full bg-[#F4F4F1] overflow-hidden">
-            <div className="h-full rounded-full bg-[#3730A3] transition-all duration-500" style={{ width: `${completion.percent}%` }} />
+            <div className="h-full rounded-full bg-[#111114] transition-all duration-500" style={{ width: `${completion.percent}%` }} />
           </div>
         </button>
       )}
@@ -171,7 +171,7 @@ export default function Beranda({ user, onGoto }) {
       {(data?.announcements || []).map((a) => (
         <div key={a.id} className={`rounded-2xl p-4 border ${a.important ? "bg-[#FEF2F2] border-[#FECACA]" : "bg-white border-[#E8E8E4]"}`} data-testid={`peserta-ann-${a.id}`}>
           <div className="flex items-center gap-2 mb-1">
-            <Pin size={13} className="text-[#3730A3]" />
+            <Pin size={13} className="text-[#111114]" />
             {a.important && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEE2E2] text-[#991B1B]"><AlertCircle size={11} /> Penting</span>}
           </div>
           <h3 className="font-heading font-bold text-[#111827]">{a.title}</h3>
@@ -185,7 +185,7 @@ export default function Beranda({ user, onGoto }) {
           type="button"
           data-testid="button-goto-barcode"
           onClick={() => onGoto("qr")}
-          className="rounded-2xl bg-[#3730A3] text-white p-4 text-left shadow-sm hover:bg-[#2A2480] transition-colors"
+          className="rounded-2xl bg-[#111114] text-white p-4 text-left shadow-sm hover:bg-[#000000] transition-colors"
         >
           <span className="h-10 w-10 rounded-xl bg-white/15 flex items-center justify-center"><QrCode size={20} /></span>
           <span className="block font-heading font-bold mt-2.5">QR Pribadi Saya</span>
@@ -200,14 +200,14 @@ export default function Beranda({ user, onGoto }) {
           type="button"
           data-testid="button-goto-scan"
           onClick={() => onGoto("scan")}
-          className="rounded-2xl bg-white border-2 border-[#DCDCF5] p-4 text-left hover:border-[#3730A3] transition-colors"
+          className="rounded-2xl bg-white border-2 border-[#E8E8E4] p-4 text-left hover:border-[#111114] transition-colors"
         >
-          <span className="h-10 w-10 rounded-xl bg-[#EEEFFB] text-[#3730A3] flex items-center justify-center"><ScanLine size={20} /></span>
+          <span className="h-10 w-10 rounded-xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center"><ScanLine size={20} /></span>
           <span className="block font-heading font-bold text-[#111827] mt-2.5">Scan QR Kegiatan</span>
           <span className="block text-xs text-[#6B7280] mt-0.5 leading-snug">
             Absen mandiri dengan memindai QR kegiatan
           </span>
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#3730A3] mt-2">
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#111114] mt-2">
             Buka pemindai <ChevronRight size={14} />
           </span>
         </button>
@@ -234,12 +234,12 @@ export default function Beranda({ user, onGoto }) {
         <h2 className="font-heading font-bold text-[#111827] mb-1">Riwayat Kehadiran</h2>
         <p className="text-xs text-[#9CA3AF] mb-3">Ringkasan hadir/izin/alpha 6 bulan terakhir</p>
         {history === null ? (
-          <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={22} /></div>
+          <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={22} /></div>
         ) : (
           <>
             <div className="grid grid-cols-3 gap-2 mb-4">
-              <div className="rounded-xl bg-[#EEEFFB] px-3 py-2 text-center">
-                <div className="text-lg font-bold text-[#312E81]" data-testid="riwayat-hadir">{history.current?.hadir ?? 0}</div>
+              <div className="rounded-xl bg-[#F1F1EE] px-3 py-2 text-center">
+                <div className="text-lg font-bold text-[#111114]" data-testid="riwayat-hadir">{history.current?.hadir ?? 0}</div>
                 <div className="text-[11px] text-[#4B5563]">Hadir (bln ini)</div>
               </div>
               <div className="rounded-xl bg-[#FEF3C7] px-3 py-2 text-center">
@@ -253,12 +253,12 @@ export default function Beranda({ user, onGoto }) {
             </div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={history.months || []} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EEF2EE" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EFEFEA" />
                 <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#6B7280" }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} />
                 <Tooltip />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="hadir" name="Hadir" stackId="a" fill="#3730A3" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="hadir" name="Hadir" stackId="a" fill="#111114" radius={[0, 0, 0, 0]} />
                 <Bar dataKey="izin" name="Izin" stackId="a" fill="#F59E0B" />
                 <Bar dataKey="alpha" name="Alpha" stackId="a" fill="#DC2626" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -271,7 +271,7 @@ export default function Beranda({ user, onGoto }) {
       <div>
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-heading font-bold text-[#111827]">Jadwal Mendatang</h2>
-          <button onClick={() => onGoto("kegiatan")} className="text-sm font-semibold text-[#3730A3]">Lihat semua</button>
+          <button onClick={() => onGoto("kegiatan")} className="text-sm font-semibold text-[#111114]">Lihat semua</button>
         </div>
         {(data?.upcoming || []).length === 0 ? (
           <div className="bg-white rounded-2xl border border-[#E8E8E4] p-6 text-center text-[#6B7280] text-sm">Belum ada jadwal mendatang.</div>

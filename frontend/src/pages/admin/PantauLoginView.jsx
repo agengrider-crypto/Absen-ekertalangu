@@ -38,7 +38,7 @@ export function DeviceIcon({ kind, size = 16, className = "" }) {
 }
 
 export function RoleBadges({ roles }) {
-  const meta = { admin: "bg-[#FEF3C7] text-[#92400E]", pengurus: "bg-[#E0F2FE] text-[#075985]", peserta: "bg-[#EEEFFB] text-[#312E81]" };
+  const meta = { admin: "bg-[#FEF3C7] text-[#92400E]", pengurus: "bg-[#E0F2FE] text-[#075985]", peserta: "bg-[#F1F1EE] text-[#111114]" };
   return (
     <span className="inline-flex gap-1 flex-wrap">
       {(roles || []).map((r) => <span key={r} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${meta[r] || "bg-[#F3F4F6] text-[#4B5563]"}`}>{r}</span>)}
@@ -112,21 +112,21 @@ export default function PantauLoginView() {
   return (
     <div data-testid="pantau-login-view">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-[#3730A3] font-bold text-lg">
+        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
           <MonitorSmartphone size={20} /> Pantau Login
         </div>
         <button data-testid="pantau-refresh" onClick={() => load(true)} disabled={refreshing}
-          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#3730A3] hover:text-[#3730A3] disabled:opacity-60">
+          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114] disabled:opacity-60">
           <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} /> Muat ulang
         </button>
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
       ) : data === false ? (
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center">
           <p className="text-sm text-[#DC2626] mb-3" data-testid="pantau-error">{err}</p>
-          <button onClick={() => load()} className="h-10 px-4 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm">Coba lagi</button>
+          <button onClick={() => load()} className="h-10 px-4 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm">Coba lagi</button>
         </div>
       ) : (
         <>
@@ -139,7 +139,7 @@ export default function PantauLoginView() {
             </div>
             <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
               <div className="flex items-center gap-2 text-[#6B7280] text-xs font-semibold"><Users size={14} /> Peserta pernah login</div>
-              <div className="text-2xl font-bold text-[#3730A3] mt-1">{s.sudah_login} <span className="text-sm font-semibold text-[#6B7280]">/ {s.total_peserta}</span></div>
+              <div className="text-2xl font-bold text-[#111114] mt-1">{s.sudah_login} <span className="text-sm font-semibold text-[#6B7280]">/ {s.total_peserta}</span></div>
               <div className="text-xs text-[#6B7280]">{s.ratio_login}% dari seluruh peserta</div>
             </div>
             <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
@@ -152,7 +152,7 @@ export default function PantauLoginView() {
               <div className="flex items-end gap-1 h-12 mt-2" data-testid="pantau-tren">
                 {(data.tren || []).map((x) => (
                   <div key={x.date} className="flex-1 flex flex-col items-center gap-0.5" title={`${x.date}: ${x.users} akun, ${x.logins} login`}>
-                    <div className="w-full rounded-t bg-[#3730A3]/80" style={{ height: `${Math.max(6, (x.users / maxTren) * 40)}px` }} />
+                    <div className="w-full rounded-t bg-[#111114]/80" style={{ height: `${Math.max(6, (x.users / maxTren) * 40)}px` }} />
                     <span className="text-[9px] text-[#9CA3AF]">{x.date.slice(8)}</span>
                   </div>
                 ))}
@@ -165,17 +165,17 @@ export default function PantauLoginView() {
             <div className="relative flex-1 min-w-[220px]">
               <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
               <input data-testid="pantau-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..."
-                className="w-full h-11 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white" />
+                className="w-full h-11 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <input data-testid="pantau-date-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                className="h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white" />
+                className="h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
               <span className="text-xs text-[#9CA3AF]">s/d</span>
               <input data-testid="pantau-date-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                className="h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white" />
+                className="h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
               {[["hari-ini", "Hari ini"], ["7-hari", "7 hari"], ["semua", "Semua"]].map(([k, l]) => (
                 <button key={k} type="button" data-testid={`pantau-quick-${k}`} onClick={() => quick(k)}
-                  className="h-9 px-3 rounded-full border-2 border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] hover:border-[#3730A3] hover:text-[#3730A3]">{l}</button>
+                  className="h-9 px-3 rounded-full border-2 border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] hover:border-[#111114] hover:text-[#111114]">{l}</button>
               ))}
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function PantauLoginView() {
           {/* Tabs */}
           <div className="flex gap-2 mb-3">
             <button data-testid="pantau-tab-terbaru" onClick={() => setTab("terbaru")}
-              className={`h-10 px-4 rounded-xl font-semibold text-sm border-2 inline-flex items-center gap-2 ${tab === "terbaru" ? "bg-[#3730A3] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#3730A3]"}`}>
+              className={`h-10 px-4 rounded-xl font-semibold text-sm border-2 inline-flex items-center gap-2 ${tab === "terbaru" ? "bg-[#111114] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114]"}`}>
               <LogIn size={15} /> Login Terbaru <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === "terbaru" ? "bg-white/25" : "bg-[#F3F4F6]"}`}>{data.events.length}</span>
             </button>
             <button data-testid="pantau-tab-belum" onClick={() => setTab("belum")}
@@ -224,13 +224,13 @@ export default function PantauLoginView() {
                             <div className="text-[11px] text-[#9CA3AF]">{relTime(e.at)}</div>
                           </td>
                           <td className="px-4 py-3 hidden sm:table-cell text-[#4B5563]">
-                            <span className="inline-flex items-center gap-1.5"><DeviceIcon kind={e.device?.kind} size={14} className="text-[#3730A3]" /> {e.device?.label || "-"}</span>
+                            <span className="inline-flex items-center gap-1.5"><DeviceIcon kind={e.device?.kind} size={14} className="text-[#111114]" /> {e.device?.label || "-"}</span>
                           </td>
                           <td className="px-4 py-3 hidden lg:table-cell text-[#6B7280] font-mono text-xs">{e.ip || "-"}</td>
                           <td className="px-4 py-3 hidden md:table-cell"><RoleBadges roles={e.roles} /></td>
                           <td className="px-4 py-3 text-right">
                             <button data-testid={`login-detail-${e.user_id}`} onClick={() => setDetailId(e.user_id)}
-                              className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#3730A3] font-semibold text-xs hover:border-[#3730A3] hover:bg-[#EEEFFB]">
+                              className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#111114] font-semibold text-xs hover:border-[#111114] hover:bg-[#F1F1EE]">
                               Riwayat <ChevronRight size={14} />
                             </button>
                           </td>
@@ -241,7 +241,7 @@ export default function PantauLoginView() {
                 </div>
               )
             ) : never.length === 0 ? (
-              <div className="p-10 text-center text-[#312E81] text-sm font-semibold" data-testid="pantau-belum-kosong">Semua peserta sudah pernah login.</div>
+              <div className="p-10 text-center text-[#111114] text-sm font-semibold" data-testid="pantau-belum-kosong">Semua peserta sudah pernah login.</div>
             ) : (
               <div>
                 <div className="px-4 py-3 bg-[#FFFBEB] text-xs text-[#92400E] border-b border-[#FDE68A]">
@@ -291,14 +291,14 @@ export function LoginDetailModal({ userId, onClose }) {
         </div>
         <div className="p-5">
           {err ? <p className="text-sm text-[#DC2626]">{err}</p> : !d ? (
-            <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={26} /></div>
+            <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={26} /></div>
           ) : (
             <div className="space-y-4">
               <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
                 <div className="font-bold text-[#111827] text-lg">{d.user.name}</div>
                 <div className="text-xs text-[#6B7280] mt-0.5 flex items-center gap-2 flex-wrap">{d.user.phone || "-"} <RoleBadges roles={d.user.roles} /></div>
                 <div className="grid grid-cols-2 gap-2 mt-3">
-                  <div className="rounded-xl bg-[#EEEFFB] p-3"><div className="text-xl font-bold text-[#312E81]">{d.user.login_count}</div><div className="text-xs text-[#6B7280]">Total login</div></div>
+                  <div className="rounded-xl bg-[#F1F1EE] p-3"><div className="text-xl font-bold text-[#111114]">{d.user.login_count}</div><div className="text-xs text-[#6B7280]">Total login</div></div>
                   <div className="rounded-xl bg-[#F4F4F1] p-3"><div className="text-sm font-bold text-[#111827]">{relTime(d.user.last_login_at)}</div><div className="text-xs text-[#6B7280]">Login terakhir · {d.user.last_login_device || "-"}</div></div>
                 </div>
                 {d.devices.length > 0 && (
@@ -316,7 +316,7 @@ export function LoginDetailModal({ userId, onClose }) {
                   {d.events.length === 0 ? <div className="p-6 text-center text-sm text-[#6B7280]">Belum pernah login.</div> : d.events.map((e) => (
                     <div key={e.id} className="px-4 py-2.5 flex items-center justify-between gap-3 text-sm">
                       <div className="inline-flex items-center gap-2 text-[#4B5563] min-w-0">
-                        <DeviceIcon kind={e.device?.kind} size={15} className="text-[#3730A3] shrink-0" />
+                        <DeviceIcon kind={e.device?.kind} size={15} className="text-[#111114] shrink-0" />
                         <span className="truncate">{e.device?.label || "-"}</span>
                         {e.is_new_device && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] shrink-0">baru</span>}
                       </div>

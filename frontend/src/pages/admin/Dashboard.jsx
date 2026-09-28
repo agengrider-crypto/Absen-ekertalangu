@@ -31,7 +31,7 @@ export default function Dashboard({ user }) {
   }, []);
 
   if (!users) {
-    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={32} /></div>;
+    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>;
   }
 
   const peserta = users.filter((u) => u.roles?.includes("peserta"));
@@ -43,8 +43,8 @@ export default function Dashboard({ user }) {
   const pending = users.filter((u) => u.status === "pending").length;
 
   const pieData = [
-    { name: "Laki-laki", value: lakiCount, color: "#3730A3" },
-    { name: "Perempuan", value: perempuanCount, color: "#D97706" },
+    { name: "Laki-laki", value: lakiCount, color: "#111114" },
+    { name: "Perempuan", value: perempuanCount, color: "#9CA3AF" },
     { name: "Belum diisi", value: totalPeserta - lakiCount - perempuanCount, color: "#CBD5E1" },
   ].filter((d) => d.value > 0);
 
@@ -56,7 +56,7 @@ export default function Dashboard({ user }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-        <StatCard icon={Users} label="Total Peserta" value={totalPeserta} color="#3730A3"
+        <StatCard icon={Users} label="Total Peserta" value={totalPeserta} color="#111114"
           sub={`${lakiCount} Laki-laki · ${perempuanCount} Perempuan`} />
         <StatCard icon={UserCheck} label="Akun Aktif" value={aktif} color="#0284C7"
           sub={`${pending} menunggu aktivasi`} />

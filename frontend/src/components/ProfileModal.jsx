@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { formatTanggal, MARITAL_OPTIONS, maritalLabel } from "@/pages/admin/adminUtils";
 
 const ROLE_LABEL = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta" };
-const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white";
+const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white";
 
 function Row({ icon: Icon, label, value }) {
   return (
@@ -159,7 +159,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
 
           {/* Foto */}
           <div className="flex flex-col items-center gap-3">
-            <div className="h-28 w-28 rounded-full overflow-hidden bg-[#3730A3] text-white flex items-center justify-center text-3xl font-bold border-4 border-white shadow">
+            <div className="h-28 w-28 rounded-full overflow-hidden bg-[#111114] text-white flex items-center justify-center text-3xl font-bold border-4 border-white shadow">
               {preview ? (
                 <img src={preview} alt="Foto profil" className="h-full w-full object-cover" data-testid="profile-photo" />
               ) : initials}
@@ -169,7 +169,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                 data-testid="button-upload-photo"
                 onClick={() => fileRef.current?.click()}
                 disabled={busy}
-                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[#3730A3] text-white font-semibold text-sm hover:bg-[#2A2480] disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000] disabled:opacity-60"
               >
                 {busy ? <Loader2 className="animate-spin" size={16} /> : <Camera size={16} />} {preview ? "Ganti Foto" : "Unggah Foto"}
               </button>
@@ -191,7 +191,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
           {/* Peran */}
           <div className="flex flex-wrap gap-1.5 justify-center">
             {(user?.roles || []).map((r) => (
-              <span key={r} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#EEEFFB] text-[#312E81]">{ROLE_LABEL[r] || r}</span>
+              <span key={r} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#F1F1EE] text-[#111114]">{ROLE_LABEL[r] || r}</span>
             ))}
           </div>
 
@@ -240,7 +240,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                   value={f.address}
                   onChange={(e) => set("address", e.target.value)}
                   rows={2}
-                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] resize-none bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] resize-none bg-white"
                 />
               </Field>
               <div className="flex gap-2 pt-1">
@@ -255,7 +255,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                   data-testid="profile-edit-save"
                   onClick={save}
                   disabled={saving}
-                  className="flex-1 h-12 rounded-xl bg-[#3730A3] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60"
+                  className="flex-1 h-12 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Simpan Profil
                 </button>
@@ -288,7 +288,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                   });
                   setEditing(true);
                 }}
-                className="w-full h-12 rounded-xl bg-[#3730A3] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#2A2480]"
+                className="w-full h-12 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#000000]"
               >
                 <Pencil size={18} /> Ubah Data Profil
               </button>

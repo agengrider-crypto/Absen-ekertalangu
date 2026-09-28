@@ -45,7 +45,7 @@ export default function QrSaya({ user }) {
 
       <div className="bg-white rounded-3xl border border-[#E8E8E4] p-6 flex flex-col items-center">
         {qr === null ? (
-          <div className="h-56 w-56 flex items-center justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={32} /></div>
+          <div className="h-56 w-56 flex items-center justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>
         ) : (
           <>
             <div className="p-3 bg-white rounded-2xl border border-[#E8E8E4]">
@@ -62,11 +62,11 @@ export default function QrSaya({ user }) {
       </div>
 
       <div className="flex gap-2">
-        <button data-testid="qr-download" onClick={download} disabled={!qr} className="flex-1 h-12 rounded-xl bg-[#3730A3] text-white font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-60"><Download size={18} /> Download</button>
-        <button data-testid="qr-refresh" onClick={fetchQr} className="h-12 px-4 rounded-xl border border-[#3730A3] text-[#3730A3] font-semibold inline-flex items-center justify-center gap-2"><RefreshCw size={18} /></button>
+        <button data-testid="qr-download" onClick={download} disabled={!qr} className="flex-1 h-12 rounded-xl bg-[#111114] text-white font-semibold inline-flex items-center justify-center gap-2 disabled:opacity-60"><Download size={18} /> Download</button>
+        <button data-testid="qr-refresh" onClick={fetchQr} className="h-12 px-4 rounded-xl border border-[#111114] text-[#111114] font-semibold inline-flex items-center justify-center gap-2"><RefreshCw size={18} /></button>
       </div>
 
-      <div className="bg-[#F5F5FD] border border-[#DCDCF5] rounded-2xl p-4 text-sm text-[#312E81] flex gap-2">
+      <div className="bg-[#FAFAF8] border border-[#E8E8E4] rounded-2xl p-4 text-sm text-[#111114] flex gap-2">
         <QrCode size={18} className="shrink-0 mt-0.5" />
         <span>QR bersifat rahasia & berganti berkala sehingga aman meski sempat terlihat orang lain.</span>
       </div>

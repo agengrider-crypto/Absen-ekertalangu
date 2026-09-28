@@ -8,7 +8,7 @@ import {
 } from "@/pages/admin/kegiatanUtils";
 
 const STATUS_STYLE = {
-  hadir: { label: "Hadir", cls: "bg-[#EEEFFB] text-[#312E81]" },
+  hadir: { label: "Hadir", cls: "bg-[#F1F1EE] text-[#111114]" },
   izin: { label: "Izin", cls: "bg-[#FEF3C7] text-[#92400E]" },
   alpha: { label: "Belum hadir", cls: "bg-[#F3F4F6] text-[#6B7280]" },
 };
@@ -39,12 +39,12 @@ function DetailModal({ k, onClose }) {
           </div>
           <h2 className="font-heading text-xl font-bold text-[#111827]">{k.name}</h2>
           <div className="text-sm text-[#4B5563] space-y-2">
-            <div className="flex items-center gap-2"><CalendarDays size={16} className="text-[#3730A3]" /> {tanggalPanjang(k.date)}</div>
-            <div className="flex items-center gap-2"><Clock size={16} className="text-[#3730A3]" /> {k.start_time}–{k.end_time} WITA</div>
-            {k.location && <div className="flex items-center gap-2"><MapPin size={16} className="text-[#3730A3]" /> {k.location}</div>}
-            {k.teacher && <div className="flex items-center gap-2"><User size={16} className="text-[#3730A3]" /> {k.teacher}</div>}
-            {k.material && <div className="flex items-start gap-2"><BookOpen size={16} className="text-[#3730A3] mt-0.5" /> {k.material}</div>}
-            <div className="flex items-center gap-2"><Users size={16} className="text-[#3730A3]" /> {AUDIENCE_LABEL[k.audience] || "Reguler"}</div>
+            <div className="flex items-center gap-2"><CalendarDays size={16} className="text-[#111114]" /> {tanggalPanjang(k.date)}</div>
+            <div className="flex items-center gap-2"><Clock size={16} className="text-[#111114]" /> {k.start_time}–{k.end_time} WITA</div>
+            {k.location && <div className="flex items-center gap-2"><MapPin size={16} className="text-[#111114]" /> {k.location}</div>}
+            {k.teacher && <div className="flex items-center gap-2"><User size={16} className="text-[#111114]" /> {k.teacher}</div>}
+            {k.material && <div className="flex items-start gap-2"><BookOpen size={16} className="text-[#111114] mt-0.5" /> {k.material}</div>}
+            <div className="flex items-center gap-2"><Users size={16} className="text-[#111114]" /> {AUDIENCE_LABEL[k.audience] || "Reguler"}</div>
           </div>
         </div>
       </div>
@@ -83,7 +83,7 @@ export default function KegiatanList() {
       </div>
 
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
       ) : items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-8 text-center text-[#6B7280] text-sm">Tidak ada kegiatan bulan ini.</div>
       ) : (
@@ -98,7 +98,7 @@ export default function KegiatanList() {
                 {g.items.map((k) => {
                   const st = STATUS_STYLE[k.my_status] || STATUS_STYLE.alpha;
                   return (
-                    <button key={k.id} data-testid={`peserta-keg-${k.id}`} onClick={() => setDetail(k)} className="w-full text-left bg-white rounded-2xl border border-[#E8E8E4] p-4 hover:border-[#3730A3] transition-colors">
+                    <button key={k.id} data-testid={`peserta-keg-${k.id}`} onClick={() => setDetail(k)} className="w-full text-left bg-white rounded-2xl border border-[#E8E8E4] p-4 hover:border-[#111114] transition-colors">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>

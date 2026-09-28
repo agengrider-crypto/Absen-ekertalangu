@@ -3,7 +3,7 @@ import { ChevronDown, Search, UserRound, AlertTriangle } from "lucide-react";
 import { hhmm } from "@/pages/admin/kegiatanUtils";
 
 const STATUS_META = {
-  hadir: { label: "Hadir", cls: "bg-[#EEEFFB] text-[#312E81] border-[#C9C9EE]" },
+  hadir: { label: "Hadir", cls: "bg-[#F1F1EE] text-[#111114] border-[#D5D5CE]" },
   izin: { label: "Izin", cls: "bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]" },
   alpha: { label: "Alpha", cls: "bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]" },
 };
@@ -55,7 +55,7 @@ export default function PesertaRekapList({
         className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8] transition-colors"
       >
         <span className="flex items-center gap-2.5 min-w-0">
-          <span className="h-9 w-9 shrink-0 rounded-xl bg-[#EEEFFB] text-[#3730A3] flex items-center justify-center">
+          <span className="h-9 w-9 shrink-0 rounded-xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center">
             <UserRound size={18} />
           </span>
           <span className="min-w-0">
@@ -80,7 +80,7 @@ export default function PesertaRekapList({
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari nama peserta..."
-                  className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] bg-white text-sm outline-none focus:border-[#3730A3]"
+                  className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] bg-white text-sm outline-none focus:border-[#111114]"
                 />
               </div>
             )}
@@ -97,8 +97,8 @@ export default function PesertaRekapList({
                   onClick={() => setFilter(k)}
                   className={`h-8 px-3 rounded-full text-xs font-semibold border transition-colors ${
                     filter === k
-                      ? "bg-[#3730A3] text-white border-[#3730A3]"
-                      : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#3730A3]"
+                      ? "bg-[#111114] text-white border-[#111114]"
+                      : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114]"
                   }`}
                 >
                   {label}

@@ -54,7 +54,7 @@ export default function Register() {
         <button
           data-testid="button-back-login"
           onClick={() => navigate("/login")}
-          className="inline-flex items-center gap-1.5 text-[#4B5563] font-medium mb-6 hover:text-[#3730A3]"
+          className="inline-flex items-center gap-1.5 text-[#4B5563] font-medium mb-6 hover:text-[#111114]"
         >
           <ArrowLeft size={20} /> Kembali ke Login
         </button>
@@ -65,7 +65,7 @@ export default function Register() {
 
         {!showForm ? (
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(17,17,24,0.14)] border border-[#E8E8E4] text-center" data-testid="qr-panel">
-            <div className="inline-flex items-center gap-2 bg-[#EEEFFB] text-[#312E81] px-3 py-1 rounded-full text-sm font-semibold mb-4">
+            <div className="inline-flex items-center gap-2 bg-[#F1F1EE] text-[#111114] px-3 py-1 rounded-full text-sm font-semibold mb-4">
               <QrCode size={16} /> QR Pendaftaran
             </div>
             <h1 className="font-heading text-2xl font-bold text-[#111827]">Scan untuk Daftar</h1>
@@ -81,14 +81,14 @@ export default function Register() {
               />
             ) : (
               <div className="mx-auto w-56 h-56 rounded-xl bg-[#F4F4F1] flex items-center justify-center">
-                <Loader2 className="animate-spin text-[#3730A3]" size={32} />
+                <Loader2 className="animate-spin text-[#111114]" size={32} />
               </div>
             )}
             <button
               data-testid="button-open-register-form"
               onClick={() => window.location.assign(`/register?token=${token}`)}
               disabled={!token}
-              className="mt-6 w-full h-[52px] rounded-xl bg-[#3730A3] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#2A2480] transition-colors disabled:opacity-60"
+              className="mt-6 w-full h-[52px] rounded-xl bg-[#111114] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#000000] transition-colors disabled:opacity-60"
             >
               <UserPlus size={22} /> Isi Form Pendaftaran
             </button>
@@ -97,7 +97,7 @@ export default function Register() {
           <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(17,17,24,0.14)] border border-[#E8E8E4]">
             <h1 className="font-heading text-2xl font-bold text-[#111827]">Pendaftaran Peserta</h1>
             <p className="text-[#6B7280] text-base mt-1 mb-2">Akun langsung aktif dengan peran Peserta.</p>
-            <div className="inline-flex items-center gap-1.5 text-xs text-[#312E81] bg-[#EEEFFB] px-2.5 py-1 rounded-full mb-5">
+            <div className="inline-flex items-center gap-1.5 text-xs text-[#111114] bg-[#F1F1EE] px-2.5 py-1 rounded-full mb-5">
               <ShieldCheck size={14} /> Data Anda terpantau administrator
             </div>
 
@@ -116,7 +116,7 @@ export default function Register() {
                 data-testid="button-register-submit"
                 type="submit"
                 disabled={loading}
-                className="w-full h-[54px] rounded-xl bg-[#3730A3] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#2A2480] transition-colors disabled:opacity-60"
+                className="w-full h-[54px] rounded-xl bg-[#111114] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#000000] transition-colors disabled:opacity-60"
               >
                 {loading ? <Loader2 className="animate-spin" size={22} /> : <UserPlus size={22} />}
                 Daftar Sekarang
@@ -141,7 +141,7 @@ function Field({ label, testid, type = "text", value, onChange, placeholder, min
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#3730A3] bg-white"
+        className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#111114] bg-white"
       />
     </div>
   );

@@ -13,7 +13,7 @@ const ROLE_META = {
       "Kelola pengguna, buat & atur jadwal pengajian, kelola QR code publik, dan lihat laporan presensi lengkap.",
     badge: "Akses Penuh",
     action: "Masuk sebagai Adminator",
-    color: "#D97706",
+    color: "#9CA3AF",
     bg: "#FEF3C7",
     text: "#92400E",
     border: "#FCD34D",
@@ -37,10 +37,10 @@ const ROLE_META = {
       "Lakukan presensi cepat via QR code, cek jadwal pengajian terkini, dan lihat riwayat kehadiran Anda.",
     badge: "Jamaah",
     action: "Masuk sebagai Peserta",
-    color: "#3730A3",
-    bg: "#EEEFFB",
-    text: "#312E81",
-    border: "#C9C9EE",
+    color: "#111114",
+    bg: "#F1F1EE",
+    text: "#111114",
+    border: "#D5D5CE",
   },
 };
 
@@ -69,7 +69,7 @@ export default function RoleDashboard() {
           <button
             data-testid="button-account-switcher"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#3730A3] hover:text-[#3730A3] transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114] transition-colors"
           >
             <RefreshCw size={18} /> Ganti Akun
           </button>
@@ -88,7 +88,7 @@ export default function RoleDashboard() {
             Pilih Peran Anda
           </h1>
           <p className="text-[#4B5563] text-lg mt-2">
-            Halo <span className="font-semibold text-[#3730A3]">{user.name}</span>, pilih area yang ingin Anda buka.
+            Halo <span className="font-semibold text-[#111114]">{user.name}</span>, pilih area yang ingin Anda buka.
           </p>
         </div>
 
@@ -151,7 +151,7 @@ export default function RoleDashboard() {
           <button
             data-testid="button-logout"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 text-[#6B7280] font-medium hover:text-[#3730A3]"
+            className="inline-flex items-center gap-2 text-[#6B7280] font-medium hover:text-[#111114]"
           >
             <LogOut size={18} /> Keluar
           </button>

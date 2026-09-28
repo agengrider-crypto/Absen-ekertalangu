@@ -13,7 +13,7 @@ function RoleRow({ u, currentUserId, draft, onToggle, onSave, saving }) {
     <li data-testid={`hakakses-row-${u.id}`} className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
       <div className="min-w-0">
         <div className="font-semibold text-[#111827] truncate inline-flex items-center gap-1.5">
-          <UserRound size={15} className="text-[#3730A3]" /> {u.name}
+          <UserRound size={15} className="text-[#111114]" /> {u.name}
         </div>
         <div className="text-sm text-[#6B7280] truncate">{u.email || u.phone || "-"} · peran saat ini: {u.roles.join(", ")}</div>
       </div>
@@ -23,8 +23,8 @@ function RoleRow({ u, currentUserId, draft, onToggle, onSave, saving }) {
           const disabled = u.id === currentUserId && r === "admin";
           return (
             <label key={r} data-testid={`role-toggle-${u.id}-${r}`}
-              className={`inline-flex items-center gap-1.5 px-3 h-9 rounded-lg border-2 capitalize font-semibold text-sm transition-colors ${on ? "border-[#3730A3] bg-[#EEEFFB] text-[#312E81]" : "border-[#E8E8E4] text-[#6B7280]"} ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
-              <input type="checkbox" className="accent-[#3730A3]" checked={on} disabled={disabled} onChange={() => onToggle(u.id, r)} />
+              className={`inline-flex items-center gap-1.5 px-3 h-9 rounded-lg border-2 capitalize font-semibold text-sm transition-colors ${on ? "border-[#111114] bg-[#F1F1EE] text-[#111114]" : "border-[#E8E8E4] text-[#6B7280]"} ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+              <input type="checkbox" className="accent-[#111114]" checked={on} disabled={disabled} onChange={() => onToggle(u.id, r)} />
               {r}
             </label>
           );
@@ -33,7 +33,7 @@ function RoleRow({ u, currentUserId, draft, onToggle, onSave, saving }) {
           data-testid={`button-save-roles-${u.id}`}
           onClick={() => onSave(u.id)}
           disabled={!changed || saving}
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#3730A3] text-white font-semibold text-sm hover:bg-[#2A2480] disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000] disabled:opacity-40"
         >
           {saving ? <Loader2 className="animate-spin" size={15} /> : <Save size={15} />} Simpan
         </button>
@@ -100,7 +100,7 @@ export default function HakAkses({ currentUserId }) {
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-[#3730A3] font-bold text-lg mb-1">
+      <div className="flex items-center gap-2 text-[#111114] font-bold text-lg mb-1">
         <ShieldCheck size={20} /> Hak Akses
       </div>
       <p className="text-sm text-[#6B7280] mb-4">
@@ -114,12 +114,12 @@ export default function HakAkses({ currentUserId }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Cari nama, No. HP, atau email (minimal 2 huruf)…"
-          className="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3] bg-white"
+          className="w-full h-12 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white"
         />
       </div>
 
       {!users ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : (
         <>
           {q.trim().length >= 2 && (

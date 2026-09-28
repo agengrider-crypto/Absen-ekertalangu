@@ -26,8 +26,8 @@ function Shell({ title, subtitle, children, onClose, testid, wide }) {
 }
 
 const ST = {
-  hadir: { t: "H", cls: "bg-[#3730A3] text-white", title: "Hadir" },
-  izin: { t: "I", cls: "bg-[#D97706] text-white", title: "Izin" },
+  hadir: { t: "H", cls: "bg-[#111114] text-white", title: "Hadir" },
+  izin: { t: "I", cls: "bg-[#9CA3AF] text-white", title: "Izin" },
   alpha: { t: "A", cls: "bg-[#FEE2E2] text-[#991B1B]", title: "Alpha" },
   exempt: { t: "✓", cls: "bg-[#F3F4F6] text-[#9CA3AF]", title: "Sudah hadir di sesi sebelumnya — tidak dihitung" },
   optional: { t: "·", cls: "bg-[#EEF2FF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
@@ -121,22 +121,22 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
       {err && !data ? (
         <div className="p-8 text-center">
           <p className="text-sm text-[#DC2626] mb-3" data-testid="rekap-gabungan-error">{err}</p>
-          <button onClick={load} className="h-10 px-4 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm">Coba lagi</button>
+          <button onClick={load} className="h-10 px-4 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm">Coba lagi</button>
         </div>
       ) : !data ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : (
         <div className="space-y-4">
           {/* Ringkasan gabungan */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-testid="rekap-gabungan-summary">
             <div className="rounded-xl bg-[#F4F4F1] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{s.total}</div><div className="text-xs text-[#6B7280]">Total Jamaah</div></div>
-            <div className="rounded-xl bg-[#EEEFFB] p-3 text-center"><div className="text-xl font-bold text-[#312E81]">{s.hadir_min_1} <span className="text-xs font-semibold">({s.ratio_min_1}%)</span></div><div className="text-xs text-[#6B7280]">Hadir ≥ 1 Sesi</div></div>
+            <div className="rounded-xl bg-[#F1F1EE] p-3 text-center"><div className="text-xl font-bold text-[#111114]">{s.hadir_min_1} <span className="text-xs font-semibold">({s.ratio_min_1}%)</span></div><div className="text-xs text-[#6B7280]">Hadir ≥ 1 Sesi</div></div>
             <div className="rounded-xl bg-[#DCFCE7] p-3 text-center"><div className="text-xl font-bold text-[#14532D]">{s.hadir_semua} <span className="text-xs font-semibold">({s.ratio_semua}%)</span></div><div className="text-xs text-[#6B7280]">Hadir Semua Sesi</div></div>
             <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{s.tidak_hadir}</div><div className="text-xs text-[#6B7280]">Tidak Hadir Sama Sekali</div></div>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
             <span className="px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] font-semibold">Izin saja: {s.izin_saja}</span>
-            {s.tamu > 0 && <span className="px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3] font-semibold">Tamu: {s.tamu}</span>}
+            {s.tamu > 0 && <span className="px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#111114] font-semibold">Tamu: {s.tamu}</span>}
             {(data.filter_labels || []).map((l) => <span key={l} className="px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D] font-semibold">{l}</span>)}
             <span className="inline-flex items-center gap-1"><Layers size={12} /> {data.sessions.length} sesi</span>
           </div>
@@ -170,13 +170,13 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
           </div>
 
           {/* Bagikan sebagai LINK (seperti rekap kegiatan biasa) */}
-          <div className="rounded-2xl border-2 border-[#DCDCF5] bg-[#F5F5FD] p-4 space-y-2.5" data-testid="rekap-gabungan-share">
-            <div className="text-sm font-bold text-[#312E81] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap ini sebagai tautan</div>
-            <p className="text-[11px] text-[#312E81]/80 leading-relaxed">
+          <div className="rounded-2xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-4 space-y-2.5" data-testid="rekap-gabungan-share">
+            <div className="text-sm font-bold text-[#111114] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap ini sebagai tautan</div>
+            <p className="text-[11px] text-[#111114]/80 leading-relaxed">
               Tautan publik berisi bar persentase kehadiran semua sesi — bisa dibuka siapa pun tanpa login (berlaku 7 hari).
             </p>
             {share && (
-              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#DCDCF5] px-2.5 py-2 text-[#312E81]" data-testid="rekap-gabungan-link">{share.link}</div>
+              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#E8E8E4] px-2.5 py-2 text-[#111114]" data-testid="rekap-gabungan-link">{share.link}</div>
             )}
             <div className="grid grid-cols-2 gap-2">
               <button onClick={shareWa} disabled={sharing} data-testid="rekap-gabungan-share-wa"
@@ -184,14 +184,14 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                 {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Bagikan ke WhatsApp
               </button>
               <button onClick={copyLink} disabled={sharing} data-testid="rekap-gabungan-copy-link"
-                className="h-11 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#EEEFFB] disabled:opacity-60">
+                className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#F1F1EE] disabled:opacity-60">
                 <Link2 size={15} /> Salin Tautan
               </button>
             </div>
           </div>
 
           <button onClick={copyText} data-testid="rekap-gabungan-copy"
-            className="w-full h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:border-[#3730A3] hover:text-[#3730A3]">
+            className="w-full h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:border-[#111114] hover:text-[#111114]">
             <ClipboardCopy size={16} /> Salin Ringkasan (teks WhatsApp)
           </button>
 
@@ -200,12 +200,12 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
             <div className="p-3 bg-[#FAFAF8] flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-                <input data-testid="rekap-gabungan-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama jamaah..." className="w-full h-10 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white" />
+                <input data-testid="rekap-gabungan-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama jamaah..." className="w-full h-10 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
               </div>
               <div className="flex gap-1 bg-white border border-[#E8E8E4] rounded-xl p-1">
                 {[["semua", "Semua"], ["hadir", "Hadir ≥1"], ["tidak", "Tidak hadir"]].map(([v, l]) => (
                   <button key={v} type="button" data-testid={`rekap-gabungan-mode-${v}`} onClick={() => setMode(v)}
-                    className={`h-8 px-3 rounded-lg text-xs font-semibold ${mode === v ? "bg-[#EEEFFB] text-[#312E81]" : "text-[#6B7280]"}`}>{l}</button>
+                    className={`h-8 px-3 rounded-lg text-xs font-semibold ${mode === v ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
             </div>
@@ -248,7 +248,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                           )}
                         </td>
                       ))}
-                      <td className="px-2 py-2 text-center font-bold tabular-nums text-[#3730A3]">{r.hadir}/{r.eligible}</td>
+                      <td className="px-2 py-2 text-center font-bold tabular-nums text-[#111114]">{r.hadir}/{r.eligible}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -302,7 +302,7 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
     } finally { setSaving(false); }
   };
 
-  const chip = "h-9 px-3 rounded-full border-2 border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] hover:border-[#3730A3] hover:text-[#3730A3]";
+  const chip = "h-9 px-3 rounded-full border-2 border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] hover:border-[#111114] hover:text-[#111114]";
 
   return (
     <Shell title="Salin Jadwal ke Tanggal Lain" subtitle={`${first.base_name || first.name} · ${tanggalSingkat(first.date)}`} onClose={onClose} testid="modal-salin-jadwal">
@@ -324,8 +324,8 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
           <div className="mt-2 grid gap-1">
             {items.map((k) => (
               <div key={k.id} className="text-xs text-[#4B5563] inline-flex items-center gap-1.5 rounded-lg bg-[#FAFAF8] px-2.5 py-1.5">
-                <Clock size={12} className="text-[#3730A3]" />
-                <b className="text-[#3730A3]">{k.session_label || "Jadwal"}</b> {k.start_time}–{k.end_time} WITA
+                <Clock size={12} className="text-[#111114]" />
+                <b className="text-[#111114]">{k.session_label || "Jadwal"}</b> {k.start_time}–{k.end_time} WITA
               </div>
             ))}
           </div>
@@ -345,7 +345,7 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
                 <div className="relative flex-1">
                   <CalendarDays size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] pointer-events-none" />
                   <input data-testid={`salin-date-${i}`} type="date" required value={d} onChange={(e) => setDate(i, e.target.value)}
-                    className="w-full h-11 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white" />
+                    className="w-full h-11 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
                 </div>
                 <span className="hidden sm:block text-xs text-[#6B7280] w-[150px] truncate">{d ? tanggalPanjang(d) : ""}</span>
                 <button type="button" data-testid={`salin-date-remove-${i}`} onClick={() => removeDate(i)} disabled={dates.length <= 1}
@@ -354,7 +354,7 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
             ))}
           </div>
           <button type="button" data-testid="salin-date-add" onClick={addDate} disabled={dates.length >= 12}
-            className="mt-2 w-full h-10 rounded-xl border-2 border-dashed border-[#3730A3] text-[#3730A3] font-semibold text-xs inline-flex items-center justify-center gap-1.5 hover:bg-[#EEEFFB] disabled:opacity-40">
+            className="mt-2 w-full h-10 rounded-xl border-2 border-dashed border-[#111114] text-[#111114] font-semibold text-xs inline-flex items-center justify-center gap-1.5 hover:bg-[#F1F1EE] disabled:opacity-40">
             <Plus size={15} /> Tambah tanggal lain
           </button>
         </div>
@@ -366,7 +366,7 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
         </p>
 
         <button type="submit" data-testid="salin-submit" disabled={saving}
-          className="w-full h-12 rounded-xl bg-[#3730A3] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60">
+          className="w-full h-12 rounded-xl bg-[#111114] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
           {saving ? <Loader2 className="animate-spin" size={18} /> : <Copy size={18} />}
           Salin ke {dates.filter(Boolean).length} tanggal ({dates.filter(Boolean).length * items.length} jadwal)
         </button>

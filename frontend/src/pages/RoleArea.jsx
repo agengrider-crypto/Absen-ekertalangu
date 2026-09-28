@@ -6,9 +6,9 @@ import AdminLayout from "@/pages/admin/AdminLayout";
 import PesertaArea from "@/pages/PesertaArea";
 
 const META = {
-  admin: { icon: Shield, title: "Area Adminator", color: "#D97706" },
+  admin: { icon: Shield, title: "Area Adminator", color: "#9CA3AF" },
   pengurus: { icon: Users, title: "Area Pengurus", color: "#0284C7" },
-  peserta: { icon: UserCheck, title: "Area Peserta", color: "#3730A3" },
+  peserta: { icon: UserCheck, title: "Area Peserta", color: "#111114" },
 };
 
 export default function RoleArea() {
@@ -41,7 +41,7 @@ export default function RoleArea() {
           <button
             data-testid="button-back-roles"
             onClick={() => navigate("/roles")}
-            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#3730A3] hover:text-[#3730A3] transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114] transition-colors"
           >
             <ArrowLeft size={18} /> Pilih Peran
           </button>
@@ -61,7 +61,7 @@ export default function RoleArea() {
         </div>
 
         <div className="bg-white rounded-2xl p-8 border border-[#E8E8E4] text-center" data-testid="area-placeholder">
-          <div className="inline-flex items-center gap-2 bg-[#EEEFFB] text-[#312E81] px-3 py-1 rounded-full text-sm font-semibold mb-4">
+          <div className="inline-flex items-center gap-2 bg-[#F1F1EE] text-[#111114] px-3 py-1 rounded-full text-sm font-semibold mb-4">
             Segera Hadir
           </div>
           <p className="text-[#4B5563] text-lg max-w-xl mx-auto">

@@ -3,15 +3,15 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tema "Clean" — off-white lapang, garis hairline, satu aksen indigo kalem. */
+/* Tema "Clean" — off-white lapang, garis hairline, aksen hitam pekat (monokrom). */
 :root {
     --bg-app: #FAFAF8;
     --bg-surface: #FFFFFF;
     --hairline: #E8E8E4;
     --ink: #111114;
     --ink-muted: #6B7280;
-    --accent: #3730A3;
-    --accent-soft: #EEEFFB;
+    --accent: #111114;
+    --accent-soft: #F1F1EE;
 }
 
 body {
@@ -37,19 +37,19 @@ body {
         --card-foreground: 240 6% 7%;
         --popover: 0 0% 100%;
         --popover-foreground: 240 6% 7%;
-        --primary: 245 53% 42%;
+        --primary: 240 6% 7%;
         --primary-foreground: 0 0% 98%;
         --secondary: 40 14% 96%;
         --secondary-foreground: 0 0% 9%;
         --muted: 40 14% 96%;
         --muted-foreground: 220 9% 46%;
-        --accent: 240 71% 96%;
-        --accent-foreground: 245 53% 42%;
+        --accent: 60 9% 94%;
+        --accent-foreground: 240 6% 7%;
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 0 0% 98%;
         --border: 45 10% 90%;
         --input: 45 10% 90%;
-        --ring: 245 53% 42%;
+        --ring: 240 6% 7%;
         --radius: 0.875rem;
     }
 }
@@ -64,7 +64,7 @@ body {
 }
 
 ::selection {
-    background: #3730A3;
+    background: #111114;
     color: #fff;
 }
 

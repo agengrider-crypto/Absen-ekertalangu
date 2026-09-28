@@ -34,19 +34,19 @@ export default function TutorialQr({ variant = "pribadi" }) {
   const Icon = cfg.icon;
   return (
     <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid={`tutorial-qr-${variant}`}>
-      <div className="flex items-center gap-2 text-[#3730A3] font-heading font-bold">
+      <div className="flex items-center gap-2 text-[#111114] font-heading font-bold">
         <Icon size={18} /> {cfg.title}
       </div>
       <ol className="mt-2.5 space-y-2">
         {cfg.steps.map((s, i) => (
           <li key={s} className="flex gap-2.5 text-sm text-[#374151]">
-            <span className="h-6 w-6 shrink-0 rounded-full bg-[#EEEFFB] text-[#312E81] text-xs font-bold flex items-center justify-center">{i + 1}</span>
+            <span className="h-6 w-6 shrink-0 rounded-full bg-[#F1F1EE] text-[#111114] text-xs font-bold flex items-center justify-center">{i + 1}</span>
             <span className="leading-relaxed">{s}</span>
           </li>
         ))}
       </ol>
       <p className="mt-3 text-xs text-[#6B7280] flex gap-2">
-        <ShieldCheck size={14} className="shrink-0 mt-0.5 text-[#3730A3]" /> {cfg.note}
+        <ShieldCheck size={14} className="shrink-0 mt-0.5 text-[#111114]" /> {cfg.note}
       </p>
     </div>
   );

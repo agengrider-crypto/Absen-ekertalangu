@@ -8,7 +8,6 @@ const FALLBACK_CATEGORIES = [
   { value: "curhat", label: "Curhat / Konsultasi" },
   { value: "saran", label: "Saran & Masukan" },
   { value: "pengaduan", label: "Pengaduan" },
-  { value: "doa", label: "Permohonan Doa" },
   { value: "kendala", label: "Kendala Hadir" },
   { value: "pertanyaan", label: "Pertanyaan Keagamaan" },
 ];
@@ -71,12 +70,12 @@ export default function RuangTeduh() {
     <div className="space-y-6">
       <div>
         <h1 className="font-heading text-2xl font-bold text-[#111114] flex items-center gap-2">
-          <HeartHandshake size={22} className="text-[#3730A3]" /> Ruang Teduh
+          <HeartHandshake size={22} className="text-[#111114]" /> Ruang Teduh
         </h1>
         <p className="text-sm text-[#6B7280] mt-1">Tempat menyampaikan isi hati, pertanyaan, atau kendala Anda kepada pengurus.</p>
       </div>
 
-      <div className="rounded-2xl border border-[#DCDCF5] bg-[#F5F5FD] p-4 text-sm text-[#312E81] flex gap-2.5" data-testid="ruangteduh-kata-baik">
+      <div className="rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-4 text-sm text-[#111114] flex gap-2.5" data-testid="ruangteduh-kata-baik">
         <HeartHandshake size={18} className="shrink-0 mt-0.5" />
         <span>
           Assalamu'alaikum warahmatullahi wabarakatuh. Silakan bercerita dengan tenang dan apa adanya.
@@ -96,8 +95,8 @@ export default function RuangTeduh() {
                 onClick={() => setCategory(c.value)}
                 className={`h-10 px-3.5 rounded-full border text-sm font-semibold transition-colors ${
                   category === c.value
-                    ? "border-[#3730A3] bg-[#EEEFFB] text-[#312E81]"
-                    : "border-[#E8E8E4] text-[#6B7280] hover:border-[#3730A3] hover:text-[#3730A3]"
+                    ? "border-[#111114] bg-[#F1F1EE] text-[#111114]"
+                    : "border-[#E8E8E4] text-[#6B7280] hover:border-[#111114] hover:text-[#111114]"
                 }`}
               >
                 {c.label}
@@ -114,13 +113,13 @@ export default function RuangTeduh() {
             onChange={(e) => setMessage(e.target.value.slice(0, maxLength))}
             rows={8}
             placeholder="Tuliskan di sini… (contoh: kesulitan hadir sesi pagi karena jam kerja, pertanyaan tentang materi, atau hal yang ingin dicurahkan)"
-            className="mt-2 w-full px-3.5 py-2.5 rounded-xl border border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] resize-none leading-relaxed"
+            className="mt-2 w-full px-3.5 py-2.5 rounded-xl border border-[#E8E8E4] text-sm outline-none focus:border-[#111114] resize-none leading-relaxed"
           />
           <div className="text-xs text-[#9CA3AF] mt-1 text-right">{message.length} / {maxLength} huruf</div>
         </div>
 
         <label className="flex items-center gap-3 cursor-pointer">
-          <input data-testid="ruangteduh-anonim" type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="h-4 w-4 accent-[#3730A3]" />
+          <input data-testid="ruangteduh-anonim" type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="h-4 w-4 accent-[#111114]" />
           <span className="text-sm text-[#374151]">Kirim <b>tanpa nama</b> (pengurus tidak melihat identitas Anda)</span>
         </label>
 
@@ -128,7 +127,7 @@ export default function RuangTeduh() {
           data-testid="ruangteduh-kirim"
           onClick={kirim}
           disabled={saving}
-          className="w-full h-12 rounded-xl bg-[#3730A3] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#2A2480] transition-colors disabled:opacity-60"
+          className="w-full h-12 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#000000] transition-colors disabled:opacity-60"
         >
           {saving ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />} Kirim ke Pengurus
         </button>
@@ -145,7 +144,7 @@ export default function RuangTeduh() {
           )}
         </div>
         {riwayat === null ? (
-          <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={22} /></div>
+          <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={22} /></div>
         ) : riwayat.length === 0 ? (
           <div className="bg-white rounded-2xl border border-[#E8E8E4] p-6 text-center text-sm text-[#6B7280]" data-testid="ruangteduh-riwayat-empty">
             Belum ada pesan terkirim.
@@ -156,10 +155,10 @@ export default function RuangTeduh() {
               <div key={r.id} className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid={`ruangteduh-riwayat-${r.id}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap text-xs">
-                    <span className="font-semibold px-2 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]">{r.category_label}</span>
+                    <span className="font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">{r.category_label}</span>
                     {r.anonymous && <span className="font-semibold px-2 py-0.5 rounded-full bg-[#F4F4F1] text-[#6B7280]">tanpa nama</span>}
                     <span className="text-[#9CA3AF] inline-flex items-center gap-1"><Clock size={11} /> {String(r.at).slice(0, 16).replace("T", " ")} WITA</span>
-                    {r.dibaca && <span className="text-[#312E81] font-semibold inline-flex items-center gap-1"><CheckCheck size={12} /> sudah dibaca pengurus</span>}
+                    {r.dibaca && <span className="text-[#111114] font-semibold inline-flex items-center gap-1"><CheckCheck size={12} /> sudah dibaca pengurus</span>}
                   </div>
                   <button data-testid={`ruangteduh-hapus-${r.id}`} onClick={() => hapus(r.id)}
                     className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg text-[#DC2626] hover:bg-red-50" title="Hapus pesan ini">

@@ -6,7 +6,7 @@ import { ACTION_LABELS, formatDateTime } from "./adminUtils";
 
 const ACTION_COLORS = {
   login: "bg-[#E0F2FE] text-[#075985]",
-  buat_akun: "bg-[#EEEFFB] text-[#312E81]",
+  buat_akun: "bg-[#F1F1EE] text-[#111114]",
   hapus_akun: "bg-[#FEE2E2] text-[#991B1B]",
   hapus_massal: "bg-[#FEE2E2] text-[#991B1B]",
   reset_sandi: "bg-[#FEF3C7] text-[#92400E]",
@@ -26,13 +26,13 @@ export default function LogAktivitas() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 text-[#3730A3] font-bold text-lg">
+        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
           <ScrollText size={20} /> Log Aktivitas
         </div>
         <button
           data-testid="button-refresh-logs"
           onClick={load}
-          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#3730A3] hover:text-[#3730A3]"
+          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114]"
         >
           <RefreshCw size={16} /> Muat Ulang
         </button>
@@ -40,7 +40,7 @@ export default function LogAktivitas() {
 
       <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="logs-panel">
         {!logs ? (
-          <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={28} /></div>
+          <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
         ) : logs.length === 0 ? (
           <div className="p-10 text-center text-[#6B7280]">Belum ada aktivitas tercatat.</div>
         ) : (

@@ -59,7 +59,7 @@ export default function KodeAksesView() {
       <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-            <KeyRound size={22} className="text-[#3730A3]" /> Kode Akses Kegiatan
+            <KeyRound size={22} className="text-[#111114]" /> Kode Akses Kegiatan
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
             Setiap kegiatan otomatis punya kode akses 6 digit + tautan absensi. Bagikan ke petugas/penjaga absen.
@@ -73,7 +73,7 @@ export default function KodeAksesView() {
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
       ) : data === false ? (
         <div className="p-10 text-center text-[#6B7280]">Gagal memuat kode akses.</div>
       ) : data.rows.length === 0 ? (
@@ -87,7 +87,7 @@ export default function KodeAksesView() {
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {r.session_label && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]">{r.session_label}</span>}
+                    {r.session_label && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">{r.session_label}</span>}
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${r.status === "open" ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#F3F4F6] text-[#4B5563]"}`}>
                       {r.status === "open" ? "Terbuka" : "Selesai"}
                     </span>
@@ -97,17 +97,17 @@ export default function KodeAksesView() {
                 </div>
                 <div className="text-center">
                   <div className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wide">Kode akses</div>
-                  <div className="font-mono text-3xl font-bold text-[#3730A3] tracking-[0.25em]" data-testid={`kode-value-${r.id}`}>{r.code}</div>
+                  <div className="font-mono text-3xl font-bold text-[#111114] tracking-[0.25em]" data-testid={`kode-value-${r.id}`}>{r.code}</div>
                 </div>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <button data-testid={`kode-copy-${r.id}`} onClick={() => copy(r.code, "Kode akses")}
-                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm hover:bg-[#EEEFFB]">
+                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE]">
                   <Copy size={15} /> Salin Kode
                 </button>
                 <button data-testid={`kode-copy-link-${r.id}`} onClick={() => copy(r.link, "Tautan absensi")}
-                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#E8E8E4] text-[#4B5563] font-semibold text-sm hover:border-[#3730A3] hover:text-[#3730A3]">
+                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#E8E8E4] text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114]">
                   <Copy size={15} /> Salin Tautan
                 </button>
                 <a data-testid={`kode-wa-${r.id}`} href={`https://wa.me/?text=${encodeURIComponent(r.wa_text)}`} target="_blank" rel="noreferrer"
@@ -115,7 +115,7 @@ export default function KodeAksesView() {
                   <Send size={15} /> Bagikan ke WhatsApp
                 </a>
                 <button data-testid={`kode-qr-${r.id}`} onClick={() => setQr({ image: r.image, name: r.base_name, link: r.link, code: r.code })}
-                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#E8E8E4] text-[#4B5563] font-semibold text-sm hover:border-[#3730A3] hover:text-[#3730A3]">
+                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#E8E8E4] text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114]">
                   <QrCode size={15} /> Lihat QR
                 </button>
                 <button data-testid={`kode-regen-${r.id}`} onClick={() => regenerate(r)} disabled={busyId === r.id}
@@ -139,9 +139,9 @@ export default function KodeAksesView() {
             <div className="p-5 text-center">
               <img src={qr.image} alt="QR Absensi" className="mx-auto w-52 h-52 rounded-xl border border-[#E8E8E4] p-2" />
               <div className="mt-2 font-semibold text-[#111827]">{qr.name}</div>
-              <div className="font-mono text-2xl font-bold text-[#3730A3] tracking-[0.25em] mt-1">{qr.code}</div>
+              <div className="font-mono text-2xl font-bold text-[#111114] tracking-[0.25em] mt-1">{qr.code}</div>
               <p className="text-sm text-[#4B5563] mt-2">Penerima memindai QR / membuka tautan, lalu memasukkan kode akses ini untuk mengisi absensi.</p>
-              <button onClick={downloadQr} className="mt-4 w-full h-11 rounded-xl bg-[#3730A3] text-white font-semibold inline-flex items-center justify-center gap-2"><Download size={16} /> Unduh QR</button>
+              <button onClick={downloadQr} className="mt-4 w-full h-11 rounded-xl bg-[#111114] text-white font-semibold inline-flex items-center justify-center gap-2"><Download size={16} /> Unduh QR</button>
             </div>
           </div>
         </div>

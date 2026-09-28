@@ -6,14 +6,14 @@ import { Logo } from "@/components/Logo";
 import { TYPE_LABEL, tanggalPanjang, hhmm } from "./admin/kegiatanUtils";
 
 const ST = {
-  hadir: { t: "H", cls: "bg-[#3730A3] text-white", title: "Hadir" },
-  izin: { t: "I", cls: "bg-[#D97706] text-white", title: "Izin" },
+  hadir: { t: "H", cls: "bg-[#111114] text-white", title: "Hadir" },
+  izin: { t: "I", cls: "bg-[#9CA3AF] text-white", title: "Izin" },
   alpha: { t: "A", cls: "bg-[#FEE2E2] text-[#991B1B]", title: "Alpha" },
   exempt: { t: "✓", cls: "bg-[#F3F4F6] text-[#9CA3AF]", title: "Sudah hadir di sesi sebelumnya — tidak dihitung" },
   optional: { t: "·", cls: "bg-[#EEF2FF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
 };
 
-export function PercentBar({ label, value, sub, color = "#3730A3", testid }) {
+export function PercentBar({ label, value, sub, color = "#111114", testid }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
   return (
     <div data-testid={testid}>
@@ -51,14 +51,14 @@ export default function PublicRekapGabungan() {
     );
   }
   if (!data) {
-    return <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={32} /></div>;
+    return <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>;
   }
 
   const s = data.summary || {};
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] pb-14" data-testid="rekap-gabungan-public">
-      <header className="bg-[#3730A3] text-white">
+      <header className="bg-[#111114] text-white">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" /></div>
           <div className="leading-tight">
@@ -71,7 +71,7 @@ export default function PublicRekapGabungan() {
       <main className="max-w-2xl mx-auto px-4 -mt-3">
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]">{TYPE_LABEL[data.type] || data.type}</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">{TYPE_LABEL[data.type] || data.type}</span>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] inline-flex items-center gap-1"><Layers size={12} /> {data.sessions.length} Sesi</span>
             {(data.filter_labels || []).map((l) => <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{l}</span>)}
           </div>
@@ -86,7 +86,7 @@ export default function PublicRekapGabungan() {
         {/* Ringkasan + bar persen */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4 space-y-4" data-testid="gabungan-public-summary">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#3730A3] font-semibold text-sm"><Users size={17} /> Total jamaah</div>
+            <div className="flex items-center gap-2 text-[#111114] font-semibold text-sm"><Users size={17} /> Total jamaah</div>
             <div className="text-2xl font-bold text-[#111827] tabular-nums">{s.total}</div>
           </div>
           <PercentBar label="Hadir minimal 1 sesi" value={s.ratio_min_1} sub={`${s.hadir_min_1} orang`} testid="bar-min1" />
@@ -94,7 +94,7 @@ export default function PublicRekapGabungan() {
           <div className="flex flex-wrap gap-2 pt-1 text-xs">
             <span className="px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#92400E] font-semibold">Izin saja: {s.izin_saja}</span>
             <span className="px-2.5 py-1 rounded-full bg-[#FEE2E2] text-[#991B1B] font-semibold">Tidak hadir: {s.tidak_hadir}</span>
-            {s.tamu > 0 && <span className="px-2.5 py-1 rounded-full bg-[#EEF2FF] text-[#3730A3] font-semibold">Tamu: {s.tamu}</span>}
+            {s.tamu > 0 && <span className="px-2.5 py-1 rounded-full bg-[#EEF2FF] text-[#111114] font-semibold">Tamu: {s.tamu}</span>}
           </div>
           <p className="text-[11px] text-[#9CA3AF] leading-relaxed">
             Jamaah yang sudah hadir di sesi sebelumnya tidak dihitung Alpha pada sesi berikutnya (kolomnya dikosongkan ✓).
@@ -124,7 +124,7 @@ export default function PublicRekapGabungan() {
 
         {/* Tabel jamaah × sesi */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] mt-4 overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#E8E8E4] font-semibold text-sm text-[#111827] flex items-center gap-2"><Clock size={15} className="text-[#3730A3]" /> Daftar Jamaah per Sesi</div>
+          <div className="px-4 py-3 border-b border-[#E8E8E4] font-semibold text-sm text-[#111827] flex items-center gap-2"><Clock size={15} className="text-[#111114]" /> Daftar Jamaah per Sesi</div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="gabungan-public-table">
               <thead className="bg-[#FAFAF8] text-[#6B7280] text-left">
@@ -159,7 +159,7 @@ export default function PublicRekapGabungan() {
                         )}
                       </td>
                     ))}
-                    <td className="px-2 py-2 text-center font-bold tabular-nums text-[#3730A3]">{r.hadir}/{r.eligible}</td>
+                    <td className="px-2 py-2 text-center font-bold tabular-nums text-[#111114]">{r.hadir}/{r.eligible}</td>
                   </tr>
                 ))}
               </tbody>

@@ -9,7 +9,7 @@ import { DateField } from "@/components/DateField";
 import PesertaDetailModal from "./PesertaDetailModal";
 import { formatTanggal, genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
 
-const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3] bg-white";
+const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
 
 /**
  * FASE 10 — KELENGKAPAN DATA: tanggal lahir & status pernikahan dipakai untuk
@@ -40,7 +40,7 @@ function PesertaAvatar({ user }) {
     );
   }
   return (
-    <div className="h-10 w-10 rounded-full bg-[#EEEFFB] text-[#3730A3] flex items-center justify-center font-bold text-xs">
+    <div className="h-10 w-10 rounded-full bg-[#F1F1EE] text-[#111114] flex items-center justify-center font-bold text-xs">
       {initials}
     </div>
   );
@@ -125,13 +125,13 @@ export default function Peserta({ role = "admin" }) {
     <div>
       {/* FASE 15 — Bulk data & import dipindah ke halaman Bulk Data tersendiri */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-[#3730A3] font-bold text-lg">
+        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
           <Users size={20} /> Peserta
           {users && <span className="text-sm font-medium text-[#6B7280]">({users.length})</span>}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button data-testid="button-open-add" onClick={() => setModal("add")}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#3730A3] text-white font-semibold text-sm hover:bg-[#2A2480]">
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]">
             <UserPlus size={16} /> Tambah Peserta
           </button>
         </div>
@@ -146,7 +146,7 @@ export default function Peserta({ role = "admin" }) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari nama, No HP, tempat lahir..."
-            className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3] bg-white"
+            className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white"
           />
         </div>
         {selected.size > 0 && (
@@ -160,8 +160,8 @@ export default function Peserta({ role = "admin" }) {
       {/* Filter status aktivasi */}
       <div className="flex items-center gap-2 mb-4 flex-wrap" data-testid="status-filter">
         {[
-          { key: "all", label: "Semua", count: counts.all, cls: "bg-[#3730A3] text-white border-[#3730A3]" },
-          { key: "pending", label: "Belum Aktivasi", count: counts.pending, cls: "bg-[#D97706] text-white border-[#D97706]" },
+          { key: "all", label: "Semua", count: counts.all, cls: "bg-[#111114] text-white border-[#111114]" },
+          { key: "pending", label: "Belum Aktivasi", count: counts.pending, cls: "bg-[#9CA3AF] text-white border-[#9CA3AF]" },
           { key: "active", label: "Sudah Aktif", count: counts.active, cls: "bg-[#059669] text-white border-[#059669]" },
           { key: "incomplete", label: "Data Belum Lengkap", count: counts.incomplete, cls: "bg-[#9D174D] text-white border-[#9D174D]" },
         ].map((f) => {
@@ -171,9 +171,9 @@ export default function Peserta({ role = "admin" }) {
               key={f.key}
               data-testid={`filter-${f.key}`}
               onClick={() => setStatusFilter(f.key)}
-              className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-full border-2 text-sm font-semibold transition-colors ${on ? f.cls : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#3730A3]"}`}
+              className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-full border-2 text-sm font-semibold transition-colors ${on ? f.cls : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114]"}`}
             >
-              {f.key === "pending" && <AlertTriangle size={14} className={on ? "text-white" : "text-[#D97706]"} />}
+              {f.key === "pending" && <AlertTriangle size={14} className={on ? "text-white" : "text-[#9CA3AF]"} />}
               {f.key === "incomplete" && <ClipboardList size={14} className={on ? "text-white" : "text-[#9D174D]"} />}
               {f.label}
               <span className={`text-xs px-1.5 py-0.5 rounded-full ${on ? "bg-white/25" : "bg-[#F3F4F6] text-[#374151]"}`}>{f.count}</span>
@@ -214,7 +214,7 @@ export default function Peserta({ role = "admin" }) {
         </div>
       )}
       {users && counts.incomplete === 0 && statusFilter === "incomplete" && (
-        <div className="mb-4 rounded-2xl border border-[#DCDCF5] bg-[#F5F5FD] p-3.5 text-sm text-[#312E81] font-semibold" data-testid="kelengkapan-complete">
+        <div className="mb-4 rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-3.5 text-sm text-[#111114] font-semibold" data-testid="kelengkapan-complete">
           Semua jamaah sudah melengkapi tanggal lahir dan status pernikahan.
         </div>
       )}
@@ -222,7 +222,7 @@ export default function Peserta({ role = "admin" }) {
       {/* Table */}
       <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="peserta-table">
         {!users ? (
-          <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={28} /></div>
+          <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
         ) : filtered.length === 0 ? (
           <div className="p-10 text-center text-[#6B7280]">{q ? "Tidak ada peserta cocok." : "Belum ada peserta."}</div>
         ) : (
@@ -231,7 +231,7 @@ export default function Peserta({ role = "admin" }) {
               <thead>
                 <tr className="bg-[#FAFAF8] text-[#6B7280] text-left">
                   <th className="px-4 py-3 w-10">
-                    <input type="checkbox" className="accent-[#3730A3] w-4 h-4" checked={allChecked} onChange={toggleAll} data-testid="checkbox-all" />
+                    <input type="checkbox" className="accent-[#111114] w-4 h-4" checked={allChecked} onChange={toggleAll} data-testid="checkbox-all" />
                   </th>
                   <th className="px-4 py-3 font-semibold w-14">Foto</th>
                   <th className="px-4 py-3 font-semibold">Nama</th>
@@ -249,9 +249,9 @@ export default function Peserta({ role = "admin" }) {
                   const b = statusBadge(u.status, u.needs_completion);
                   const miss = dataMissing(u);
                   return (
-                    <tr key={u.id} data-testid={`peserta-row-${u.id}`} className={selected.has(u.id) ? "bg-[#F5F5FD]" : ""}>
+                    <tr key={u.id} data-testid={`peserta-row-${u.id}`} className={selected.has(u.id) ? "bg-[#FAFAF8]" : ""}>
                       <td className="px-4 py-3">
-                        <input type="checkbox" className="accent-[#3730A3] w-4 h-4" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} data-testid={`checkbox-${u.id}`} />
+                        <input type="checkbox" className="accent-[#111114] w-4 h-4" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} data-testid={`checkbox-${u.id}`} />
                       </td>
                       <td className="px-4 py-3">
                         <PesertaAvatar user={u} />
@@ -259,7 +259,7 @@ export default function Peserta({ role = "admin" }) {
                       <td className="px-4 py-3">
                         <div className="font-semibold text-[#111827] flex items-center gap-1.5">
                           {u.name}
-                          {u.needs_completion && <AlertTriangle size={14} className="text-[#D97706]" title="Perlu dilengkapi" />}
+                          {u.needs_completion && <AlertTriangle size={14} className="text-[#9CA3AF]" title="Perlu dilengkapi" />}
                         </div>
                         <div className="text-xs text-[#9CA3AF] sm:hidden">{genderLabel(u.gender)} · {u.phone || "-"}</div>
                         {miss.length > 0 && (
@@ -274,7 +274,7 @@ export default function Peserta({ role = "admin" }) {
                       <td className="px-4 py-3 hidden lg:table-cell text-[#4B5563]">{u.phone || "-"}</td>
                       <td className="px-4 py-3 hidden md:table-cell" data-testid={`kelengkapan-${u.id}`}>
                         {miss.length === 0 ? (
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]">Lengkap</span>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">Lengkap</span>
                         ) : (
                           <div className="flex flex-wrap gap-1">
                             {miss.map((m) => (
@@ -290,7 +290,7 @@ export default function Peserta({ role = "admin" }) {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button data-testid={`button-detail-${u.id}`} onClick={() => setDetailId(u.id)}
-                          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#3730A3] font-semibold text-sm hover:border-[#3730A3] hover:bg-[#EEEFFB]">
+                          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#111114] font-semibold text-sm hover:border-[#111114] hover:bg-[#F1F1EE]">
                           <Eye size={15} /> Detail
                         </button>
                       </td>
@@ -379,7 +379,7 @@ function AddModal({ kelompok, onClose, onDone }) {
           {kelompok.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
         </select>
         <button data-testid="button-submit-add" type="submit" disabled={saving}
-          className="sm:col-span-2 h-12 rounded-xl bg-[#3730A3] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60">
+          className="sm:col-span-2 h-12 rounded-xl bg-[#111114] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
           {saving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Tambahkan
         </button>
       </form>

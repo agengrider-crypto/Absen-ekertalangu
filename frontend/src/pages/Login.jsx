@@ -108,7 +108,7 @@ export default function Login() {  const navigate = useNavigate();
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="cth: 0813xxxx atau nama@email.com"
-                className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#3730A3] bg-white"
+                className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#111114] bg-white"
               />
             </div>
 
@@ -125,7 +125,7 @@ export default function Login() {  const navigate = useNavigate();
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan kata sandi"
-                  className="w-full h-[52px] pl-4 pr-14 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#3730A3] bg-white"
+                  className="w-full h-[52px] pl-4 pr-14 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#111114] bg-white"
                 />
                 <button
                   type="button"
@@ -143,7 +143,7 @@ export default function Login() {  const navigate = useNavigate();
               data-testid="button-login-submit"
               type="submit"
               disabled={loading}
-              className="w-full h-[54px] rounded-xl bg-[#3730A3] text-white text-lg font-bold tracking-wide flex items-center justify-center gap-2 hover:bg-[#2A2480] active:scale-[0.99] transition-all disabled:opacity-60"
+              className="w-full h-[54px] rounded-xl bg-[#111114] text-white text-lg font-bold tracking-wide flex items-center justify-center gap-2 hover:bg-[#000000] active:scale-[0.99] transition-all disabled:opacity-60"
             >
               {loading ? <Loader2 className="animate-spin" size={22} /> : <LogIn size={22} />}
               Masuk
@@ -154,7 +154,7 @@ export default function Login() {  const navigate = useNavigate();
             <button
               data-testid="button-forgot-password"
               onClick={() => setShowReset(true)}
-              className="text-[#3730A3] font-semibold text-base hover:underline inline-flex items-center justify-center gap-1.5"
+              className="text-[#111114] font-semibold text-base hover:underline inline-flex items-center justify-center gap-1.5"
             >
               <KeyRound size={18} /> Lupa kata sandi?
             </button>
@@ -171,14 +171,14 @@ export default function Login() {  const navigate = useNavigate();
             <button
               data-testid="button-absen-kode"
               onClick={() => navigate("/absen-kode")}
-              className="w-full h-[52px] rounded-xl bg-[#3730A3] text-white text-base font-bold flex items-center justify-center gap-2 hover:bg-[#2A2480] transition-colors"
+              className="w-full h-[52px] rounded-xl bg-[#111114] text-white text-base font-bold flex items-center justify-center gap-2 hover:bg-[#000000] transition-colors"
             >
               <KeyRound size={22} /> Absen dengan Kode (6 Digit)
             </button>
             <button
               data-testid="button-register-qr"
               onClick={() => navigate("/register")}
-              className="w-full h-[52px] rounded-xl border-2 border-[#3730A3] text-[#3730A3] text-base font-bold flex items-center justify-center gap-2 hover:bg-[#EEEFFB] transition-colors"
+              className="w-full h-[52px] rounded-xl border-2 border-[#111114] text-[#111114] text-base font-bold flex items-center justify-center gap-2 hover:bg-[#F1F1EE] transition-colors"
             >
               <QrCode size={22} /> Daftar Baru (Scan QR)
             </button>
@@ -232,7 +232,7 @@ function ResetDialog({ onClose }) {
           </button>
         </div>
         <p className="text-sm text-[#6B7280] mb-1">
-          Khusus <span className="font-semibold text-[#3730A3]">Peserta</span>. Verifikasi dengan tanggal lahir & Nomor HP terdaftar.
+          Khusus <span className="font-semibold text-[#111114]">Peserta</span>. Verifikasi dengan tanggal lahir & Nomor HP terdaftar.
         </p>
         <p className="text-xs text-[#9CA3AF] mb-5">
           Untuk akun Admin/Pengurus: hubungi administrator.
@@ -247,7 +247,7 @@ function ResetDialog({ onClose }) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="cth: 081300000003"
-              className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3]"
+              className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114]"
             />
           </div>
           <div>
@@ -264,14 +264,14 @@ function ResetDialog({ onClose }) {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Minimal 6 karakter"
-              className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3]"
+              className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114]"
             />
           </div>
           <button
             data-testid="button-reset-submit"
             type="submit"
             disabled={loading}
-            className="w-full h-[52px] rounded-xl bg-[#3730A3] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#2A2480] transition-colors disabled:opacity-60"
+            className="w-full h-[52px] rounded-xl bg-[#111114] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#000000] transition-colors disabled:opacity-60"
           >
             {loading ? <Loader2 className="animate-spin" size={22} /> : <KeyRound size={20} />}
             Perbarui Kata Sandi

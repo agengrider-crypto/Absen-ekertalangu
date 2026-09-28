@@ -68,7 +68,7 @@ export default function Activate() {
         <button
           data-testid="button-back-login"
           onClick={() => navigate("/login")}
-          className="inline-flex items-center gap-1.5 text-[#4B5563] font-medium mb-6 hover:text-[#3730A3]"
+          className="inline-flex items-center gap-1.5 text-[#4B5563] font-medium mb-6 hover:text-[#111114]"
         >
           <ArrowLeft size={20} /> Kembali ke Login
         </button>
@@ -94,7 +94,7 @@ export default function Activate() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Ketik nama lengkap Anda..."
-                  className="w-full h-[52px] pl-12 pr-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3]"
+                  className="w-full h-[52px] pl-12 pr-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114]"
                 />
               </div>
 
@@ -115,10 +115,10 @@ export default function Activate() {
                       <button
                         data-testid={`activation-result-${r.id}`}
                         onClick={() => setSelected(r)}
-                        className="w-full flex items-center justify-between px-4 h-[52px] rounded-xl border-2 border-[#E8E8E4] hover:border-[#3730A3] hover:bg-[#EEEFFB] transition-colors text-left"
+                        className="w-full flex items-center justify-between px-4 h-[52px] rounded-xl border-2 border-[#E8E8E4] hover:border-[#111114] hover:bg-[#F1F1EE] transition-colors text-left"
                       >
                         <span className="font-semibold text-[#111827]">{r.name}</span>
-                        <ChevronRight size={20} className="text-[#3730A3]" />
+                        <ChevronRight size={20} className="text-[#111114]" />
                       </button>
                     </li>
                   ))}
@@ -130,12 +130,12 @@ export default function Activate() {
               <p className="text-[#6B7280] text-base mt-1 mb-1">
                 Melengkapi data untuk:
               </p>
-              <div className="flex items-center justify-between bg-[#EEEFFB] rounded-xl px-4 py-3 mb-5">
-                <span className="font-bold text-[#312E81]" data-testid="activation-selected-name">{selected.name}</span>
+              <div className="flex items-center justify-between bg-[#F1F1EE] rounded-xl px-4 py-3 mb-5">
+                <span className="font-bold text-[#111114]" data-testid="activation-selected-name">{selected.name}</span>
                 <button
                   data-testid="button-change-name"
                   onClick={() => { setSelected(null); setResults([]); }}
-                  className="text-sm font-semibold text-[#3730A3] hover:underline"
+                  className="text-sm font-semibold text-[#111114] hover:underline"
                 >
                   Ganti
                 </button>
@@ -150,7 +150,7 @@ export default function Activate() {
                     value={form.gender}
                     onChange={set("gender")}
                     required
-                    className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3] bg-white"
+                    className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white"
                   >
                     <option value="">-- Pilih Jenis Kelamin --</option>
                     <option value="L">Laki-laki</option>
@@ -174,7 +174,7 @@ export default function Activate() {
                   data-testid="button-activate-submit"
                   type="submit"
                   disabled={loading}
-                  className="w-full h-[54px] rounded-xl bg-[#3730A3] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#2A2480] transition-colors disabled:opacity-60"
+                  className="w-full h-[54px] rounded-xl bg-[#111114] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#000000] transition-colors disabled:opacity-60"
                 >
                   {loading ? <Loader2 className="animate-spin" size={22} /> : <UserCheck size={22} />}
                   Aktivasi & Masuk
@@ -200,7 +200,7 @@ function Field({ label, testid, type = "text", value, onChange, placeholder, min
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#3730A3] bg-white"
+        className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#111114] bg-white"
       />
     </div>
   );

@@ -35,28 +35,28 @@ export default function PesertaDuplikat() {
       <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-            <CopyCheck size={22} className="text-[#3730A3]" /> Cek Duplikat
+            <CopyCheck size={22} className="text-[#111114]" /> Cek Duplikat
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
             Jamaah dengan nama sama akan dikelompokkan di sini. Periksa tanggal lahir &amp; No. HP sebelum menghapus.
           </p>
         </div>
         <button data-testid="duplikat-refresh" onClick={() => { setData(null); load(); }}
-          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm hover:bg-[#EEEFFB]">
+          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE]">
           <RefreshCw size={16} /> Periksa Ulang
         </button>
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
       ) : data === false ? (
         <div className="p-10 text-center text-[#6B7280]">Gagal memuat data.</div>
       ) : (
         <>
           <div className="grid grid-cols-3 gap-3 my-4">
             {[
-              { label: "Total jamaah", value: data.total_peserta, color: "#3730A3" },
-              { label: "Nama kembar", value: data.total_grup, color: "#D97706" },
+              { label: "Total jamaah", value: data.total_peserta, color: "#111114" },
+              { label: "Nama kembar", value: data.total_grup, color: "#9CA3AF" },
               { label: "Data terlibat", value: data.total_duplikat, color: "#DC2626" },
             ].map((s) => (
               <div key={s.label} className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid={`duplikat-stat-${s.label}`}>
@@ -67,9 +67,9 @@ export default function PesertaDuplikat() {
           </div>
 
           {data.groups.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-[#DCDCF5] p-10 text-center" data-testid="duplikat-empty">
-              <CopyCheck size={30} className="mx-auto text-[#3730A3] mb-2" />
-              <p className="text-[#312E81] font-semibold">Alhamdulillah, tidak ada nama jamaah yang kembar.</p>
+            <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center" data-testid="duplikat-empty">
+              <CopyCheck size={30} className="mx-auto text-[#111114] mb-2" />
+              <p className="text-[#111114] font-semibold">Alhamdulillah, tidak ada nama jamaah yang kembar.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -95,12 +95,12 @@ export default function PesertaDuplikat() {
                               <span className="inline-flex items-center gap-1"><Phone size={12} /> {r.phone || "-"}</span>
                               <span>{genderLabel(r.gender)}</span>
                               {kel && <span>{kel.name}</span>}
-                              {r.pernah_login && <span className="text-[#312E81] font-semibold">pernah login</span>}
+                              {r.pernah_login && <span className="text-[#111114] font-semibold">pernah login</span>}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <button data-testid={`duplikat-detail-${r.id}`} onClick={() => setDetailId(r.id)}
-                              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#3730A3] font-semibold text-sm hover:border-[#3730A3] hover:bg-[#EEEFFB]">
+                              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#111114] font-semibold text-sm hover:border-[#111114] hover:bg-[#F1F1EE]">
                               <Eye size={15} /> Detail
                             </button>
                             <button data-testid={`duplikat-hapus-${r.id}`} onClick={() => hapus(r)}

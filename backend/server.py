@@ -4870,12 +4870,11 @@ async def staff_scan_presensi(request: Request, staff: dict = Depends(require_st
     return {"date": d, "total": len(rows), "rows": rows}
 
 
-PENGADUAN_CATEGORIES = ["curhat", "saran", "pengaduan", "doa", "kendala", "pertanyaan"]
+PENGADUAN_CATEGORIES = ["curhat", "saran", "pengaduan", "kendala", "pertanyaan"]
 PENGADUAN_LABEL = {
     "curhat": "Curhat / Konsultasi",
     "saran": "Saran & Masukan",
     "pengaduan": "Pengaduan",
-    "doa": "Permohonan Doa",
     "kendala": "Kendala Hadir",
     "pertanyaan": "Pertanyaan Keagamaan",
 }
@@ -4962,6 +4961,14 @@ async def staff_pengaduan(staff: dict = Depends(require_staff), q: str = "", lim
         "belum_dibaca": len([r for r in rows if not r["dibaca"]]),
         "rows": rows,
     }
+
+
+@api_router.get("/staff/pengaduan/unread-count")
+async def pengaduan_unread_count(staff: dict = Depends(require_staff)):
+    """FASE 16 — angka lonceng notifikasi Ruang Teduh di panel."""
+    total = await db.pengaduans.count_documents({})
+    belum = await db.pengaduans.count_documents({"read_by": {"$size": 0}})
+    return {"total": total, "belum_dibaca": belum}
 
 
 @api_router.post("/staff/pengaduan/{pengaduan_id}/baca")

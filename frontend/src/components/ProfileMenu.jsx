@@ -48,7 +48,7 @@ export default function ProfileMenu({ subtitle }) {
         </div>
         <Avatar size={40} photo={photo} initials={initials} />
         {incomplete && (
-          <span data-testid="profile-incomplete-dot" className="absolute -top-0.5 right-6 h-3 w-3 rounded-full bg-[#D97706] ring-2 ring-white" />
+          <span data-testid="profile-incomplete-dot" className="absolute -top-0.5 right-6 h-3 w-3 rounded-full bg-[#9CA3AF] ring-2 ring-white" />
         )}
         <ChevronDown size={16} className="text-[#6B7280]" />
       </button>
@@ -113,7 +113,7 @@ export default function ProfileMenu({ subtitle }) {
 function Avatar({ size = 40, photo, initials }) {
   return (
     <div
-      className="rounded-full overflow-hidden bg-[#3730A3] text-white flex items-center justify-center font-bold shrink-0 border-2 border-white shadow-sm"
+      className="rounded-full overflow-hidden bg-[#111114] text-white flex items-center justify-center font-bold shrink-0 border-2 border-white shadow-sm"
       style={{ height: size, width: size, fontSize: size * 0.34 }}
     >
       {photo ? <img src={photo} alt="Foto profil" className="h-full w-full object-cover" /> : initials}

@@ -126,7 +126,7 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
         </div>
         <div className="p-5 space-y-4">
           <Field label="Kegiatan terkait (untuk mengisi template)">
-            <select data-testid="peng-kegiatan" value={f.kegiatan_id} onChange={(e) => set("kegiatan_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white">
+            <select data-testid="peng-kegiatan" value={f.kegiatan_id} onChange={(e) => set("kegiatan_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white">
               <option value="">— Tidak terkait kegiatan —</option>
               {kegiatanOptions.map((k) => (
                 <option key={k.id} value={k.id}>
@@ -136,8 +136,8 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
             </select>
           </Field>
 
-          <div className="rounded-2xl border border-[#DCDCF5] bg-[#F5F5FD] p-3">
-            <div className="text-sm font-semibold text-[#312E81] inline-flex items-center gap-1.5"><LayoutTemplate size={15} /> Template siap pakai</div>
+          <div className="rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-3">
+            <div className="text-sm font-semibold text-[#111114] inline-flex items-center gap-1.5"><LayoutTemplate size={15} /> Template siap pakai</div>
             <p className="text-xs text-[#4B5563] mt-0.5">Tap salah satu, judul &amp; isi langsung terisi rapi (masih bisa diedit).</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {TEMPLATES.map((t) => (
@@ -151,7 +151,7 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
                     setF((p) => ({ ...p, title: res.title, body: res.body, pengajar: keg?.teacher || p.pengajar }));
                     toast.success(`Template "${t.label}" diterapkan`);
                   }}
-                  className="h-9 px-3 rounded-lg border-2 border-[#3730A3] bg-white text-[#3730A3] text-xs font-semibold hover:bg-[#EEEFFB]"
+                  className="h-9 px-3 rounded-lg border-2 border-[#111114] bg-white text-[#111114] text-xs font-semibold hover:bg-[#F1F1EE]"
                 >
                   {t.label}
                 </button>
@@ -160,13 +160,13 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
           </div>
 
           <Field label="Judul">
-            <input data-testid="peng-title" value={f.title} onChange={(e) => set("title", e.target.value)} className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3]" />
+            <input data-testid="peng-title" value={f.title} onChange={(e) => set("title", e.target.value)} className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
           </Field>
           <Field label="Isi Pengumuman">
-            <textarea data-testid="peng-body" value={f.body} onChange={(e) => set("body", e.target.value)} rows={9} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] resize-none leading-relaxed" />
+            <textarea data-testid="peng-body" value={f.body} onChange={(e) => set("body", e.target.value)} rows={9} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] resize-none leading-relaxed" />
           </Field>
           <Field label="Pengajar">
-            <input data-testid="peng-pengajar" value={f.pengajar} onChange={(e) => set("pengajar", e.target.value)} className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3]" />
+            <input data-testid="peng-pengajar" value={f.pengajar} onChange={(e) => set("pengajar", e.target.value)} className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
           </Field>
 
           <label className="flex items-center gap-3 cursor-pointer">
@@ -176,7 +176,7 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
 
           <div className="border border-[#E8E8E4] rounded-xl p-3 space-y-2.5">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input data-testid="peng-pinned" type="checkbox" checked={f.pinned} disabled={pinLimitReached} onChange={(e) => set("pinned", e.target.checked)} className="h-4 w-4 accent-[#3730A3]" />
+              <input data-testid="peng-pinned" type="checkbox" checked={f.pinned} disabled={pinLimitReached} onChange={(e) => set("pinned", e.target.checked)} className="h-4 w-4 accent-[#111114]" />
               <span className="text-sm text-[#374151]">Pin ke dashboard role</span>
             </label>
             {pinLimitReached && <p className="text-xs text-[#DC2626]">Sudah ada {MAX_PINNED} pengumuman ter-pin (maksimal {MAX_PINNED}).</p>}
@@ -188,7 +188,7 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
                     data-testid={`peng-role-${r}`}
                     type="button"
                     onClick={() => toggleRole(r)}
-                    className={`px-3 h-8 rounded-lg text-xs font-semibold border ${f.pin_roles.includes(r) ? "bg-[#3730A3] text-white border-[#3730A3]" : "bg-white text-[#4B5563] border-[#E8E8E4]"}`}
+                    className={`px-3 h-8 rounded-lg text-xs font-semibold border ${f.pin_roles.includes(r) ? "bg-[#111114] text-white border-[#111114]" : "bg-white text-[#4B5563] border-[#E8E8E4]"}`}
                   >
                     {ROLE_LABEL[r]}
                   </button>
@@ -197,7 +197,7 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
             )}
           </div>
 
-          <button data-testid="peng-submit" onClick={submit} disabled={saving} className="w-full h-12 rounded-xl bg-[#3730A3] text-white font-semibold hover:bg-[#2A2480] disabled:opacity-60 inline-flex items-center justify-center gap-2">
+          <button data-testid="peng-submit" onClick={submit} disabled={saving} className="w-full h-12 rounded-xl bg-[#111114] text-white font-semibold hover:bg-[#000000] disabled:opacity-60 inline-flex items-center justify-center gap-2">
             {saving && <Loader2 className="animate-spin" size={18} />} {editing ? "Simpan Perubahan" : "Terbitkan"}
           </button>
         </div>
@@ -247,21 +247,21 @@ export default function PengumumanView() {
           <h1 className="font-heading text-2xl font-bold text-[#111827]">Pengumuman</h1>
           <p className="text-[#6B7280] text-sm">Yang di-pin tampil paling atas & di dashboard role terpilih (maks {MAX_PINNED}).</p>
         </div>
-        <button data-testid="button-add-pengumuman" onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#3730A3] text-white font-semibold text-sm hover:bg-[#2A2480]"><Plus size={18} /> Pengumuman</button>
+        <button data-testid="button-add-pengumuman" onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]"><Plus size={18} /> Pengumuman</button>
       </div>
 
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
       ) : items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center text-[#6B7280]"><Megaphone className="mx-auto mb-2 text-[#9CA3AF]" size={32} />Belum ada pengumuman.</div>
       ) : (
         <div className="grid gap-3">
           {items.map((p) => (
-            <div key={p.id} className={`bg-white rounded-2xl border p-4 ${p.pinned ? "border-[#3730A3]" : "border-[#E8E8E4]"}`} data-testid={`pengumuman-card-${p.id}`}>
+            <div key={p.id} className={`bg-white rounded-2xl border p-4 ${p.pinned ? "border-[#111114]" : "border-[#E8E8E4]"}`} data-testid={`pengumuman-card-${p.id}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {p.pinned && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]"><Pin size={11} /> Ter-pin</span>}
+                    {p.pinned && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]"><Pin size={11} /> Ter-pin</span>}
                     {p.important && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEE2E2] text-[#991B1B]"><AlertCircle size={11} /> Penting</span>}
                     {p.pinned && p.pin_roles?.map((r) => <span key={r} className="text-xs px-2 py-0.5 rounded-full bg-[#F3F4F6] text-[#4B5563]">{ROLE_LABEL[r]}</span>)}
                   </div>
@@ -274,7 +274,7 @@ export default function PengumumanView() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button data-testid={`peng-pin-${p.id}`} onClick={() => togglePin(p)} title={p.pinned ? "Lepas pin" : "Pin"} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#3730A3] hover:bg-[#EEEFFB]">{p.pinned ? <PinOff size={16} /> : <Pin size={16} />}</button>
+                  <button data-testid={`peng-pin-${p.id}`} onClick={() => togglePin(p)} title={p.pinned ? "Lepas pin" : "Pin"} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#111114] hover:bg-[#F1F1EE]">{p.pinned ? <PinOff size={16} /> : <Pin size={16} />}</button>
                   <button data-testid={`peng-edit-${p.id}`} onClick={() => setEditItem(p)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F3F4F6]"><Pencil size={16} /></button>
                   <button data-testid={`peng-delete-${p.id}`} onClick={() => del(p.id)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#DC2626] hover:bg-red-50"><Trash2 size={16} /></button>
                 </div>

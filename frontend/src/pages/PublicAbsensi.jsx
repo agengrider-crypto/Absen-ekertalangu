@@ -25,8 +25,8 @@ import { TYPE_LABEL, tanggalPanjang, hhmm, AUDIENCE_LABEL, GENDER_FILTER_LABEL }
  */
 
 const STATUS_BTN = {
-  hadir: { label: "Hadir", on: "bg-[#3730A3] text-white", off: "text-[#3730A3]" },
-  izin: { label: "Izin", on: "bg-[#D97706] text-white", off: "text-[#D97706]" },
+  hadir: { label: "Hadir", on: "bg-[#111114] text-white", off: "text-[#111114]" },
+  izin: { label: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#9CA3AF]" },
   alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#DC2626]" },
 };
 
@@ -222,7 +222,7 @@ export default function PublicAbsensi() {
     return (
       <Shell>
         <form onSubmit={verify} className="bg-white rounded-2xl border border-[#E8E8E4] p-6" data-testid="absensi-gate">
-          <div className="h-12 w-12 rounded-2xl bg-[#EEEFFB] text-[#3730A3] flex items-center justify-center mx-auto">
+          <div className="h-12 w-12 rounded-2xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center mx-auto">
             <KeyRound size={24} />
           </div>
           <h1 className="font-heading text-xl font-bold text-[#111827] text-center mt-3">Kode Akses Absensi</h1>
@@ -236,7 +236,7 @@ export default function PublicAbsensi() {
             inputMode="numeric"
             autoComplete="one-time-code"
             placeholder="------"
-            className="mt-5 w-full h-14 text-center tracking-[0.6em] text-2xl font-bold rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3]"
+            className="mt-5 w-full h-14 text-center tracking-[0.6em] text-2xl font-bold rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#111114]"
           />
           {err && (
             <p className="mt-2 text-sm text-[#DC2626] text-center" data-testid="absensi-code-error">{err}</p>
@@ -245,7 +245,7 @@ export default function PublicAbsensi() {
             type="submit"
             data-testid="absensi-code-submit"
             disabled={verifying}
-            className="mt-4 w-full h-12 rounded-xl bg-[#3730A3] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60"
+            className="mt-4 w-full h-12 rounded-xl bg-[#111114] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60"
           >
             {verifying ? <Loader2 className="animate-spin" size={18} /> : <KeyRound size={18} />} Buka Daftar Peserta
           </button>
@@ -268,13 +268,13 @@ export default function PublicAbsensi() {
     <Shell>
       <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5" data-testid="absensi-header">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">
             {TYPE_LABEL[k.type] || "Kegiatan"}
           </span>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${closed ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#DCFCE7] text-[#312E81]"}`}>
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${closed ? "bg-[#FEE2E2] text-[#991B1B]" : "bg-[#DCFCE7] text-[#111114]"}`}>
             {closed ? "Selesai" : "Berlangsung"}
           </span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3]">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#111114]">
             {AUDIENCE_LABEL[k.audience] || "Reguler"}
           </span>
           {(k.filter_labels && k.filter_labels.length
@@ -298,7 +298,7 @@ export default function PublicAbsensi() {
 
       <div className="grid grid-cols-4 gap-2 mt-3" data-testid="absensi-counts">
         <Stat value={c.total} label="Total" bg="#F4F4F1" fg="#111827" />
-        <Stat value={c.hadir} label="Hadir" bg="#EEEFFB" fg="#312E81" />
+        <Stat value={c.hadir} label="Hadir" bg="#F1F1EE" fg="#111114" />
         <Stat value={c.izin} label="Izin" bg="#FEF3C7" fg="#92400E" />
         <Stat value={c.alpha} label="Alpha" bg="#FEE2E2" fg="#991B1B" />
       </div>
@@ -330,7 +330,7 @@ export default function PublicAbsensi() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Cari nama peserta..."
-                className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3] bg-white"
+                className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#111114] bg-white"
               />
             </div>
           </div>
@@ -352,7 +352,7 @@ export default function PublicAbsensi() {
                       <span className="font-mono text-[11px] text-[#4B5563]">{hhmm(r.arrival_time)}</span>
                     )}
                     {r.attended_other && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">
                         Sudah hadir sesi {r.attended_other_label}
                       </span>
                     )}
@@ -389,7 +389,7 @@ export default function PublicAbsensi() {
       {tab === "scan" && (
         <div className="mt-3 bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid="absensi-scan">
           <p className="text-sm text-[#4B5563] mb-3">
-            <ScanLine size={16} className="text-[#3730A3] inline mr-1.5 -mt-0.5" />
+            <ScanLine size={16} className="text-[#111114] inline mr-1.5 -mt-0.5" />
             Arahkan kamera ke <b>QR pribadi peserta</b> (menu {"\"QR Saya\""} pada akun peserta) untuk mencatat kehadiran.
           </p>
           {!closed && <QrScanner onDetected={onScan} />}
@@ -399,7 +399,7 @@ export default function PublicAbsensi() {
             </p>
           )}
           {lastScan && (
-            <div className="mt-3 bg-[#F5F5FD] border border-[#DCDCF5] rounded-xl p-3 flex items-center gap-2 text-sm text-[#312E81]" data-testid="absensi-scan-result">
+            <div className="mt-3 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl p-3 flex items-center gap-2 text-sm text-[#111114]" data-testid="absensi-scan-result">
               <CheckCircle2 size={18} /> <b>{lastScan.name}</b> — {lastScan.already ? "sudah tercatat hadir" : "tercatat hadir"}
               {lastScan.arrival_time ? ` (${hhmm(lastScan.arrival_time)})` : ""}
             </div>
@@ -411,7 +411,7 @@ export default function PublicAbsensi() {
         <div className="mt-3 space-y-3" data-testid="absensi-tamu">
           <form onSubmit={addGuest} className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
             <div className="font-bold text-[#111827] text-[15px] flex items-center gap-2">
-              <UserPlus size={17} className="text-[#3730A3]" /> Tambah Tamu (tanpa akun)
+              <UserPlus size={17} className="text-[#111114]" /> Tambah Tamu (tanpa akun)
             </div>
             <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
               Kegiatan ini <b>terbuka/publik</b>. Jamaah yang belum mengaktivasi akun cukup
@@ -423,13 +423,13 @@ export default function PublicAbsensi() {
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
                 placeholder="Nama tamu"
-                className="flex-1 min-w-[160px] h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3] bg-white"
+                className="flex-1 min-w-[160px] h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#111114] bg-white"
               />
               <button
                 data-testid="absensi-tamu-add"
                 type="submit"
                 disabled={guestSaving || closed || !online}
-                className="h-11 px-4 rounded-xl bg-[#3730A3] text-white font-semibold inline-flex items-center gap-2 hover:bg-[#2A2480] disabled:opacity-60"
+                className="h-11 px-4 rounded-xl bg-[#111114] text-white font-semibold inline-flex items-center gap-2 hover:bg-[#000000] disabled:opacity-60"
               >
                 {guestSaving ? <Loader2 className="animate-spin" size={17} /> : <UserPlus size={17} />} Catat Hadir
               </button>
@@ -443,7 +443,7 @@ export default function PublicAbsensi() {
 
           <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
             <div className="px-4 py-3 border-b border-[#E8E8E4] font-semibold text-[#111827] text-sm flex items-center gap-2">
-              <Users size={16} className="text-[#3730A3]" /> Daftar Tamu ({guests.length})
+              <Users size={16} className="text-[#111114]" /> Daftar Tamu ({guests.length})
             </div>
             {guests.length === 0 ? (
               <div className="p-8 text-center text-sm text-[#9CA3AF]">Belum ada tamu yang dicatat.</div>
@@ -473,7 +473,7 @@ export default function PublicAbsensi() {
       <button
         data-testid="absensi-refresh"
         onClick={() => load(access)}
-        className="mt-3 w-full h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold flex items-center justify-center gap-2 hover:border-[#3730A3] hover:text-[#3730A3]"
+        className="mt-3 w-full h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold flex items-center justify-center gap-2 hover:border-[#111114] hover:text-[#111114]"
       >
         <RefreshCw size={16} /> Muat Ulang Data
       </button>
@@ -508,7 +508,7 @@ function TabBtn({ active, onClick, icon: Icon, label, testid }) {
     <button
       data-testid={testid}
       onClick={onClick}
-      className={`flex-1 h-11 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 border-2 transition-colors ${active ? "bg-[#3730A3] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#3730A3] hover:text-[#3730A3]"}`}
+      className={`flex-1 h-11 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 border-2 transition-colors ${active ? "bg-[#111114] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"}`}
     >
       <Icon size={16} /> {label}
     </button>

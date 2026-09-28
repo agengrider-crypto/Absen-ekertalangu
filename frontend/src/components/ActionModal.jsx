@@ -65,14 +65,14 @@ export default function ActionModal({ title, subtitle, actions = [], onClose, te
                 disabled={a.disabled}
                 onClick={() => { onClose?.(); a.onClick?.(); }}
                 className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-left transition-colors disabled:opacity-45 disabled:cursor-not-allowed ${
-                  a.danger ? "hover:bg-red-50" : "hover:bg-[#F5F5FD]"
+                  a.danger ? "hover:bg-red-50" : "hover:bg-[#FAFAF8]"
                 }`}
               >
                 <span
                   className="h-10 w-10 shrink-0 rounded-xl flex items-center justify-center"
                   style={{
-                    backgroundColor: a.danger ? "#FEE2E2" : "#EEEFFB",
-                    color: a.danger ? "#DC2626" : "#3730A3",
+                    backgroundColor: a.danger ? "#FEE2E2" : "#F1F1EE",
+                    color: a.danger ? "#DC2626" : "#111114",
                   }}
                 >
                   {Icon && <Icon size={19} />}

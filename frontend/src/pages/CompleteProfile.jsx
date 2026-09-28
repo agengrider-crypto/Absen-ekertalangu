@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { resizeImageFile } from "@/lib/image";
 import { Logo } from "@/components/Logo";
 
-const inp = "w-full h-12 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3] bg-white";
+const inp = "w-full h-12 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
 
 function Field({ label, required, filled, children, hint }) {
   return (
@@ -119,7 +119,7 @@ export default function CompleteProfile() {
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] pb-12" data-testid="page-complete-profile">
-      <header className="bg-[#3730A3] text-white">
+      <header className="bg-[#111114] text-white">
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
@@ -168,13 +168,13 @@ export default function CompleteProfile() {
         {/* Foto profil */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4 flex flex-col items-center">
           <div className="relative">
-            <div className="h-24 w-24 rounded-full overflow-hidden bg-[#EEEFFB] flex items-center justify-center border-2 border-[#3730A3]/20 text-[#3730A3] font-bold text-2xl">
+            <div className="h-24 w-24 rounded-full overflow-hidden bg-[#F1F1EE] flex items-center justify-center border-2 border-[#111114]/20 text-[#111114] font-bold text-2xl">
               {photo ? <img src={photo} alt="Foto" className="h-full w-full object-cover" data-testid="complete-photo" /> : (initials || <UserIcon size={38} />)}
             </div>
             <button
               data-testid="complete-photo-pick"
               onClick={() => fileRef.current?.click()}
-              className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-[#3730A3] text-white flex items-center justify-center shadow-md hover:bg-[#2A2480]"
+              className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-[#111114] text-white flex items-center justify-center shadow-md hover:bg-[#000000]"
             >
               <Camera size={16} />
             </button>
@@ -231,7 +231,7 @@ export default function CompleteProfile() {
               onChange={(e) => set("address", e.target.value)}
               rows={3}
               placeholder="Alamat tempat tinggal saat ini"
-              className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3] resize-none bg-white"
+              className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] resize-none bg-white"
             />
           </Field>
 
@@ -239,7 +239,7 @@ export default function CompleteProfile() {
             data-testid="complete-submit"
             type="submit"
             disabled={saving}
-            className="w-full h-[52px] rounded-xl bg-[#3730A3] text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60"
+            className="w-full h-[52px] rounded-xl bg-[#111114] text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60"
           >
             {saving ? <Loader2 className="animate-spin" size={19} /> : <ShieldCheck size={19} />}
             Simpan &amp; Verifikasi Akun

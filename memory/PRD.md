@@ -609,3 +609,13 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 - Judul dashboard: label peran + "Selamat datang, {nama} 👋" (admin/pengurus & jamaah).
 - Kartu **"Lengkapi Profil Kamu"** di dashboard jamaah: persentase + bar + daftar data kosong,
   tap → tab Profil (`profileCompletion` dari 10 field termasuk foto). Diuji: Budi Santoso 60%.
+
+### Revisi FASE 16 (28 Sep 2026, uji manual)
+- Aksen indigo dihapus → **tema monokrom**: putih/off-white dengan aksen hitam `#111114`
+  (soft `#F1F1EE`, hover `#000000`); warna grafik sekunder jadi abu netral `#9CA3AF`.
+  Token shadcn di index.css disesuaikan (primary/ring/accent → hitam).
+- **Lonceng notifikasi Ruang Teduh** (`components/RuangTeduhBell.jsx`) di header panel
+  admin/pengurus: angka pesan belum dibaca (polling 45 detik), klik langsung membuka Ruang Teduh.
+  Backend baru: `GET /api/staff/pengaduan/unread-count`.
+- Jenis pesan **Permohonan Doa dihapus** → tersisa 5: Curhat/Konsultasi, Saran & Masukan,
+  Pengaduan, Kendala Hadir, Pertanyaan Keagamaan.

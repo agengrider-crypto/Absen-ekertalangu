@@ -61,15 +61,15 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
   };
 
   if (d === null) {
-    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={32} /></div>;
+    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>;
   }
   if (d === false) {
     return <div className="p-10 text-center text-[#6B7280]">Gagal memuat data dashboard.</div>;
   }
 
   const pieData = [
-    { name: "Laki-laki", value: d.peserta_L, color: "#3730A3" },
-    { name: "Perempuan", value: d.peserta_P, color: "#D97706" },
+    { name: "Laki-laki", value: d.peserta_L, color: "#111114" },
+    { name: "Perempuan", value: d.peserta_P, color: "#9CA3AF" },
     { name: "Belum diisi", value: Math.max(d.total_peserta - d.peserta_L - d.peserta_P, 0), color: "#CBD5E1" },
   ].filter((x) => x.value > 0);
 
@@ -136,9 +136,9 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
                 key={s.key}
                 data-testid={`shortcut-${s.key}`}
                 onClick={s.action}
-                className="bg-white rounded-2xl border border-[#E8E8E4] p-3 flex flex-col items-center justify-center gap-2 hover:border-[#3730A3] hover:bg-[#F5F5FD] transition-colors"
+                className="bg-white rounded-2xl border border-[#E8E8E4] p-3 flex flex-col items-center justify-center gap-2 hover:border-[#111114] hover:bg-[#FAFAF8] transition-colors"
               >
-                <span className="h-11 w-11 rounded-xl bg-[#EEEFFB] text-[#3730A3] flex items-center justify-center"><Icon size={22} /></span>
+                <span className="h-11 w-11 rounded-xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center"><Icon size={22} /></span>
                 <span className="text-xs font-semibold text-[#374151] text-center leading-tight">{s.label}</span>
               </button>
             );
@@ -147,12 +147,12 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-        <StatCard icon={Users} label="Total Peserta" value={d.total_peserta} color="#3730A3"
+        <StatCard icon={Users} label="Total Peserta" value={d.total_peserta} color="#111114"
           sub={`${d.peserta_L} Laki-laki · ${d.peserta_P} Perempuan`} />
         <StatCard icon={CalendarDays} label="Kegiatan Bulan Ini" value={d.kegiatan_bulan_ini} color="#0284C7" />
         <StatCard icon={UserCheck} label="Akun Aktif" value={d.akun_aktif} color="#059669"
           sub={`${d.akun_nonaktif} nonaktif/menunggu`} />
-        <StatCard icon={TrendingUp} label="Rasio Kehadiran (bln ini)" value={`${d.rasio_kehadiran_bulan}%`} color="#D97706" />
+        <StatCard icon={TrendingUp} label="Rasio Kehadiran (bln ini)" value={`${d.rasio_kehadiran_bulan}%`} color="#9CA3AF" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2 mb-6">
@@ -202,11 +202,11 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
           <h2 className="font-heading font-bold text-[#111827] mb-2">Tren Kehadiran (6 bulan)</h2>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={trend} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EEF2EE" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EFEFEA" />
               <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#6B7280" }} />
               <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} domain={[0, 100]} />
               <Tooltip formatter={(v) => `${v}%`} />
-              <Bar dataKey="ratio" fill="#3730A3" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="ratio" fill="#111114" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -216,7 +216,7 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-[#E8E8E4]" data-testid="upcoming-activities">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-heading font-bold text-[#111827]">Kegiatan Mendatang</h2>
-            <button onClick={() => onGoto && onGoto("kegiatan")} className="text-sm font-semibold text-[#3730A3] hover:underline inline-flex items-center gap-1">
+            <button onClick={() => onGoto && onGoto("kegiatan")} className="text-sm font-semibold text-[#111114] hover:underline inline-flex items-center gap-1">
               <CalendarPlus size={15} /> Kelola
             </button>
           </div>
@@ -234,7 +234,7 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
                       {TYPE_LABEL[k.type]} · {tanggalSingkat(k.date)} · {k.start_time}–{k.end_time} WITA
                     </div>
                   </div>
-                  <span className="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]">
+                  <span className="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">
                     {k.counts?.hadir ?? 0}/{k.counts?.total ?? 0} hadir
                   </span>
                 </li>
@@ -244,18 +244,18 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-[#E8E8E4] text-center" data-testid="dashboard-qr">
-          <div className="inline-flex items-center gap-2 text-[#312E81] font-semibold mb-3">
+          <div className="inline-flex items-center gap-2 text-[#111114] font-semibold mb-3">
             <QrCode size={18} /> QR Pendaftaran
           </div>
           {qr ? (
             <img src={qr.image} alt="QR Publik" className="mx-auto w-36 h-36 rounded-xl border border-[#E8E8E4] p-2" />
           ) : (
             <div className="mx-auto w-36 h-36 rounded-xl bg-[#F4F4F1] flex items-center justify-center">
-              <Loader2 className="animate-spin text-[#3730A3]" size={24} />
+              <Loader2 className="animate-spin text-[#111114]" size={24} />
             </div>
           )}
           <p className="text-xs text-[#6B7280] mt-2">Bagikan untuk pendaftaran mandiri jamaah.</p>
-          <button onClick={copyLink} className="mt-3 w-full h-10 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#EEEFFB]">
+          <button onClick={copyLink} className="mt-3 w-full h-10 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]">
             <Copy size={15} /> Salin Link
           </button>
         </div>
@@ -266,19 +266,19 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowActQr(false)} />
           <div className="relative bg-white w-full max-w-sm rounded-3xl shadow-2xl">
             <div className="px-5 py-4 flex items-center justify-between border-b border-[#E8E8E4]">
-              <h3 className="font-heading font-bold text-[#111827] flex items-center gap-2"><ScanLine size={18} className="text-[#3730A3]" /> QR Aktivasi Akun</h3>
+              <h3 className="font-heading font-bold text-[#111827] flex items-center gap-2"><ScanLine size={18} className="text-[#111114]" /> QR Aktivasi Akun</h3>
               <button onClick={() => setShowActQr(false)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
             </div>
             <div className="p-5 text-center">
               {actQr ? (
                 <img data-testid="activation-qr-image" src={actQr.image} alt="QR Aktivasi" className="mx-auto w-52 h-52 rounded-xl border border-[#E8E8E4] p-2" />
               ) : (
-                <div className="mx-auto w-52 h-52 rounded-xl bg-[#F4F4F1] flex items-center justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={26} /></div>
+                <div className="mx-auto w-52 h-52 rounded-xl bg-[#F4F4F1] flex items-center justify-center"><Loader2 className="animate-spin text-[#111114]" size={26} /></div>
               )}
               <p className="text-sm text-[#4B5563] mt-3">Peserta cukup <b>scan</b> QR ini, lalu <b>cari nama</b> mereka untuk mengaktifkan akun sendiri.</p>
               <div className="flex gap-2 mt-4">
-                <button data-testid="activation-qr-download" onClick={downloadActQr} disabled={!actQr} className="flex-1 h-11 rounded-xl bg-[#3730A3] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 disabled:opacity-60"><Download size={16} /> Download</button>
-                <button data-testid="activation-qr-copy" onClick={copyActLink} disabled={!actQr} className="h-11 px-4 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm inline-flex items-center justify-center gap-2 disabled:opacity-60"><Copy size={16} /></button>
+                <button data-testid="activation-qr-download" onClick={downloadActQr} disabled={!actQr} className="flex-1 h-11 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 disabled:opacity-60"><Download size={16} /> Download</button>
+                <button data-testid="activation-qr-copy" onClick={copyActLink} disabled={!actQr} className="h-11 px-4 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm inline-flex items-center justify-center gap-2 disabled:opacity-60"><Copy size={16} /></button>
               </div>
             </div>
           </div>

@@ -10,6 +10,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
+import RuangTeduhBell from "@/components/RuangTeduhBell";
 import { roleLabel } from "@/lib/roles";
 import DashboardView from "./DashboardView";
 import Peserta from "./Peserta";
@@ -79,7 +80,7 @@ function NavButton({ item, active, onNav }) {
       data-testid={`nav-${item.key}`}
       onClick={() => onNav(item.key)}
       className={`w-full flex items-center gap-3 px-3.5 h-11 rounded-xl font-medium text-sm transition-colors ${
-        on ? "bg-[#EEEFFB] text-[#312E81] font-semibold" : "text-[#6B7280] hover:bg-[#F4F4F1] hover:text-[#111114]"
+        on ? "bg-[#F1F1EE] text-[#111114] font-semibold" : "text-[#6B7280] hover:bg-[#F4F4F1] hover:text-[#111114]"
       }`}
     >
       <Icon size={19} /> {item.label}
@@ -91,7 +92,7 @@ function SidebarInner({ active, onNav, onLogout, role, menu }) {
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-5 flex items-center gap-2.5 border-b border-[#E8E8E4]">
-        <div className="h-9 w-9 rounded-xl bg-[#EEEFFB] flex items-center justify-center overflow-hidden p-1"><img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" /></div>
+        <div className="h-9 w-9 rounded-xl bg-[#F1F1EE] flex items-center justify-center overflow-hidden p-1"><img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" /></div>
         <div className="leading-tight">
           <div className="text-[#111114] font-bold font-heading">E-KERTALANGU</div>
           <div className="text-[#9CA3AF] text-xs">{role === "pengurus" ? "Panel Pengurus" : "Panel Adminator"}</div>
@@ -180,6 +181,7 @@ export default function AdminLayout({ user, role = "admin" }) {
               <Logo size={32} />
             </div>
             <div className="flex items-center gap-2">
+              <RuangTeduhBell onOpen={() => go("pengaduan")} active={active} />
               <ProfileMenu subtitle={roleLabel(role)} />
             </div>
           </div>

@@ -11,8 +11,8 @@ export function maritalLabel(v) {
   return MARITAL_OPTIONS.find((o) => o.value === v)?.label || "-";
 }
 
-export const GREEN = "#3730A3";
-export const GREEN_DARK = "#2A2480";
+export const GREEN = "#111114";
+export const GREEN_DARK = "#000000";
 
 export function formatTanggal(iso) {
   if (!iso) return "-";
@@ -51,7 +51,7 @@ export function statusBadge(status, needsCompletion) {
   if (status === "pending") return { label: "Menunggu Aktivasi", cls: "bg-[#FEF3C7] text-[#92400E]" };
   if (status === "nonaktif") return { label: "Nonaktif", cls: "bg-[#FEE2E2] text-[#991B1B]" };
   if (needsCompletion) return { label: "Perlu Dilengkapi", cls: "bg-[#FEF3C7] text-[#92400E]" };
-  return { label: "Aktif", cls: "bg-[#EEEFFB] text-[#312E81]" };
+  return { label: "Aktif", cls: "bg-[#F1F1EE] text-[#111114]" };
 }
 
 export const ACTION_LABELS = {

@@ -25,12 +25,12 @@ export default function PublicMusyawarah() {
     );
   }
   if (!data) {
-    return <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={32} /></div>;
+    return <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>;
   }
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] pb-14" data-testid="musyawarah-public">
-      <header className="bg-[#3730A3] text-white">
+      <header className="bg-[#111114] text-white">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" /></div>
           <div className="leading-tight">
@@ -42,8 +42,8 @@ export default function PublicMusyawarah() {
 
       <main className="max-w-2xl mx-auto px-4 -mt-3">
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 shadow-sm">
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEEFFB] text-[#312E81]">{data.label}</span>
-          <h1 className="font-heading text-xl font-bold text-[#111827] mt-2 flex items-center gap-2"><CalendarDays size={18} className="text-[#3730A3]" /> {tanggalPanjang(data.date)}</h1>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">{data.label}</span>
+          <h1 className="font-heading text-xl font-bold text-[#111827] mt-2 flex items-center gap-2"><CalendarDays size={18} className="text-[#111114]" /> {tanggalPanjang(data.date)}</h1>
           {data.created_by && (
             <div className="text-sm text-[#6B7280] mt-1.5 inline-flex items-center gap-1.5"><UserRound size={14} /> Dicatat oleh {data.created_by}</div>
           )}

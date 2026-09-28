@@ -13,10 +13,10 @@ export default function TamuLaporanList({ rows = [] }) {
         className="w-full px-5 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8]"
       >
         <span className="flex items-center gap-2 font-bold text-[#111827]">
-          <UserPlus size={17} className="text-[#D97706]" /> Daftar Tamu (bukan jamaah terdaftar)
+          <UserPlus size={17} className="text-[#9CA3AF]" /> Daftar Tamu (bukan jamaah terdaftar)
           <span className="text-xs font-medium text-[#6B7280]">({rows.length})</span>
         </span>
-        <span className="text-sm font-semibold text-[#3730A3]">{open ? "Tutup" : "Lihat"}</span>
+        <span className="text-sm font-semibold text-[#111114]">{open ? "Tutup" : "Lihat"}</span>
       </button>
       {open && (
         <div className="border-t border-[#E8E8E4] overflow-x-auto max-h-[52vh] overflow-y-auto">

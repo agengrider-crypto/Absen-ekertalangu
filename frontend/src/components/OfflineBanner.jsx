@@ -26,17 +26,17 @@ export default function OfflineBanner({ online, pending = 0, syncing, onSync, cl
   return (
     <div
       data-testid="offline-pending-banner"
-      className={`rounded-2xl border-2 border-[#C9C9EE] bg-[#F5F5FD] p-4 flex items-center gap-3 flex-wrap ${className}`}
+      className={`rounded-2xl border-2 border-[#D5D5CE] bg-[#FAFAF8] p-4 flex items-center gap-3 flex-wrap ${className}`}
     >
-      {syncing ? <Loader2 size={20} className="text-[#3730A3] animate-spin" /> : <CheckCircle2 size={20} className="text-[#3730A3]" />}
-      <div className="text-sm text-[#312E81] flex-1 min-w-[180px]">
+      {syncing ? <Loader2 size={20} className="text-[#111114] animate-spin" /> : <CheckCircle2 size={20} className="text-[#111114]" />}
+      <div className="text-sm text-[#111114] flex-1 min-w-[180px]">
         <b>{pending} absen offline</b> menunggu dikirim ke server.
       </div>
       <button
         data-testid="offline-sync-now"
         onClick={onSync}
         disabled={syncing}
-        className="h-10 px-4 rounded-xl bg-[#3730A3] text-white font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#2A2480] disabled:opacity-60"
+        className="h-10 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#000000] disabled:opacity-60"
       >
         <RefreshCw size={15} /> Kirim Sekarang
       </button>

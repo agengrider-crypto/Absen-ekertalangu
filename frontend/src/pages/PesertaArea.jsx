@@ -63,7 +63,7 @@ export default function PesertaArea({ user }) {
   return (
     <div className="min-h-screen bg-[#F7F7F5] pb-20">
       {/* Top bar */}
-      <header className="sticky top-0 z-30 bg-[#3730A3] text-white">
+      <header className="sticky top-0 z-30 bg-[#111114] text-white">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center overflow-hidden p-0.5">
@@ -75,7 +75,7 @@ export default function PesertaArea({ user }) {
             <button data-testid="peserta-bell" onClick={openBell} className="relative h-9 w-9 flex items-center justify-center rounded-lg hover:bg-white/10" title="Notifikasi">
               <Bell size={18} />
               {unread > 0 && (
-                <span data-testid="peserta-bell-count" className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-[#3730A3]">
+                <span data-testid="peserta-bell-count" className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-[#111114]">
                   {unread > 9 ? "9+" : unread}
                 </span>
               )}
@@ -99,7 +99,7 @@ export default function PesertaArea({ user }) {
           <div className="sticky top-14 z-40 max-w-lg mx-auto px-4">
             <div className="mt-2 bg-white rounded-2xl border border-[#E8E8E4] shadow-xl overflow-hidden" data-testid="peserta-notif-panel">
               <div className="px-4 py-3 border-b border-[#E8E8E4] flex items-center justify-between">
-                <div className="font-heading font-bold text-[#111827] text-sm inline-flex items-center gap-2"><Bell size={15} className="text-[#3730A3]" /> Notifikasi</div>
+                <div className="font-heading font-bold text-[#111827] text-sm inline-flex items-center gap-2"><Bell size={15} className="text-[#111114]" /> Notifikasi</div>
                 <button onClick={() => setPanel(false)} data-testid="peserta-notif-close" className="h-8 w-8 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"><X size={16} /></button>
               </div>
               <div className="max-h-[60vh] overflow-y-auto divide-y divide-[#ECECE8]">
@@ -112,7 +112,7 @@ export default function PesertaArea({ user }) {
                     onClick={() => { setPanel(false); setTab(u.type === "kegiatan" ? "kegiatan" : "beranda"); }}
                     className="w-full text-left px-4 py-3 hover:bg-[#F9FAFB] flex gap-3"
                   >
-                    <span className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center ${u.type === "kegiatan" ? "bg-[#EEEFFB] text-[#3730A3]" : "bg-[#FEF3C7] text-[#92400E]"}`}>
+                    <span className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center ${u.type === "kegiatan" ? "bg-[#F1F1EE] text-[#111114]" : "bg-[#FEF3C7] text-[#92400E]"}`}>
                       {u.type === "kegiatan" ? <CalendarDays size={17} /> : <Megaphone size={17} />}
                     </span>
                     <span className="min-w-0">
@@ -150,7 +150,7 @@ export default function PesertaArea({ user }) {
                 key={t.key}
                 data-testid={`bottomnav-${t.key}`}
                 onClick={() => setTab(t.key)}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 ${on ? "text-[#3730A3]" : "text-[#9CA3AF]"}`}
+                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 ${on ? "text-[#111114]" : "text-[#9CA3AF]"}`}
               >
                 <Icon size={22} strokeWidth={on ? 2.4 : 2} />
                 <span className={`text-[11px] ${on ? "font-semibold" : "font-medium"}`}>{t.label}</span>

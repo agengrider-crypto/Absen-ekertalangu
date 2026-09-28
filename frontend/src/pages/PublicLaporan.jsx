@@ -36,7 +36,7 @@ export default function PublicLaporan() {
   if (!data) {
     return (
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#3730A3]" size={32} />
+        <Loader2 className="animate-spin text-[#111114]" size={32} />
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default function PublicLaporan() {
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] pb-12" data-testid="page-public-laporan">
-      <header className="bg-[#3730A3] text-white">
+      <header className="bg-[#111114] text-white">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
             <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
@@ -60,11 +60,11 @@ export default function PublicLaporan() {
 
       <main className="max-w-3xl mx-auto px-4 -mt-3">
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 shadow-sm">
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#EEEFFB] text-[#312E81]">
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#F1F1EE] text-[#111114]">
             {data.mode === "harian" ? "Laporan Harian" : data.mode === "bulanan" ? "Laporan Bulanan" : "Laporan Rentang"}
           </span>
           <h1 className="font-heading text-xl font-bold text-[#111827] mt-2 flex items-center gap-2">
-            <FileBarChart2 size={20} className="text-[#3730A3]" /> {data.title || "Laporan Kehadiran"}
+            <FileBarChart2 size={20} className="text-[#111114]" /> {data.title || "Laporan Kehadiran"}
           </h1>
           <div className="text-sm text-[#6B7280] mt-2 flex items-center gap-2">
             <CalendarDays size={15} />
@@ -76,8 +76,8 @@ export default function PublicLaporan() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-4">
-          <div className="rounded-xl bg-white border border-[#E8E8E4] p-4 text-center"><div className="text-2xl font-bold text-[#3730A3]">{s.ratio}%</div><div className="text-xs text-[#6B7280] mt-0.5">Kehadiran</div></div>
-          <div className="rounded-xl bg-white border border-[#E8E8E4] p-4 text-center"><div className="text-2xl font-bold text-[#312E81]">{s.hadir}</div><div className="text-xs text-[#6B7280] mt-0.5">Total Hadir</div></div>
+          <div className="rounded-xl bg-white border border-[#E8E8E4] p-4 text-center"><div className="text-2xl font-bold text-[#111114]">{s.ratio}%</div><div className="text-xs text-[#6B7280] mt-0.5">Kehadiran</div></div>
+          <div className="rounded-xl bg-white border border-[#E8E8E4] p-4 text-center"><div className="text-2xl font-bold text-[#111114]">{s.hadir}</div><div className="text-xs text-[#6B7280] mt-0.5">Total Hadir</div></div>
           <div className="rounded-xl bg-white border border-[#E8E8E4] p-4 text-center"><div className="text-2xl font-bold text-[#92400E]">{s.izin}</div><div className="text-xs text-[#6B7280] mt-0.5">Total Izin</div></div>
           <div className="rounded-xl bg-white border border-[#E8E8E4] p-4 text-center"><div className="text-2xl font-bold text-[#991B1B]">{s.alpha}</div><div className="text-xs text-[#6B7280] mt-0.5">Total Alpha</div></div>
         </div>
@@ -85,15 +85,15 @@ export default function PublicLaporan() {
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 mb-4">
           <div className="text-sm font-semibold text-[#111827] mb-1">Kehadiran per Jenis Kelamin</div>
           <div className="flex gap-5 text-sm text-[#4B5563]">
-            <span>Laki-laki: <b className="text-[#3730A3]">{data.gender_hadir?.L ?? 0}</b></span>
-            <span>Perempuan: <b className="text-[#D97706]">{data.gender_hadir?.P ?? 0}</b></span>
+            <span>Laki-laki: <b className="text-[#111114]">{data.gender_hadir?.L ?? 0}</b></span>
+            <span>Perempuan: <b className="text-[#9CA3AF]">{data.gender_hadir?.P ?? 0}</b></span>
           </div>
         </div>
 
         {/* Rincian per kegiatan */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden mb-4" data-testid="laporan-per-kegiatan">
           <div className="px-5 py-3.5 border-b border-[#E8E8E4] flex items-center gap-2 font-bold text-[#111827]">
-            <TrendingUp size={17} className="text-[#3730A3]" /> Rincian per Kegiatan
+            <TrendingUp size={17} className="text-[#111114]" /> Rincian per Kegiatan
           </div>
           {(!data.per_kegiatan || data.per_kegiatan.length === 0) ? (
             <div className="p-8 text-center text-[#6B7280] text-sm">Tidak ada kegiatan pada periode ini.</div>
@@ -118,10 +118,10 @@ export default function PublicLaporan() {
                         <div className="font-semibold text-[#111827]">{r.name}</div>
                         <div className="text-xs text-[#9CA3AF]">{TYPE_LABEL[r.type] || r.type}</div>
                       </td>
-                      <td className="px-4 py-3 text-center text-[#312E81] font-semibold">{r.hadir}</td>
+                      <td className="px-4 py-3 text-center text-[#111114] font-semibold">{r.hadir}</td>
                       <td className="px-4 py-3 text-center text-[#92400E]">{r.izin}</td>
                       <td className="px-4 py-3 text-center text-[#991B1B]">{r.alpha}</td>
-                      <td className="px-4 py-3 text-center font-bold text-[#3730A3]">{r.ratio}%</td>
+                      <td className="px-4 py-3 text-center font-bold text-[#111114]">{r.ratio}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -138,10 +138,10 @@ export default function PublicLaporan() {
             className="w-full px-5 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8]"
           >
             <span className="flex items-center gap-2 font-bold text-[#111827]">
-              <Users size={17} className="text-[#3730A3]" /> Rekap per Peserta
+              <Users size={17} className="text-[#111114]" /> Rekap per Peserta
               <span className="text-xs font-medium text-[#6B7280]">({(data.per_peserta || []).length})</span>
             </span>
-            <span className="text-sm font-semibold text-[#3730A3]">{openPeserta ? "Tutup" : "Lihat"}</span>
+            <span className="text-sm font-semibold text-[#111114]">{openPeserta ? "Tutup" : "Lihat"}</span>
           </button>
           {openPeserta && (
             <div className="border-t border-[#E8E8E4] overflow-x-auto">
@@ -166,10 +166,10 @@ export default function PublicLaporan() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#312E81] font-semibold">{p.hadir}</td>
+                      <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#111114] font-semibold">{p.hadir}</td>
                       <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#92400E]">{p.izin}</td>
                       <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#991B1B]">{p.alpha}</td>
-                      <td className="px-4 py-2.5 text-right font-bold text-[#3730A3]">{p.ratio}%</td>
+                      <td className="px-4 py-2.5 text-right font-bold text-[#111114]">{p.ratio}%</td>
                     </tr>
                   ))}
                   {(data.per_peserta || []).length === 0 && (

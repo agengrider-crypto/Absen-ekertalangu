@@ -44,7 +44,7 @@ export default function ScanTab() {
     <div className="space-y-4">
       <h1 className="font-heading text-2xl font-bold text-[#111827]">Scan Absensi</h1>
       <p className="text-sm text-[#6B7280] flex items-start gap-2">
-        <ScanLine size={16} className="text-[#3730A3] shrink-0 mt-0.5" />
+        <ScanLine size={16} className="text-[#111114] shrink-0 mt-0.5" />
         Arahkan kamera ke QR kegiatan yang disediakan pengurus untuk mencatat kehadiran Anda.
       </p>
 
@@ -52,7 +52,7 @@ export default function ScanTab() {
         <QrScanner onDetected={onDetected} paused={done} />
       </div>
 
-      <div className="bg-[#F5F5FD] border border-[#DCDCF5] rounded-2xl p-4 text-sm text-[#312E81] flex gap-2.5">
+      <div className="bg-[#FAFAF8] border border-[#E8E8E4] rounded-2xl p-4 text-sm text-[#111114] flex gap-2.5">
         <UserCheck size={18} className="shrink-0 mt-0.5" />
         <span>
           Absen ini <b>hanya untuk diri Anda sendiri</b>. Setelah QR terbaca, kehadiran Anda

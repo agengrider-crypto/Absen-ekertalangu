@@ -18,7 +18,7 @@ function Field({ label, required, children }) {
   );
 }
 
-const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white";
+const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white";
 
 export default function ProfilTab({ user }) {
   const { refresh } = useAuth();
@@ -86,10 +86,10 @@ export default function ProfilTab({ user }) {
 
       <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 flex flex-col items-center">
         <div className="relative">
-          <div className="h-24 w-24 rounded-full overflow-hidden bg-[#EEEFFB] flex items-center justify-center border-2 border-[#3730A3]/20">
-            {photo ? <img src={photo} alt="Foto" className="h-full w-full object-cover" data-testid="profil-photo" /> : <UserIcon size={40} className="text-[#3730A3]" />}
+          <div className="h-24 w-24 rounded-full overflow-hidden bg-[#F1F1EE] flex items-center justify-center border-2 border-[#111114]/20">
+            {photo ? <img src={photo} alt="Foto" className="h-full w-full object-cover" data-testid="profil-photo" /> : <UserIcon size={40} className="text-[#111114]" />}
           </div>
-          <button data-testid="profil-photo-pick" onClick={() => fileRef.current?.click()} className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-[#3730A3] text-white flex items-center justify-center shadow-md"><Camera size={16} /></button>
+          <button data-testid="profil-photo-pick" onClick={() => fileRef.current?.click()} className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-[#111114] text-white flex items-center justify-center shadow-md"><Camera size={16} /></button>
           <input ref={fileRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={onPickPhoto} />
         </div>
         {photo && <button data-testid="profil-photo-remove" onClick={removePhoto} className="mt-3 text-xs text-[#DC2626] font-semibold inline-flex items-center gap-1"><Trash2 size={12} /> Hapus foto</button>}
@@ -130,9 +130,9 @@ export default function ProfilTab({ user }) {
             {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
-        <Field label="Alamat" required><textarea data-testid="profil-address" value={f.address} onChange={(e) => set("address", e.target.value)} rows={2} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] resize-none" /></Field>
+        <Field label="Alamat" required><textarea data-testid="profil-address" value={f.address} onChange={(e) => set("address", e.target.value)} rows={2} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] resize-none" /></Field>
 
-        <button data-testid="profil-save" onClick={save} disabled={saving} className="w-full h-12 rounded-xl bg-[#3730A3] text-white font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60">
+        <button data-testid="profil-save" onClick={save} disabled={saving} className="w-full h-12 rounded-xl bg-[#111114] text-white font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
           {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Simpan Profil
         </button>
       </div>

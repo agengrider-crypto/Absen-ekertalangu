@@ -9,7 +9,7 @@ import ContactButtons from "@/components/ContactButtons";
 import { DateField } from "@/components/DateField";
 import { EDUCATION_OPTIONS, MUBALIGH_OPTIONS, MARITAL_OPTIONS, genderLabel, statusBadge } from "./adminUtils";
 
-const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3] bg-white";
+const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
 const lbl = "text-xs font-semibold text-[#6B7280] mb-1 block";
 
 export default function PesertaDetailModal({ userId, kelompokList, canManageRoles = true, onClose, onChanged }) {
@@ -143,19 +143,19 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
         </div>
 
         {!data ? (
-          <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>
+          <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
         ) : (
           <div className="p-5 space-y-5">
             {/* Header: photo + name + status */}
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="h-20 w-20 rounded-2xl overflow-hidden bg-[#EEEFFB] flex items-center justify-center text-[#3730A3]">
+                <div className="h-20 w-20 rounded-2xl overflow-hidden bg-[#F1F1EE] flex items-center justify-center text-[#111114]">
                   {form.photo ? <img src={form.photo} alt="foto" className="h-full w-full object-cover" /> : <UserIcon size={36} />}
                 </div>
                 <button
                   data-testid="button-upload-photo"
                   onClick={() => fileRef.current?.click()}
-                  className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-[#3730A3] text-white flex items-center justify-center border-2 border-white"
+                  className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-[#111114] text-white flex items-center justify-center border-2 border-white"
                   title="Ganti foto"
                 ><Camera size={15} /></button>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPhoto} data-testid="input-photo" />
@@ -244,8 +244,8 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
                 {["pengurus", "peserta"].map((r) => {
                   const on = (form.roles || []).includes(r);
                   return (
-                    <label key={r} data-testid={`detail-role-${r}`} className={`inline-flex items-center gap-2 px-3.5 h-10 rounded-xl border-2 cursor-pointer capitalize font-semibold text-sm ${on ? "border-[#3730A3] bg-[#EEEFFB] text-[#312E81]" : "border-[#E8E8E4] text-[#6B7280]"}`}>
-                      <input type="checkbox" className="accent-[#3730A3]" checked={on} onChange={() => toggleRole(r)} />{r}
+                    <label key={r} data-testid={`detail-role-${r}`} className={`inline-flex items-center gap-2 px-3.5 h-10 rounded-xl border-2 cursor-pointer capitalize font-semibold text-sm ${on ? "border-[#111114] bg-[#F1F1EE] text-[#111114]" : "border-[#E8E8E4] text-[#6B7280]"}`}>
+                      <input type="checkbox" className="accent-[#111114]" checked={on} onChange={() => toggleRole(r)} />{r}
                     </label>
                   );
                 })}
@@ -274,7 +274,7 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
                   data-testid="button-open-move-confirm"
                   onClick={() => setMoveConfirm(true)}
                   disabled={busy === "move" || (moveTarget === undefined || moveTarget === (form.kelompok_id || ""))}
-                  className="shrink-0 h-[46px] px-4 rounded-xl bg-[#3730A3] text-white font-semibold text-sm flex items-center gap-2 hover:bg-[#2A2480] disabled:opacity-40"
+                  className="shrink-0 h-[46px] px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm flex items-center gap-2 hover:bg-[#000000] disabled:opacity-40"
                 >
                   {busy === "move" ? <Loader2 className="animate-spin" size={16} /> : <ArrowRightLeft size={16} />} Pindah
                 </button>
@@ -302,7 +302,7 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
                     onChange={(e) => setMoveKeterangan(e.target.value)}
                     rows={3}
                     placeholder="cth: pindah domisili, ikut keluarga, dsb."
-                    className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white resize-none"
                   />
                   <div className="grid grid-cols-2 gap-2 mt-4">
                     <button
@@ -315,7 +315,7 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
                     <button
                       data-testid="button-move-yes"
                       onClick={doMove}
-                      className="h-11 rounded-xl bg-[#3730A3] text-white font-bold text-sm hover:bg-[#2A2480]"
+                      className="h-11 rounded-xl bg-[#111114] text-white font-bold text-sm hover:bg-[#000000]"
                     >
                       Ya, Pindahkan
                     </button>
@@ -327,15 +327,15 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
             {/* Actions */}
             <div className="grid sm:grid-cols-3 gap-3">
               <button data-testid="button-reset-password" onClick={resetPassword} disabled={busy === "reset"}
-                className="h-11 rounded-xl border-2 border-[#D97706] text-[#B45309] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#FFFBEB] disabled:opacity-50">
+                className="h-11 rounded-xl border-2 border-[#9CA3AF] text-[#B45309] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#FFFBEB] disabled:opacity-50">
                 {busy === "reset" ? <Loader2 className="animate-spin" size={16} /> : <KeyRound size={16} />} Reset Sandi
               </button>
               <button data-testid="button-toggle-status" onClick={toggleStatus} disabled={busy === "status"}
-                className={`h-11 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 ${data.status === "active" ? "border-[#DC2626] text-[#DC2626] hover:bg-red-50" : "border-[#3730A3] text-[#3730A3] hover:bg-[#EEEFFB]"}`}>
+                className={`h-11 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 ${data.status === "active" ? "border-[#DC2626] text-[#DC2626] hover:bg-red-50" : "border-[#111114] text-[#111114] hover:bg-[#F1F1EE]"}`}>
                 {busy === "status" ? <Loader2 className="animate-spin" size={16} /> : <Power size={16} />} {data.status === "active" ? "Nonaktifkan" : "Aktifkan"}
               </button>
               <button data-testid="button-save-detail" onClick={save} disabled={saving}
-                className="h-11 rounded-xl bg-[#3730A3] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60">
+                className="h-11 rounded-xl bg-[#111114] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
                 {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Simpan
               </button>
             </div>
@@ -355,7 +355,7 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
               <button data-testid="button-reset-cancel" onClick={() => setResetConfirm(false)}
                 className="h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold hover:bg-[#F4F4F1]">Tidak</button>
               <button data-testid="button-reset-confirm" onClick={doReset}
-                className="h-11 rounded-xl bg-[#D97706] text-white font-bold hover:bg-[#B45309]">Ya, Reset</button>
+                className="h-11 rounded-xl bg-[#9CA3AF] text-white font-bold hover:bg-[#B45309]">Ya, Reset</button>
             </div>
           </div>
         </div>
@@ -364,13 +364,13 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
       {resetResult && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={() => setResetResult(null)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center" onClick={(e) => e.stopPropagation()} data-testid="modal-reset-result">
-            <div className="mx-auto h-12 w-12 rounded-full bg-[#EEEFFB] text-[#312E81] flex items-center justify-center mb-3"><KeyRound size={24} /></div>
+            <div className="mx-auto h-12 w-12 rounded-full bg-[#F1F1EE] text-[#111114] flex items-center justify-center mb-3"><KeyRound size={24} /></div>
             <h3 className="font-heading font-bold text-[#111827] text-lg">Kata Sandi Direset</h3>
             <p className="text-sm text-[#6B7280] mt-1.5">Kata sandi baru untuk <b className="text-[#111827]">{data?.name}</b>:</p>
-            <div className="my-3 py-3 rounded-xl bg-[#F4F4F1] font-mono text-2xl font-bold tracking-widest text-[#3730A3]" data-testid="reset-result-password">{resetResult}</div>
+            <div className="my-3 py-3 rounded-xl bg-[#F4F4F1] font-mono text-2xl font-bold tracking-widest text-[#111114]" data-testid="reset-result-password">{resetResult}</div>
             <p className="text-xs text-[#9CA3AF]">Sampaikan kata sandi ini kepada peserta. Format: DDMMYYYY.</p>
             <button data-testid="button-reset-result-close" onClick={() => setResetResult(null)}
-              className="mt-4 w-full h-11 rounded-xl bg-[#3730A3] text-white font-bold hover:bg-[#2A2480]">Tutup</button>
+              className="mt-4 w-full h-11 rounded-xl bg-[#111114] text-white font-bold hover:bg-[#000000]">Tutup</button>
           </div>
         </div>
       )}

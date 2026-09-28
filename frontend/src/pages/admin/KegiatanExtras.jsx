@@ -59,7 +59,7 @@ export function ReminderModal({ kegiatan, onClose }) {
   return (
     <ModalShell title="Pengingat via WhatsApp" onClose={onClose} testid="modal-reminder-wa" wide>
       {data === null ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : (
         <div className="space-y-4">
           <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-3 text-sm text-[#92400E] flex gap-2">
@@ -74,9 +74,9 @@ export function ReminderModal({ kegiatan, onClose }) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={7}
-              className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] resize-none"
+              className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] resize-none"
             />
-            <button onClick={copyText} className="mt-2 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#4B5563] font-semibold text-sm hover:border-[#3730A3] hover:text-[#3730A3]"><Copy size={15} /> Salin Teks</button>
+            <button onClick={copyText} className="mt-2 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114]"><Copy size={15} /> Salin Teks</button>
           </div>
 
           <div>
@@ -90,7 +90,7 @@ export function ReminderModal({ kegiatan, onClose }) {
               <div className="mt-1.5 max-h-52 overflow-y-auto border border-[#E8E8E4] rounded-xl divide-y divide-[#F3F4F6]">
                 {recipients.map((r) => (
                   <label key={r.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-[#F9FAFB]">
-                    <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4 accent-[#3730A3]" />
+                    <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4 accent-[#111114]" />
                     <div className="min-w-0">
                       <div className="text-sm font-medium text-[#111827] truncate">{r.name}</div>
                       <div className="text-xs text-[#6B7280]">{r.phone}</div>
@@ -111,7 +111,7 @@ export function ReminderModal({ kegiatan, onClose }) {
                   href={waLink(r.wa)}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full flex items-center justify-between gap-2 h-11 px-4 rounded-xl bg-[#3730A3] text-white font-semibold text-sm hover:bg-[#2A2480]"
+                  className="w-full flex items-center justify-between gap-2 h-11 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]"
                 >
                   <span className="truncate">Kirim ke {r.name}</span>
                   <Send size={16} />
@@ -181,16 +181,16 @@ export function DelegasiModal({ kegiatan, onClose }) {
           <div className="text-sm text-[#991B1B] bg-[#FEE2E2] rounded-xl p-3">Kegiatan sudah ditutup — delegasi baru dinonaktifkan.</div>
         ) : (
           <div className="border border-[#E8E8E4] rounded-2xl p-4 space-y-3">
-            <div className="font-semibold text-[#111827] text-sm flex items-center gap-2"><Users size={16} className="text-[#3730A3]" /> Beri delegasi baru</div>
+            <div className="font-semibold text-[#111827] text-sm flex items-center gap-2"><Users size={16} className="text-[#111114]" /> Beri delegasi baru</div>
             <input
               data-testid="delegasi-search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Cari nama peserta…"
-              className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3]"
+              className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]"
             />
             {peserta === null ? (
-              <div className="py-6 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={22} /></div>
+              <div className="py-6 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={22} /></div>
             ) : (
               <div className="max-h-40 overflow-y-auto border border-[#E8E8E4] rounded-xl divide-y divide-[#F3F4F6]">
                 {filtered.map((p) => (
@@ -198,10 +198,10 @@ export function DelegasiModal({ kegiatan, onClose }) {
                     key={p.user_id}
                     data-testid={`delegasi-pick-${p.user_id}`}
                     onClick={() => setGranteeId(p.user_id)}
-                    className={`w-full text-left px-3 py-2.5 text-sm flex items-center justify-between ${granteeId === p.user_id ? "bg-[#EEEFFB] text-[#312E81] font-semibold" : "hover:bg-[#F9FAFB] text-[#111827]"}`}
+                    className={`w-full text-left px-3 py-2.5 text-sm flex items-center justify-between ${granteeId === p.user_id ? "bg-[#F1F1EE] text-[#111114] font-semibold" : "hover:bg-[#F9FAFB] text-[#111827]"}`}
                   >
                     {p.name}
-                    {granteeId === p.user_id && <CheckCircle2 size={16} className="text-[#3730A3]" />}
+                    {granteeId === p.user_id && <CheckCircle2 size={16} className="text-[#111114]" />}
                   </button>
                 ))}
                 {filtered.length === 0 && <div className="px-3 py-4 text-sm text-[#6B7280] text-center">Tidak ada hasil.</div>}
@@ -215,14 +215,14 @@ export function DelegasiModal({ kegiatan, onClose }) {
                 onChange={(e) => setReason(e.target.value)}
                 rows={2}
                 placeholder="Mis. Pengurus sedang tidak di lokasi kegiatan."
-                className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] resize-none"
+                className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] resize-none"
               />
             </div>
             <button
               data-testid="delegasi-submit"
               onClick={submit}
               disabled={saving}
-              className="w-full h-11 rounded-xl bg-[#3730A3] text-white font-semibold text-sm hover:bg-[#2A2480] disabled:opacity-60 inline-flex items-center justify-center gap-2"
+              className="w-full h-11 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000] disabled:opacity-60 inline-flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />} Berikan Delegasi
             </button>
@@ -234,9 +234,9 @@ export function DelegasiModal({ kegiatan, onClose }) {
             <div className="font-semibold text-[#111827] text-sm mb-2">Delegasi aktif</div>
             <div className="space-y-2">
               {active.map((d) => (
-                <div key={d.id} className="border border-[#DCDCF5] bg-[#F0FDF4] rounded-xl p-3 flex items-start justify-between gap-3">
+                <div key={d.id} className="border border-[#E8E8E4] bg-[#F0FDF4] rounded-xl p-3 flex items-start justify-between gap-3">
                   <div className="min-w-0 text-sm">
-                    <div className="font-semibold text-[#312E81]">{d.grantee_name}</div>
+                    <div className="font-semibold text-[#111114]">{d.grantee_name}</div>
                     <div className="text-[#4B5563]">Alasan: {d.reason}</div>
                     <div className="text-xs text-[#9CA3AF] mt-0.5">Oleh {d.granted_by} · {d.created_at?.slice(0, 16).replace("T", " ")}</div>
                   </div>
@@ -295,14 +295,14 @@ export function ScanPesertaModal({ kegiatan, onClose, onChanged }) {
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-[#6B7280] flex items-start gap-2">
-            <ScanLine size={16} className="text-[#3730A3] shrink-0 mt-0.5" />
+            <ScanLine size={16} className="text-[#111114] shrink-0 mt-0.5" />
             Arahkan kamera ke <b>QR pribadi peserta</b> (menu “QR Saya” pada akun peserta) untuk menandai hadir.
           </p>
           <QrScanner onDetected={onDetected} paused={busy} />
           {last && (
-            <div className="bg-[#F0FDF4] border border-[#DCDCF5] rounded-xl p-3 text-center" data-testid="scan-result">
-              <CheckCircle2 className="mx-auto text-[#3730A3]" size={26} />
-              <div className="font-bold text-[#312E81] mt-1">{last.name}</div>
+            <div className="bg-[#F0FDF4] border border-[#E8E8E4] rounded-xl p-3 text-center" data-testid="scan-result">
+              <CheckCircle2 className="mx-auto text-[#111114]" size={26} />
+              <div className="font-bold text-[#111114] mt-1">{last.name}</div>
               <div className="text-xs text-[#4B5563] mt-0.5">
                 {last.message || (last.already ? "Sudah hadir sebelumnya" : "Hadir dicatat")}
               </div>

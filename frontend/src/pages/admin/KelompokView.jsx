@@ -35,14 +35,14 @@ export default function KelompokView() {
         <button
           data-testid="button-add-kelompok"
           onClick={() => setShowAdd(true)}
-          className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#3730A3] text-white font-semibold hover:bg-[#2A2480]"
+          className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#111114] text-white font-semibold hover:bg-[#000000]"
         >
           <Plus size={18} /> Tambah Kelompok
         </button>
       </div>
 
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
       ) : items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center text-[#6B7280]">
           Belum ada kelompok sambung.
@@ -59,7 +59,7 @@ export default function KelompokView() {
                   <div className="min-w-0">
                     <div className="font-bold text-[#111827] truncate">{k.name}</div>
                     <div className="text-xs text-[#6B7280] mt-0.5">{k.description || "Tanpa keterangan"}</div>
-                    <div className="text-xs text-[#3730A3] font-semibold mt-1.5 inline-flex items-center gap-1">
+                    <div className="text-xs text-[#111114] font-semibold mt-1.5 inline-flex items-center gap-1">
                       <Users size={13} /> {k.member_count || 0} anggota
                     </div>
                   </div>
@@ -68,7 +68,7 @@ export default function KelompokView() {
                   <button
                     data-testid={`button-edit-kelompok-${k.id}`}
                     onClick={() => setEditItem(k)}
-                    className="h-9 w-9 rounded-lg border border-[#E8E8E4] text-[#4B5563] flex items-center justify-center hover:border-[#3730A3] hover:text-[#3730A3]"
+                    className="h-9 w-9 rounded-lg border border-[#E8E8E4] text-[#4B5563] flex items-center justify-center hover:border-[#111114] hover:text-[#111114]"
                     title="Ubah nama"
                   >
                     <Pencil size={16} />
@@ -129,7 +129,7 @@ function FormModal({ initial, onClose, onDone }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="cth: Bali / Luar Bali"
-            className="mt-1 w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3]"
+            className="mt-1 w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#111114]"
           />
         </div>
         <div>
@@ -138,14 +138,14 @@ function FormModal({ initial, onClose, onDone }) {
             data-testid="kelompok-desc"
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
-            className="mt-1 w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3]"
+            className="mt-1 w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#111114]"
           />
         </div>
         <button
           type="submit"
           data-testid="kelompok-submit"
           disabled={busy}
-          className="w-full h-11 rounded-xl bg-[#3730A3] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60"
+          className="w-full h-11 rounded-xl bg-[#111114] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60"
         >
           {busy ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />} Simpan
         </button>
@@ -190,14 +190,14 @@ function DeleteModal({ item, onClose, onDone }) {
           onChange={(e) => setKet(e.target.value)}
           rows={3}
           placeholder="cth: kelompok digabung ke Bali, sudah tidak dipakai, dsb."
-          className="mt-1 w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3] text-sm"
+          className="mt-1 w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#111114] text-sm"
         />
 
         <div className="flex gap-2 mt-4">
           <button
             data-testid="kelompok-delete-no"
             onClick={onClose}
-            className="flex-1 h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold hover:border-[#3730A3] hover:text-[#3730A3]"
+            className="flex-1 h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold hover:border-[#111114] hover:text-[#111114]"
           >
             Tidak
           </button>

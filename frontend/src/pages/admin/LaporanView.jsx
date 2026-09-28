@@ -8,7 +8,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { tanggalSingkat, TYPE_LABEL } from "./kegiatanUtils";
 import TamuLaporanList from "@/components/TamuLaporanList";
 
-const inp = "h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3] bg-white";
+const inp = "h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
 
 function todayYmd() {
   const n = new Date();
@@ -78,20 +78,20 @@ export default function LaporanView() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-[#3730A3] font-bold text-lg">
+        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
           <FileBarChart2 size={20} /> Laporan Kehadiran
         </div>
         <div className="flex items-center gap-2">
           <button data-testid="button-buat-link-laporan" onClick={buatLink} disabled={sharing}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#3730A3] text-white font-semibold text-sm hover:bg-[#2A2480] disabled:opacity-60">
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000] disabled:opacity-60">
             {sharing ? <Loader2 className="animate-spin" size={16} /> : <LinkIcon size={16} />} Buat Link Laporan
           </button>
           <button data-testid="button-export-excel" onClick={() => doExport("excel")} disabled={!!exporting}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm hover:bg-[#EEEFFB] disabled:opacity-50">
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE] disabled:opacity-50">
             {exporting === "excel" ? <Loader2 className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} Excel
           </button>
           <button data-testid="button-export-pdf" onClick={() => doExport("pdf")} disabled={!!exporting}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm hover:bg-[#EEEFFB] disabled:opacity-50">
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE] disabled:opacity-50">
             {exporting === "pdf" ? <Loader2 className="animate-spin" size={16} /> : <FileText size={16} />} PDF
           </button>
         </div>
@@ -102,7 +102,7 @@ export default function LaporanView() {
         <div className="flex items-center gap-1 bg-[#F4F4F1] rounded-xl p-1 w-fit mb-3">
           {[["harian", "Harian"], ["bulanan", "Bulanan"], ["custom", "Rentang"]].map(([v, l]) => (
             <button key={v} data-testid={`tab-${v}`} onClick={() => setPreset(v)}
-              className={`h-9 px-4 rounded-lg text-sm font-semibold ${tab === v ? "bg-white text-[#3730A3] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+              className={`h-9 px-4 rounded-lg text-sm font-semibold ${tab === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
           ))}
         </div>
         <div className="flex items-end gap-3 flex-wrap">
@@ -118,14 +118,14 @@ export default function LaporanView() {
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
       ) : data === false ? (
         <div className="p-10 text-center text-[#6B7280]">Gagal memuat laporan.</div>
       ) : (
         <div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-5">
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#3730A3]">{s.ratio}%</div><div className="text-sm text-[#6B7280] mt-1">Kehadiran</div></div>
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#312E81]">{s.hadir}</div><div className="text-sm text-[#6B7280] mt-1">Total Hadir</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#111114]">{s.ratio}%</div><div className="text-sm text-[#6B7280] mt-1">Kehadiran</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#111114]">{s.hadir}</div><div className="text-sm text-[#6B7280] mt-1">Total Hadir</div></div>
             <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#92400E]">{s.izin}</div><div className="text-sm text-[#6B7280] mt-1">Total Izin</div></div>
             <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#991B1B]">{s.alpha}</div><div className="text-sm text-[#6B7280] mt-1">Total Alpha</div></div>
           </div>
@@ -134,8 +134,8 @@ export default function LaporanView() {
             <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]">
               <div className="text-sm font-semibold text-[#111827] mb-1">Kehadiran per Jenis Kelamin</div>
               <div className="flex gap-4 text-sm text-[#4B5563]">
-                <span>Laki-laki: <b className="text-[#3730A3]">{data.gender_hadir?.L ?? 0}</b></span>
-                <span>Perempuan: <b className="text-[#D97706]">{data.gender_hadir?.P ?? 0}</b></span>
+                <span>Laki-laki: <b className="text-[#111114]">{data.gender_hadir?.L ?? 0}</b></span>
+                <span>Perempuan: <b className="text-[#9CA3AF]">{data.gender_hadir?.P ?? 0}</b></span>
               </div>
             </div>
             <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]">
@@ -168,10 +168,10 @@ export default function LaporanView() {
                           <div className="font-semibold text-[#111827]">{r.name}</div>
                           <div className="text-xs text-[#9CA3AF]">{TYPE_LABEL[r.type]}</div>
                         </td>
-                        <td className="px-4 py-3 text-center text-[#312E81] font-semibold">{r.hadir}</td>
+                        <td className="px-4 py-3 text-center text-[#111114] font-semibold">{r.hadir}</td>
                         <td className="px-4 py-3 text-center text-[#92400E]">{r.izin}</td>
                         <td className="px-4 py-3 text-center text-[#991B1B]">{r.alpha}</td>
-                        <td className="px-4 py-3 text-center font-bold text-[#3730A3]">{r.ratio}%</td>
+                        <td className="px-4 py-3 text-center font-bold text-[#111114]">{r.ratio}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -203,10 +203,10 @@ function PesertaLaporanList({ rows }) {
         className="w-full px-5 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8]"
       >
         <span className="flex items-center gap-2 font-bold text-[#111827]">
-          <Users size={17} className="text-[#3730A3]" /> Rekap per Peserta
+          <Users size={17} className="text-[#111114]" /> Rekap per Peserta
           <span className="text-xs font-medium text-[#6B7280]">({rows.length})</span>
         </span>
-        <span className="text-sm font-semibold text-[#3730A3]">{open ? "Tutup" : "Lihat"}</span>
+        <span className="text-sm font-semibold text-[#111114]">{open ? "Tutup" : "Lihat"}</span>
       </button>
       {open && (
         <div className="border-t border-[#E8E8E4] overflow-x-auto max-h-[52vh] overflow-y-auto">
@@ -231,10 +231,10 @@ function PesertaLaporanList({ rows }) {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#312E81] font-semibold">{p.hadir}</td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#111114] font-semibold">{p.hadir}</td>
                   <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#92400E]">{p.izin}</td>
                   <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#991B1B]">{p.alpha}</td>
-                  <td className="px-4 py-2.5 text-right font-bold text-[#3730A3]">{p.ratio}%</td>
+                  <td className="px-4 py-2.5 text-right font-bold text-[#111114]">{p.ratio}%</td>
                 </tr>
               ))}
               {rows.length === 0 && (
@@ -274,8 +274,8 @@ function LaporanLinkModal({ data, onClose }) {
         </div>
         <div className="p-5 text-center">
           <img src={data.image} alt="QR Laporan" className="mx-auto w-52 h-52 rounded-xl border border-[#E8E8E4] p-2" data-testid="laporan-qr-image" />
-          <div className="mt-3 bg-[#F5F5FD] border border-[#DCDCF5] rounded-xl p-3 text-left">
-            <p className="text-sm font-semibold text-[#312E81]">{data.title}</p>
+          <div className="mt-3 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl p-3 text-left">
+            <p className="text-sm font-semibold text-[#111114]">{data.title}</p>
             <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
               Siapa pun yang membuka tautan ini <b>langsung melihat laporannya tanpa perlu login</b>.
               Tautan bersifat <b>permanen</b> untuk periode {tanggalSingkat(data.date_from)} s/d {tanggalSingkat(data.date_to)}.
@@ -286,13 +286,13 @@ function LaporanLinkModal({ data, onClose }) {
             target="_blank"
             rel="noreferrer"
             data-testid="laporan-link-open"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#3730A3] hover:underline break-all"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#111114] hover:underline break-all"
           >
             <ExternalLink size={14} className="shrink-0" /> {data.link}
           </a>
           <div className="grid grid-cols-2 gap-2 mt-4">
-            <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#EEEFFB]"><Copy size={16} /> Salin Link</button>
-            <button data-testid="laporan-link-qr" onClick={download} className="h-11 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#EEEFFB]"><Download size={16} /> Unduh QR</button>
+            <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={16} /> Salin Link</button>
+            <button data-testid="laporan-link-qr" onClick={download} className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Download size={16} /> Unduh QR</button>
           </div>
           <button data-testid="laporan-link-wa" onClick={shareWa} className="mt-2 w-full h-12 rounded-xl bg-[#25D366] text-white font-bold flex items-center justify-center gap-2 hover:brightness-95">
             <Send size={18} /> Bagikan Link via WhatsApp

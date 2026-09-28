@@ -22,7 +22,7 @@ import { RekapGabunganModal, SalinJadwalModal } from "./SesiExtras";
 import ActionModal from "@/components/ActionModal";
 import { Send as SendIcon, ShieldCheck as ShieldIcon, ScanLine as ScanIcon } from "lucide-react";
 
-const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#3730A3] bg-white";
+const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
 const TIMES = timeOptions();
 
 function todayYmd() {
@@ -155,11 +155,11 @@ export default function KegiatanView() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-[#3730A3] font-bold text-lg">
+        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
           <CalendarDays size={20} /> Kegiatan
         </div>
         <button data-testid="button-add-kegiatan" onClick={() => setShowAdd(true)}
-          className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#3730A3] text-white font-semibold text-sm hover:bg-[#2A2480]">
+          className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]">
           <Plus size={17} /> Tambah Kegiatan
         </button>
       </div>
@@ -167,13 +167,13 @@ export default function KegiatanView() {
       {/* Month nav + view toggle */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <button data-testid="button-prev-month" onClick={() => shiftMonth(-1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#3730A3]"><ChevronLeft size={18} /></button>
+          <button data-testid="button-prev-month" onClick={() => shiftMonth(-1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#111114]"><ChevronLeft size={18} /></button>
           <div className="font-semibold text-[#111827] min-w-[150px] text-center">{MONTH_SHORT[m - 1]} {y}</div>
-          <button data-testid="button-next-month" onClick={() => shiftMonth(1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#3730A3]"><ChevronRight size={18} /></button>
+          <button data-testid="button-next-month" onClick={() => shiftMonth(1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#111114]"><ChevronRight size={18} /></button>
         </div>
         <div className="flex items-center gap-1 bg-white border border-[#E8E8E4] rounded-xl p-1">
-          <button data-testid="view-list" onClick={() => setView("list")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "list" ? "bg-[#EEEFFB] text-[#312E81]" : "text-[#6B7280]"}`}><List size={16} /> List</button>
-          <button data-testid="view-calendar" onClick={() => setView("calendar")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "calendar" ? "bg-[#EEEFFB] text-[#312E81]" : "text-[#6B7280]"}`}><Grid3x3 size={16} /> Kalender</button>
+          <button data-testid="view-list" onClick={() => setView("list")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "list" ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}><List size={16} /> List</button>
+          <button data-testid="view-calendar" onClick={() => setView("calendar")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "calendar" ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}><Grid3x3 size={16} /> Kalender</button>
         </div>
       </div>
 
@@ -184,14 +184,14 @@ export default function KegiatanView() {
       {dayFilter && (
         <div className="mb-3 flex items-center gap-2 text-sm">
           <span className="text-[#6B7280]">Menampilkan:</span>
-          <span className="font-semibold text-[#3730A3]">{tanggalPanjang(dayFilter)}</span>
+          <span className="font-semibold text-[#111114]">{tanggalPanjang(dayFilter)}</span>
           <button onClick={() => setDayFilter("")} className="text-[#DC2626] font-semibold hover:underline">Tampilkan semua</button>
         </div>
       )}
 
       {/* List */}
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center text-[#6B7280]">Belum ada kegiatan pada periode ini.</div>
       ) : (
@@ -247,7 +247,7 @@ function KegiatanCard({ k, onOpen, onSalin }) {
   const c = k.counts || {};
   return (
     <div
-      className="w-full text-left bg-white rounded-2xl border border-[#E8E8E4] p-4 hover:border-[#3730A3] hover:bg-[#FAFCFA] transition-colors"
+      className="w-full text-left bg-white rounded-2xl border border-[#E8E8E4] p-4 hover:border-[#111114] hover:bg-[#FAFCFA] transition-colors"
       data-testid={`kegiatan-card-${k.id}`}
     >
       <button type="button" onClick={onOpen} className="w-full text-left" data-testid={`kegiatan-card-open-${k.id}`}>
@@ -256,7 +256,7 @@ function KegiatanCard({ k, onOpen, onSalin }) {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${PHASE_META[phaseOf(k)].cls}`}>{PHASE_META[phaseOf(k)].badge}</span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3]">{AUDIENCE_LABEL[k.audience] || "Reguler"}</span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#111114]">{AUDIENCE_LABEL[k.audience] || "Reguler"}</span>
               <FilterBadges k={k} />
               {k.auto_closed && <span className="text-xs text-[#9CA3AF]">(auto)</span>}
             </div>
@@ -269,18 +269,18 @@ function KegiatanCard({ k, onOpen, onSalin }) {
             </div>
           </div>
           <div className="text-right shrink-0">
-            <div className="text-2xl font-bold text-[#3730A3] leading-none">{c.ratio ?? 0}%</div>
+            <div className="text-2xl font-bold text-[#111114] leading-none">{c.ratio ?? 0}%</div>
             <div className="text-xs text-[#6B7280] mt-1">H {c.hadir ?? 0} · I {c.izin ?? 0} · A {c.alpha ?? 0}</div>
           </div>
         </div>
       </button>
       <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
-        <button type="button" onClick={onOpen} className="text-sm font-semibold text-[#3730A3] inline-flex items-center gap-1.5 hover:underline">
+        <button type="button" onClick={onOpen} className="text-sm font-semibold text-[#111114] inline-flex items-center gap-1.5 hover:underline">
           Buka kegiatan ini <ChevronRight size={16} />
         </button>
         {onSalin && (
           <button type="button" data-testid={`kegiatan-salin-${k.id}`} onClick={onSalin}
-            className="h-9 px-3 rounded-lg border border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] inline-flex items-center gap-1.5 hover:border-[#3730A3] hover:text-[#3730A3]">
+            className="h-9 px-3 rounded-lg border border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] inline-flex items-center gap-1.5 hover:border-[#111114] hover:text-[#111114]">
             <Copy size={13} /> Salin ke tanggal lain
           </button>
         )}
@@ -307,7 +307,7 @@ function SessionGroupCard({ group, onOpen, onRekapGabungan, onSalin }) {
         <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] inline-flex items-center gap-1">
           <Layers size={12} /> {group.items.length} Waktu / Sesi
         </span>
-        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#3730A3]">{AUDIENCE_LABEL[first.audience] || "Reguler"}</span>
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#111114]">{AUDIENCE_LABEL[first.audience] || "Reguler"}</span>
         <FilterBadges k={first} />
       </div>
       <h3 className="font-heading font-bold text-[#111827] mt-1.5">{first.base_name || first.name}</h3>
@@ -327,12 +327,12 @@ function SessionGroupCard({ group, onOpen, onRekapGabungan, onSalin }) {
               type="button"
               onClick={() => onOpen(k.id)}
               data-testid={`kegiatan-card-${k.id}`}
-              className="w-full text-left rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] px-3.5 py-3 hover:border-[#3730A3] hover:bg-[#F5F5FD] transition-colors"
+              className="w-full text-left rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] px-3.5 py-3 hover:border-[#111114] hover:bg-[#FAFAF8] transition-colors"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-bold text-[#3730A3]">{k.session_label || "Sesi"}</span>
+                    <span className="text-sm font-bold text-[#111114]">{k.session_label || "Sesi"}</span>
                     <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${meta.cls}`}>{meta.badge}</span>
                   </div>
                   <div className="text-xs text-[#6B7280] mt-0.5 inline-flex items-center gap-1">
@@ -347,10 +347,10 @@ function SessionGroupCard({ group, onOpen, onRekapGabungan, onSalin }) {
                   )}
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-lg font-bold text-[#3730A3] leading-none">{c.ratio ?? 0}%</div>
+                  <div className="text-lg font-bold text-[#111114] leading-none">{c.ratio ?? 0}%</div>
                   <div className="text-[11px] text-[#6B7280] mt-0.5">H {c.hadir ?? 0} · I {c.izin ?? 0} · A {c.alpha ?? 0}</div>
                 </div>
-                <ChevronRight size={16} className="text-[#3730A3] shrink-0" />
+                <ChevronRight size={16} className="text-[#111114] shrink-0" />
               </div>
             </button>
           );
@@ -363,12 +363,12 @@ function SessionGroupCard({ group, onOpen, onRekapGabungan, onSalin }) {
       {/* FASE 10 — aksi grup sesi */}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button type="button" data-testid={`sesi-rekap-gabungan-${first.session_group_id}`} onClick={onRekapGabungan}
-          className="h-11 rounded-xl bg-[#3730A3] text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#2A2480]">
+          className="h-11 rounded-xl bg-[#111114] text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#000000]">
           <FileBarChart2 size={15} /> Rekap Gabungan 1 Hari
           <span className="hidden sm:inline text-[11px] font-medium text-white/80">· {totalHadir} hadir</span>
         </button>
         <button type="button" data-testid={`sesi-salin-jadwal-${first.session_group_id}`} onClick={onSalin}
-          className="h-11 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#EEEFFB]">
+          className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#F1F1EE]">
           <Copy size={15} /> Salin ke Tanggal Lain
         </button>
       </div>
@@ -402,11 +402,11 @@ function CalendarMonth({ year, month, daysWithEvent, dayFilter, onPick }) {
               data-testid={`cal-day-${ymd}`}
               onClick={() => onPick(active ? "" : ymd)}
               className={`aspect-square rounded-xl flex flex-col items-center justify-center text-sm relative transition-colors ${
-                active ? "bg-[#3730A3] text-white" : count ? "bg-[#EEEFFB] text-[#312E81] font-semibold hover:bg-[#d6efe0]" : "text-[#4B5563] hover:bg-[#F4F4F1]"
+                active ? "bg-[#111114] text-white" : count ? "bg-[#F1F1EE] text-[#111114] font-semibold hover:bg-[#d6efe0]" : "text-[#4B5563] hover:bg-[#F4F4F1]"
               }`}
             >
               {d}
-              {count > 0 && <span className={`mt-0.5 h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-[#3730A3]"}`} />}
+              {count > 0 && <span className={`mt-0.5 h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-[#111114]"}`} />}
             </button>
           );
         })}
@@ -507,7 +507,7 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
           <input data-testid="keg-date" type="date" required value={f.date} onChange={(e) => set("date", e.target.value)} className={inp} />
         </div>
         {!editing && multi ? (
-          <div className="rounded-xl border-2 border-[#DCDCF5] bg-[#F5F5FD] px-3.5 py-3 text-xs text-[#312E81] leading-relaxed flex items-center">
+          <div className="rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] px-3.5 py-3 text-xs text-[#111114] leading-relaxed flex items-center">
             Jam kegiatan diatur pada daftar <b className="mx-1">Waktu / Sesi</b> di bawah.
           </div>
         ) : (
@@ -531,11 +531,11 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
         {!editing && (
           <div className="sm:col-span-2 rounded-xl border-2 border-[#E8E8E4] bg-white p-3.5">
             <label className="flex items-start gap-2.5 cursor-pointer">
-              <input data-testid="keg-multi-session" type="checkbox" className="accent-[#3730A3] w-4 h-4 mt-0.5"
+              <input data-testid="keg-multi-session" type="checkbox" className="accent-[#111114] w-4 h-4 mt-0.5"
                 checked={multi} onChange={(e) => setMulti(e.target.checked)} />
               <span>
                 <span className="block text-sm font-bold text-[#111827] inline-flex items-center gap-1.5">
-                  <Layers size={15} className="text-[#3730A3]" /> Beberapa waktu dalam 1 hari (pagi / sore / malam)
+                  <Layers size={15} className="text-[#111114]" /> Beberapa waktu dalam 1 hari (pagi / sore / malam)
                 </span>
                 <span className="block text-xs text-[#6B7280] mt-1 leading-relaxed">
                   Setiap waktu menjadi <b>sesi tersendiri</b>: absensi, rekap, kode akses, dan barcode
@@ -554,19 +554,19 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
                       <input data-testid={`keg-session-label-${i}`} list="session-presets" value={s.label}
                         onChange={(e) => setSession(i, "label", e.target.value)}
                         placeholder="Pagi / Sore / Malam"
-                        className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white" />
+                        className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Mulai</label>
                       <select data-testid={`keg-session-start-${i}`} value={s.start_time} onChange={(e) => setSession(i, "start_time", e.target.value)}
-                        className="w-full h-11 px-2 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white">
+                        className="w-full h-11 px-2 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white">
                         {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Selesai</label>
                       <select data-testid={`keg-session-end-${i}`} value={s.end_time} onChange={(e) => setSession(i, "end_time", e.target.value)}
-                        className="w-full h-11 px-2 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white">
+                        className="w-full h-11 px-2 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white">
                         {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
@@ -581,28 +581,28 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
                         <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Pengajar sesi ini</label>
                         <input data-testid={`keg-session-teacher-${i}`} value={s.teacher || ""}
                           onChange={(e) => setSession(i, "teacher", e.target.value)} placeholder="cth: Ust. Ahmad"
-                          className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white" />
+                          className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Materi sesi ini</label>
                         <input data-testid={`keg-session-material-${i}`} value={s.material || ""}
                           onChange={(e) => setSession(i, "material", e.target.value)} placeholder="cth: Tafsir Al-Baqarah"
-                          className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white" />
+                          className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Lokasi sesi ini</label>
                         <input data-testid={`keg-session-location-${i}`} value={s.location || ""}
                           onChange={(e) => setSession(i, "location", e.target.value)} placeholder="cth: Masjid Kertalangu"
-                          className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3] bg-white" />
+                          className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
                       </div>
                       <p className="sm:col-span-3 text-[11px] text-[#9CA3AF] leading-relaxed">
                         Dikosongkan = memakai pengajar / materi / lokasi kegiatan di bawah.
                       </p>
-                      <label className="sm:col-span-3 flex items-start gap-2.5 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2.5 cursor-pointer hover:border-[#3730A3]">
+                      <label className="sm:col-span-3 flex items-start gap-2.5 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2.5 cursor-pointer hover:border-[#111114]">
                         <input type="checkbox" data-testid={`keg-session-required-${i}`}
                           checked={s.required !== false}
                           onChange={(e) => setSession(i, "required", e.target.checked)}
-                          className="mt-0.5 h-4 w-4 accent-[#3730A3]" />
+                          className="mt-0.5 h-4 w-4 accent-[#111114]" />
                         <span className="leading-snug">
                           <span className="block text-xs font-bold text-[#111827]">Sesi ini WAJIB dihadiri</span>
                           <span className="block text-[11px] text-[#6B7280]">
@@ -618,7 +618,7 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
                   {SESSION_LABEL_PRESETS.map((l) => <option key={l} value={l} />)}
                 </datalist>
                 <button type="button" data-testid="keg-session-add" onClick={addSession} disabled={sessions.length >= 6}
-                  className="w-full h-11 rounded-xl border-2 border-dashed border-[#3730A3] text-[#3730A3] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#EEEFFB] disabled:opacity-40">
+                  className="w-full h-11 rounded-xl border-2 border-dashed border-[#111114] text-[#111114] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#F1F1EE] disabled:opacity-40">
                   <Plus size={16} /> Tambah Waktu / Sesi
                 </button>
               </div>
@@ -653,7 +653,7 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
                   data-testid={`keg-gender-${o.value}`}
                   onClick={() => set("gender_filter", o.value)}
                   className={`h-11 rounded-xl border-2 font-semibold text-xs sm:text-sm transition-colors ${
-                    on ? "bg-[#3730A3] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#3730A3] hover:text-[#3730A3]"
+                    on ? "bg-[#111114] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
                   }`}
                 >
                   {o.short}
@@ -668,10 +668,10 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
         </div>
 
         {/* FASE 9 — PENGELOMPOKAN LANJUTAN (aktif) */}
-        <div className="sm:col-span-2 rounded-xl border-2 border-[#DCDCF5] bg-[#F5F5FD] p-3.5" data-testid="keg-advanced-group">
-          <div className="flex items-center gap-2 text-sm font-bold text-[#312E81]">
+        <div className="sm:col-span-2 rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-3.5" data-testid="keg-advanced-group">
+          <div className="flex items-center gap-2 text-sm font-bold text-[#111114]">
             <SlidersHorizontal size={15} /> Pengelompokan Lanjutan
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#3730A3] text-white">AKTIF</span>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#111114] text-white">AKTIF</span>
           </div>
           <p className="text-xs text-[#4B5563] mt-1.5 leading-relaxed">
             Khususkan kegiatan menurut <b>status pernikahan</b> dan/atau <b>kelompok usia</b>.
@@ -689,7 +689,7 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
                   <button key={o.value} type="button" data-testid={`keg-marital-${o.value}`}
                     onClick={() => set("marital_filter", o.value)}
                     className={`h-11 rounded-xl border-2 font-semibold text-xs transition-colors ${
-                      on ? "bg-[#3730A3] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#3730A3] hover:text-[#3730A3]"
+                      on ? "bg-[#111114] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
                     }`}>
                     {o.short}
                   </button>
@@ -710,7 +710,7 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
                   <button key={o.value} type="button" data-testid={`keg-age-${o.value}`}
                     onClick={() => toggleAge(o.value)}
                     className={`h-12 rounded-xl border-2 font-semibold text-xs transition-colors flex flex-col items-center justify-center leading-tight ${
-                      on ? "bg-[#3730A3] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#3730A3] hover:text-[#3730A3]"
+                      on ? "bg-[#111114] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
                     }`}>
                     <span>{o.label}</span>
                     <span className={`text-[10px] font-medium ${on ? "text-white/80" : "text-[#9CA3AF]"}`}>{o.range}</span>
@@ -736,12 +736,12 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
         </div>
         {!editing && (
           <label className="sm:col-span-2 flex items-center gap-2.5 px-3.5 h-12 rounded-xl border-2 border-[#E8E8E4] cursor-pointer bg-white">
-            <input data-testid="keg-recurring" type="checkbox" className="accent-[#3730A3] w-4 h-4" checked={f.recurring} onChange={(e) => set("recurring", e.target.checked)} />
+            <input data-testid="keg-recurring" type="checkbox" className="accent-[#111114] w-4 h-4" checked={f.recurring} onChange={(e) => set("recurring", e.target.checked)} />
             <span className="text-sm font-semibold text-[#111827]">Kegiatan berulang (4 minggu, mingguan)</span>
           </label>
         )}
         <button data-testid="button-submit-kegiatan" type="submit" disabled={saving}
-          className="sm:col-span-2 h-12 rounded-xl bg-[#3730A3] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60">
+          className="sm:col-span-2 h-12 rounded-xl bg-[#111114] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
           {saving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />} {editing ? "Simpan Perubahan" : "Simpan Kegiatan"}
         </button>
       </form>
@@ -750,8 +750,8 @@ function KegiatanFormModal({ onClose, onDone, initial }) {
 }
 
 const STATUS_BTN = {
-  hadir: { label: "Hadir", on: "bg-[#3730A3] text-white", off: "text-[#312E81]" },
-  izin: { label: "Izin", on: "bg-[#D97706] text-white", off: "text-[#92400E]" },
+  hadir: { label: "Hadir", on: "bg-[#111114] text-white", off: "text-[#111114]" },
+  izin: { label: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#92400E]" },
   alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
 };
 
@@ -794,12 +794,12 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
   return (
     <ModalShell title={k ? k.name : "Absensi"} onClose={onClose} testid="modal-absensi" wide>
       {!data ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-4 gap-2">
             <div className="rounded-xl bg-[#F4F4F1] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{c.total}</div><div className="text-xs text-[#6B7280]">Total</div></div>
-            <div className="rounded-xl bg-[#EEEFFB] p-3 text-center"><div className="text-xl font-bold text-[#312E81]">{c.hadir}</div><div className="text-xs text-[#6B7280]">Hadir</div></div>
+            <div className="rounded-xl bg-[#F1F1EE] p-3 text-center"><div className="text-xl font-bold text-[#111114]">{c.hadir}</div><div className="text-xs text-[#6B7280]">Hadir</div></div>
             <div className="rounded-xl bg-[#FEF3C7] p-3 text-center"><div className="text-xl font-bold text-[#92400E]">{c.izin}</div><div className="text-xs text-[#6B7280]">Izin</div></div>
             <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{c.alpha}</div><div className="text-xs text-[#6B7280]">Alpha</div></div>
           </div>
@@ -812,7 +812,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
               className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8]"
             >
               <span className="flex items-center gap-2.5">
-                <span className="h-9 w-9 rounded-xl bg-[#EEEFFB] text-[#3730A3] flex items-center justify-center"><CheckCircle2 size={18} /></span>
+                <span className="h-9 w-9 rounded-xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center"><CheckCircle2 size={18} /></span>
                 <span>
                   <span className="block font-bold text-[#111827] text-[15px]">Absen Manual</span>
                   <span className="block text-xs text-[#6B7280]">Tandai Hadir / Izin / Alpha per peserta</span>
@@ -826,7 +826,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
                 <div className="p-3 bg-[#FAFAF8]">
                   <div className="relative">
                     <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-                    <input data-testid="absensi-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#3730A3] bg-white" />
+                    <input data-testid="absensi-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#111114] bg-white" />
                   </div>
                 </div>
                 <div className="divide-y divide-[#ECECE8] max-h-[46vh] overflow-y-auto">
@@ -891,7 +891,7 @@ function FeedbackModal({ kegiatan, onClose }) {
         Pesan &amp; saran dari peserta untuk <b className="text-[#111827]">{kegiatan.name}</b>.
       </div>
       {items === null ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[#E8E8E4] bg-[#FAFAF8] p-8 text-center text-sm text-[#9CA3AF]">
           Belum ada pesan / saran dari peserta.
@@ -932,8 +932,8 @@ function QrModal({ data, onClose }) {
         <p className="text-sm text-[#6B7280] mt-3 break-all px-2">{data.link}</p>
         <p className="text-xs text-[#9CA3AF] mt-1">Tautan rekap berlaku 7 hari.</p>
         <div className="flex gap-2 mt-4">
-          <button onClick={copy} className="flex-1 h-11 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold flex items-center justify-center gap-2 hover:bg-[#EEEFFB]"><Copy size={16} /> Salin Link</button>
-          <button onClick={download} className="flex-1 h-11 rounded-xl bg-[#3730A3] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#2A2480]"><Download size={16} /> Unduh QR</button>
+          <button onClick={copy} className="flex-1 h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={16} /> Salin Link</button>
+          <button onClick={download} className="flex-1 h-11 rounded-xl bg-[#111114] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#000000]"><Download size={16} /> Unduh QR</button>
         </div>
         <button data-testid="qr-share-wa" onClick={shareWa} className="mt-2 w-full h-11 rounded-xl bg-[#25D366] text-white font-semibold flex items-center justify-center gap-2 hover:brightness-95"><Send size={16} /> Bagikan lewat WhatsApp</button>
       </div>
@@ -953,8 +953,8 @@ function AbsenQrModal({ data, onClose }) {
     <ModalShell title="QR Absen Mandiri" onClose={onClose} testid="modal-absen-qr">
       <div className="text-center">
         <img src={data.image} alt="QR Absen" className="mx-auto w-56 h-56 rounded-xl border border-[#E8E8E4] p-2" data-testid="absen-qr-image" />
-        <div className="mt-3 bg-[#F5F5FD] border border-[#DCDCF5] rounded-xl p-3 text-left">
-          <p className="text-sm font-semibold text-[#312E81] flex items-center gap-1.5"><ScanLine size={15} /> Cara absen mandiri</p>
+        <div className="mt-3 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl p-3 text-left">
+          <p className="text-sm font-semibold text-[#111114] flex items-center gap-1.5"><ScanLine size={15} /> Cara absen mandiri</p>
           <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
             Peserta scan QR ini dengan kamera HP lalu <b>masuk dengan akunnya sendiri</b>.
             Halaman absen hanya menampilkan <b>nama peserta itu sendiri</b> dengan tombol
@@ -965,8 +965,8 @@ function AbsenQrModal({ data, onClose }) {
         </div>
         <p className="text-xs text-[#9CA3AF] mt-2 break-all px-2">{data.link}</p>
         <div className="flex gap-2 mt-4">
-          <button onClick={copy} className="flex-1 h-11 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold flex items-center justify-center gap-2 hover:bg-[#EEEFFB]"><Copy size={16} /> Salin Link</button>
-          <button onClick={download} className="flex-1 h-11 rounded-xl bg-[#3730A3] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#2A2480]"><Download size={16} /> Unduh QR</button>
+          <button onClick={copy} className="flex-1 h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={16} /> Salin Link</button>
+          <button onClick={download} className="flex-1 h-11 rounded-xl bg-[#111114] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#000000]"><Download size={16} /> Unduh QR</button>
         </div>
       </div>
     </ModalShell>
@@ -1011,18 +1011,18 @@ function ShareAbsensiModal({ data, onClose }) {
       <div className="text-center">
         <img src={info.image} alt="QR Absensi Kegiatan" className="mx-auto w-52 h-52 rounded-xl border border-[#E8E8E4] p-2" data-testid="akses-qr-image" />
 
-        <div className="mt-4 rounded-2xl border-2 border-dashed border-[#3730A3] bg-[#F5F5FD] p-4">
-          <div className="text-xs font-semibold text-[#312E81] flex items-center justify-center gap-1.5">
+        <div className="mt-4 rounded-2xl border-2 border-dashed border-[#111114] bg-[#FAFAF8] p-4">
+          <div className="text-xs font-semibold text-[#111114] flex items-center justify-center gap-1.5">
             <KeyRound size={14} /> KODE AKSES ABSENSI
           </div>
-          <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#3730A3]" data-testid="akses-code">{info.code}</div>
+          <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#111114]" data-testid="akses-code">{info.code}</div>
           <div className="text-xs text-[#4B5563] mt-1">
             Berlaku sampai kegiatan <b>ditutup/selesai</b>
             {info.valid_until ? <> · jadwal selesai {tanggalSingkat(String(info.valid_until).slice(0, 10))} {String(info.valid_until).slice(11, 16)} WITA</> : null}
           </div>
           <div className="flex gap-2 mt-3">
-            <button onClick={copyCode} data-testid="akses-copy-code" className="flex-1 h-10 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#EEEFFB]"><Copy size={15} /> Salin Kode</button>
-            <button onClick={regenerate} disabled={busy} data-testid="akses-regenerate" className="flex-1 h-10 rounded-xl bg-[#3730A3] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#2A2480] disabled:opacity-60">
+            <button onClick={copyCode} data-testid="akses-copy-code" className="flex-1 h-10 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={15} /> Salin Kode</button>
+            <button onClick={regenerate} disabled={busy} data-testid="akses-regenerate" className="flex-1 h-10 rounded-xl bg-[#111114] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
               {busy ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />} Perbarui Kode
             </button>
           </div>
@@ -1039,8 +1039,8 @@ function ShareAbsensiModal({ data, onClose }) {
         <p className="text-xs text-[#9CA3AF] mt-2 break-all px-2">{info.link}</p>
 
         <div className="flex gap-2 mt-3">
-          <button onClick={copyLink} data-testid="akses-copy-link" className="flex-1 h-11 rounded-xl border-2 border-[#3730A3] text-[#3730A3] font-semibold flex items-center justify-center gap-2 hover:bg-[#EEEFFB]"><Copy size={16} /> Salin Link</button>
-          <button onClick={download} data-testid="akses-download" className="flex-1 h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold flex items-center justify-center gap-2 hover:border-[#3730A3] hover:text-[#3730A3]"><Download size={16} /> Unduh QR</button>
+          <button onClick={copyLink} data-testid="akses-copy-link" className="flex-1 h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={16} /> Salin Link</button>
+          <button onClick={download} data-testid="akses-download" className="flex-1 h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold flex items-center justify-center gap-2 hover:border-[#111114] hover:text-[#111114]"><Download size={16} /> Unduh QR</button>
         </div>
         <button onClick={shareWa} data-testid="akses-share-wa" className="mt-2 w-full h-11 rounded-xl bg-[#25D366] text-white font-semibold flex items-center justify-center gap-2 hover:brightness-95"><Send size={16} /> Bagikan lewat WhatsApp</button>
       </div>

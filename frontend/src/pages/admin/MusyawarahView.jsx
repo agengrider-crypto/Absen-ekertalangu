@@ -145,7 +145,7 @@ export default function MusyawarahView() {
           <h1 className="font-heading text-2xl font-bold text-[#111827]">Musyawarah</h1>
           <p className="text-[#6B7280] text-sm">Catatan musyawarah — tersimpan otomatis saat mengetik.</p>
         </div>
-        <button data-testid="button-add-musyawarah" onClick={addNew} className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#3730A3] text-white font-semibold text-sm hover:bg-[#2A2480]"><Plus size={18} /> Catatan Baru</button>
+        <button data-testid="button-add-musyawarah" onClick={addNew} className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]"><Plus size={18} /> Catatan Baru</button>
       </div>
 
       {/* Tabs */}
@@ -155,7 +155,7 @@ export default function MusyawarahView() {
             key={c.key}
             data-testid={`tab-musy-${c.key}`}
             onClick={() => setCat(c.key)}
-            className={`px-5 h-10 rounded-lg text-sm font-semibold transition-colors ${cat === c.key ? "bg-white text-[#3730A3] shadow-sm" : "text-[#4B5563]"}`}
+            className={`px-5 h-10 rounded-lg text-sm font-semibold transition-colors ${cat === c.key ? "bg-white text-[#111114] shadow-sm" : "text-[#4B5563]"}`}
           >
             {c.label}
           </button>
@@ -166,20 +166,20 @@ export default function MusyawarahView() {
       <div className="bg-white rounded-xl border border-[#E8E8E4] p-3 mb-5 flex items-end gap-3 flex-wrap">
         <div>
           <label className="block text-xs font-semibold text-[#6B7280] mb-1">Ekspor rekap dari</label>
-          <input data-testid="musy-export-from" type="date" value={exFrom} onChange={(e) => setExFrom(e.target.value)} className="h-10 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3]" />
+          <input data-testid="musy-export-from" type="date" value={exFrom} onChange={(e) => setExFrom(e.target.value)} className="h-10 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-[#6B7280] mb-1">sampai</label>
-          <input data-testid="musy-export-to" type="date" value={exTo} onChange={(e) => setExTo(e.target.value)} className="h-10 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3]" />
+          <input data-testid="musy-export-to" type="date" value={exTo} onChange={(e) => setExTo(e.target.value)} className="h-10 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
         </div>
-        <button data-testid="musy-export-period" onClick={exportPeriod} className="h-10 px-4 rounded-xl border border-[#3730A3] text-[#3730A3] font-semibold text-sm hover:bg-[#EEEFFB] inline-flex items-center gap-2"><Download size={16} /> Ekspor PDF ({CATS.find((c) => c.key === cat)?.label})</button>
+        <button data-testid="musy-export-period" onClick={exportPeriod} className="h-10 px-4 rounded-xl border border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE] inline-flex items-center gap-2"><Download size={16} /> Ekspor PDF ({CATS.find((c) => c.key === cat)?.label})</button>
       </div>
 
       <div className="grid lg:grid-cols-[300px_1fr] gap-4">
         {/* Riwayat list */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-2 max-h-[70vh] overflow-y-auto" data-testid="musy-list">
           {items === null ? (
-            <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#3730A3]" size={24} /></div>
+            <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={24} /></div>
           ) : items.length === 0 ? (
             <div className="p-8 text-center text-[#6B7280] text-sm">Belum ada catatan.</div>
           ) : (
@@ -188,9 +188,9 @@ export default function MusyawarahView() {
                 key={m.id}
                 data-testid={`musy-item-${m.id}`}
                 onClick={() => selectItem(m)}
-                className={`w-full text-left px-3 py-3 rounded-xl mb-1 ${activeId === m.id ? "bg-[#EEEFFB]" : "hover:bg-[#F9FAFB]"}`}
+                className={`w-full text-left px-3 py-3 rounded-xl mb-1 ${activeId === m.id ? "bg-[#F1F1EE]" : "hover:bg-[#F9FAFB]"}`}
               >
-                <div className="flex items-center gap-2 text-sm font-semibold text-[#111827]"><Calendar size={14} className="text-[#3730A3]" /> {m.date}</div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-[#111827]"><Calendar size={14} className="text-[#111114]" /> {m.date}</div>
                 <div className="text-xs text-[#6B7280] mt-1 line-clamp-2">{m.content || "(kosong)"}</div>
               </button>
             ))
@@ -209,11 +209,11 @@ export default function MusyawarahView() {
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2">
                   <label className="text-sm font-semibold text-[#374151]">Tanggal</label>
-                  <input data-testid="musy-date" type="date" value={date} onChange={(e) => onDate(e.target.value)} className="h-10 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#3730A3]" />
+                  <input data-testid="musy-date" type="date" value={date} onChange={(e) => onDate(e.target.value)} className="h-10 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
                 </div>
                 <div className="text-xs font-medium" data-testid="musy-save-state">
                   {saveState === "saving" && <span className="text-[#9CA3AF] inline-flex items-center gap-1"><Loader2 size={13} className="animate-spin" /> Menyimpan…</span>}
-                  {saveState === "saved" && <span className="text-[#3730A3] inline-flex items-center gap-1"><Check size={14} /> Tersimpan otomatis</span>}
+                  {saveState === "saved" && <span className="text-[#111114] inline-flex items-center gap-1"><Check size={14} /> Tersimpan otomatis</span>}
                 </div>
               </div>
               <textarea
@@ -222,18 +222,18 @@ export default function MusyawarahView() {
                 onChange={(e) => onContent(e.target.value)}
                 rows={14}
                 placeholder="Tulis isi catatan musyawarah di sini…"
-                className="w-full px-4 py-3 rounded-xl border-2 border-[#E8E8E4] text-sm leading-6 outline-none focus:border-[#3730A3] resize-none"
+                className="w-full px-4 py-3 rounded-xl border-2 border-[#E8E8E4] text-sm leading-6 outline-none focus:border-[#111114] resize-none"
               />
               <div className="flex items-center gap-2 flex-wrap">
                 <button data-testid="musy-share-wa" onClick={shareWa} className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#25D366] text-white font-semibold text-sm hover:brightness-95"><Send size={16} /> Share Link ke WA</button>
-                <button data-testid="musy-copy-link" onClick={copyShareLink} className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-[#3730A3] text-[#3730A3] font-semibold text-sm hover:bg-[#EEEFFB]"><Link2 size={16} /> Salin Tautan</button>
-                <button data-testid="musy-download-pdf" onClick={downloadPdf} className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-[#3730A3] text-[#3730A3] font-semibold text-sm hover:bg-[#EEEFFB]"><Download size={16} /> Download PDF</button>
+                <button data-testid="musy-copy-link" onClick={copyShareLink} className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE]"><Link2 size={16} /> Salin Tautan</button>
+                <button data-testid="musy-download-pdf" onClick={downloadPdf} className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE]"><Download size={16} /> Download PDF</button>
                 <button data-testid="musy-delete" onClick={() => del(activeId)} className="ml-auto inline-flex items-center gap-2 h-10 px-3 rounded-xl text-[#DC2626] font-semibold text-sm hover:bg-red-50"><Trash2 size={16} /> Hapus</button>
               </div>
               {shareLink && (
-                <div className="rounded-xl border-2 border-[#DCDCF5] bg-[#F5F5FD] px-3 py-2.5" data-testid="musy-share-link">
-                  <div className="text-[11px] font-bold text-[#312E81] mb-1">Tautan publik {catLabel(cat)}</div>
-                  <div className="text-[11px] font-mono break-all text-[#312E81]">{shareLink}</div>
+                <div className="rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] px-3 py-2.5" data-testid="musy-share-link">
+                  <div className="text-[11px] font-bold text-[#111114] mb-1">Tautan publik {catLabel(cat)}</div>
+                  <div className="text-[11px] font-mono break-all text-[#111114]">{shareLink}</div>
                 </div>
               )}
             </div>
