@@ -619,3 +619,10 @@ Script verifikasi: `/app/tests/fase12_check.py`.
   Backend baru: `GET /api/staff/pengaduan/unread-count`.
 - Jenis pesan **Permohonan Doa dihapus** → tersisa 5: Curhat/Konsultasi, Saran & Masukan,
   Pengaduan, Kendala Hadir, Pertanyaan Keagamaan.
+
+### Revisi FASE 16 lanjutan (28 Sep 2026, uji manual)
+- Area jamaah: header hitam diganti **putih dengan tulisan hitam** (border hairline), latar `#FAFAF8`;
+  ikon lonceng/keluar jadi abu gelap dengan hover lembut, badge notifikasi hitam.
+- **Semua QR jadi hitam**: `make_qr_data_url` fill_color `#0D5C3A` → `#111114` (berlaku untuk QR
+  pribadi jamaah, QR absen kegiatan, QR kode akses, QR pendaftaran publik — semuanya digenerate
+  saat request, jadi langsung ikut berubah). Warna judul PDF & header Excel juga jadi hitam.
