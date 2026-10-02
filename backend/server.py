@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from contextvars import ContextVar
 from pathlib import Path
 import os
 
@@ -57,7 +58,39 @@ if mongo_url.startswith("mongodb+srv://") or "tls=true" in mongo_url or "ssl=tru
         pass
 
 client = AsyncIOMotorClient(mongo_url, **_mongo_kwargs)
-db = client[os.environ.get('DB_NAME') or 'ekertalangu']
+_DB_NAME = os.environ.get('DB_NAME') or 'ekertalangu'
+_db_real = client[_DB_NAME]
+_db_demo = client[f"{_DB_NAME}_demo"]
+
+# FASE 19 — Mode Demo: data demo benar-benar terpisah (database sendiri).
+# Semua query memakai proxy `db` yang mengikuti konteks request (real / demo),
+# jadi akun demo tidak pernah menyentuh data real.
+_current_db = ContextVar("current_db", default=None)
+
+
+class _DbProxy:
+    @staticmethod
+    def _target():
+        cur = _current_db.get()
+        return _db_real if cur is None else cur
+
+    def __getattr__(self, name):
+        return getattr(self._target(), name)
+
+    def __getitem__(self, name):
+        return self._target()[name]
+
+
+db = _DbProxy()
+
+
+def use_demo_db(demo: bool) -> None:
+    _current_db.set(_db_demo if demo else _db_real)
+
+
+def is_demo_ctx() -> bool:
+    cur = _current_db.get()
+    return cur is _db_demo
 
 JWT_ALGORITHM = "HS256"
 DEFAULT_FRONTEND_URL = "http://localhost:3000"
@@ -114,20 +147,20 @@ def get_jwt_secret() -> str:
                             detail="JWT_SECRET belum diset pada environment server")
     return secret
 
-def create_access_token(user_id: str, ver: int = 0) -> str:
-    payload = {"sub": user_id, "ver": ver, "type": "access",
+def create_access_token(user_id: str, ver: int = 0, demo: bool = False) -> str:
+    payload = {"sub": user_id, "ver": ver, "type": "access", "demo": demo,
                "exp": datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)}
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
-def create_refresh_token(user_id: str, ver: int = 0) -> str:
-    payload = {"sub": user_id, "ver": ver, "type": "refresh",
+def create_refresh_token(user_id: str, ver: int = 0, demo: bool = False) -> str:
+    payload = {"sub": user_id, "ver": ver, "type": "refresh", "demo": demo,
                "exp": datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)}
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
-def set_auth_cookies(response: Response, user_id: str, ver: int):
-    response.set_cookie("access_token", create_access_token(user_id, ver), httponly=True,
+def set_auth_cookies(response: Response, user_id: str, ver: int, demo: bool = False):
+    response.set_cookie("access_token", create_access_token(user_id, ver, demo), httponly=True,
                         secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
-    response.set_cookie("refresh_token", create_refresh_token(user_id, ver), httponly=True,
+    response.set_cookie("refresh_token", create_refresh_token(user_id, ver, demo), httponly=True,
                         secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
 
 # ---------------------------------------------------------------------------
@@ -201,6 +234,7 @@ def public_user(user: dict, include_photo: bool = False) -> dict:
         "missing_fields": missing,
         "has_photo": bool(user.get("photo")),
         "is_system": bool(user.get("is_system", False)),
+        "demo": is_demo_ctx(),
         "created_at": user.get("created_at"),
     }
     if include_photo:
@@ -328,6 +362,7 @@ async def get_current_user(request: Request) -> dict:
         payload = jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
             raise HTTPException(status_code=401, detail="Tipe token tidak valid")
+        use_demo_db(bool(payload.get("demo")))
         user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
         if not user:
             raise HTTPException(status_code=401, detail="Pengguna tidak ditemukan")
@@ -691,8 +726,16 @@ async def login_monitor_user(user_id: str, staff: dict = Depends(require_admin),
 @api_router.post("/auth/login")
 async def login(body: LoginInput, request: Request, response: Response):
     ident = body.identifier.strip().lower()
-    user = await db.users.find_one({"$or": [
-        {"email": ident}, {"username": ident}, {"phone": body.identifier.strip()}]})
+    query = {"$or": [{"email": ident}, {"username": ident}, {"phone": body.identifier.strip()}]}
+    # FASE 19 — cari di data real dulu, lalu di data demo (database terpisah).
+    use_demo_db(False)
+    user = await db.users.find_one(query)
+    if not user:
+        use_demo_db(True)
+        user = await db.users.find_one(query)
+        if not user:
+            use_demo_db(False)
+    demo = is_demo_ctx()
     lock_key = str(user["_id"]) if user else ident
     if await is_locked(lock_key):
         raise HTTPException(status_code=429, detail="Terlalu banyak percobaan. Coba lagi dalam 15 menit.")
@@ -707,7 +750,7 @@ async def login(body: LoginInput, request: Request, response: Response):
         raise HTTPException(status_code=403, detail="Akun belum aktif. Silakan aktivasi terlebih dahulu.")
 
     await db.login_attempts.delete_many({"identifier": lock_key})
-    set_auth_cookies(response, str(user["_id"]), user.get("token_version", 0))
+    set_auth_cookies(response, str(user["_id"]), user.get("token_version", 0), demo)
     await log_activity(user, "login", f"Login berhasil sebagai {', '.join(user.get('roles', []))}")
     # FASE 11 — catat peristiwa login (untuk notifikasi akun & pantau login staf)
     login_info = await record_login_event(user, request)
@@ -755,12 +798,14 @@ async def refresh(request: Request, response: Response):
         payload = jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Token tidak valid")
+        use_demo_db(bool(payload.get("demo")))
         user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
         if not user or payload.get("ver", 0) != user.get("token_version", 0):
             raise HTTPException(status_code=401, detail="Sesi telah berakhir")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token tidak valid")
-    response.set_cookie("access_token", create_access_token(str(user["_id"]), user.get("token_version", 0)),
+    response.set_cookie("access_token",
+                        create_access_token(str(user["_id"]), user.get("token_version", 0), is_demo_ctx()),
                         httponly=True, secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
     return public_user(user)
 
@@ -5384,6 +5429,28 @@ async def notifications(user: dict = Depends(get_current_user)):
             "labels": NOTIF_SOURCE_LABEL}
 
 
+@api_router.get("/bantuan/kontak")
+async def bantuan_kontak(user: dict = Depends(get_current_user)):
+    """FASE 19 — kontak pengurus untuk halaman Bantuan (diambil dari database)."""
+    staff = await db.users.find({"roles": {"$in": ["admin", "pengurus"]},
+                                "status": "active"}).sort("name", 1).to_list(100)
+    rows = []
+    for s in staff:
+        wa = (s.get("whatsapp") or s.get("phone") or "").strip()
+        digits = "".join(ch for ch in wa if ch.isdigit())
+        if digits.startswith("0"):
+            digits = "62" + digits[1:]
+        roles = s.get("roles") or []
+        rows.append({
+            "id": str(s["_id"]), "name": s.get("name"),
+            "role": "Adminator" if "admin" in roles else "Pengurus",
+            "phone": s.get("phone"), "whatsapp": wa or None,
+            "wa_link": f"https://wa.me/{digits}" if digits else None,
+            "email": s.get("email"),
+        })
+    return {"items": rows, "demo": is_demo_ctx()}
+
+
 @api_router.post("/notifications/read")
 async def notifications_read(user: dict = Depends(get_current_user)):
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -5552,6 +5619,68 @@ async def _run_init():
 
 _init_done = False
 _init_lock = asyncio.Lock()
+_demo_init_done = False
+_demo_init_lock = asyncio.Lock()
+
+# FASE 19 — Akun demo (database terpisah `<DB_NAME>_demo`).
+DEMO_ACCOUNTS = [
+    {"name": "Admin Demo", "username": "demo", "email": "demo@ekertalangu.id",
+     "phone": "081000000001", "dob": "1990-01-01", "gender": "L",
+     "password": "demo1234", "roles": ["admin", "pengurus", "peserta"]},
+    {"name": "Pengurus Demo", "username": "demopengurus", "email": "demopengurus@ekertalangu.id",
+     "phone": "081000000002", "dob": "1988-02-02", "gender": "L",
+     "password": "demo1234", "roles": ["pengurus", "peserta"]},
+    {"name": "Peserta Demo", "username": "demopeserta", "email": "demopeserta@ekertalangu.id",
+     "phone": "081000000003", "dob": "1995-03-03", "gender": "P",
+     "password": "demo1234", "roles": ["peserta"]},
+]
+
+
+async def ensure_demo_init():
+    """Siapkan database demo: index, kelompok, QR publik, dan akun demo."""
+    global _demo_init_done
+    if _demo_init_done:
+        return
+    async with _demo_init_lock:
+        if _demo_init_done:
+            return
+        token = _current_db.set(_db_demo)
+        try:
+            await db.users.create_index("email", unique=True,
+                                        partialFilterExpression={"email": {"$type": "string"}})
+            await db.users.create_index("username", unique=True,
+                                        partialFilterExpression={"username": {"$type": "string"}})
+            await db.users.create_index("phone")
+            await db.users.create_index("name")
+            await db.kegiatans.create_index("date")
+            await db.kegiatans.create_index("share_token")
+            await db.kegiatans.create_index("absen_token")
+            await db.kegiatans.create_index("akses_token")
+            await db.absensis.create_index([("kegiatan_id", 1), ("user_id", 1)], unique=True)
+            await seed_kelompok()
+            await get_or_create_public_qr()
+            for acc in DEMO_ACCOUNTS:
+                existing = await db.users.find_one({"username": acc["username"]})
+                if existing:
+                    if not verify_password(acc["password"], existing.get("password_hash") or ""):
+                        await db.users.update_one(
+                            {"_id": existing["_id"]},
+                            {"$set": {"password_hash": hash_password(acc["password"])}})
+                    continue
+                await db.users.insert_one({
+                    "name": acc["name"], "email": acc["email"], "username": acc["username"],
+                    "phone": acc["phone"], "dob": acc["dob"], "gender": acc["gender"],
+                    "address": "Kertalangu, Denpasar (data demo)",
+                    "password_hash": hash_password(acc["password"]), "roles": acc["roles"],
+                    "status": "active", "source": "demo", "token_version": 0,
+                    "avatar_gender": "male" if acc["gender"] == "L" else "female",
+                    "created_at": datetime.now(timezone.utc).isoformat()})
+            _demo_init_done = True
+            logger.info("Inisialisasi database DEMO selesai (db=%s)", _db_demo.name)
+        except Exception as exc:  # pragma: no cover
+            logger.error("ensure_demo_init gagal: %s", exc)
+        finally:
+            _current_db.reset(token)
 
 
 async def ensure_init():
@@ -5586,7 +5715,9 @@ async def ensure_init():
 @app.middleware("http")
 async def bootstrap_middleware(request: Request, call_next):
     """Gantikan background worker: init lazy + auto-close ter-throttle tiap request."""
+    use_demo_db(False)
     await ensure_init()
+    await ensure_demo_init()
     path = request.url.path
     if path.startswith("/api") and not path.startswith("/api/cron"):
         await maybe_auto_close()
@@ -5596,6 +5727,7 @@ async def bootstrap_middleware(request: Request, call_next):
 @app.on_event("startup")
 async def startup():
     await ensure_init()
+    await ensure_demo_init()
     # Scheduler loop hanya untuk server persisten (sandbox / VPS / Docker).
     if not IS_SERVERLESS and os.environ.get("RUN_SCHEDULER", "1") != "0":
         asyncio.create_task(auto_close_loop())

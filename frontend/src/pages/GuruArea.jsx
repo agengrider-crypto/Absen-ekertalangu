@@ -3,6 +3,7 @@ import { useState } from "react";
 import { GraduationCap, LifeBuoy, Sparkles, BookOpen, ClipboardList } from "lucide-react";
 import ProfileMenu from "@/components/ProfileMenu";
 import BantuanView from "@/components/BantuanView";
+import DemoBanner from "@/components/DemoBanner";
 
 const TABS = [
   { key: "beranda", label: "Beranda", icon: GraduationCap },
@@ -51,6 +52,7 @@ export default function GuruArea({ user }) {
       </div>
 
       <main className="max-w-4xl mx-auto px-4 py-6">
+        <DemoBanner />
         {tab === "beranda" ? (
           <div className="bg-white rounded-2xl border border-[#E8E8E4] p-8 text-center" data-testid="guru-coming-soon">
             <div className="inline-flex items-center gap-2 bg-[#F1F1EE] text-[#111114] px-3 py-1 rounded-full text-sm font-semibold mb-4">

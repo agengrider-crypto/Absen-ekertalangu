@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import RoleSwitcher from "@/components/RoleSwitcher";
 import BantuanView from "@/components/BantuanView";
+import DemoBanner from "@/components/DemoBanner";
 import UndanganSaya from "./peserta/UndanganSaya";
 import Beranda from "./peserta/Beranda";
 import KegiatanList from "./peserta/KegiatanList";
@@ -146,6 +147,7 @@ export default function PesertaArea({ user }) {
       )}
 
       <main className="max-w-lg mx-auto px-4 py-4">
+        <DemoBanner />
         {tab === "beranda" && <><UndanganSaya /><Beranda user={user} onGoto={setTab} /></>}
         {tab === "kegiatan" && <KegiatanList />}
         {tab === "scan" && <ScanTab />}

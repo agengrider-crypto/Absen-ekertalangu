@@ -717,3 +717,41 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 - P1: isi Program Pembelajaran & Bantuan (masih Segera Hadir), menu khusus role guru.
 - P1: unduh PDF/Excel rekap harian; daftar tautan bagikan yang bisa dinonaktifkan.
 - P2: kirim undangan penting via WhatsApp massal; grafik tren bulanan; rekap per kelompok sambung.
+
+## FASE 19 — Pusat Bantuan & Mode Demo Terpisah (2 Okt 2026, uji manual tanpa testing agent)
+
+### Pusat Bantuan (menggantikan "Segera Hadir")
+- `components/BantuanView.jsx` kini berisi 3 bagian: **Panduan Pemakaian** (tab Peserta /
+  Pengurus / Adminator, masing-masing 5–6 langkah bernomor), **Tanya Jawab** (8 pertanyaan,
+  accordion), dan **Hubungi Pengurus**.
+- Backend baru: `GET /api/bantuan/kontak` — daftar akun admin/pengurus aktif beserta nomor,
+  tautan `wa.me` (nomor 08… otomatis jadi 62…), dan email. Dipakai di bagian Hubungi Pengurus.
+- Halaman ini dipakai di panel admin/pengurus (menu Bantuan), area Guru (tab Bantuan), dan
+  area Peserta (ikon Bantuan di header).
+
+### Mode Demo (database terpisah)
+- Backend memakai **proxy database kontekstual**: `_db_real = client[DB_NAME]`,
+  `_db_demo = client[DB_NAME + "_demo"]`, dipilih lewat `ContextVar` (`use_demo_db`,
+  `is_demo_ctx`). Semua query lama tetap memakai nama `db`, jadi tidak ada perubahan query.
+- Token JWT membawa klaim `demo`; `get_current_user` dan `/auth/refresh` memilih database
+  sesuai klaim. `/auth/login` mencari akun di data real dulu, lalu di data demo.
+- `ensure_demo_init()` menyiapkan index, kelompok, QR publik, dan 3 akun demo
+  (`demo`, `demopengurus`, `demopeserta` — sandi `demo1234`) di database demo.
+- `public_user()` mengirim flag `demo`; frontend menampilkan `components/DemoBanner.jsx`
+  (banner MODE DEMO) di panel admin, area Guru, dan area Peserta. Halaman masuk mendapat
+  tombol **Coba Mode Demo** yang mengisi kredensial demo otomatis.
+- `scripts/seed_demo_workspace.py` mengisi data contoh demo (6 peserta, 5 pertemuan × 2 sesi
+  Sep–Okt 2026, 34 absensi).
+
+### Hasil uji manual (curl + screenshot)
+- Login `demo` → `demo=true`; `GET /admin/users` = 9 akun demo saja, kegiatan September = 8 sesi
+  bernama "DEMO · …". Login admin real tetap melihat 14 akun & 21 sesi, tanpa nama "Demo".
+- `GET /bantuan/kontak`: mode demo mengembalikan Admin/Pengurus Demo, mode real mengembalikan
+  Administrator & Pak Pengurus (lengkap dengan tautan wa.me).
+- UI: banner MODE DEMO tampil, tab panduan berpindah, accordion FAQ terbuka, kartu kontak
+  menampilkan tombol WhatsApp/Telepon/Email.
+
+### Backlog berikutnya
+- P1: isi Program Pembelajaran (masih Segera Hadir) + menu khusus role Guru.
+- P2: tombol "Reset Data Demo" (bersihkan database demo sekali klik).
+- P2: unduh PDF/Excel rekap; kirim undangan penting via WhatsApp massal.

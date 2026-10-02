@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
 import NotificationBell from "@/components/NotificationBell";
+import DemoBanner from "@/components/DemoBanner";
 import BantuanView from "@/components/BantuanView";
 import ComingSoon from "./ComingSoon";
 import KalenderView from "./KalenderView";
@@ -200,6 +201,7 @@ export default function AdminLayout({ user, role = "admin" }) {
         </header>
 
         <main className="px-4 sm:px-8 py-8 sm:py-10 max-w-6xl mx-auto">
+          <DemoBanner />
           {active === "dashboard" && <DashboardView user={user} onGoto={go} role={role} />}
           {active === "peserta" && <Peserta role={role} />}
           {active === "peserta-bulk" && <PesertaBulkView />}
