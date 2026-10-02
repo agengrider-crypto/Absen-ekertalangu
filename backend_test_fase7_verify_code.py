@@ -11,7 +11,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 
 # Base URL dari frontend/.env
-BASE_URL = "https://repo-showcase-21.preview.emergentagent.com/api"
+BASE_URL = "https://repo-preview-show.preview.emergentagent.com/api"
 
 # Kredensial admin
 ADMIN_IDENTIFIER = "admin"
