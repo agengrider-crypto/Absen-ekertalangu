@@ -185,7 +185,7 @@ Penyebab: `get_or_create_public_qr()` menyimpan `link` + `image` PERMANEN di
 `app_settings._id="public_qr"`. Sandbox dan produksi memakai database Atlas yang SAMA,
 sehingga QR yang pertama kali dibuat di sandbox (domain preview Emergent) terus
 disajikan di produksi Vercel. Dibuktikan: dokumen berisi
-`link: "https://repo-showcase-21.preview.emergentagent.com/register?token=..."`.
+`link: "https://repo-preview-show.preview.emergentagent.com/register?token=..."`.
 
 Perbaikan:
 - `app_settings.public_qr` sekarang menyimpan **hanya `token`** + `created_at`.
@@ -626,3 +626,174 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 - **Semua QR jadi hitam**: `make_qr_data_url` fill_color `#0D5C3A` → `#111114` (berlaku untuk QR
   pribadi jamaah, QR absen kegiatan, QR kode akses, QR pendaftaran publik — semuanya digenerate
   saat request, jadi langsung ikut berubah). Warna judul PDF & header Excel juga jadi hitam.
+
+### Revisi teks (28 Sep 2026)
+- Judul kartu peran dibersihkan dari teks dalam tanda kurung: **Adminator**, **Pengurus**, **Peserta**
+  (sebelumnya "Adminator (Pengelola Sistem)", "Pengurus (Petugas Sesi)", "Peserta / Jamaah").
+  Kartu peran juga dibuat monokrom mengikuti tema.
+- Kata **"jamaah" diganti "peserta"** di seluruh antarmuka (26 file frontend) dan pesan backend,
+  termasuk kunci `gender.*.jamaah` → `gender.*.peserta` (frontend & backend diubah serempak).
+  Akun contoh "Ibu Jamaah" di database ikut diganti menjadi "Ibu Peserta".
+
+## FASE 17 — Rekap Berwarna, Persen Ringkas & Rekap Harian Aktif (28 Sep 2026, uji manual)
+- **Halaman rekap dikecualikan dari tema monokrom** (`admin/rekapUtils.jsx`): palet hijau (hadir),
+  kuning (izin), merah (alpha), teal (aksen), biru/pink (L/P). `PercentBar` default kembali hijau,
+  sehingga rekap publik & rekap gabungan ikut berwarna.
+- **Rekap Bulanan**: daftar peserta kini memakai **chip persen ringkas** (bukan bar batangan) +
+  baris keterangan hitungan tiap peserta, mis. "Hadir 5× (71,4%) + Izin 1× (14,3%) +
+  Alpha 1× (14,3%) = 100% dari 7 pertemuan". Ditambah blok "Keterangan hitungan" di bawah tabel
+  (rumus persen, penjumlahan 100%, arti warna).
+- **Rekap Harian diaktifkan** (`admin/RekapHarianView.jsx`, ganti halaman ComingSoon):
+  navigasi tanggal, kartu Peserta/Hadir/Izin/Alpha, bar kehadiran tiap sesi + keterangan hitungan,
+  pisah L/P, daftar peserta dengan chip persen + keterangan + rincian status per sesi (bisa dibuka),
+  serta blok keterangan hitungan.
+  Backend baru: `GET /api/staff/rekap-harian?date=YYYY-MM-DD` (rincian sesi, status per peserta,
+  status hari, rasio hadir/izin/alpha, ringkasan gender) + helper `_tanggal_indo`.
+- **Area peserta**: kartu Riwayat Kehadiran memakai warna rekap dan menampilkan keterangan
+  hitungan bulan ini beserta rumus persennya.
+
+### FASE 17 lanjutan — Tautan Publik Rekap Harian (28 Sep 2026, uji manual)
+- Backend: `build_rekap_harian()` dipisah dari route; tambah `POST /api/staff/rekap-harian/share`
+  (token permanen per tanggal di koleksi `harian_links`, teks WhatsApp otomatis, tercatat di
+  Log Aktivitas sebagai `bagikan_rekap_harian`) dan `GET /api/rekap-harian/{token}` (publik).
+- Frontend: panel "Bagikan rekap hari ini" di Rekap Harian (tombol WhatsApp + Salin Tautan +
+  kotak tautan) dan halaman publik `pages/PublicRekapHarian.jsx` pada rute `/rekap-harian/:token`.
+- Halaman publik memuat: tanggal & nama kegiatan, kartu Peserta/Hadir/Izin/Alpha, bar kehadiran
+  tiap sesi (pengajar, lokasi, materi) + keterangan hitungan, pisah L/P, pencarian nama,
+  daftar peserta dengan chip persen + keterangan + rincian status tiap sesi (bisa dibuka),
+  serta blok keterangan rumus persen.
+- Diuji: tautan `/rekap-harian/u8TprXBkjQZ4ug` (23 Sep 2026) terbuka tanpa login, 3 sesi, 14 peserta.
+
+## FASE 18 — Peran Guru, Notifikasi Semua Fitur, Kalender & Undangan Penting (2 Okt 2026, uji manual tanpa testing agent)
+
+### Peran & menu baru
+- `VALID_ROLES` backend kini `["admin","pengurus","guru","peserta"]`. Label `guru` = "Guru / Pengajar"
+  (`lib/roles.js`), kartu peran baru di `RoleDashboard`, dan area `pages/GuruArea.jsx`
+  (Beranda "Segera Hadir" + tab Bantuan). Role `guru` bisa dicentang di Hak Akses & Detail Peserta.
+- **Program Pembelajaran** (admin saja) — menu sidebar baru, memakai `ComingSoon`.
+- **Bantuan** — `components/BantuanView.jsx` (Segera Hadir) tersedia di panel admin/pengurus
+  (menu sidebar), area Guru (tab), dan area Peserta (ikon perisai bantuan di header).
+- **Kalender Kegiatan** — menu sidebar baru (`admin/KalenderView.jsx`): grid bulan + jumlah kegiatan
+  per tanggal, panel rincian tanggal terpilih (sesi, pengajar, lokasi, H/I/A, persen).
+
+### Notifikasi semua fitur
+- Backend: `GET /api/notifications` (agregat Ruang Teduh belum dibaca, Kegiatan baru, Pengumuman,
+  Musyawarah, Undangan Penting; peserta hanya melihat yang relevan dengan penyaringan kegiatan) dan
+  `POST /api/notifications/read` (tanda sudah dibaca per user di koleksi `notif_reads`).
+- Frontend: `components/NotificationBell.jsx` menggantikan `RuangTeduhBell` di panel admin/pengurus
+  (dropdown berisi daftar notifikasi, klik langsung membuka menunya). Lonceng peserta memakai
+  endpoint yang sama dan menampilkan jenis undangan/musyawarah.
+
+### Perbaikan fitur absensi
+- **Form Tambah/Edit Kegiatan baru** (`admin/KegiatanFormModal.jsx`, dipisah dari `KegiatanView.jsx`):
+  modal portal berseksi (Informasi / Tanggal & Waktu / Peserta), bottom-sheet di HP dan dialog lebar
+  di PC, tombol simpan selalu terlihat di footer.
+- **Mode ceklis peserta tertentu**: field baru `participant_ids` pada kegiatan
+  (KegiatanInput/Update, `serialize_kegiatan`, `match_gender_filter`, label "Peserta Terpilih (n orang)").
+  Komponen `components/PesertaPicker.jsx` (cari, centang semua, kosongkan) dipakai di form kegiatan.
+- **Modal profil peserta** (`PesertaDetailModal.jsx`) dipindah ke portal + tampilan modal baru
+  (handle bar di HP, header judul + nama).
+- **Tab di detail kegiatan dirapikan** menjadi: Absen Manual, Scan Barcode, Tamu (kegiatan publik),
+  Rekap / Laporan (`admin/KegiatanRekapPanel.jsx` — tautan publik + QR + bagikan WhatsApp),
+  Pesan / Kesan, dan Undangan Penting. Tab Barcode Publik, Tidak Hadir Kemarin, dan Kode Akses
+  dihapus dari daftar; aksi "Bagikan Rekap" & "Pengingat WhatsApp" dihapus dari menu Aksi Kegiatan.
+- **Filter laporan keaktifan** di Rekap per Peserta: Semua / Rajin Kegiatan (≥80%) / Cukup (50–79%) /
+  Jarang (<50%) / Belum Pernah Hadir, lengkap dengan jumlah per kategori.
+
+### Undangan Penting (fitur baru)
+- Backend: `GET|POST|DELETE /api/staff/kegiatan/{id}/undangan` (koleksi `undangans`, 1 dokumen per
+  kegiatan: daftar `user_ids` + pesan, tercatat di Log Aktivitas) dan `GET /api/me/undangan`.
+- Frontend: tab `admin/UndanganPenting.jsx` (ceklis peserta + pesan + batalkan) dan kartu
+  `pages/peserta/UndanganSaya.jsx` di beranda peserta; undangan juga muncul di lonceng notifikasi.
+
+### Hasil uji manual (curl + screenshot)
+- Kegiatan mode ceklis 3 peserta → rekap hanya 3 nama, label "Peserta Terpilih (3 orang)".
+- Undangan terkirim ke 2 peserta → muncul di lonceng admin (2 notifikasi) & beranda peserta
+  (Umi Kulsum), `POST /notifications/read` menurunkan hitungan jadi 0.
+- Kalender Oktober 2026 menampilkan 1 kegiatan (5 Okt), filter laporan September: Jarang 12 orang,
+  Belum Pernah Hadir 2 orang. Area Guru tampil setelah role `guru` diberikan ke Budi Santoso.
+
+### Backlog berikutnya
+- P1: isi Program Pembelajaran & Bantuan (masih Segera Hadir), menu khusus role guru.
+- P1: unduh PDF/Excel rekap harian; daftar tautan bagikan yang bisa dinonaktifkan.
+- P2: kirim undangan penting via WhatsApp massal; grafik tren bulanan; rekap per kelompok sambung.
+
+## FASE 19 — Pusat Bantuan & Mode Demo Terpisah (2 Okt 2026, uji manual tanpa testing agent)
+
+### Pusat Bantuan (menggantikan "Segera Hadir")
+- `components/BantuanView.jsx` kini berisi 3 bagian: **Panduan Pemakaian** (tab Peserta /
+  Pengurus / Adminator, masing-masing 5–6 langkah bernomor), **Tanya Jawab** (8 pertanyaan,
+  accordion), dan **Hubungi Pengurus**.
+- Backend baru: `GET /api/bantuan/kontak` — daftar akun admin/pengurus aktif beserta nomor,
+  tautan `wa.me` (nomor 08… otomatis jadi 62…), dan email. Dipakai di bagian Hubungi Pengurus.
+- Halaman ini dipakai di panel admin/pengurus (menu Bantuan), area Guru (tab Bantuan), dan
+  area Peserta (ikon Bantuan di header).
+
+### Mode Demo (database terpisah)
+- Backend memakai **proxy database kontekstual**: `_db_real = client[DB_NAME]`,
+  `_db_demo = client[DB_NAME + "_demo"]`, dipilih lewat `ContextVar` (`use_demo_db`,
+  `is_demo_ctx`). Semua query lama tetap memakai nama `db`, jadi tidak ada perubahan query.
+- Token JWT membawa klaim `demo`; `get_current_user` dan `/auth/refresh` memilih database
+  sesuai klaim. `/auth/login` mencari akun di data real dulu, lalu di data demo.
+- `ensure_demo_init()` menyiapkan index, kelompok, QR publik, dan 3 akun demo
+  (`demo`, `demopengurus`, `demopeserta` — sandi `demo1234`) di database demo.
+- `public_user()` mengirim flag `demo`; frontend menampilkan `components/DemoBanner.jsx`
+  (banner MODE DEMO) di panel admin, area Guru, dan area Peserta. Halaman masuk mendapat
+  tombol **Coba Mode Demo** yang mengisi kredensial demo otomatis.
+- `scripts/seed_demo_workspace.py` mengisi data contoh demo (6 peserta, 5 pertemuan × 2 sesi
+  Sep–Okt 2026, 34 absensi).
+
+### Hasil uji manual (curl + screenshot)
+- Login `demo` → `demo=true`; `GET /admin/users` = 9 akun demo saja, kegiatan September = 8 sesi
+  bernama "DEMO · …". Login admin real tetap melihat 14 akun & 21 sesi, tanpa nama "Demo".
+- `GET /bantuan/kontak`: mode demo mengembalikan Admin/Pengurus Demo, mode real mengembalikan
+  Administrator & Pak Pengurus (lengkap dengan tautan wa.me).
+- UI: banner MODE DEMO tampil, tab panduan berpindah, accordion FAQ terbuka, kartu kontak
+  menampilkan tombol WhatsApp/Telepon/Email.
+
+### Backlog berikutnya
+- P1: isi Program Pembelajaran (masih Segera Hadir) + menu khusus role Guru.
+- P2: tombol "Reset Data Demo" (bersihkan database demo sekali klik).
+- P2: unduh PDF/Excel rekap; kirim undangan penting via WhatsApp massal.
+
+## FASE 20 — Program Pembelajaran & Panduan Bergambar (2 Okt 2026, uji manual tanpa testing agent)
+
+### Program Pembelajaran (menggantikan "Segera Hadir")
+- Jenjang tetap (13): **PAUD**, **Cabe Rawit 1–6**, serta Muda-Mudi = **Pra Remaja, Remaja,
+  Pra Nikah 1–4** (konstanta `JENJANG` di backend, tidak diubah lewat UI).
+- Backend baru (`/api/program/...`): `GET /program/jenjang`, `GET /program/{jenjang_id}`,
+  `PUT /program/{id}/kurikulum`, `POST /program/{id}/materi`, `PATCH|DELETE /program/materi/{id}`,
+  `POST /program/{id}/jadwal`, `DELETE /program/jadwal/{id}`, `POST /program/upload`,
+  `GET /program/file/{file_id}`. Koleksi: `program_kurikulums`, `program_materis`,
+  `program_jadwals`, `program_files`.
+- Hak ubah: `require_program_editor` → **Adminator & Guru/Pengajar** saja (peran lain hanya melihat).
+- Media pembelajaran: tautan (YouTube/Drive/bacaan) **dan unggah berkas** PDF/JPG/PNG/WEBP/GIF
+  maksimal 10 MB ke **Emergent Object Storage** (`INTEGRATION_PROXY_URL` + `EMERGENT_LLM_KEY`,
+  path `ekertalangu/program/{user_id}/{uuid}.{ext}`, referensi disimpan di MongoDB dengan
+  `is_deleted`). Berkas disajikan ulang lewat backend (`/api/program/file/{id}`), bukan URL storage.
+- Frontend `admin/ProgramPembelajaran.jsx`: daftar jenjang berkelompok, Kurikulum & Capaian
+  (tujuan, metode & media, catatan pengajar), Materi & Media (pekan, uraian, chip tautan/berkas,
+  tambah/edit/hapus), dan Jadwal Pembelajaran (hari, jam, pengajar, tempat). Dipakai di menu
+  sidebar admin dan tab baru **Program Pembelajaran** di area Guru.
+- `scripts/seed_program.py` mengisi kurikulum + 3–4 materi + 1 jadwal untuk ke-13 jenjang
+  (varian PAUD / Cabe Rawit / Muda-Mudi), bisa dijalankan untuk data real maupun demo.
+
+### Panduan Bergambar di Bantuan
+- `scripts/capture_panduan.py` (Playwright) memotret layar asli aplikasi **memakai akun demo**
+  dan menyimpannya ke `frontend/public/panduan/*.jpg` (17 gambar: 5 peserta tampilan HP,
+  6 pengurus, 6 admin). Catatan: tangkapan ditulis dulu ke `/tmp` lalu disalin, karena menulis
+  langsung ke `public/` memicu reload dev-server saat proses berjalan.
+- `components/BantuanView.jsx`: setiap langkah panduan kini menampilkan tangkapan layarnya,
+  bisa diklik untuk diperbesar (lightbox via `createPortal`). Panduan admin menambah langkah
+  Program Pembelajaran dan Pantau Notifikasi.
+
+### Hasil uji manual (curl + screenshot)
+- `GET /program/jenjang` → 13 jenjang, `can_edit=true` untuk admin.
+- Unggah `materi.png` → tersimpan di object storage, diunduh kembali 200 `image/png` 1064 byte.
+- Materi PAUD dengan 1 tautan + 1 berkas tampil lengkap; jadwal PAUD (Ahad 08:00–09:30) tersimpan.
+- UI: halaman Program Pembelajaran tampil untuk PAUD & Pra Nikah 1 (kurikulum, 4 materi, jadwal),
+  panduan bergambar tampil untuk Peserta/Pengurus/Adminator, lightbox gambar berfungsi.
+
+### Backlog berikutnya
+- P1: catatan/capaian peserta per jenjang (penilaian), kaitkan jenjang ke data peserta.
+- P2: tombol "Reset Data Demo"; unduh PDF/Excel rekap; undangan penting via WhatsApp massal.

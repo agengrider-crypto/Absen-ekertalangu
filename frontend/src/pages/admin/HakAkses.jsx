@@ -1,10 +1,10 @@
-// FASE 15 — Hak Akses berbasis pencarian: cari jamaah, lalu beri/cabut peran admin & pengurus.
+// FASE 15 — Hak Akses berbasis pencarian: cari peserta, lalu beri/cabut peran admin & pengurus.
 import { useEffect, useMemo, useState } from "react";
 import { ShieldCheck, Loader2, Save, Search, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 
-const ROLES = ["admin", "pengurus", "peserta"];
+const ROLES = ["admin", "pengurus", "guru", "peserta"];
 
 function RoleRow({ u, currentUserId, draft, onToggle, onSave, saving }) {
   const set = draft || new Set();
@@ -104,7 +104,7 @@ export default function HakAkses({ currentUserId }) {
         <ShieldCheck size={20} /> Hak Akses
       </div>
       <p className="text-sm text-[#6B7280] mb-4">
-        Cari nama jamaah yang akan diberi/dicabut hak akses. Daftar pemegang hak akses saat ini tampil di bawah.
+        Cari nama peserta yang akan diberi/dicabut hak akses. Daftar pemegang hak akses saat ini tampil di bawah.
       </p>
 
       <div className="relative mb-4">

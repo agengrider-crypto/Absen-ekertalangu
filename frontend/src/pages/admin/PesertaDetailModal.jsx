@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   X, Loader2, Save, KeyRound, ArrowRightLeft, Power, Camera,
   Phone, MessageCircle, Mail, MapPin, GraduationCap, User as UserIcon, HeartHandshake,
@@ -130,16 +131,22 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
 
   const badge = data ? statusBadge(data.status, data.needs_completion) : null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
+  return createPortal((
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" onClick={onClose} />
       <div
-        className="bg-[#FAFAF8] w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        className="relative bg-[#F7F7F5] w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl max-h-[94vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl"
         data-testid="peserta-detail-modal"
       >
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E8E8E4] px-5 py-3.5 flex items-center justify-between z-10">
-          <h2 className="font-heading font-bold text-[#111827]">Detail Peserta</h2>
-          <button data-testid="button-close-detail" onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"><X size={20} /></button>
+        <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-white">
+          <div className="h-1.5 w-11 rounded-full bg-[#E8E8E4]" />
+        </div>
+        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#ECECE8] px-5 py-3.5 flex items-center justify-between z-10">
+          <div className="min-w-0">
+            <h2 className="font-heading font-bold text-[#111827] text-lg leading-tight">Detail Peserta</h2>
+            <p className="text-xs text-[#6B7280] mt-0.5 truncate">{data?.name || "Memuat data…"}</p>
+          </div>
+          <button data-testid="button-close-detail" onClick={onClose} className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F4F4F1]"><X size={20} /></button>
         </div>
 
         {!data ? (
@@ -241,7 +248,7 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
             <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]">
               <div className="text-sm font-semibold text-[#111827] mb-2">Peran</div>
               <div className="flex flex-wrap gap-2">
-                {["pengurus", "peserta"].map((r) => {
+                {["pengurus", "guru", "peserta"].map((r) => {
                   const on = (form.roles || []).includes(r);
                   return (
                     <label key={r} data-testid={`detail-role-${r}`} className={`inline-flex items-center gap-2 px-3.5 h-10 rounded-xl border-2 cursor-pointer capitalize font-semibold text-sm ${on ? "border-[#111114] bg-[#F1F1EE] text-[#111114]" : "border-[#E8E8E4] text-[#6B7280]"}`}>
@@ -375,5 +382,5 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
         </div>
       )}
     </div>
-  );
+  ), document.body);
 }

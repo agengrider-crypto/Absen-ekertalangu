@@ -27,7 +27,7 @@ if not BASE_URL.startswith('http'):
     BASE_URL = f"https://{BASE_URL}"
 
 # For API calls, use the public endpoint
-API_BASE = BASE_URL.replace('https://repo-showcase-21.preview.emergentagent.com', 'https://repo-showcase-21.preview.emergentagent.com')
+API_BASE = BASE_URL.replace('https://repo-preview-show.preview.emergentagent.com', 'https://repo-preview-show.preview.emergentagent.com')
 
 MONGO_URL = os.environ.get('MONGO_URL')
 DB_NAME = os.environ.get('DB_NAME', 'ekertalangu')

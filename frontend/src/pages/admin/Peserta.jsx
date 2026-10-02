@@ -13,7 +13,7 @@ const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-ba
 
 /**
  * FASE 10 — KELENGKAPAN DATA: tanggal lahir & status pernikahan dipakai untuk
- * penyaringan kegiatan (kelompok usia / khusus menikah). Jamaah yang datanya
+ * penyaringan kegiatan (kelompok usia / khusus menikah). Peserta yang datanya
  * kosong tidak akan masuk daftar kegiatan khusus tersebut.
  */
 export function dataMissing(u) {
@@ -193,14 +193,14 @@ export default function Peserta({ role = "admin" }) {
           <span className="h-10 w-10 rounded-xl bg-[#9D174D] text-white flex items-center justify-center shrink-0"><ClipboardList size={18} /></span>
           <div className="flex-1 min-w-[200px]">
             <div className="text-sm font-bold text-[#831843]">
-              {counts.incomplete} jamaah datanya belum lengkap
+              {counts.incomplete} peserta datanya belum lengkap
             </div>
             <div className="text-xs text-[#9D174D] mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
               <span className="inline-flex items-center gap-1"><CalendarDays size={12} /> Tgl lahir kosong: <b>{counts.missingDob}</b></span>
               <span className="inline-flex items-center gap-1"><Heart size={12} /> Status nikah kosong: <b>{counts.missingMarital}</b></span>
             </div>
             <p className="text-[11px] text-[#6B7280] mt-1 leading-relaxed">
-              Data ini dipakai penyaringan kegiatan khusus (kelompok usia / status pernikahan). Jamaah yang datanya
+              Data ini dipakai penyaringan kegiatan khusus (kelompok usia / status pernikahan). Peserta yang datanya
               kosong <b>tidak masuk</b> daftar absen kegiatan khusus tersebut. Klik <b>Detail</b> untuk melengkapi.
             </p>
           </div>
@@ -215,7 +215,7 @@ export default function Peserta({ role = "admin" }) {
       )}
       {users && counts.incomplete === 0 && statusFilter === "incomplete" && (
         <div className="mb-4 rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-3.5 text-sm text-[#111114] font-semibold" data-testid="kelengkapan-complete">
-          Semua jamaah sudah melengkapi tanggal lahir dan status pernikahan.
+          Semua peserta sudah melengkapi tanggal lahir dan status pernikahan.
         </div>
       )}
 

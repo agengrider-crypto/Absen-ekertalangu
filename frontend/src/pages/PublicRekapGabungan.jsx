@@ -13,7 +13,8 @@ const ST = {
   optional: { t: "·", cls: "bg-[#EEF2FF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
 };
 
-export function PercentBar({ label, value, sub, color = "#111114", testid }) {
+// Rekap tetap berwarna: bar hijau sebagai warna dasar kehadiran.
+export function PercentBar({ label, value, sub, color = "#15803D", testid }) {
   const v = Math.max(0, Math.min(100, Number(value) || 0));
   return (
     <div data-testid={testid}>
@@ -86,7 +87,7 @@ export default function PublicRekapGabungan() {
         {/* Ringkasan + bar persen */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4 space-y-4" data-testid="gabungan-public-summary">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#111114] font-semibold text-sm"><Users size={17} /> Total jamaah</div>
+            <div className="flex items-center gap-2 text-[#111114] font-semibold text-sm"><Users size={17} /> Total peserta</div>
             <div className="text-2xl font-bold text-[#111827] tabular-nums">{s.total}</div>
           </div>
           <PercentBar label="Hadir minimal 1 sesi" value={s.ratio_min_1} sub={`${s.hadir_min_1} orang`} testid="bar-min1" />
@@ -97,7 +98,7 @@ export default function PublicRekapGabungan() {
             {s.tamu > 0 && <span className="px-2.5 py-1 rounded-full bg-[#EEF2FF] text-[#111114] font-semibold">Tamu: {s.tamu}</span>}
           </div>
           <p className="text-[11px] text-[#9CA3AF] leading-relaxed">
-            Jamaah yang sudah hadir di sesi sebelumnya tidak dihitung Alpha pada sesi berikutnya (kolomnya dikosongkan ✓).
+            Peserta yang sudah hadir di sesi sebelumnya tidak dihitung Alpha pada sesi berikutnya (kolomnya dikosongkan ✓).
           </p>
         </div>
 
@@ -122,9 +123,9 @@ export default function PublicRekapGabungan() {
           ))}
         </div>
 
-        {/* Tabel jamaah × sesi */}
+        {/* Tabel peserta × sesi */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] mt-4 overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#E8E8E4] font-semibold text-sm text-[#111827] flex items-center gap-2"><Clock size={15} className="text-[#111114]" /> Daftar Jamaah per Sesi</div>
+          <div className="px-4 py-3 border-b border-[#E8E8E4] font-semibold text-sm text-[#111827] flex items-center gap-2"><Clock size={15} className="text-[#111114]" /> Daftar Peserta per Sesi</div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="gabungan-public-table">
               <thead className="bg-[#FAFAF8] text-[#6B7280] text-left">

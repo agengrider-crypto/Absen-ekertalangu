@@ -414,7 +414,7 @@ export default function PublicAbsensi() {
               <UserPlus size={17} className="text-[#111114]" /> Tambah Tamu (tanpa akun)
             </div>
             <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
-              Kegiatan ini <b>terbuka/publik</b>. Jamaah yang belum mengaktivasi akun cukup
+              Kegiatan ini <b>terbuka/publik</b>. Peserta yang belum mengaktivasi akun cukup
               dicatat namanya saja, dan langsung terhitung hadir.
             </p>
             <div className="flex gap-2 mt-3 flex-wrap">

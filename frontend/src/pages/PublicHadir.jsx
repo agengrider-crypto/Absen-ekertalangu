@@ -11,7 +11,7 @@ import { TYPE_LABEL, tanggalPanjang, hhmm } from "./admin/kegiatanUtils";
 
 /**
  * Absen kehadiran PUBLIK (kegiatan terbuka) — tanpa login & tanpa kode akses.
- * Jamaah yang belum aktivasi akun cukup mengisi NAMA, lalu langsung tercatat hadir.
+ * Peserta yang belum aktivasi akun cukup mengisi NAMA, lalu langsung tercatat hadir.
  */
 export default function PublicHadir() {
   const { token } = useParams();

@@ -67,7 +67,7 @@ export default function PublicRekapBulanan() {
             <CalendarRange size={12} /> {data.label}
           </span>
           <h1 className="font-heading text-xl font-bold text-[#111827] mt-2">
-            {data.total_pertemuan} pertemuan · {data.total_peserta} jamaah
+            {data.total_pertemuan} pertemuan · {data.total_peserta} peserta
           </h1>
           <p className="text-sm text-[#6B7280] mt-1">
             Rata-rata kehadiran {data.summary.rata_rata}% · {data.total_kegiatan} jadwal termasuk sesi
@@ -83,8 +83,8 @@ export default function PublicRekapBulanan() {
         {/* Pisah Laki-laki / Perempuan */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4 space-y-4" data-testid="bulanan-public-gender">
           <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Users size={16} className="text-[#111114]" /> Kehadiran Laki-laki & Perempuan</div>
-          <PercentBar label={`Laki-laki (${g.L?.jamaah || 0} jamaah)`} value={g.L?.ratio || 0} sub={`${g.L?.hadir || 0}/${g.L?.pertemuan || 0}`} testid="bar-pub-gender-l" />
-          <PercentBar label={`Perempuan (${g.P?.jamaah || 0} jamaah)`} value={g.P?.ratio || 0} sub={`${g.P?.hadir || 0}/${g.P?.pertemuan || 0}`} color="#9CA3AF" testid="bar-pub-gender-p" />
+          <PercentBar label={`Laki-laki (${g.L?.peserta || 0} peserta)`} value={g.L?.ratio || 0} sub={`${g.L?.hadir || 0}/${g.L?.pertemuan || 0}`} testid="bar-pub-gender-l" />
+          <PercentBar label={`Perempuan (${g.P?.peserta || 0} peserta)`} value={g.P?.ratio || 0} sub={`${g.P?.hadir || 0}/${g.P?.pertemuan || 0}`} color="#9CA3AF" testid="bar-pub-gender-p" />
         </div>
 
         {/* Ringkasan tiap sesi selama 1 bulan */}
@@ -100,12 +100,12 @@ export default function PublicRekapBulanan() {
           </div>
         )}
 
-        {/* Daftar jamaah */}
+        {/* Daftar peserta */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] mt-4 overflow-hidden">
           <div className="p-4 border-b border-[#E8E8E4] flex flex-wrap gap-2 items-center">
             <div className="relative flex-1 min-w-[180px]">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-              <input data-testid="bulanan-public-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama jamaah…"
+              <input data-testid="bulanan-public-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta…"
                 className="w-full h-10 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
             </div>
             <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1">
@@ -119,7 +119,7 @@ export default function PublicRekapBulanan() {
             <table className="w-full text-sm" data-testid="bulanan-public-table">
               <thead className="bg-[#FAFAF8] text-[#6B7280] text-left">
                 <tr>
-                  <th className="px-3 py-2 font-semibold">Nama Jamaah</th>
+                  <th className="px-3 py-2 font-semibold">Nama Peserta</th>
                   <th className="px-3 py-2 font-semibold text-center">Ikut</th>
                   <th className="px-3 py-2 font-semibold w-[35%]">Kehadiran</th>
                   <th className="px-3 py-2 font-semibold text-center">Izin</th>
@@ -128,7 +128,7 @@ export default function PublicRekapBulanan() {
               </thead>
               <tbody className="divide-y divide-[#ECECE8]">
                 {rows.length === 0 ? (
-                  <tr><td colSpan={5} className="p-8 text-center text-[#6B7280]">Tidak ada data jamaah.</td></tr>
+                  <tr><td colSpan={5} className="p-8 text-center text-[#6B7280]">Tidak ada data peserta.</td></tr>
                 ) : rows.map((r) => {
                   const b = badgeOf(r);
                   return (

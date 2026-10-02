@@ -26,13 +26,13 @@ export const AUDIENCE_OPTIONS = [
     value: "reguler",
     label: "Reguler (hanya akun yang sudah aktivasi)",
     short: "Reguler",
-    desc: "Hanya jamaah yang akunnya sudah diaktivasi yang masuk daftar absen.",
+    desc: "Hanya peserta yang akunnya sudah diaktivasi yang masuk daftar absen.",
   },
   {
     value: "publik",
     label: "Terbuka / Publik (termasuk yang belum aktivasi & tamu)",
     short: "Terbuka / Publik",
-    desc: "Semua jamaah masuk daftar absen, dan petugas boleh menambah tamu cukup dengan nama.",
+    desc: "Semua peserta masuk daftar absen, dan petugas boleh menambah tamu cukup dengan nama.",
   },
 ];
 
@@ -43,13 +43,13 @@ export const AUDIENCE_LABEL = {
 
 // Penyaringan peserta berdasarkan jenis kelamin
 export const GENDER_FILTER_OPTIONS = [
-  { value: "semua", label: "Semua jamaah (laki-laki & perempuan)", short: "Semua Jamaah" },
+  { value: "semua", label: "Semua peserta (laki-laki & perempuan)", short: "Semua Peserta" },
   { value: "L", label: "Khusus laki-laki", short: "Khusus Laki-laki" },
   { value: "P", label: "Khusus perempuan", short: "Khusus Perempuan" },
 ];
 
 export const GENDER_FILTER_LABEL = {
-  semua: "Semua Jamaah",
+  semua: "Semua Peserta",
   L: "Khusus Laki-laki",
   P: "Khusus Perempuan",
 };

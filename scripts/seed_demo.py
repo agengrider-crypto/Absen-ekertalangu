@@ -6,7 +6,7 @@ import sys
 
 import requests
 
-BASE = "https://repo-showcase-21.preview.emergentagent.com"
+BASE = "https://repo-preview-show.preview.emergentagent.com"
 API = f"{BASE}/api"
 env = dict(re.findall(r'(\w+)="?([^"\n]*)"?', open('/app/backend/.env').read()))
 s = requests.Session()

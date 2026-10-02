@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from contextvars import ContextVar
 from pathlib import Path
 import os
 
@@ -20,11 +21,12 @@ from typing import List, Optional, Annotated
 import bcrypt
 import jwt
 import qrcode
+import requests
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, Request, Response, HTTPException, Depends, UploadFile, File
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response as FastResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
 
@@ -57,7 +59,39 @@ if mongo_url.startswith("mongodb+srv://") or "tls=true" in mongo_url or "ssl=tru
         pass
 
 client = AsyncIOMotorClient(mongo_url, **_mongo_kwargs)
-db = client[os.environ.get('DB_NAME') or 'ekertalangu']
+_DB_NAME = os.environ.get('DB_NAME') or 'ekertalangu'
+_db_real = client[_DB_NAME]
+_db_demo = client[f"{_DB_NAME}_demo"]
+
+# FASE 19 — Mode Demo: data demo benar-benar terpisah (database sendiri).
+# Semua query memakai proxy `db` yang mengikuti konteks request (real / demo),
+# jadi akun demo tidak pernah menyentuh data real.
+_current_db = ContextVar("current_db", default=None)
+
+
+class _DbProxy:
+    @staticmethod
+    def _target():
+        cur = _current_db.get()
+        return _db_real if cur is None else cur
+
+    def __getattr__(self, name):
+        return getattr(self._target(), name)
+
+    def __getitem__(self, name):
+        return self._target()[name]
+
+
+db = _DbProxy()
+
+
+def use_demo_db(demo: bool) -> None:
+    _current_db.set(_db_demo if demo else _db_real)
+
+
+def is_demo_ctx() -> bool:
+    cur = _current_db.get()
+    return cur is _db_demo
 
 JWT_ALGORITHM = "HS256"
 DEFAULT_FRONTEND_URL = "http://localhost:3000"
@@ -88,7 +122,7 @@ def resolve_base_url(request: Optional[Request] = None) -> str:
 # Session lifetime (masa percobaan): sesi bertahan 365 hari agar tetap login saat refresh web
 SESSION_DAYS = 365
 SESSION_MAX_AGE = SESSION_DAYS * 24 * 60 * 60  # detik
-VALID_ROLES = ["admin", "pengurus", "peserta"]
+VALID_ROLES = ["admin", "pengurus", "guru", "peserta"]
 EDUCATION_OPTIONS = ["TK", "SD", "SMP", "SMA", "D1", "D2", "D3", "D4", "S1", "S2", "S3"]
 MUBALIGH_OPTIONS = ["belum", "sudah"]
 # Status pernikahan peserta (dropdown)
@@ -114,20 +148,20 @@ def get_jwt_secret() -> str:
                             detail="JWT_SECRET belum diset pada environment server")
     return secret
 
-def create_access_token(user_id: str, ver: int = 0) -> str:
-    payload = {"sub": user_id, "ver": ver, "type": "access",
+def create_access_token(user_id: str, ver: int = 0, demo: bool = False) -> str:
+    payload = {"sub": user_id, "ver": ver, "type": "access", "demo": demo,
                "exp": datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)}
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
-def create_refresh_token(user_id: str, ver: int = 0) -> str:
-    payload = {"sub": user_id, "ver": ver, "type": "refresh",
+def create_refresh_token(user_id: str, ver: int = 0, demo: bool = False) -> str:
+    payload = {"sub": user_id, "ver": ver, "type": "refresh", "demo": demo,
                "exp": datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)}
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
-def set_auth_cookies(response: Response, user_id: str, ver: int):
-    response.set_cookie("access_token", create_access_token(user_id, ver), httponly=True,
+def set_auth_cookies(response: Response, user_id: str, ver: int, demo: bool = False):
+    response.set_cookie("access_token", create_access_token(user_id, ver, demo), httponly=True,
                         secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
-    response.set_cookie("refresh_token", create_refresh_token(user_id, ver), httponly=True,
+    response.set_cookie("refresh_token", create_refresh_token(user_id, ver, demo), httponly=True,
                         secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
 
 # ---------------------------------------------------------------------------
@@ -201,6 +235,7 @@ def public_user(user: dict, include_photo: bool = False) -> dict:
         "missing_fields": missing,
         "has_photo": bool(user.get("photo")),
         "is_system": bool(user.get("is_system", False)),
+        "demo": is_demo_ctx(),
         "created_at": user.get("created_at"),
     }
     if include_photo:
@@ -328,6 +363,7 @@ async def get_current_user(request: Request) -> dict:
         payload = jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "access":
             raise HTTPException(status_code=401, detail="Tipe token tidak valid")
+        use_demo_db(bool(payload.get("demo")))
         user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
         if not user:
             raise HTTPException(status_code=401, detail="Pengguna tidak ditemukan")
@@ -691,8 +727,16 @@ async def login_monitor_user(user_id: str, staff: dict = Depends(require_admin),
 @api_router.post("/auth/login")
 async def login(body: LoginInput, request: Request, response: Response):
     ident = body.identifier.strip().lower()
-    user = await db.users.find_one({"$or": [
-        {"email": ident}, {"username": ident}, {"phone": body.identifier.strip()}]})
+    query = {"$or": [{"email": ident}, {"username": ident}, {"phone": body.identifier.strip()}]}
+    # FASE 19 — cari di data real dulu, lalu di data demo (database terpisah).
+    use_demo_db(False)
+    user = await db.users.find_one(query)
+    if not user:
+        use_demo_db(True)
+        user = await db.users.find_one(query)
+        if not user:
+            use_demo_db(False)
+    demo = is_demo_ctx()
     lock_key = str(user["_id"]) if user else ident
     if await is_locked(lock_key):
         raise HTTPException(status_code=429, detail="Terlalu banyak percobaan. Coba lagi dalam 15 menit.")
@@ -707,7 +751,7 @@ async def login(body: LoginInput, request: Request, response: Response):
         raise HTTPException(status_code=403, detail="Akun belum aktif. Silakan aktivasi terlebih dahulu.")
 
     await db.login_attempts.delete_many({"identifier": lock_key})
-    set_auth_cookies(response, str(user["_id"]), user.get("token_version", 0))
+    set_auth_cookies(response, str(user["_id"]), user.get("token_version", 0), demo)
     await log_activity(user, "login", f"Login berhasil sebagai {', '.join(user.get('roles', []))}")
     # FASE 11 — catat peristiwa login (untuk notifikasi akun & pantau login staf)
     login_info = await record_login_event(user, request)
@@ -755,12 +799,14 @@ async def refresh(request: Request, response: Response):
         payload = jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Token tidak valid")
+        use_demo_db(bool(payload.get("demo")))
         user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
         if not user or payload.get("ver", 0) != user.get("token_version", 0):
             raise HTTPException(status_code=401, detail="Sesi telah berakhir")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token tidak valid")
-    response.set_cookie("access_token", create_access_token(str(user["_id"]), user.get("token_version", 0)),
+    response.set_cookie("access_token",
+                        create_access_token(str(user["_id"]), user.get("token_version", 0), is_demo_ctx()),
                         httponly=True, secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
     return public_user(user)
 
@@ -882,9 +928,9 @@ async def admin_users(admin: dict = Depends(require_staff), include_system: bool
 
 @api_router.get("/admin/users/kelengkapan")
 async def admin_users_kelengkapan(admin: dict = Depends(require_staff)):
-    """FASE 10 — Daftar jamaah yang TANGGAL LAHIR atau STATUS PERNIKAHAN-nya
+    """FASE 10 — Daftar peserta yang TANGGAL LAHIR atau STATUS PERNIKAHAN-nya
     belum diisi. Data ini dipakai penyaringan kegiatan (kelompok usia & status
-    pernikahan); jamaah yang datanya kosong tidak akan masuk daftar kegiatan khusus.
+    pernikahan); peserta yang datanya kosong tidak akan masuk daftar kegiatan khusus.
 
     Didefinisikan SEBELUM `/admin/users/{user_id}` agar tidak tertangkap route generik.
     """
@@ -924,7 +970,7 @@ async def admin_users_kelengkapan(admin: dict = Depends(require_staff)):
 
 @api_router.get("/admin/users/duplikat")
 async def admin_users_duplikat(admin: dict = Depends(require_staff)):
-    """FASE 15 — Cek data ganda: jamaah dengan NAMA sama (huruf besar/kecil & spasi diabaikan).
+    """FASE 15 — Cek data ganda: peserta dengan NAMA sama (huruf besar/kecil & spasi diabaikan).
 
     Didefinisikan SEBELUM `/admin/users/{user_id}` agar tidak tertangkap route generik.
     """
@@ -1514,6 +1560,8 @@ class KegiatanInput(BaseModel):
     # FASE 9 — pengelompokan lanjutan
     marital_filter: str = "semua"      # semua | belum_menikah | sudah_menikah
     age_filter: List[str] = []         # [] = semua usia
+    # FASE 18 — daftar peserta tertentu (mode ceklis). [] = ikut penyaringan di atas.
+    participant_ids: List[str] = []
     # FASE 9 — beberapa waktu/sesi dalam 1 hari (pagi/sore/malam)
     sessions: List[SessionInput] = []
 
@@ -1531,6 +1579,7 @@ class KegiatanUpdate(BaseModel):
     gender_filter: Optional[str] = None
     marital_filter: Optional[str] = None
     age_filter: Optional[List[str]] = None
+    participant_ids: Optional[List[str]] = None
     session_label: Optional[str] = None
 
 
@@ -1596,6 +1645,7 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
         # FASE 9 — pengelompokan lanjutan + sesi (1 hari beberapa waktu)
         "marital_filter": k.get("marital_filter", "semua"),
         "age_filter": normalize_age_filter(k.get("age_filter")),
+        "participant_ids": list(k.get("participant_ids") or []),
         "filter_labels": kegiatan_filter_labels(k),
         "base_name": k.get("base_name") or k.get("name"),
         "session_label": k.get("session_label"),
@@ -1628,7 +1678,7 @@ def kegiatan_phase(k: dict) -> str:
 
 
 def gender_label(gf: str) -> str:
-    return {"L": "Khusus Laki-laki", "P": "Khusus Perempuan"}.get(gf, "Semua Jamaah")
+    return {"L": "Khusus Laki-laki", "P": "Khusus Perempuan"}.get(gf, "Semua Peserta")
 
 
 # --------------------------- FASE 9: usia & pernikahan ---------------------------
@@ -1684,6 +1734,9 @@ def kegiatan_filter_labels(k: dict) -> list:
     ages = normalize_age_filter(k.get("age_filter"))
     if ages:
         labels.append("Khusus Usia " + ", ".join(AGE_GROUP_LABEL[a] for a in ages))
+    pids = k.get("participant_ids") or []
+    if pids:
+        labels.append(f"Peserta Terpilih ({len(pids)} orang)")
     return labels
 
 
@@ -1706,6 +1759,9 @@ def match_gender_filter(k: dict, user: dict) -> bool:
     status pernikahan & kelompok usia. Nama fungsi dipertahankan karena
     dipakai di banyak endpoint.
     """
+    pids = k.get("participant_ids") or []
+    if pids and str(user.get("_id")) not in set(pids):
+        return False
     gf = k.get("gender_filter") or "semua"
     if gf in ("L", "P") and (_derive_gender(user) or "L") != gf:
         return False
@@ -1904,6 +1960,11 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
     if marital_filter not in KEGIATAN_MARITAL_FILTERS:
         raise HTTPException(status_code=400, detail="Filter status pernikahan tidak valid")
     age_filter = normalize_age_filter(body.age_filter)
+    participant_ids = []
+    for pid in (body.participant_ids or []):
+        pid = str(pid).strip()
+        if pid and pid not in participant_ids:
+            participant_ids.append(pid)
 
     # FASE 9 — beberapa waktu/sesi dalam 1 hari (mis. pengajian pagi / sore / malam).
     # Setiap sesi menjadi KEGIATAN TERSENDIRI yang saling terhubung lewat
@@ -1960,6 +2021,7 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
                 "gender_filter": gender_filter,
                 "marital_filter": marital_filter,
                 "age_filter": age_filter,
+                "participant_ids": participant_ids,
                 "status": "open",
                 "closed_at": None,
                 "auto_closed": False,
@@ -2055,6 +2117,13 @@ async def update_kegiatan(kegiatan_id: str, body: KegiatanUpdate, admin: dict = 
             updates[field] = val.strip() if isinstance(val, str) else val
     if body.age_filter is not None:
         updates["age_filter"] = normalize_age_filter(body.age_filter)
+    if body.participant_ids is not None:
+        seen = []
+        for pid in body.participant_ids:
+            pid = str(pid).strip()
+            if pid and pid not in seen:
+                seen.append(pid)
+        updates["participant_ids"] = seen
     if "name" in updates and not k.get("session_label"):
         updates["base_name"] = updates["name"]
     if updates:
@@ -2244,8 +2313,8 @@ async def build_rekap_gabungan(docs: list) -> dict:
     """Ringkasan SATU HARI yang menggabungkan kehadiran semua sesi (pagi/sore/malam).
 
     - Setiap sesi tetap punya rekap terpisah (kolom per sesi).
-    - "hadir_min_1"   : jamaah hadir minimal pada 1 sesi.
-    - "hadir_semua"   : jamaah hadir pada SEMUA sesi.
+    - "hadir_min_1"   : peserta hadir minimal pada 1 sesi.
+    - "hadir_semua"   : peserta hadir pada SEMUA sesi.
     - "tidak_hadir"   : tidak hadir di sesi mana pun (dan tidak izin).
     """
     ids = [d["_id"] for d in docs]
@@ -3349,7 +3418,7 @@ async def scan_absensi_by_code(token: str, body: AbsensiScanInput):
 
 # ===========================================================================
 # REVISI — BARCODE PUBLIK KEGIATAN TERBUKA (tanpa login & tanpa kode akses)
-# Jamaah yang BELUM aktivasi akun cukup scan barcode ini, mengisi NAMA, lalu
+# Peserta yang BELUM aktivasi akun cukup scan barcode ini, mengisi NAMA, lalu
 # langsung tercatat hadir. Hanya tersedia untuk kegiatan bertipe Terbuka/Publik.
 # ===========================================================================
 class PublikHadirInput(BaseModel):
@@ -4343,13 +4412,125 @@ BULAN_ID = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
             "Agustus", "September", "Oktober", "November", "Desember"]
 
 
+def _tanggal_indo(ymd: str) -> str:
+    p = str(ymd or "").split("-")
+    if len(p) != 3:
+        return ymd or "-"
+    return f"{int(p[2])} {BULAN_ID[int(p[1]) - 1]} {p[0]}"
+
+
+@api_router.get("/staff/rekap-harian")
+async def rekap_harian(date: Optional[str] = None, staff: dict = Depends(require_staff)):
+    return await build_rekap_harian(date)
+
+
+async def build_rekap_harian(date: Optional[str] = None) -> dict:
+    """FASE 17 — Rekap absen HARIAN: rincian tiap sesi + status tiap peserta pada 1 tanggal."""
+    d = (date or now_wita().strftime("%Y-%m-%d")).strip()
+    docs = await db.kegiatans.find({"date": d}).sort("start_time", 1).to_list(200)
+    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
+    kelompoks = await db.kelompoks.find().to_list(500)
+    kmap = {k["_id"]: k.get("name") for k in kelompoks}
+
+    if not docs:
+        return {"date": d, "total_sesi": 0, "sesi": [], "rows": [],
+                "summary": {"peserta": 0, "hadir": 0, "izin": 0, "alpha": 0, "ratio": 0.0},
+                "gender": {}, "kegiatan": []}
+
+    absens = await db.absensis.find(
+        {"kegiatan_id": {"$in": [k["_id"] for k in docs]}}).to_list(100000)
+    status_by = {(a["kegiatan_id"], a["user_id"]): a.get("status") for a in absens}
+    elig = {k["_id"]: {str(p["_id"]) for p in filter_peserta_for_kegiatan(k, peserta)} for k in docs}
+
+    sesi_out = []
+    for k in sorted(docs, key=lambda x: (x.get("start_time") or "", x.get("session_index") or 0)):
+        ids = elig[k["_id"]]
+        h = sum(1 for pid in ids if status_by.get((k["_id"], pid)) == "hadir")
+        i = sum(1 for pid in ids if status_by.get((k["_id"], pid)) == "izin")
+        sesi_out.append({
+            "id": k["_id"], "label": k.get("session_label") or "Sesi tunggal",
+            "name": k.get("base_name") or k.get("name"),
+            "start_time": k.get("start_time"), "end_time": k.get("end_time"),
+            "teacher": k.get("teacher"), "material": k.get("material"),
+            "location": k.get("location"), "status": k.get("status", "open"),
+            "required": bool(k.get("session_required", True)),
+            "peserta": len(ids), "hadir": h, "izin": i, "alpha": max(len(ids) - h - i, 0),
+            "ratio": round((h / len(ids)) * 100, 1) if ids else 0.0,
+        })
+
+    rows = []
+    for p in peserta:
+        pid = str(p["_id"])
+        mine = [s for s in sesi_out if pid in elig[s["id"]]]
+        if not mine:
+            continue
+        detail, n_h, n_i, n_a = [], 0, 0, 0
+        for s in mine:
+            st = status_by.get((s["id"], pid)) or "alpha"
+            if st == "hadir":
+                n_h += 1
+            elif st == "izin":
+                n_i += 1
+            else:
+                st = "alpha"
+                n_a += 1
+            detail.append({"label": s["label"], "start_time": s["start_time"],
+                           "end_time": s["end_time"], "required": s["required"], "status": st})
+        total = len(mine)
+        wajib = [x for x in detail if x["required"]] or detail
+        hadir_wajib = any(x["status"] == "hadir" for x in wajib)
+        izin_wajib = any(x["status"] == "izin" for x in wajib)
+        rows.append({
+            "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
+            "kelompok_name": kmap.get(p.get("kelompok_id")),
+            "sesi_total": total, "hadir": n_h, "izin": n_i, "alpha": n_a,
+            "ratio": round((n_h / total) * 100, 1) if total else 0.0,
+            "izin_ratio": round((n_i / total) * 100, 1) if total else 0.0,
+            "alpha_ratio": round((n_a / total) * 100, 1) if total else 0.0,
+            "status_hari": "hadir" if hadir_wajib else ("izin" if izin_wajib else "alpha"),
+            "detail": detail,
+        })
+    rows.sort(key=lambda x: (x["ratio"], (x["name"] or "").lower()))
+
+    slot = sum(r["sesi_total"] for r in rows)
+    hadir = sum(r["hadir"] for r in rows)
+    gender_out = {}
+    for g in ("L", "P"):
+        grp = [r for r in rows if r["gender"] == g]
+        gslot = sum(r["sesi_total"] for r in grp)
+        ghadir = sum(r["hadir"] for r in grp)
+        gender_out[g] = {
+            "peserta": len(grp), "hadir": ghadir, "slot": gslot,
+            "izin": sum(r["izin"] for r in grp), "alpha": sum(r["alpha"] for r in grp),
+            "ratio": round((ghadir / gslot) * 100, 1) if gslot else 0.0,
+        }
+
+    return {
+        "date": d,
+        "label": _tanggal_indo(d),
+        "total_sesi": len(sesi_out),
+        "kegiatan": sorted({s["name"] for s in sesi_out}),
+        "sesi": sesi_out,
+        "rows": rows,
+        "summary": {
+            "peserta": len(rows), "slot": slot, "hadir": hadir,
+            "izin": sum(r["izin"] for r in rows), "alpha": sum(r["alpha"] for r in rows),
+            "ratio": round((hadir / slot) * 100, 1) if slot else 0.0,
+            "hadir_hari": sum(1 for r in rows if r["status_hari"] == "hadir"),
+            "izin_hari": sum(1 for r in rows if r["status_hari"] == "izin"),
+            "alpha_hari": sum(1 for r in rows if r["status_hari"] == "alpha"),
+        },
+        "gender": gender_out,
+    }
+
+
 @api_router.get("/staff/rekap-bulanan")
 async def rekap_bulanan(month: Optional[str] = None, staff: dict = Depends(require_staff)):
     return await build_rekap_bulanan(month)
 
 
 async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
-    """FASE 13 — Rekap absen BULANAN per jamaah.
+    """FASE 13 — Rekap absen BULANAN per peserta.
 
     1 pertemuan = 1 hari kegiatan (semua sesi hari itu dihitung SEKALI); hadir di
     salah satu sesi wajib = hadir pada pertemuan tersebut. Sesi yang ditandai
@@ -4468,7 +4649,7 @@ async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
         slot = sum(r["pertemuan"] for r in grp)
         hadir = sum(r["hadir"] for r in grp)
         gender_out[g] = {
-            "jamaah": len([r for r in rows if r["gender"] == g]),
+            "peserta": len([r for r in rows if r["gender"] == g]),
             "hadir": hadir, "pertemuan": slot,
             "izin": sum(r["izin"] for r in grp),
             "alpha": sum(r["alpha"] for r in grp),
@@ -4518,7 +4699,7 @@ async def share_rekap_bulanan(request: Request, month: Optional[str] = None,
         f"Jumlah pertemuan: {data['total_pertemuan']}\n"
         f"Rata-rata kehadiran: {data['summary']['rata_rata']}%\n"
         f"{link}\n\n"
-        "Silakan dibuka untuk melihat kehadiran tiap jamaah. Jazakumullahu khoiro."
+        "Silakan dibuka untuk melihat kehadiran tiap peserta. Jazakumullahu khoiro."
     )
     return {"token": token, "link": link, "month": month, "label": data["label"],
             "wa_text": wa_text}
@@ -4530,6 +4711,48 @@ async def public_rekap_bulanan(token: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Tautan rekap bulanan tidak ditemukan")
     return await build_rekap_bulanan(doc.get("month"))
+
+
+# ------------------------- Tautan publik Rekap Harian -------------------------
+@api_router.post("/staff/rekap-harian/share")
+async def share_rekap_harian(request: Request, date: Optional[str] = None,
+                             staff: dict = Depends(require_staff)):
+    """FASE 17 — tautan publik rekap harian (permanen, tanpa login)."""
+    d = (date or now_wita().strftime("%Y-%m-%d")).strip()
+    existing = await db.harian_links.find_one({"date": d})
+    if existing:
+        token = existing["_id"]
+    else:
+        token = secrets.token_urlsafe(10)
+        await db.harian_links.insert_one({
+            "_id": token, "date": d,
+            "created_by": str(staff["_id"]), "created_by_name": staff.get("name"),
+            "created_at": datetime.now(timezone.utc).isoformat()})
+    link = f"{resolve_base_url(request)}/rekap-harian/{token}"
+    data = await build_rekap_harian(d)
+    s = data["summary"]
+    wa_text = (
+        "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
+        f"Berikut rekap absen harian {data.get('label') or d}\n"
+        f"Kegiatan: {', '.join(data.get('kegiatan') or []) or '-'}\n"
+        f"Jumlah sesi: {data.get('total_sesi', 0)}\n"
+        f"Hadir {s.get('hadir', 0)}x · Izin {s.get('izin', 0)}x · Alpha {s.get('alpha', 0)}x "
+        f"dari {s.get('slot', 0)} slot sesi ({s.get('ratio', 0)}%)\n"
+        f"{link}\n\n"
+        "Silakan dibuka untuk melihat rincian tiap sesi & keterangan tiap peserta. "
+        "Jazakumullahu khoiro."
+    )
+    await log_activity(staff, "bagikan_rekap_harian", f"Membagikan tautan rekap harian {d}")
+    return {"token": token, "link": link, "date": d, "label": data.get("label"),
+            "wa_text": wa_text}
+
+
+@api_router.get("/rekap-harian/{token}")
+async def public_rekap_harian(token: str):
+    doc = await db.harian_links.find_one({"_id": token})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Tautan rekap harian tidak ditemukan")
+    return await build_rekap_harian(doc.get("date"))
 
 
 async def build_laporan(date_from: str, date_to: str) -> dict:
@@ -4593,7 +4816,7 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
     tvals = list(tally.values())
     n_keg = len(kegiatans)
     keg_map = {k["_id"]: k for k in kegiatans}
-    # Daftar TAMU terpisah supaya mudah dibedakan dari jamaah terdaftar
+    # Daftar TAMU terpisah supaya mudah dibedakan dari peserta terdaftar
     guest_rows = sorted(
         [{"name": g.get("name"),
           "kegiatan_id": g.get("kegiatan_id"),
@@ -4739,10 +4962,10 @@ async def admin_laporan_export(admin: dict = Depends(require_staff),
         ]))
         elems.append(t)
 
-        # Daftar TAMU terpisah (bukan jamaah terdaftar)
+        # Daftar TAMU terpisah (bukan peserta terdaftar)
         elems.append(Spacer(1, 16))
         elems.append(Paragraph(
-            f"Daftar Tamu (bukan jamaah terdaftar) — {data.get('total_tamu', 0)} orang",
+            f"Daftar Tamu (bukan peserta terdaftar) — {data.get('total_tamu', 0)} orang",
             styles["Heading3"]))
         if data.get("tamu"):
             gdata = [["Tanggal", "Kegiatan", "Nama Tamu", "Jam Hadir"]]
@@ -4815,7 +5038,7 @@ async def cron_auto_close(request: Request):
 
 
 # ===========================================================================
-# FASE 15 — Halaman Kode Akses, Scan Presensi & Pengaduan/Curhat Jamaah
+# FASE 15 — Halaman Kode Akses, Scan Presensi & Pengaduan/Curhat Peserta
 # ===========================================================================
 @api_router.get("/staff/kode-akses")
 async def staff_kode_akses(request: Request, staff: dict = Depends(require_staff),
@@ -4850,7 +5073,7 @@ async def staff_kode_akses(request: Request, staff: dict = Depends(require_staff
 @api_router.get("/staff/scan-presensi")
 async def staff_scan_presensi(request: Request, staff: dict = Depends(require_staff),
                               date: str = ""):
-    """Daftar kegiatan pada 1 tanggal beserta QR absen kegiatannya (untuk dipindai jamaah)."""
+    """Daftar kegiatan pada 1 tanggal beserta QR absen kegiatannya (untuk dipindai peserta)."""
     d = date.strip() or now_wita().strftime("%Y-%m-%d")
     kegiatans = await db.kegiatans.find({"date": d}).sort("start_time", 1).to_list(200)
     rows = []
@@ -4894,7 +5117,7 @@ def serialize_pengaduan(p: dict, for_staff: bool = False) -> dict:
         "category_label": PENGADUAN_LABEL.get(p.get("category", "curhat"), "Curhat"),
         "message": p.get("message"),
         "anonymous": bool(p.get("anonymous")),
-        "name": ("Jamaah (tanpa nama)" if p.get("anonymous") else (p.get("name") or "Jamaah")),
+        "name": ("Peserta (tanpa nama)" if p.get("anonymous") else (p.get("name") or "Peserta")),
         "phone": None if p.get("anonymous") else p.get("phone"),
         "at": p.get("at"),
         "dibaca": bool(p.get("read_by")),
@@ -5053,10 +5276,477 @@ async def send_kesan_pesan(body: KesanPesanInput, user: dict = Depends(get_curre
     await db.feedbacks.update_one(
         {"kegiatan_id": body.kegiatan_id, "user_id": uid},
         {"$set": {"kegiatan_id": body.kegiatan_id, "user_id": uid,
-                  "name": user.get("name") or "Jamaah", "sentiment": sentiment,
+                  "name": user.get("name") or "Peserta", "sentiment": sentiment,
                   "message": msg[:3000], "created_at": now_wita().isoformat()}},
         upsert=True)
     return {"message": "Alhamdulillah, jazakumullahu khoiro. Kesan & pesan Anda sudah terkirim."}
+
+
+# ------------------------- FASE 18: Undangan Penting -------------------------
+class UndanganInput(BaseModel):
+    user_ids: List[str] = []
+    message: Optional[str] = None
+
+
+def serialize_undangan(u: dict, k: Optional[dict] = None) -> dict:
+    d = {"kegiatan_id": u.get("kegiatan_id"), "user_ids": list(u.get("user_ids") or []),
+         "message": u.get("message") or "", "created_at": u.get("created_at"),
+         "created_by_name": u.get("created_by_name")}
+    if k:
+        d["kegiatan"] = {"id": k["_id"], "name": k.get("name"), "date": k.get("date"),
+                         "start_time": k.get("start_time"), "end_time": k.get("end_time"),
+                         "location": k.get("location"), "teacher": k.get("teacher"),
+                         "material": k.get("material")}
+    return d
+
+
+@api_router.get("/staff/kegiatan/{kegiatan_id}/undangan")
+async def get_undangan(kegiatan_id: str, staff: dict = Depends(require_staff)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    doc = await db.undangans.find_one({"_id": kegiatan_id}) or {"kegiatan_id": kegiatan_id}
+    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(5000)
+    rows = [{"user_id": str(p["_id"]), "name": p.get("name"),
+             "gender": _derive_gender(p), "status": p.get("status", "active")}
+            for p in peserta]
+    return {**serialize_undangan(doc, k), "peserta": rows}
+
+
+@api_router.post("/staff/kegiatan/{kegiatan_id}/undangan")
+async def save_undangan(kegiatan_id: str, body: UndanganInput,
+                        staff: dict = Depends(require_staff)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    ids = []
+    for uid in (body.user_ids or []):
+        uid = str(uid).strip()
+        if uid and uid not in ids:
+            ids.append(uid)
+    if not ids:
+        raise HTTPException(status_code=400, detail="Mohon centang minimal 1 peserta yang diundang.")
+    doc = {"_id": kegiatan_id, "kegiatan_id": kegiatan_id, "user_ids": ids,
+           "message": (body.message or "").strip()[:1000],
+           "created_at": now_wita().isoformat(),
+           "created_by_id": str(staff["_id"]), "created_by_name": staff.get("name")}
+    await db.undangans.replace_one({"_id": kegiatan_id}, doc, upsert=True)
+    await log_activity(staff, "undangan_penting",
+                       f"Mengirim undangan penting '{k.get('name')}' ke {len(ids)} peserta")
+    return {**serialize_undangan(doc, k),
+            "message_ok": f"Undangan penting terkirim ke {len(ids)} peserta."}
+
+
+@api_router.delete("/staff/kegiatan/{kegiatan_id}/undangan")
+async def delete_undangan(kegiatan_id: str, staff: dict = Depends(require_staff)):
+    await db.undangans.delete_one({"_id": kegiatan_id})
+    await log_activity(staff, "undangan_penting", f"Membatalkan undangan penting kegiatan {kegiatan_id}")
+    return {"ok": True}
+
+
+@api_router.get("/me/undangan")
+async def my_undangan(user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    docs = await db.undangans.find({"user_ids": uid}).sort("created_at", -1).to_list(50)
+    out = []
+    for d in docs:
+        k = await db.kegiatans.find_one({"_id": d.get("kegiatan_id")})
+        if not k:
+            continue
+        out.append(serialize_undangan(d, k))
+    return {"items": out}
+
+
+# ------------------------- FASE 18: Notifikasi semua fitur -------------------------
+NOTIF_SOURCE_LABEL = {
+    "pengaduan": "Ruang Teduh",
+    "kegiatan": "Kegiatan baru",
+    "pengumuman": "Pengumuman",
+    "musyawarah": "Musyawarah",
+    "undangan": "Undangan penting",
+}
+
+
+async def _notif_items_for(user: dict, staff: bool) -> list:
+    items = []
+    today = now_wita().strftime("%Y-%m-%d")
+    uid = str(user["_id"])
+
+    kegs = await db.kegiatans.find({"date": {"$gte": today}}).sort("created_at", -1).to_list(60)
+    for k in kegs:
+        if not staff and not match_gender_filter(k, user):
+            continue
+        items.append({
+            "type": "kegiatan", "id": k["_id"], "title": k.get("name"),
+            "subtitle": f"{k.get('date')} · {k.get('start_time')}–{k.get('end_time')} WITA"
+                        + (f" · {k.get('location')}" if k.get("location") else ""),
+            "at": to_utc_iso(k.get("created_at")), "target": "kegiatan",
+        })
+
+    for p in await db.pengumumans.find().sort("created_at", -1).to_list(30):
+        items.append({"type": "pengumuman", "id": p["_id"], "title": p.get("title"),
+                      "subtitle": (p.get("body") or "")[:90],
+                      "important": bool(p.get("important")),
+                      "at": to_utc_iso(p.get("created_at")), "target": "pengumuman"})
+
+    for d in await db.undangans.find({} if staff else {"user_ids": uid}) \
+            .sort("created_at", -1).to_list(30):
+        k = await db.kegiatans.find_one({"_id": d.get("kegiatan_id")}) or {}
+        items.append({"type": "undangan", "id": d.get("kegiatan_id"),
+                      "title": f"Undangan penting: {k.get('name') or 'Kegiatan'}",
+                      "subtitle": (d.get("message") or
+                                   f"{k.get('date')} · {k.get('start_time')}–{k.get('end_time')} WITA"),
+                      "at": to_utc_iso(d.get("created_at")), "target": "kegiatan"})
+
+    if staff:
+        for m in await db.musyawarahs.find().sort("created_at", -1).to_list(20):
+            items.append({"type": "musyawarah", "id": m["_id"],
+                          "title": MUSY_LABEL.get(m.get("category"), "Musyawarah"),
+                          "subtitle": (m.get("content") or "")[:90],
+                          "at": to_utc_iso(m.get("created_at")), "target": "musyawarah"})
+        for p in await db.pengaduans.find({"read_by": {"$size": 0}}) \
+                .sort("at", -1).to_list(30):
+            who = "Peserta (tanpa nama)" if p.get("anonymous") else (p.get("name") or "Peserta")
+            items.append({"type": "pengaduan", "id": p["_id"],
+                          "title": f"Pesan Ruang Teduh dari {who}",
+                          "subtitle": (p.get("message") or "")[:90],
+                          "at": to_utc_iso(p.get("at")), "target": "pengaduan"})
+
+    items = [i for i in items if i.get("at")]
+    items.sort(key=lambda x: x["at"], reverse=True)
+    return items[:40]
+
+
+@api_router.get("/notifications")
+async def notifications(user: dict = Depends(get_current_user)):
+    """FASE 18 — lonceng notifikasi untuk SEMUA fitur (bukan Ruang Teduh saja)."""
+    roles = user.get("roles") or []
+    staff = bool({"admin", "pengurus"} & set(roles))
+    items = await _notif_items_for(user, staff)
+    read = await db.notif_reads.find_one({"_id": str(user["_id"])}) or {}
+    seen = read.get("seen_at") or ""
+    unread = [i for i in items if not seen or i["at"] > seen]
+    return {"items": items, "count": len(unread), "seen_at": seen or None,
+            "labels": NOTIF_SOURCE_LABEL}
+
+
+@api_router.get("/bantuan/kontak")
+async def bantuan_kontak(user: dict = Depends(get_current_user)):
+    """FASE 19 — kontak pengurus untuk halaman Bantuan (diambil dari database)."""
+    staff = await db.users.find({"roles": {"$in": ["admin", "pengurus"]},
+                                "status": "active"}).sort("name", 1).to_list(100)
+    rows = []
+    for s in staff:
+        wa = (s.get("whatsapp") or s.get("phone") or "").strip()
+        digits = "".join(ch for ch in wa if ch.isdigit())
+        if digits.startswith("0"):
+            digits = "62" + digits[1:]
+        roles = s.get("roles") or []
+        rows.append({
+            "id": str(s["_id"]), "name": s.get("name"),
+            "role": "Adminator" if "admin" in roles else "Pengurus",
+            "phone": s.get("phone"), "whatsapp": wa or None,
+            "wa_link": f"https://wa.me/{digits}" if digits else None,
+            "email": s.get("email"),
+        })
+    return {"items": rows, "demo": is_demo_ctx()}
+
+
+# ------------------------- FASE 20: Program Pembelajaran -------------------------
+# Penyimpanan berkas materi (Emergent Object Storage).
+STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
+STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+STORAGE_APP = "ekertalangu"
+_storage_key = None
+
+MIME_TYPES = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+    "webp": "image/webp", "gif": "image/gif", "pdf": "application/pdf",
+}
+
+
+def init_storage(force: bool = False):
+    global _storage_key
+    if _storage_key and not force:
+        return _storage_key
+    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
+    resp.raise_for_status()
+    _storage_key = resp.json()["storage_key"]
+    return _storage_key
+
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    resp = requests.put(f"{STORAGE_URL}/objects/{path}",
+                        headers={"X-Storage-Key": key, "Content-Type": content_type},
+                        data=data, timeout=120)
+    if resp.status_code == 404:
+        key = init_storage(force=True)
+        resp = requests.put(f"{STORAGE_URL}/objects/{path}",
+                            headers={"X-Storage-Key": key, "Content-Type": content_type},
+                            data=data, timeout=120)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_object(path: str):
+    key = init_storage()
+    resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
+    if resp.status_code == 404:
+        key = init_storage(force=True)
+        resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+
+
+# Jenjang pembelajaran (tetap / tidak diubah lewat UI)
+JENJANG = [
+    {"id": "paud", "label": "PAUD", "group": "Anak Usia Dini", "age": "3–5 tahun"},
+    *[{"id": f"cabe{i}", "label": f"Cabe Rawit {i}", "group": "Cabe Rawit",
+       "age": f"kelas {i} SD"} for i in range(1, 7)],
+    {"id": "pra_remaja", "label": "Pra Remaja", "group": "Muda-Mudi", "age": "SMP"},
+    {"id": "remaja", "label": "Remaja", "group": "Muda-Mudi", "age": "SMA"},
+    *[{"id": f"pra_nikah{i}", "label": f"Pra Nikah {i}", "group": "Muda-Mudi",
+       "age": "usia kerja / kuliah"} for i in range(1, 5)],
+]
+JENJANG_BY_ID = {j["id"]: j for j in JENJANG}
+HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Ahad"]
+
+
+async def require_program_editor(user: dict = Depends(get_current_user)) -> dict:
+    """Program Pembelajaran hanya boleh diubah Adminator dan Guru/Pengajar."""
+    roles = user.get("roles") or []
+    if "admin" not in roles and "guru" not in roles:
+        raise HTTPException(status_code=403, detail="Akses khusus Adminator dan Guru/Pengajar")
+    return user
+
+
+class MediaInput(BaseModel):
+    kind: str = "link"               # link | file
+    label: Optional[str] = None
+    url: Optional[str] = None        # untuk kind=link
+    file_id: Optional[str] = None    # untuk kind=file
+
+
+class KurikulumInput(BaseModel):
+    tujuan: Optional[str] = None     # kurikulum / capaian pembelajaran
+    metode: Optional[str] = None     # metode & media pembelajaran
+    catatan: Optional[str] = None
+
+
+class MateriInput(BaseModel):
+    title: str
+    description: Optional[str] = None
+    pekan: Optional[int] = None      # pekan ke-
+    media: List[MediaInput] = []
+
+
+class JadwalInput(BaseModel):
+    day: str
+    start_time: str
+    end_time: str
+    teacher: Optional[str] = None
+    location: Optional[str] = None
+    note: Optional[str] = None
+
+
+def _jenjang_or_404(jenjang_id: str) -> dict:
+    j = JENJANG_BY_ID.get(jenjang_id)
+    if not j:
+        raise HTTPException(status_code=404, detail="Jenjang tidak ditemukan")
+    return j
+
+
+async def _media_out(media: list) -> list:
+    out = []
+    for m in media or []:
+        item = {"kind": m.get("kind", "link"), "label": m.get("label"),
+                "url": m.get("url"), "file_id": m.get("file_id")}
+        if item["kind"] == "file" and item["file_id"]:
+            f = await db.program_files.find_one({"_id": item["file_id"], "is_deleted": {"$ne": True}})
+            if f:
+                item["label"] = item["label"] or f.get("original_filename")
+                item["content_type"] = f.get("content_type")
+                item["size"] = f.get("size")
+                item["url"] = f"/api/program/file/{item['file_id']}"
+        out.append(item)
+    return out
+
+
+async def serialize_materi(m: dict) -> dict:
+    return {"id": m["_id"], "jenjang_id": m.get("jenjang_id"), "title": m.get("title"),
+            "description": m.get("description"), "pekan": m.get("pekan"),
+            "media": await _media_out(m.get("media")),
+            "updated_at": m.get("updated_at"), "updated_by": m.get("updated_by")}
+
+
+@api_router.get("/program/jenjang")
+async def program_jenjang(user: dict = Depends(get_current_user)):
+    roles = user.get("roles") or []
+    rows = []
+    for j in JENJANG:
+        rows.append({**j,
+                     "materi_count": await db.program_materis.count_documents({"jenjang_id": j["id"]}),
+                     "jadwal_count": await db.program_jadwals.count_documents({"jenjang_id": j["id"]})})
+    return {"items": rows, "hari": HARI,
+            "can_edit": "admin" in roles or "guru" in roles}
+
+
+@api_router.get("/program/{jenjang_id}")
+async def program_detail(jenjang_id: str, user: dict = Depends(get_current_user)):
+    j = _jenjang_or_404(jenjang_id)
+    kur = await db.program_kurikulums.find_one({"_id": jenjang_id}) or {}
+    materis = await db.program_materis.find({"jenjang_id": jenjang_id}) \
+        .sort([("pekan", 1), ("created_at", 1)]).to_list(300)
+    jadwals = await db.program_jadwals.find({"jenjang_id": jenjang_id}) \
+        .sort("start_time", 1).to_list(100)
+    roles = user.get("roles") or []
+    return {
+        "jenjang": j,
+        "kurikulum": {"tujuan": kur.get("tujuan") or "", "metode": kur.get("metode") or "",
+                      "catatan": kur.get("catatan") or "",
+                      "updated_at": kur.get("updated_at"), "updated_by": kur.get("updated_by")},
+        "materi": [await serialize_materi(m) for m in materis],
+        "jadwal": [{"id": x["_id"], "day": x.get("day"), "start_time": x.get("start_time"),
+                    "end_time": x.get("end_time"), "teacher": x.get("teacher"),
+                    "location": x.get("location"), "note": x.get("note")} for x in jadwals],
+        "can_edit": "admin" in roles or "guru" in roles,
+    }
+
+
+@api_router.put("/program/{jenjang_id}/kurikulum")
+async def save_kurikulum(jenjang_id: str, body: KurikulumInput,
+                         editor: dict = Depends(require_program_editor)):
+    _jenjang_or_404(jenjang_id)
+    doc = {"tujuan": (body.tujuan or "").strip(), "metode": (body.metode or "").strip(),
+           "catatan": (body.catatan or "").strip(),
+           "updated_at": now_wita().isoformat(), "updated_by": editor.get("name")}
+    await db.program_kurikulums.update_one({"_id": jenjang_id}, {"$set": doc}, upsert=True)
+    await log_activity(editor, "program_pembelajaran",
+                       f"Memperbarui kurikulum {JENJANG_BY_ID[jenjang_id]['label']}")
+    return {"ok": True, **doc}
+
+
+@api_router.post("/program/{jenjang_id}/materi")
+async def add_materi(jenjang_id: str, body: MateriInput,
+                     editor: dict = Depends(require_program_editor)):
+    _jenjang_or_404(jenjang_id)
+    if not body.title.strip():
+        raise HTTPException(status_code=400, detail="Judul materi wajib diisi")
+    doc = {"_id": str(uuid.uuid4()), "jenjang_id": jenjang_id, "title": body.title.strip(),
+           "description": (body.description or "").strip(), "pekan": body.pekan,
+           "media": [m.model_dump() for m in body.media],
+           "created_at": now_wita().isoformat(), "updated_at": now_wita().isoformat(),
+           "updated_by": editor.get("name")}
+    await db.program_materis.insert_one(doc)
+    await log_activity(editor, "program_pembelajaran",
+                       f"Menambah materi '{doc['title']}' ({JENJANG_BY_ID[jenjang_id]['label']})")
+    return await serialize_materi(doc)
+
+
+@api_router.patch("/program/materi/{materi_id}")
+async def edit_materi(materi_id: str, body: MateriInput,
+                      editor: dict = Depends(require_program_editor)):
+    m = await db.program_materis.find_one({"_id": materi_id})
+    if not m:
+        raise HTTPException(status_code=404, detail="Materi tidak ditemukan")
+    updates = {"title": body.title.strip(), "description": (body.description or "").strip(),
+               "pekan": body.pekan, "media": [x.model_dump() for x in body.media],
+               "updated_at": now_wita().isoformat(), "updated_by": editor.get("name")}
+    await db.program_materis.update_one({"_id": materi_id}, {"$set": updates})
+    await log_activity(editor, "program_pembelajaran", f"Mengubah materi '{updates['title']}'")
+    return await serialize_materi({**m, **updates})
+
+
+@api_router.delete("/program/materi/{materi_id}")
+async def delete_materi(materi_id: str, editor: dict = Depends(require_program_editor)):
+    m = await db.program_materis.find_one({"_id": materi_id})
+    if not m:
+        raise HTTPException(status_code=404, detail="Materi tidak ditemukan")
+    await db.program_materis.delete_one({"_id": materi_id})
+    await log_activity(editor, "program_pembelajaran", f"Menghapus materi '{m.get('title')}'")
+    return {"ok": True}
+
+
+@api_router.post("/program/{jenjang_id}/jadwal")
+async def add_jadwal(jenjang_id: str, body: JadwalInput,
+                     editor: dict = Depends(require_program_editor)):
+    _jenjang_or_404(jenjang_id)
+    if body.day not in HARI:
+        raise HTTPException(status_code=400, detail="Hari tidak valid")
+    doc = {"_id": str(uuid.uuid4()), "jenjang_id": jenjang_id, "day": body.day,
+           "start_time": body.start_time, "end_time": body.end_time,
+           "teacher": (body.teacher or "").strip(), "location": (body.location or "").strip(),
+           "note": (body.note or "").strip(), "created_at": now_wita().isoformat()}
+    await db.program_jadwals.insert_one(doc)
+    await log_activity(editor, "program_pembelajaran",
+                       f"Menambah jadwal {body.day} {body.start_time} "
+                       f"({JENJANG_BY_ID[jenjang_id]['label']})")
+    return {"id": doc["_id"], **{k: doc[k] for k in
+            ("day", "start_time", "end_time", "teacher", "location", "note")}}
+
+
+@api_router.delete("/program/jadwal/{jadwal_id}")
+async def delete_jadwal(jadwal_id: str, editor: dict = Depends(require_program_editor)):
+    res = await db.program_jadwals.delete_one({"_id": jadwal_id})
+    if not res.deleted_count:
+        raise HTTPException(status_code=404, detail="Jadwal tidak ditemukan")
+    await log_activity(editor, "program_pembelajaran", "Menghapus jadwal pembelajaran")
+    return {"ok": True}
+
+
+@api_router.post("/program/upload")
+async def upload_program_file(file: UploadFile = File(...),
+                              editor: dict = Depends(require_program_editor)):
+    """Unggah berkas materi (PDF / gambar) ke penyimpanan aplikasi."""
+    name = file.filename or "berkas"
+    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+    if ext not in MIME_TYPES:
+        raise HTTPException(status_code=400,
+                            detail="Format berkas harus PDF, JPG, PNG, WEBP, atau GIF")
+    data = await file.read()
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Ukuran berkas maksimal 10 MB")
+    file_id = str(uuid.uuid4())
+    path = f"{STORAGE_APP}/program/{str(editor['_id'])}/{file_id}.{ext}"
+    content_type = file.content_type or MIME_TYPES[ext]
+    try:
+        result = await asyncio.to_thread(put_object, path, data, content_type)
+    except Exception as exc:
+        logger.error("Unggah berkas gagal: %s", exc)
+        raise HTTPException(status_code=502, detail="Gagal mengunggah berkas. Coba lagi.")
+    await db.program_files.insert_one({
+        "_id": file_id, "storage_path": result["path"], "original_filename": name,
+        "content_type": content_type, "size": result.get("size") or len(data),
+        "is_deleted": False, "uploaded_by": editor.get("name"),
+        "created_at": now_wita().isoformat()})
+    return {"file_id": file_id, "name": name, "content_type": content_type,
+            "size": result.get("size") or len(data), "url": f"/api/program/file/{file_id}"}
+
+
+@api_router.get("/program/file/{file_id}")
+async def download_program_file(file_id: str, user: dict = Depends(get_current_user)):
+    f = await db.program_files.find_one({"_id": file_id, "is_deleted": {"$ne": True}})
+    if not f:
+        raise HTTPException(status_code=404, detail="Berkas tidak ditemukan")
+    try:
+        data, content_type = await asyncio.to_thread(get_object, f["storage_path"])
+    except Exception as exc:
+        logger.error("Ambil berkas gagal: %s", exc)
+        raise HTTPException(status_code=502, detail="Gagal mengambil berkas")
+    return FastResponse(content=data, media_type=f.get("content_type") or content_type,
+                        headers={"Content-Disposition":
+                                 f'inline; filename="{f.get("original_filename")}"'})
+
+
+@api_router.post("/notifications/read")
+async def notifications_read(user: dict = Depends(get_current_user)):
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.notif_reads.update_one({"_id": str(user["_id"])},
+                                    {"$set": {"seen_at": now_iso}}, upsert=True)
+    return {"ok": True, "seen_at": now_iso}
+
 
 
 @api_router.get("/health")
@@ -5118,7 +5808,7 @@ async def seed_users():
         {"name": "Pak Pengurus", "email": "pengurus@ekertalangu.id", "username": "pengurus",
          "phone": "081200000002", "dob": "1985-05-10", "address": "Jl. Melati No. 2",
          "password": "Pengurus#2026", "roles": ["pengurus", "peserta"]},
-        {"name": "Ibu Jamaah", "email": "peserta@ekertalangu.id", "username": "peserta",
+        {"name": "Ibu Peserta", "email": "peserta@ekertalangu.id", "username": "peserta",
          "phone": "081300000003", "dob": "1970-08-17", "address": "Jl. Mawar No. 3",
          "password": "Peserta#2026", "roles": ["peserta"]},
     ]
@@ -5218,6 +5908,68 @@ async def _run_init():
 
 _init_done = False
 _init_lock = asyncio.Lock()
+_demo_init_done = False
+_demo_init_lock = asyncio.Lock()
+
+# FASE 19 — Akun demo (database terpisah `<DB_NAME>_demo`).
+DEMO_ACCOUNTS = [
+    {"name": "Admin Demo", "username": "demo", "email": "demo@ekertalangu.id",
+     "phone": "081000000001", "dob": "1990-01-01", "gender": "L",
+     "password": "demo1234", "roles": ["admin", "pengurus", "peserta"]},
+    {"name": "Pengurus Demo", "username": "demopengurus", "email": "demopengurus@ekertalangu.id",
+     "phone": "081000000002", "dob": "1988-02-02", "gender": "L",
+     "password": "demo1234", "roles": ["pengurus", "peserta"]},
+    {"name": "Peserta Demo", "username": "demopeserta", "email": "demopeserta@ekertalangu.id",
+     "phone": "081000000003", "dob": "1995-03-03", "gender": "P",
+     "password": "demo1234", "roles": ["peserta"]},
+]
+
+
+async def ensure_demo_init():
+    """Siapkan database demo: index, kelompok, QR publik, dan akun demo."""
+    global _demo_init_done
+    if _demo_init_done:
+        return
+    async with _demo_init_lock:
+        if _demo_init_done:
+            return
+        token = _current_db.set(_db_demo)
+        try:
+            await db.users.create_index("email", unique=True,
+                                        partialFilterExpression={"email": {"$type": "string"}})
+            await db.users.create_index("username", unique=True,
+                                        partialFilterExpression={"username": {"$type": "string"}})
+            await db.users.create_index("phone")
+            await db.users.create_index("name")
+            await db.kegiatans.create_index("date")
+            await db.kegiatans.create_index("share_token")
+            await db.kegiatans.create_index("absen_token")
+            await db.kegiatans.create_index("akses_token")
+            await db.absensis.create_index([("kegiatan_id", 1), ("user_id", 1)], unique=True)
+            await seed_kelompok()
+            await get_or_create_public_qr()
+            for acc in DEMO_ACCOUNTS:
+                existing = await db.users.find_one({"username": acc["username"]})
+                if existing:
+                    if not verify_password(acc["password"], existing.get("password_hash") or ""):
+                        await db.users.update_one(
+                            {"_id": existing["_id"]},
+                            {"$set": {"password_hash": hash_password(acc["password"])}})
+                    continue
+                await db.users.insert_one({
+                    "name": acc["name"], "email": acc["email"], "username": acc["username"],
+                    "phone": acc["phone"], "dob": acc["dob"], "gender": acc["gender"],
+                    "address": "Kertalangu, Denpasar (data demo)",
+                    "password_hash": hash_password(acc["password"]), "roles": acc["roles"],
+                    "status": "active", "source": "demo", "token_version": 0,
+                    "avatar_gender": "male" if acc["gender"] == "L" else "female",
+                    "created_at": datetime.now(timezone.utc).isoformat()})
+            _demo_init_done = True
+            logger.info("Inisialisasi database DEMO selesai (db=%s)", _db_demo.name)
+        except Exception as exc:  # pragma: no cover
+            logger.error("ensure_demo_init gagal: %s", exc)
+        finally:
+            _current_db.reset(token)
 
 
 async def ensure_init():
@@ -5252,7 +6004,9 @@ async def ensure_init():
 @app.middleware("http")
 async def bootstrap_middleware(request: Request, call_next):
     """Gantikan background worker: init lazy + auto-close ter-throttle tiap request."""
+    use_demo_db(False)
     await ensure_init()
+    await ensure_demo_init()
     path = request.url.path
     if path.startswith("/api") and not path.startswith("/api/cron"):
         await maybe_auto_close()
@@ -5262,6 +6016,7 @@ async def bootstrap_middleware(request: Request, call_next):
 @app.on_event("startup")
 async def startup():
     await ensure_init()
+    await ensure_demo_init()
     # Scheduler loop hanya untuk server persisten (sandbox / VPS / Docker).
     if not IS_SERVERLESS and os.environ.get("RUN_SCHEDULER", "1") != "0":
         asyncio.create_task(auto_close_loop())

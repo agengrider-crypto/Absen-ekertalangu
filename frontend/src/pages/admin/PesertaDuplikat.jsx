@@ -1,4 +1,4 @@
-// FASE 15 — Halaman "Cek Duplikat": kelompokkan jamaah bernama sama agar data ganda mudah dirapikan.
+// FASE 15 — Halaman "Cek Duplikat": kelompokkan peserta bernama sama agar data ganda mudah dirapikan.
 import { useEffect, useState } from "react";
 import { CopyCheck, Loader2, Eye, Trash2, CalendarDays, Phone, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -38,7 +38,7 @@ export default function PesertaDuplikat() {
             <CopyCheck size={22} className="text-[#111114]" /> Cek Duplikat
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
-            Jamaah dengan nama sama akan dikelompokkan di sini. Periksa tanggal lahir &amp; No. HP sebelum menghapus.
+            Peserta dengan nama sama akan dikelompokkan di sini. Periksa tanggal lahir &amp; No. HP sebelum menghapus.
           </p>
         </div>
         <button data-testid="duplikat-refresh" onClick={() => { setData(null); load(); }}
@@ -55,7 +55,7 @@ export default function PesertaDuplikat() {
         <>
           <div className="grid grid-cols-3 gap-3 my-4">
             {[
-              { label: "Total jamaah", value: data.total_peserta, color: "#111114" },
+              { label: "Total peserta", value: data.total_peserta, color: "#111114" },
               { label: "Nama kembar", value: data.total_grup, color: "#9CA3AF" },
               { label: "Data terlibat", value: data.total_duplikat, color: "#DC2626" },
             ].map((s) => (
@@ -69,7 +69,7 @@ export default function PesertaDuplikat() {
           {data.groups.length === 0 ? (
             <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center" data-testid="duplikat-empty">
               <CopyCheck size={30} className="mx-auto text-[#111114] mb-2" />
-              <p className="text-[#111114] font-semibold">Alhamdulillah, tidak ada nama jamaah yang kembar.</p>
+              <p className="text-[#111114] font-semibold">Alhamdulillah, tidak ada nama peserta yang kembar.</p>
             </div>
           ) : (
             <div className="space-y-4">

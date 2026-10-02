@@ -27,7 +27,7 @@ const TEMPLATES = [
       body: [
         "Assalamu'alaikum warahmatullahi wabarakatuh",
         "",
-        "Bismillah, dengan ini kami mengundang jamaah untuk menghadiri:",
+        "Bismillah, dengan ini kami mengundang peserta untuk menghadiri:",
         `📌 Kegiatan : ${k ? (k.base_name || k.name) : "-"}`,
         `🗓️ Tanggal  : ${k ? tglIndo(k.date) : "-"}`,
         `⏰ Waktu    : ${k ? `${k.start_time}–${k.end_time} WITA` : "-"}${k?.session_label ? ` (sesi ${k.session_label})` : ""}`,

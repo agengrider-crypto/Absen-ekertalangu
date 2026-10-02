@@ -2,7 +2,7 @@ import { CloudOff, RefreshCw, Loader2, CheckCircle2 } from "lucide-react";
 
 /**
  * FASE 8 — Penanda status koneksi + antrean absen offline.
- * Bahasa dibuat sederhana agar mudah dipahami jamaah/pengurus.
+ * Bahasa dibuat sederhana agar mudah dipahami peserta/pengurus.
  */
 export default function OfflineBanner({ online, pending = 0, syncing, onSync, className = "" }) {
   if (online && pending === 0) return null;

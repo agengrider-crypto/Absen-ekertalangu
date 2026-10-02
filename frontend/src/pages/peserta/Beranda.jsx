@@ -9,6 +9,7 @@ import { TYPE_LABEL, TYPE_COLOR, tanggalPanjang } from "@/pages/admin/kegiatanUt
 import TutorialQr from "./TutorialQr";
 import KesanPesan from "./KesanPesan";
 import { roleLabel, profileCompletion } from "@/lib/roles";
+import { keteranganHitungan } from "@/pages/admin/rekapUtils";
 
 function Ring({ value }) {
   const r = 46, c = 2 * Math.PI * r;
@@ -213,7 +214,7 @@ export default function Beranda({ user, onGoto }) {
         </button>
       </div>
 
-      {/* FASE 15 — Tutorial QR & kesan-pesan kegiatan tampil di dashboard jamaah */}
+      {/* FASE 15 — Tutorial QR & kesan-pesan kegiatan tampil di dashboard peserta */}
       <TutorialQr variant="pribadi" />
       <TutorialQr variant="kegiatan" />
 
@@ -238,8 +239,8 @@ export default function Beranda({ user, onGoto }) {
         ) : (
           <>
             <div className="grid grid-cols-3 gap-2 mb-4">
-              <div className="rounded-xl bg-[#F1F1EE] px-3 py-2 text-center">
-                <div className="text-lg font-bold text-[#111114]" data-testid="riwayat-hadir">{history.current?.hadir ?? 0}</div>
+              <div className="rounded-xl bg-[#DCFCE7] px-3 py-2 text-center">
+                <div className="text-lg font-bold text-[#166534]" data-testid="riwayat-hadir">{history.current?.hadir ?? 0}</div>
                 <div className="text-[11px] text-[#4B5563]">Hadir (bln ini)</div>
               </div>
               <div className="rounded-xl bg-[#FEF3C7] px-3 py-2 text-center">
@@ -251,6 +252,16 @@ export default function Beranda({ user, onGoto }) {
                 <div className="text-[11px] text-[#4B5563]">Alpha</div>
               </div>
             </div>
+            <div className="mb-3 rounded-xl border border-dashed border-[#E8E8E4] p-3 text-[11px] text-[#4B5563]" data-testid="riwayat-keterangan">
+              <b className="text-[#111114]">Keterangan bulan ini: </b>
+              {keteranganHitungan({
+                hadir: history.current?.hadir ?? 0,
+                izin: history.current?.izin ?? 0,
+                alpha: history.current?.alpha ?? 0,
+                total: (history.current?.hadir ?? 0) + (history.current?.izin ?? 0) + (history.current?.alpha ?? 0),
+              })}
+              <div className="mt-1">Persen kehadiran = Hadir ÷ jumlah pertemuan × 100. Hadir + Izin + Alpha = 100%.</div>
+            </div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={history.months || []} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EFEFEA" />
@@ -258,7 +269,7 @@ export default function Beranda({ user, onGoto }) {
                 <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#6B7280" }} />
                 <Tooltip />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="hadir" name="Hadir" stackId="a" fill="#111114" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="hadir" name="Hadir" stackId="a" fill="#15803D" radius={[0, 0, 0, 0]} />
                 <Bar dataKey="izin" name="Izin" stackId="a" fill="#F59E0B" />
                 <Bar dataKey="alpha" name="Alpha" stackId="a" fill="#DC2626" radius={[4, 4, 0, 0]} />
               </BarChart>

@@ -35,7 +35,7 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
   const [qr, setQr] = useState(null);
   const [actQr, setActQr] = useState(null);
   const [showActQr, setShowActQr] = useState(false);
-  const [lengkap, setLengkap] = useState(null); // FASE 10 — kelengkapan data jamaah
+  const [lengkap, setLengkap] = useState(null); // FASE 10 — kelengkapan data peserta
 
   useEffect(() => {
     api.get("/admin/dashboard").then(({ data }) => setD(data)).catch(() => setD(false));
@@ -108,7 +108,7 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
           <span className="h-11 w-11 rounded-xl bg-[#9D174D] text-white flex items-center justify-center shrink-0"><ClipboardList size={20} /></span>
           <span className="flex-1 min-w-0">
             <span className="block text-sm font-bold text-[#831843]">
-              {lengkap.belum_lengkap} dari {lengkap.total_peserta} jamaah datanya belum lengkap
+              {lengkap.belum_lengkap} dari {lengkap.total_peserta} peserta datanya belum lengkap
             </span>
             <span className="block text-xs text-[#9D174D] mt-0.5">
               Tanggal lahir kosong: <b>{lengkap.missing_dob}</b> · Status pernikahan kosong: <b>{lengkap.missing_marital}</b>
@@ -254,7 +254,7 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
               <Loader2 className="animate-spin text-[#111114]" size={24} />
             </div>
           )}
-          <p className="text-xs text-[#6B7280] mt-2">Bagikan untuk pendaftaran mandiri jamaah.</p>
+          <p className="text-xs text-[#6B7280] mt-2">Bagikan untuk pendaftaran mandiri peserta.</p>
           <button onClick={copyLink} className="mt-3 w-full h-10 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]">
             <Copy size={15} /> Salin Link
           </button>

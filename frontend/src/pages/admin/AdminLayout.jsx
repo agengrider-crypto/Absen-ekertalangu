@@ -5,12 +5,16 @@ import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
   ShieldCheck, Menu, X, LogOut, MessagesSquare, Megaphone, UserCog, Layers,
   MonitorSmartphone, CalendarRange, ListPlus, CopyCheck, KeyRound, ScanLine,
-  ClipboardList, CalendarCheck, HeartHandshake,
+  ClipboardList, CalendarCheck, HeartHandshake, BookOpen, LifeBuoy, CalendarClock,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
-import RuangTeduhBell from "@/components/RuangTeduhBell";
+import NotificationBell from "@/components/NotificationBell";
+import DemoBanner from "@/components/DemoBanner";
+import BantuanView from "@/components/BantuanView";
+import KalenderView from "./KalenderView";
+import ProgramPembelajaran from "./ProgramPembelajaran";
 import { roleLabel } from "@/lib/roles";
 import DashboardView from "./DashboardView";
 import Peserta from "./Peserta";
@@ -28,7 +32,7 @@ import RuangTeduhView from "./RuangTeduhView";
 import KelompokView from "./KelompokView";
 import PantauLoginView from "./PantauLoginView";
 import RekapBulananView from "./RekapBulananView";
-import ComingSoon from "./ComingSoon";
+import RekapHarianView from "./RekapHarianView";
 
 const MENU = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "pengurus"] },
@@ -46,6 +50,7 @@ const MENU = [
     group: "grup-kegiatan", label: "Kegiatan", icon: CalendarDays, roles: ["admin", "pengurus"],
     items: [
       { key: "kegiatan", label: "Daftar Kegiatan", icon: ClipboardList, roles: ["admin", "pengurus"] },
+      { key: "kalender", label: "Kalender Kegiatan", icon: CalendarClock, roles: ["admin", "pengurus"] },
       { key: "kode-akses", label: "Kode Akses", icon: KeyRound, roles: ["admin", "pengurus"] },
       { key: "scan-presensi", label: "Scan Presensi", icon: ScanLine, roles: ["admin", "pengurus"] },
       { key: "pengumuman", label: "Pengumuman", icon: Megaphone, roles: ["admin", "pengurus"] },
@@ -61,6 +66,8 @@ const MENU = [
   },
   { key: "musyawarah", label: "Musyawarah", icon: MessagesSquare, roles: ["admin", "pengurus"] },
   { key: "pengaduan", label: "Ruang Teduh", icon: HeartHandshake, roles: ["admin", "pengurus"] },
+  { key: "program", label: "Program Pembelajaran", icon: BookOpen, roles: ["admin"] },
+  { key: "bantuan", label: "Bantuan", icon: LifeBuoy, roles: ["admin", "pengurus"] },
   { key: "log", label: "Log Aktivitas", icon: ScrollText, roles: ["admin"] },
   { key: "hakakses", label: "Hak Akses", icon: ShieldCheck, roles: ["admin"] },
 ];
@@ -181,18 +188,28 @@ export default function AdminLayout({ user, role = "admin" }) {
               <Logo size={32} />
             </div>
             <div className="flex items-center gap-2">
-              <RuangTeduhBell onOpen={() => go("pengaduan")} active={active} />
+              <NotificationBell onNavigate={(target) => {
+                const map = {
+                  kegiatan: "kegiatan", pengumuman: "pengumuman",
+                  musyawarah: "musyawarah", pengaduan: "pengaduan",
+                };
+                go(map[target] || "dashboard");
+              }} />
               <ProfileMenu subtitle={roleLabel(role)} />
             </div>
           </div>
         </header>
 
         <main className="px-4 sm:px-8 py-8 sm:py-10 max-w-6xl mx-auto">
+          <DemoBanner />
           {active === "dashboard" && <DashboardView user={user} onGoto={go} role={role} />}
           {active === "peserta" && <Peserta role={role} />}
           {active === "peserta-bulk" && <PesertaBulkView />}
           {active === "peserta-duplikat" && <PesertaDuplikat />}
           {active === "kegiatan" && <KegiatanView />}
+          {active === "kalender" && <KalenderView />}
+          {active === "program" && role === "admin" && <ProgramPembelajaran />}
+          {active === "bantuan" && <BantuanView />}
           {active === "kode-akses" && <KodeAksesView />}
           {active === "scan-presensi" && <ScanPresensiView />}
           {active === "musyawarah" && <MusyawarahView />}
@@ -200,12 +217,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "pengaduan" && <RuangTeduhView />}
           {active === "laporan" && <LaporanView />}
           {active === "rekap-bulanan" && <RekapBulananView />}
-          {active === "rekap-harian" && (
-            <ComingSoon
-              title="Rekap Harian"
-              message="Rekap kehadiran per hari (semua sesi dalam satu tanggal, lengkap dengan persentase per sesi) sedang kami siapkan. Sementara ini gunakan Rekap Gabungan 1 Hari pada menu Daftar Kegiatan."
-            />
-          )}
+          {active === "rekap-harian" && <RekapHarianView />}
           {active === "pantau-login" && role === "admin" && <PantauLoginView />}
           {active === "kelompok" && <KelompokView />}
           {active === "log" && role === "admin" && <LogAktivitas />}
