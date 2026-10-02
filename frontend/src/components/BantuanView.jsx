@@ -1,9 +1,10 @@
 // FASE 19 — Halaman Bantuan: panduan langkah, tanya jawab, dan kontak pengurus.
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   LifeBuoy, BookOpen, MessageCircleQuestion, PhoneCall, ChevronDown, ScanLine,
   QrCode, ListChecks, CalendarDays, FileBarChart2, HeartHandshake, MailWarning,
-  UserPlus, KeyRound, Loader2, Send, Mail, ShieldCheck,
+  UserPlus, KeyRound, Loader2, Send, Mail, ShieldCheck, Maximize2, X,
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -12,34 +13,35 @@ const GUIDES = {
     label: "Peserta",
     icon: QrCode,
     steps: [
-      { icon: KeyRound, title: "Masuk ke aplikasi", desc: "Isi email / username / nomor HP, lalu kata sandi. Sandi awal peserta = tanggal lahir format HHBBTTTT (mis. 12031988)." },
-      { icon: QrCode, title: "Tunjukkan QR Saya", desc: "Buka tab QR Saya lalu tunjukkan ke petugas absen. QR ini tetap, jadi aman disimpan sebagai tangkapan layar." },
-      { icon: ScanLine, title: "Absen mandiri (bila dibuka)", desc: "Tab Scan dipakai saat pengurus membagikan barcode kegiatan: arahkan kamera ke barcode, kehadiran langsung tercatat." },
-      { icon: CalendarDays, title: "Lihat jadwal & undangan", desc: "Tab Kegiatan memuat jadwal yang sesuai dengan data Anda. Undangan Penting muncul di beranda dan di lonceng notifikasi." },
-      { icon: HeartHandshake, title: "Izin & Ruang Teduh", desc: "Ajukan izin lewat kegiatan terkait, atau kirim keluhan/masukan secara pribadi (boleh tanpa nama) di Ruang Teduh." },
+      { icon: KeyRound, title: "Masuk ke aplikasi", desc: "Isi email / username / nomor HP, lalu kata sandi. Sandi awal peserta = tanggal lahir format HHBBTTTT (mis. 12031988).", img: "peserta-1-masuk" },
+      { icon: QrCode, title: "Tunjukkan QR Saya", desc: "Buka tab QR Saya lalu tunjukkan ke petugas absen. QR ini tetap, jadi aman disimpan sebagai tangkapan layar.", img: "peserta-2-qr" },
+      { icon: ScanLine, title: "Absen mandiri (bila dibuka)", desc: "Tab Scan dipakai saat pengurus membagikan barcode kegiatan: arahkan kamera ke barcode, kehadiran langsung tercatat.", img: "peserta-3-scan" },
+      { icon: CalendarDays, title: "Lihat jadwal & undangan", desc: "Tab Kegiatan memuat jadwal yang sesuai dengan data Anda. Undangan Penting muncul di beranda dan di lonceng notifikasi.", img: "peserta-4-kegiatan" },
+      { icon: HeartHandshake, title: "Izin & Ruang Teduh", desc: "Ajukan izin lewat kegiatan terkait, atau kirim keluhan/masukan secara pribadi (boleh tanpa nama) di Ruang Teduh.", img: "peserta-5-ruang-teduh" },
     ],
   },
   pengurus: {
     label: "Pengurus",
     icon: ListChecks,
     steps: [
-      { icon: CalendarDays, title: "Buat kegiatan", desc: "Daftar Kegiatan → Tambah Kegiatan. Isi nama, tanggal, jam, pengajar; aktifkan Beberapa waktu bila sehari ada pagi/sore/malam." },
-      { icon: ListChecks, title: "Pilih pesertanya", desc: "Saring lewat jenis kelamin, status, dan kelompok usia — atau centang orangnya langsung dengan Pilih peserta tertentu (mode ceklis)." },
-      { icon: ScanLine, title: "Catat kehadiran", desc: "Buka kegiatan → tab Absen Manual untuk mencentang satu-satu, atau tab Scan Barcode untuk memindai QR peserta." },
-      { icon: UserPlus, title: "Tamu kegiatan terbuka", desc: "Khusus kegiatan publik, tab Tamu dipakai mencatat hadirin yang belum memiliki akun." },
-      { icon: MailWarning, title: "Undangan penting", desc: "Tab Undangan Penting → centang peserta + tulis pesan. Undangan langsung tampil di lonceng dan beranda peserta." },
-      { icon: FileBarChart2, title: "Bagikan rekap", desc: "Tab Rekap / Laporan menyediakan tautan publik, QR, dan tombol bagikan WhatsApp. Penerima melihat rekap tanpa perlu login." },
+      { icon: CalendarDays, title: "Buat kegiatan", desc: "Daftar Kegiatan → Tambah Kegiatan. Isi nama, tanggal, jam, pengajar; aktifkan Beberapa waktu bila sehari ada pagi/sore/malam.", img: "pengurus-1-tambah-kegiatan" },
+      { icon: ListChecks, title: "Pilih pesertanya", desc: "Saring lewat jenis kelamin, status, dan kelompok usia — atau centang orangnya langsung dengan Pilih peserta tertentu (mode ceklis).", img: "pengurus-2-mode-ceklis" },
+      { icon: ListChecks, title: "Catat kehadiran manual", desc: "Buka kegiatan → tab Absen Manual untuk menandai hadir/izin satu per satu.", img: "pengurus-3-absen-manual" },
+      { icon: ScanLine, title: "Scan barcode peserta", desc: "Tab Scan Barcode memindai QR peserta; kehadiran langsung tercatat pada sesi yang dibuka.", img: "pengurus-4-scan" },
+      { icon: MailWarning, title: "Undangan penting", desc: "Tab Undangan Penting → centang peserta + tulis pesan. Undangan langsung tampil di lonceng dan beranda peserta.", img: "pengurus-5-undangan" },
+      { icon: FileBarChart2, title: "Bagikan rekap", desc: "Tab Rekap / Laporan menyediakan tautan publik, QR, dan tombol bagikan WhatsApp. Penerima melihat rekap tanpa perlu login.", img: "pengurus-6-rekap" },
     ],
   },
   admin: {
     label: "Adminator",
     icon: ShieldCheck,
     steps: [
-      { icon: UserPlus, title: "Kelola peserta", desc: "Menu Peserta untuk menambah/mengubah data. Lengkapi tanggal lahir, jenis kelamin, dan status agar penyaringan kegiatan akurat." },
-      { icon: KeyRound, title: "Atur hak akses", desc: "Menu Hak Akses untuk memberi peran Pengurus atau Guru/Pengajar, serta mengatur ulang kata sandi." },
-      { icon: FileBarChart2, title: "Pantau laporan", desc: "Menu Laporan: pilih rentang tanggal, lalu pakai filter keaktifan (Rajin ≥80%, Cukup 50–79%, Jarang <50%, Belum pernah hadir)." },
-      { icon: CalendarDays, title: "Kalender kegiatan", desc: "Menu Kalender menampilkan seluruh jadwal satu bulan; tap tanggal untuk melihat rincian tiap sesi." },
-      { icon: HeartHandshake, title: "Tanggapi Ruang Teduh", desc: "Pesan masuk tampil di lonceng notifikasi bersama kegiatan, pengumuman, musyawarah, dan undangan penting." },
+      { icon: UserPlus, title: "Kelola peserta", desc: "Menu User untuk menambah/mengubah data. Lengkapi tanggal lahir, jenis kelamin, dan status agar penyaringan kegiatan akurat.", img: "admin-1-peserta" },
+      { icon: KeyRound, title: "Atur hak akses", desc: "Menu Hak Akses untuk memberi peran Pengurus atau Guru/Pengajar, serta mengatur ulang kata sandi.", img: "admin-2-hak-akses" },
+      { icon: FileBarChart2, title: "Pantau laporan", desc: "Menu Laporan: pilih rentang tanggal, lalu pakai filter keaktifan (Rajin ≥80%, Cukup 50–79%, Jarang <50%, Belum pernah hadir).", img: "admin-3-laporan" },
+      { icon: CalendarDays, title: "Kalender kegiatan", desc: "Menu Kalender menampilkan seluruh jadwal satu bulan; tap tanggal untuk melihat rincian tiap sesi.", img: "admin-4-kalender" },
+      { icon: BookOpen, title: "Program pembelajaran", desc: "Menu Program Pembelajaran: atur kurikulum, materi beserta media, dan jadwal untuk PAUD, Cabe Rawit 1–6, dan Muda-Mudi.", img: "admin-5-program" },
+      { icon: HeartHandshake, title: "Pantau notifikasi", desc: "Lonceng memuat pesan Ruang Teduh, kegiatan baru, pengumuman, musyawarah, dan undangan penting dalam satu daftar.", img: "admin-6-notifikasi" },
     ],
   },
 };
@@ -59,6 +61,7 @@ export default function BantuanView() {
   const [role, setRole] = useState("peserta");
   const [openFaq, setOpenFaq] = useState(null);
   const [kontak, setKontak] = useState(null);
+  const [zoom, setZoom] = useState(null);
 
   useEffect(() => {
     api.get("/bantuan/kontak").then(({ data }) => setKontak(data.items || [])).catch(() => setKontak([]));
@@ -101,21 +104,45 @@ export default function BantuanView() {
             );
           })}
         </div>
-        <ol className="mt-4 space-y-2.5">
+        <ol className="mt-4 space-y-3">
           {guide.steps.map((s, i) => {
             const Icon = s.icon;
             return (
               <li key={s.title} data-testid={`bantuan-step-${role}-${i}`}
-                className="flex gap-3 rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-3.5">
-                <span className="h-9 w-9 shrink-0 rounded-xl bg-[#111114] text-white flex items-center justify-center font-bold text-sm">
-                  {i + 1}
-                </span>
-                <span className="min-w-0">
-                  <span className="font-semibold text-[#111827] text-sm inline-flex items-center gap-1.5">
-                    <Icon size={14} className="text-[#4B5563]" /> {s.title}
+                className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-3.5">
+                <div className="flex gap-3">
+                  <span className="h-9 w-9 shrink-0 rounded-xl bg-[#111114] text-white flex items-center justify-center font-bold text-sm">
+                    {i + 1}
                   </span>
-                  <span className="block text-xs text-[#4B5563] mt-1 leading-relaxed">{s.desc}</span>
-                </span>
+                  <span className="min-w-0">
+                    <span className="font-semibold text-[#111827] text-sm inline-flex items-center gap-1.5">
+                      <Icon size={14} className="text-[#4B5563]" /> {s.title}
+                    </span>
+                    <span className="block text-xs text-[#4B5563] mt-1 leading-relaxed">{s.desc}</span>
+                  </span>
+                </div>
+                {s.img && (
+                  <button
+                    type="button"
+                    data-testid={`bantuan-step-img-${role}-${i}`}
+                    onClick={() => setZoom(`/panduan/${s.img}.jpg`)}
+                    className="mt-3 block w-full rounded-xl overflow-hidden border border-[#E8E8E4] bg-[#F4F4F1] group"
+                    title="Klik untuk memperbesar"
+                  >
+                    <span className={`block mx-auto ${role === "peserta" ? "max-w-[300px]" : "max-w-full"}`}>
+                      <img
+                        src={`/panduan/${s.img}.jpg`}
+                        alt={`Tangkapan layar: ${s.title}`}
+                        loading="lazy"
+                        className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-[1.01]"
+                      />
+                    </span>
+                    <span className="block text-[11px] text-[#6B7280] bg-white px-3 py-1.5 text-left border-t border-[#ECECE8]">
+                      <Maximize2 size={11} className="inline mr-1 -mt-0.5" />
+                      Tangkapan layar asli aplikasi — klik untuk memperbesar
+                    </span>
+                  </button>
+                )}
               </li>
             );
           })}
@@ -199,6 +226,18 @@ export default function BantuanView() {
           </div>
         )}
       </div>
+
+      {zoom && createPortal((
+        <div data-testid="bantuan-zoom" onClick={() => setZoom(null)}
+          className="fixed inset-0 z-[90] bg-black/85 flex items-center justify-center p-4">
+          <button data-testid="bantuan-zoom-close"
+            className="absolute top-4 right-4 h-10 w-10 rounded-xl bg-white/15 text-white flex items-center justify-center hover:bg-white/25">
+            <X size={20} />
+          </button>
+          <img src={zoom} alt="Tangkapan layar panduan"
+            className="max-h-[88vh] max-w-[94vw] rounded-xl shadow-2xl object-contain bg-white" />
+        </div>
+      ), document.body)}
     </div>
   );
 }

@@ -13,8 +13,8 @@ import ProfileMenu from "@/components/ProfileMenu";
 import NotificationBell from "@/components/NotificationBell";
 import DemoBanner from "@/components/DemoBanner";
 import BantuanView from "@/components/BantuanView";
-import ComingSoon from "./ComingSoon";
 import KalenderView from "./KalenderView";
+import ProgramPembelajaran from "./ProgramPembelajaran";
 import { roleLabel } from "@/lib/roles";
 import DashboardView from "./DashboardView";
 import Peserta from "./Peserta";
@@ -208,10 +208,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "peserta-duplikat" && <PesertaDuplikat />}
           {active === "kegiatan" && <KegiatanView />}
           {active === "kalender" && <KalenderView />}
-          {active === "program" && role === "admin" && (
-            <ComingSoon title="Program Pembelajaran"
-              message="Kurikulum, materi per jenjang, dan jadwal pembelajaran peserta akan hadir pada fase berikutnya." />
-          )}
+          {active === "program" && role === "admin" && <ProgramPembelajaran />}
           {active === "bantuan" && <BantuanView />}
           {active === "kode-akses" && <KodeAksesView />}
           {active === "scan-presensi" && <ScanPresensiView />}

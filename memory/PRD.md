@@ -755,3 +755,45 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 - P1: isi Program Pembelajaran (masih Segera Hadir) + menu khusus role Guru.
 - P2: tombol "Reset Data Demo" (bersihkan database demo sekali klik).
 - P2: unduh PDF/Excel rekap; kirim undangan penting via WhatsApp massal.
+
+## FASE 20 — Program Pembelajaran & Panduan Bergambar (2 Okt 2026, uji manual tanpa testing agent)
+
+### Program Pembelajaran (menggantikan "Segera Hadir")
+- Jenjang tetap (13): **PAUD**, **Cabe Rawit 1–6**, serta Muda-Mudi = **Pra Remaja, Remaja,
+  Pra Nikah 1–4** (konstanta `JENJANG` di backend, tidak diubah lewat UI).
+- Backend baru (`/api/program/...`): `GET /program/jenjang`, `GET /program/{jenjang_id}`,
+  `PUT /program/{id}/kurikulum`, `POST /program/{id}/materi`, `PATCH|DELETE /program/materi/{id}`,
+  `POST /program/{id}/jadwal`, `DELETE /program/jadwal/{id}`, `POST /program/upload`,
+  `GET /program/file/{file_id}`. Koleksi: `program_kurikulums`, `program_materis`,
+  `program_jadwals`, `program_files`.
+- Hak ubah: `require_program_editor` → **Adminator & Guru/Pengajar** saja (peran lain hanya melihat).
+- Media pembelajaran: tautan (YouTube/Drive/bacaan) **dan unggah berkas** PDF/JPG/PNG/WEBP/GIF
+  maksimal 10 MB ke **Emergent Object Storage** (`INTEGRATION_PROXY_URL` + `EMERGENT_LLM_KEY`,
+  path `ekertalangu/program/{user_id}/{uuid}.{ext}`, referensi disimpan di MongoDB dengan
+  `is_deleted`). Berkas disajikan ulang lewat backend (`/api/program/file/{id}`), bukan URL storage.
+- Frontend `admin/ProgramPembelajaran.jsx`: daftar jenjang berkelompok, Kurikulum & Capaian
+  (tujuan, metode & media, catatan pengajar), Materi & Media (pekan, uraian, chip tautan/berkas,
+  tambah/edit/hapus), dan Jadwal Pembelajaran (hari, jam, pengajar, tempat). Dipakai di menu
+  sidebar admin dan tab baru **Program Pembelajaran** di area Guru.
+- `scripts/seed_program.py` mengisi kurikulum + 3–4 materi + 1 jadwal untuk ke-13 jenjang
+  (varian PAUD / Cabe Rawit / Muda-Mudi), bisa dijalankan untuk data real maupun demo.
+
+### Panduan Bergambar di Bantuan
+- `scripts/capture_panduan.py` (Playwright) memotret layar asli aplikasi **memakai akun demo**
+  dan menyimpannya ke `frontend/public/panduan/*.jpg` (17 gambar: 5 peserta tampilan HP,
+  6 pengurus, 6 admin). Catatan: tangkapan ditulis dulu ke `/tmp` lalu disalin, karena menulis
+  langsung ke `public/` memicu reload dev-server saat proses berjalan.
+- `components/BantuanView.jsx`: setiap langkah panduan kini menampilkan tangkapan layarnya,
+  bisa diklik untuk diperbesar (lightbox via `createPortal`). Panduan admin menambah langkah
+  Program Pembelajaran dan Pantau Notifikasi.
+
+### Hasil uji manual (curl + screenshot)
+- `GET /program/jenjang` → 13 jenjang, `can_edit=true` untuk admin.
+- Unggah `materi.png` → tersimpan di object storage, diunduh kembali 200 `image/png` 1064 byte.
+- Materi PAUD dengan 1 tautan + 1 berkas tampil lengkap; jadwal PAUD (Ahad 08:00–09:30) tersimpan.
+- UI: halaman Program Pembelajaran tampil untuk PAUD & Pra Nikah 1 (kurikulum, 4 materi, jadwal),
+  panduan bergambar tampil untuk Peserta/Pengurus/Adminator, lightbox gambar berfungsi.
+
+### Backlog berikutnya
+- P1: catatan/capaian peserta per jenjang (penilaian), kaitkan jenjang ke data peserta.
+- P2: tombol "Reset Data Demo"; unduh PDF/Excel rekap; undangan penting via WhatsApp massal.

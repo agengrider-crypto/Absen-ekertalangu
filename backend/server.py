@@ -21,11 +21,12 @@ from typing import List, Optional, Annotated
 import bcrypt
 import jwt
 import qrcode
+import requests
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, Request, Response, HTTPException, Depends, UploadFile, File
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response as FastResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
 
@@ -5449,6 +5450,294 @@ async def bantuan_kontak(user: dict = Depends(get_current_user)):
             "email": s.get("email"),
         })
     return {"items": rows, "demo": is_demo_ctx()}
+
+
+# ------------------------- FASE 20: Program Pembelajaran -------------------------
+# Penyimpanan berkas materi (Emergent Object Storage).
+STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
+STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
+EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+STORAGE_APP = "ekertalangu"
+_storage_key = None
+
+MIME_TYPES = {
+    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+    "webp": "image/webp", "gif": "image/gif", "pdf": "application/pdf",
+}
+
+
+def init_storage(force: bool = False):
+    global _storage_key
+    if _storage_key and not force:
+        return _storage_key
+    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
+    resp.raise_for_status()
+    _storage_key = resp.json()["storage_key"]
+    return _storage_key
+
+
+def put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = init_storage()
+    resp = requests.put(f"{STORAGE_URL}/objects/{path}",
+                        headers={"X-Storage-Key": key, "Content-Type": content_type},
+                        data=data, timeout=120)
+    if resp.status_code == 404:
+        key = init_storage(force=True)
+        resp = requests.put(f"{STORAGE_URL}/objects/{path}",
+                            headers={"X-Storage-Key": key, "Content-Type": content_type},
+                            data=data, timeout=120)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_object(path: str):
+    key = init_storage()
+    resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
+    if resp.status_code == 404:
+        key = init_storage(force=True)
+        resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+
+
+# Jenjang pembelajaran (tetap / tidak diubah lewat UI)
+JENJANG = [
+    {"id": "paud", "label": "PAUD", "group": "Anak Usia Dini", "age": "3–5 tahun"},
+    *[{"id": f"cabe{i}", "label": f"Cabe Rawit {i}", "group": "Cabe Rawit",
+       "age": f"kelas {i} SD"} for i in range(1, 7)],
+    {"id": "pra_remaja", "label": "Pra Remaja", "group": "Muda-Mudi", "age": "SMP"},
+    {"id": "remaja", "label": "Remaja", "group": "Muda-Mudi", "age": "SMA"},
+    *[{"id": f"pra_nikah{i}", "label": f"Pra Nikah {i}", "group": "Muda-Mudi",
+       "age": "usia kerja / kuliah"} for i in range(1, 5)],
+]
+JENJANG_BY_ID = {j["id"]: j for j in JENJANG}
+HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Ahad"]
+
+
+async def require_program_editor(user: dict = Depends(get_current_user)) -> dict:
+    """Program Pembelajaran hanya boleh diubah Adminator dan Guru/Pengajar."""
+    roles = user.get("roles") or []
+    if "admin" not in roles and "guru" not in roles:
+        raise HTTPException(status_code=403, detail="Akses khusus Adminator dan Guru/Pengajar")
+    return user
+
+
+class MediaInput(BaseModel):
+    kind: str = "link"               # link | file
+    label: Optional[str] = None
+    url: Optional[str] = None        # untuk kind=link
+    file_id: Optional[str] = None    # untuk kind=file
+
+
+class KurikulumInput(BaseModel):
+    tujuan: Optional[str] = None     # kurikulum / capaian pembelajaran
+    metode: Optional[str] = None     # metode & media pembelajaran
+    catatan: Optional[str] = None
+
+
+class MateriInput(BaseModel):
+    title: str
+    description: Optional[str] = None
+    pekan: Optional[int] = None      # pekan ke-
+    media: List[MediaInput] = []
+
+
+class JadwalInput(BaseModel):
+    day: str
+    start_time: str
+    end_time: str
+    teacher: Optional[str] = None
+    location: Optional[str] = None
+    note: Optional[str] = None
+
+
+def _jenjang_or_404(jenjang_id: str) -> dict:
+    j = JENJANG_BY_ID.get(jenjang_id)
+    if not j:
+        raise HTTPException(status_code=404, detail="Jenjang tidak ditemukan")
+    return j
+
+
+async def _media_out(media: list) -> list:
+    out = []
+    for m in media or []:
+        item = {"kind": m.get("kind", "link"), "label": m.get("label"),
+                "url": m.get("url"), "file_id": m.get("file_id")}
+        if item["kind"] == "file" and item["file_id"]:
+            f = await db.program_files.find_one({"_id": item["file_id"], "is_deleted": {"$ne": True}})
+            if f:
+                item["label"] = item["label"] or f.get("original_filename")
+                item["content_type"] = f.get("content_type")
+                item["size"] = f.get("size")
+                item["url"] = f"/api/program/file/{item['file_id']}"
+        out.append(item)
+    return out
+
+
+async def serialize_materi(m: dict) -> dict:
+    return {"id": m["_id"], "jenjang_id": m.get("jenjang_id"), "title": m.get("title"),
+            "description": m.get("description"), "pekan": m.get("pekan"),
+            "media": await _media_out(m.get("media")),
+            "updated_at": m.get("updated_at"), "updated_by": m.get("updated_by")}
+
+
+@api_router.get("/program/jenjang")
+async def program_jenjang(user: dict = Depends(get_current_user)):
+    roles = user.get("roles") or []
+    rows = []
+    for j in JENJANG:
+        rows.append({**j,
+                     "materi_count": await db.program_materis.count_documents({"jenjang_id": j["id"]}),
+                     "jadwal_count": await db.program_jadwals.count_documents({"jenjang_id": j["id"]})})
+    return {"items": rows, "hari": HARI,
+            "can_edit": "admin" in roles or "guru" in roles}
+
+
+@api_router.get("/program/{jenjang_id}")
+async def program_detail(jenjang_id: str, user: dict = Depends(get_current_user)):
+    j = _jenjang_or_404(jenjang_id)
+    kur = await db.program_kurikulums.find_one({"_id": jenjang_id}) or {}
+    materis = await db.program_materis.find({"jenjang_id": jenjang_id}) \
+        .sort([("pekan", 1), ("created_at", 1)]).to_list(300)
+    jadwals = await db.program_jadwals.find({"jenjang_id": jenjang_id}) \
+        .sort("start_time", 1).to_list(100)
+    roles = user.get("roles") or []
+    return {
+        "jenjang": j,
+        "kurikulum": {"tujuan": kur.get("tujuan") or "", "metode": kur.get("metode") or "",
+                      "catatan": kur.get("catatan") or "",
+                      "updated_at": kur.get("updated_at"), "updated_by": kur.get("updated_by")},
+        "materi": [await serialize_materi(m) for m in materis],
+        "jadwal": [{"id": x["_id"], "day": x.get("day"), "start_time": x.get("start_time"),
+                    "end_time": x.get("end_time"), "teacher": x.get("teacher"),
+                    "location": x.get("location"), "note": x.get("note")} for x in jadwals],
+        "can_edit": "admin" in roles or "guru" in roles,
+    }
+
+
+@api_router.put("/program/{jenjang_id}/kurikulum")
+async def save_kurikulum(jenjang_id: str, body: KurikulumInput,
+                         editor: dict = Depends(require_program_editor)):
+    _jenjang_or_404(jenjang_id)
+    doc = {"tujuan": (body.tujuan or "").strip(), "metode": (body.metode or "").strip(),
+           "catatan": (body.catatan or "").strip(),
+           "updated_at": now_wita().isoformat(), "updated_by": editor.get("name")}
+    await db.program_kurikulums.update_one({"_id": jenjang_id}, {"$set": doc}, upsert=True)
+    await log_activity(editor, "program_pembelajaran",
+                       f"Memperbarui kurikulum {JENJANG_BY_ID[jenjang_id]['label']}")
+    return {"ok": True, **doc}
+
+
+@api_router.post("/program/{jenjang_id}/materi")
+async def add_materi(jenjang_id: str, body: MateriInput,
+                     editor: dict = Depends(require_program_editor)):
+    _jenjang_or_404(jenjang_id)
+    if not body.title.strip():
+        raise HTTPException(status_code=400, detail="Judul materi wajib diisi")
+    doc = {"_id": str(uuid.uuid4()), "jenjang_id": jenjang_id, "title": body.title.strip(),
+           "description": (body.description or "").strip(), "pekan": body.pekan,
+           "media": [m.model_dump() for m in body.media],
+           "created_at": now_wita().isoformat(), "updated_at": now_wita().isoformat(),
+           "updated_by": editor.get("name")}
+    await db.program_materis.insert_one(doc)
+    await log_activity(editor, "program_pembelajaran",
+                       f"Menambah materi '{doc['title']}' ({JENJANG_BY_ID[jenjang_id]['label']})")
+    return await serialize_materi(doc)
+
+
+@api_router.patch("/program/materi/{materi_id}")
+async def edit_materi(materi_id: str, body: MateriInput,
+                      editor: dict = Depends(require_program_editor)):
+    m = await db.program_materis.find_one({"_id": materi_id})
+    if not m:
+        raise HTTPException(status_code=404, detail="Materi tidak ditemukan")
+    updates = {"title": body.title.strip(), "description": (body.description or "").strip(),
+               "pekan": body.pekan, "media": [x.model_dump() for x in body.media],
+               "updated_at": now_wita().isoformat(), "updated_by": editor.get("name")}
+    await db.program_materis.update_one({"_id": materi_id}, {"$set": updates})
+    await log_activity(editor, "program_pembelajaran", f"Mengubah materi '{updates['title']}'")
+    return await serialize_materi({**m, **updates})
+
+
+@api_router.delete("/program/materi/{materi_id}")
+async def delete_materi(materi_id: str, editor: dict = Depends(require_program_editor)):
+    m = await db.program_materis.find_one({"_id": materi_id})
+    if not m:
+        raise HTTPException(status_code=404, detail="Materi tidak ditemukan")
+    await db.program_materis.delete_one({"_id": materi_id})
+    await log_activity(editor, "program_pembelajaran", f"Menghapus materi '{m.get('title')}'")
+    return {"ok": True}
+
+
+@api_router.post("/program/{jenjang_id}/jadwal")
+async def add_jadwal(jenjang_id: str, body: JadwalInput,
+                     editor: dict = Depends(require_program_editor)):
+    _jenjang_or_404(jenjang_id)
+    if body.day not in HARI:
+        raise HTTPException(status_code=400, detail="Hari tidak valid")
+    doc = {"_id": str(uuid.uuid4()), "jenjang_id": jenjang_id, "day": body.day,
+           "start_time": body.start_time, "end_time": body.end_time,
+           "teacher": (body.teacher or "").strip(), "location": (body.location or "").strip(),
+           "note": (body.note or "").strip(), "created_at": now_wita().isoformat()}
+    await db.program_jadwals.insert_one(doc)
+    await log_activity(editor, "program_pembelajaran",
+                       f"Menambah jadwal {body.day} {body.start_time} "
+                       f"({JENJANG_BY_ID[jenjang_id]['label']})")
+    return {"id": doc["_id"], **{k: doc[k] for k in
+            ("day", "start_time", "end_time", "teacher", "location", "note")}}
+
+
+@api_router.delete("/program/jadwal/{jadwal_id}")
+async def delete_jadwal(jadwal_id: str, editor: dict = Depends(require_program_editor)):
+    res = await db.program_jadwals.delete_one({"_id": jadwal_id})
+    if not res.deleted_count:
+        raise HTTPException(status_code=404, detail="Jadwal tidak ditemukan")
+    await log_activity(editor, "program_pembelajaran", "Menghapus jadwal pembelajaran")
+    return {"ok": True}
+
+
+@api_router.post("/program/upload")
+async def upload_program_file(file: UploadFile = File(...),
+                              editor: dict = Depends(require_program_editor)):
+    """Unggah berkas materi (PDF / gambar) ke penyimpanan aplikasi."""
+    name = file.filename or "berkas"
+    ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+    if ext not in MIME_TYPES:
+        raise HTTPException(status_code=400,
+                            detail="Format berkas harus PDF, JPG, PNG, WEBP, atau GIF")
+    data = await file.read()
+    if len(data) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Ukuran berkas maksimal 10 MB")
+    file_id = str(uuid.uuid4())
+    path = f"{STORAGE_APP}/program/{str(editor['_id'])}/{file_id}.{ext}"
+    content_type = file.content_type or MIME_TYPES[ext]
+    try:
+        result = await asyncio.to_thread(put_object, path, data, content_type)
+    except Exception as exc:
+        logger.error("Unggah berkas gagal: %s", exc)
+        raise HTTPException(status_code=502, detail="Gagal mengunggah berkas. Coba lagi.")
+    await db.program_files.insert_one({
+        "_id": file_id, "storage_path": result["path"], "original_filename": name,
+        "content_type": content_type, "size": result.get("size") or len(data),
+        "is_deleted": False, "uploaded_by": editor.get("name"),
+        "created_at": now_wita().isoformat()})
+    return {"file_id": file_id, "name": name, "content_type": content_type,
+            "size": result.get("size") or len(data), "url": f"/api/program/file/{file_id}"}
+
+
+@api_router.get("/program/file/{file_id}")
+async def download_program_file(file_id: str, user: dict = Depends(get_current_user)):
+    f = await db.program_files.find_one({"_id": file_id, "is_deleted": {"$ne": True}})
+    if not f:
+        raise HTTPException(status_code=404, detail="Berkas tidak ditemukan")
+    try:
+        data, content_type = await asyncio.to_thread(get_object, f["storage_path"])
+    except Exception as exc:
+        logger.error("Ambil berkas gagal: %s", exc)
+        raise HTTPException(status_code=502, detail="Gagal mengambil berkas")
+    return FastResponse(content=data, media_type=f.get("content_type") or content_type,
+                        headers={"Content-Disposition":
+                                 f'inline; filename="{f.get("original_filename")}"'})
 
 
 @api_router.post("/notifications/read")

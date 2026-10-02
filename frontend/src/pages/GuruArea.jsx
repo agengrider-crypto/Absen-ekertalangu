@@ -4,9 +4,11 @@ import { GraduationCap, LifeBuoy, Sparkles, BookOpen, ClipboardList } from "luci
 import ProfileMenu from "@/components/ProfileMenu";
 import BantuanView from "@/components/BantuanView";
 import DemoBanner from "@/components/DemoBanner";
+import ProgramPembelajaran from "@/pages/admin/ProgramPembelajaran";
 
 const TABS = [
   { key: "beranda", label: "Beranda", icon: GraduationCap },
+  { key: "program", label: "Program Pembelajaran", icon: BookOpen },
   { key: "bantuan", label: "Bantuan", icon: LifeBuoy },
 ];
 
@@ -64,18 +66,21 @@ export default function GuruArea({ user }) {
               di sini tersedia jadwal mengajar, materi pembelajaran, dan catatan perkembangan peserta.
             </p>
             <div className="grid sm:grid-cols-2 gap-3 mt-6 text-left max-w-xl mx-auto">
-              <div className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-4">
+              <button onClick={() => setTab("program")} data-testid="guru-goto-program"
+                className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-4 text-left hover:border-[#111114] transition-colors">
                 <BookOpen size={18} className="text-[#111114]" />
-                <div className="font-semibold text-[#111827] text-sm mt-2">Materi &amp; Silabus</div>
-                <p className="text-xs text-[#6B7280] mt-1">Kelola materi tiap pertemuan beserta sumbernya.</p>
-              </div>
+                <div className="font-semibold text-[#111827] text-sm mt-2">Program Pembelajaran</div>
+                <p className="text-xs text-[#6B7280] mt-1">Sudah aktif — kelola kurikulum, materi, media, dan jadwal per jenjang.</p>
+              </button>
               <div className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-4">
                 <ClipboardList size={18} className="text-[#111114]" />
                 <div className="font-semibold text-[#111827] text-sm mt-2">Catatan Peserta</div>
-                <p className="text-xs text-[#6B7280] mt-1">Pantau perkembangan dan hafalan peserta per kelompok.</p>
+                <p className="text-xs text-[#6B7280] mt-1">Pantau perkembangan dan hafalan peserta per kelompok (segera hadir).</p>
               </div>
             </div>
           </div>
+        ) : tab === "program" ? (
+          <ProgramPembelajaran />
         ) : (
           <BantuanView />
         )}
