@@ -797,3 +797,24 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 ### Backlog berikutnya
 - P1: catatan/capaian peserta per jenjang (penilaian), kaitkan jenjang ke data peserta.
 - P2: tombol "Reset Data Demo"; unduh PDF/Excel rekap; undangan penting via WhatsApp massal.
+
+## FASE 21 — Revisi Rekap, Sesi Per Peserta & Perbaikan Login Vercel (2 Okt 2026, uji manual)
+- Rekap Bulanan: kolom kehadiran kini **ringkas** (chip persen saja, keterangan hitungan dihapus);
+  legend disederhanakan jadi arti warna. Ditambah urutan **A–Z / Tertinggi / Terendah**
+  (juga di Laporan → Rekap per Peserta).
+- **Undangan Penting dihapus** seluruhnya (tab kegiatan, kartu peserta, sumber notifikasi,
+  endpoint `/staff/kegiatan/{id}/undangan` & `/me/undangan`, berkas UndanganPenting/UndanganSaya),
+  karena fungsinya sudah tercakup pemilihan peserta pada kegiatan.
+- Istilah "mode ceklis" dihapus dari seluruh antarmuka → "Pilih peserta tertentu".
+- Modal **Tambah Peserta** memakai tampilan terbaru (portal, berseksi, footer tombol).
+- **Peserta per sesi**: `SessionInput.participant_ids` — tiap waktu/sesi bisa punya daftar peserta
+  sendiri (mis. hanya yang bisa hadir pagi), sehingga menandai sesi wajib tidak lagi memaksa
+  semua peserta masuk ke sesi tersebut. Teruji: sesi Pagi 2 peserta terpilih, sesi Malam 9 peserta.
+- **Kalender Kegiatan**: tombol **Buat Kegiatan** pada tanggal terpilih (admin & pengurus),
+  membuka form kegiatan dengan tanggal terisi otomatis.
+- QR diperbesar: QR kegiatan di Scan Presensi (w-48/56) dan QR pribadi peserta (lebar penuh 300px).
+- **Login di Vercel**: respons `/auth/login` kini menyertakan `token`; frontend menyimpannya dan
+  mengirim header `Authorization: Bearer` (lib/api.js), `/auth/refresh` juga menerima header.
+  Mengatasi sesi gagal saat cookie lintas-domain diblokir browser. Teruji: `/auth/me` berhasil
+  hanya dengan header token (tanpa cookie).
+- Catatan: pengujian dilakukan manual (curl + tangkapan layar) sesuai permintaan, tanpa testing agent.

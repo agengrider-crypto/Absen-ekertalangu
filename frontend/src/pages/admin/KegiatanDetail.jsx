@@ -4,11 +4,10 @@ import {
   ListChecks, ScanLine, KeyRound, MessageSquareText, UserPlus, PhoneCall,
   Copy, RefreshCw, Download, Send, Trash2, CheckCircle2, AlertTriangle,
   Users, PhoneOff, ClipboardList, QrCode, MoreHorizontal, Pencil,
-  Share2, RotateCcw, Layers, FileBarChart2, MailWarning,
+  Share2, RotateCcw, Layers, FileBarChart2,
 } from "lucide-react";
 import { toast } from "sonner";
 import ActionModal from "@/components/ActionModal";
-import UndanganPenting from "./UndanganPenting";
 import KegiatanRekapPanel from "./KegiatanRekapPanel";
 import { api, formatApiErrorDetail, isOfflineError } from "@/lib/api";
 import { useOfflineQueue } from "@/lib/offline";
@@ -75,7 +74,6 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
     ...(publik ? [{ key: "tamu", label: "Tamu", icon: UserPlus }] : []),
     { key: "rekap", label: "Rekap / Laporan", icon: FileBarChart2 },
     { key: "pesan", label: "Pesan / Kesan", icon: MessageSquareText },
-    { key: "undangan", label: "Undangan Penting", icon: MailWarning },
   ]), [publik]);
 
   if (!data) {
@@ -182,7 +180,6 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
         )}
         {tab === "publik" && <BarcodePublikPanel kegiatanId={kegiatanId} />}
         {tab === "rekap" && <KegiatanRekapPanel kegiatanId={kegiatanId} />}
-        {tab === "undangan" && <UndanganPenting kegiatanId={kegiatanId} />}
         {tab === "tindak" && <TindakLanjut kegiatanId={kegiatanId} />}
         {tab === "kode" && <KodeAksesPanel kegiatanId={kegiatanId} />}
         {tab === "pesan" && <PesanPanel kegiatanId={kegiatanId} />}

@@ -45,11 +45,11 @@ export default function QrSaya({ user }) {
 
       <div className="bg-white rounded-3xl border border-[#E8E8E4] p-6 flex flex-col items-center">
         {qr === null ? (
-          <div className="h-56 w-56 flex items-center justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>
+          <div className="h-72 w-full flex items-center justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>
         ) : (
           <>
             <div className="p-3 bg-white rounded-2xl border border-[#E8E8E4]">
-              <img data-testid="personal-qr-image" src={qr.image} alt="QR Pribadi" className="h-56 w-56 object-contain" />
+              <img data-testid="personal-qr-image" src={qr.image} alt="QR Pribadi" className="w-full max-w-[300px] h-auto object-contain" />
             </div>
             <div className="mt-4 text-center">
               <div className="font-heading font-bold text-[#111827]">{user?.name}</div>

@@ -1,10 +1,11 @@
 // FASE 18 — Kalender Kegiatan (menu sidebar sendiri).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CalendarRange, ChevronLeft, ChevronRight, Loader2, Clock, MapPin, User, Layers,
+  CalendarRange, ChevronLeft, ChevronRight, Loader2, Clock, MapPin, User, Layers, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import KegiatanFormModal from "./KegiatanFormModal";
 import {
   MONTH_SHORT, tanggalPanjang, TYPE_LABEL, TYPE_COLOR, PHASE_META, phaseOf,
 } from "./kegiatanUtils";
@@ -20,6 +21,7 @@ export default function KalenderView() {
   const [month, setMonth] = useState(() => todayYmd().slice(0, 7));
   const [items, setItems] = useState(null);
   const [pick, setPick] = useState(todayYmd());
+  const [showForm, setShowForm] = useState(false);
 
   const load = useCallback(() => {
     setItems(null);
@@ -117,9 +119,17 @@ export default function KalenderView() {
           </div>
 
           <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid="kalender-detail">
-            <div className="font-bold text-[#111827]">{tanggalPanjang(pick)}</div>
+            <div className="flex items-start justify-between gap-2 flex-wrap">
+              <div className="font-bold text-[#111827]">{tanggalPanjang(pick)}</div>
+              <button data-testid="kalender-tambah-kegiatan" onClick={() => setShowForm(true)}
+                className="h-10 px-3.5 rounded-xl bg-[#111114] text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-black">
+                <Plus size={16} /> Buat Kegiatan
+              </button>
+            </div>
             {dayItems.length === 0 ? (
-              <p className="text-sm text-[#6B7280] mt-2">Tidak ada kegiatan pada tanggal ini.</p>
+              <p className="text-sm text-[#6B7280] mt-2">
+                Tidak ada kegiatan pada tanggal ini — tekan <b>Buat Kegiatan</b> untuk menambah langsung di tanggal ini.
+              </p>
             ) : (
               <div className="mt-3 space-y-2">
                 {dayItems.map((k) => (
@@ -157,6 +167,14 @@ export default function KalenderView() {
             )}
           </div>
         </div>
+      )}
+
+      {showForm && (
+        <KegiatanFormModal
+          initial={{ date: pick }}
+          onClose={() => setShowForm(false)}
+          onDone={() => { setShowForm(false); load(); }}
+        />
       )}
     </div>
   );

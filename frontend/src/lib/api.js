@@ -42,9 +42,31 @@ export function apiPendingCount() {
   return pending;
 }
 
+// FASE 21 — Cadangan sesi lewat header Authorization.
+// Di produksi (mis. frontend Vercel dengan domain berbeda dari API) browser bisa
+// memblokir cookie lintas-situs sehingga login "berhasil" tapi langsung keluar.
+// Token dari respons login disimpan lokal dan dikirim sebagai Bearer token.
+const TOKEN_KEY = "ek_token";
+
+export function getAuthToken() {
+  try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
+}
+
+export function setAuthToken(token) {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch { /* abaikan */ }
+}
+
 api.interceptors.request.use((cfg) => {
   pending += 1;
   emitPending();
+  const t = getAuthToken();
+  if (t) {
+    cfg.headers = cfg.headers || {};
+    if (!cfg.headers.Authorization) cfg.headers.Authorization = `Bearer ${t}`;
+  }
   return cfg;
 });
 
@@ -52,6 +74,11 @@ api.interceptors.response.use(
   (res) => {
     pending = Math.max(0, pending - 1);
     emitPending();
+    const url = res.config?.url || "";
+    if (res.data?.token && (url.includes("/auth/login") || url.includes("/auth/"))) {
+      setAuthToken(res.data.token);
+    }
+    if (url.includes("/auth/logout")) setAuthToken("");
     return res;
   },
   (error) => {

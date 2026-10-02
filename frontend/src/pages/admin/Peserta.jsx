@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Users, Search, Loader2, UserPlus, Trash2, X, Eye, AlertTriangle,
   ClipboardList, CalendarDays, Heart,
@@ -317,18 +318,25 @@ export default function Peserta({ role = "admin" }) {
   );
 }
 
-function ModalShell({ title, children, onClose, testid, wide = false }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
-      <div className={`bg-[#FAFAF8] w-full ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E8E8E4] px-5 py-3.5 flex items-center justify-between z-10">
-          <h2 className="font-heading font-bold text-[#111827]">{title}</h2>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"><X size={20} /></button>
+function ModalShell({ title, subtitle, children, onClose, testid, wide = false }) {
+  return createPortal((
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" onClick={onClose} />
+      <div className={`relative bg-[#F7F7F5] w-full ${wide ? "sm:max-w-3xl" : "sm:max-w-xl"} rounded-t-3xl sm:rounded-3xl max-h-[94vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl`} data-testid={testid}>
+        <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-white">
+          <div className="h-1.5 w-11 rounded-full bg-[#E8E8E4]" />
         </div>
-        <div className="p-5">{children}</div>
+        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#ECECE8] px-5 py-3.5 flex items-start justify-between gap-3 z-10">
+          <div className="min-w-0">
+            <h2 className="font-heading font-bold text-[#111827] text-lg leading-tight">{title}</h2>
+            {subtitle && <p className="text-xs text-[#6B7280] mt-0.5">{subtitle}</p>}
+          </div>
+          <button onClick={onClose} className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F4F4F1]"><X size={19} /></button>
+        </div>
+        <div className="p-4 sm:p-5">{children}</div>
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 function AddModal({ kelompok, onClose, onDone }) {
@@ -356,32 +364,52 @@ function AddModal({ kelompok, onClose, onDone }) {
   };
 
   return (
-    <ModalShell title="Tambah Peserta" onClose={onClose} testid="modal-add">
-      <form onSubmit={submit} className="grid sm:grid-cols-2 gap-3">
-        <input data-testid="add-name" required value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Nama Lengkap *" className={`${inp} sm:col-span-2`} />
-        <select data-testid="add-gender" value={f.gender} onChange={(e) => set("gender", e.target.value)} className={inp}>
-          <option value="">Jenis Kelamin</option>
-          <option value="L">Laki-laki</option>
-          <option value="P">Perempuan</option>
-        </select>
-        <select data-testid="add-marital" value={f.marital} onChange={(e) => set("marital", e.target.value)} className={inp}>
-          <option value="">Status Pernikahan</option>
-          {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <input data-testid="add-birthplace" value={f.birthplace} onChange={(e) => set("birthplace", e.target.value)} placeholder="Tempat Lahir" className={inp} />
-        <DateField testid="add-dob" value={f.dob} onChange={(v) => set("dob", v)} placeholder="Tanggal Lahir" className="h-[46px]" />
-        <input data-testid="add-phone" value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="No. HP / Telepon" className={inp} />
-        <input data-testid="add-whatsapp" value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder="No. WhatsApp" className={inp} />
-        <input data-testid="add-email" type="email" value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="Email" className={inp} />
-        <input data-testid="add-address" value={f.address} onChange={(e) => set("address", e.target.value)} placeholder="Alamat" className={`${inp} sm:col-span-2`} />
-        <select data-testid="add-kelompok" value={f.kelompok_id} onChange={(e) => set("kelompok_id", e.target.value)} className={`${inp} sm:col-span-2`}>
-          <option value="">- Tanpa Kelompok -</option>
-          {kelompok.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
-        </select>
-        <button data-testid="button-submit-add" type="submit" disabled={saving}
-          className="sm:col-span-2 h-12 rounded-xl bg-[#111114] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
-          {saving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Tambahkan
-        </button>
+    <ModalShell title="Tambah Peserta" subtitle="Data dasar peserta baru — status awal menunggu aktivasi."
+      onClose={onClose} testid="modal-add">
+      <form onSubmit={submit} className="space-y-3.5">
+        <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4">
+          <h3 className="font-heading font-bold text-[#111827] text-[15px] mb-3">Identitas</h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input data-testid="add-name" required value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Nama Lengkap *" className={`${inp} sm:col-span-2`} />
+            <select data-testid="add-gender" value={f.gender} onChange={(e) => set("gender", e.target.value)} className={inp}>
+              <option value="">Jenis Kelamin</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+            <select data-testid="add-marital" value={f.marital} onChange={(e) => set("marital", e.target.value)} className={inp}>
+              <option value="">Status Pernikahan</option>
+              {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <input data-testid="add-birthplace" value={f.birthplace} onChange={(e) => set("birthplace", e.target.value)} placeholder="Tempat Lahir" className={inp} />
+            <DateField testid="add-dob" value={f.dob} onChange={(v) => set("dob", v)} placeholder="Tanggal Lahir" className="h-[46px]" />
+          </div>
+          <p className="text-[11px] text-[#92400E] bg-[#FEF3C7] rounded-lg px-2.5 py-2 mt-3 leading-relaxed">
+            Tanggal lahir &amp; status pernikahan dipakai untuk penyaringan kegiatan khusus usia/status.
+          </p>
+        </section>
+
+        <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4">
+          <h3 className="font-heading font-bold text-[#111827] text-[15px] mb-3">Kontak &amp; Kelompok</h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input data-testid="add-phone" value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="No. HP / Telepon" className={inp} />
+            <input data-testid="add-whatsapp" value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder="No. WhatsApp" className={inp} />
+            <input data-testid="add-email" type="email" value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="Email" className={inp} />
+            <input data-testid="add-address" value={f.address} onChange={(e) => set("address", e.target.value)} placeholder="Alamat" className={inp} />
+            <select data-testid="add-kelompok" value={f.kelompok_id} onChange={(e) => set("kelompok_id", e.target.value)} className={`${inp} sm:col-span-2`}>
+              <option value="">- Tanpa Kelompok -</option>
+              {kelompok.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+            </select>
+          </div>
+        </section>
+
+        <div className="flex gap-2">
+          <button type="button" onClick={onClose} data-testid="button-cancel-add"
+            className="h-12 px-4 rounded-xl bg-[#F4F4F1] text-[#4B5563] font-semibold hover:bg-[#E9EDE9]">Batal</button>
+          <button data-testid="button-submit-add" type="submit" disabled={saving}
+            className="flex-1 h-12 rounded-xl bg-[#111114] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
+            {saving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Tambahkan Peserta
+          </button>
+        </div>
       </form>
     </ModalShell>
   );

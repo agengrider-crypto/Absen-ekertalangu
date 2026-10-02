@@ -65,13 +65,13 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
     marital_filter: initial?.marital_filter || "semua",
     age_filter: initial?.age_filter || [],
   });
-  // FASE 18 — mode ceklis peserta tertentu
+  // FASE 18 — pilihan peserta peserta tertentu
   const [pickMode, setPickMode] = useState((initial?.participant_ids || []).length > 0);
   const [participants, setParticipants] = useState(initial?.participant_ids || []);
   const [multi, setMulti] = useState(false);
   const [sessions, setSessions] = useState([
-    { label: "Pagi", start_time: "08:00", end_time: "10:00", teacher: "", material: "", location: "", required: true },
-    { label: "Sore", start_time: "16:00", end_time: "17:30", teacher: "", material: "", location: "", required: true },
+    { label: "Pagi", start_time: "08:00", end_time: "10:00", teacher: "", material: "", location: "", required: true, participant_ids: [] },
+    { label: "Sore", start_time: "16:00", end_time: "17:30", teacher: "", material: "", location: "", required: true, participant_ids: [] },
   ]);
   const [saving, setSaving] = useState(false);
 
@@ -86,7 +86,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
     const used = p.map((s) => s.label);
     const next = SESSION_LABEL_PRESETS.find((l) => !used.includes(l)) || `Sesi ${p.length + 1}`;
     const [st, en] = SESSION_DEFAULT_TIME[next] || ["08:00", "10:00"];
-    return [...p, { label: next, start_time: st, end_time: en, teacher: "", material: "", location: "", required: true }];
+    return [...p, { label: next, start_time: st, end_time: en, teacher: "", material: "", location: "", required: true, participant_ids: [] }];
   });
   const removeSession = (i) => setSessions((p) => p.filter((_, idx) => idx !== i));
 
@@ -98,7 +98,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
       if (sessions.some((s) => !String(s.label).trim())) { toast.error("Nama setiap waktu/sesi wajib diisi"); return; }
     }
     if (pickMode && participants.length === 0) {
-      toast.error("Mode ceklis aktif — mohon centang minimal 1 peserta."); return;
+      toast.error("Mohon centang minimal 1 peserta."); return;
     }
     setSaving(true);
     try {
@@ -109,7 +109,8 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
         toast.success("Kegiatan diperbarui.");
       } else {
         const { data } = await api.post("/admin/kegiatan", {
-          ...f, participant_ids, sessions: multi ? sessions : [],
+          ...f, participant_ids,
+          sessions: multi ? sessions.map(({ pickOn, ...s }) => s) : [],
         });
         const parts = [];
         if (multi) parts.push(`${sessions.length} waktu/sesi`);
@@ -285,6 +286,40 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                             </span>
                           </span>
                         </label>
+
+                        {/* FASE 21 — peserta khusus untuk sesi ini (mis. yang bisa hadir pagi saja) */}
+                        <div className="rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2.5">
+                          <label className="flex items-start gap-2.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              data-testid={`keg-session-pick-${i}`}
+                              checked={(s.participant_ids || []).length > 0 || s.pickOn === true}
+                              onChange={(e) => {
+                                setSession(i, "pickOn", e.target.checked);
+                                if (!e.target.checked) setSession(i, "participant_ids", []);
+                              }}
+                              className="mt-0.5 h-4 w-4 accent-[#111114]"
+                            />
+                            <span className="leading-snug">
+                              <span className="block text-xs font-bold text-[#111827]">
+                                Pilih peserta khusus sesi {s.label || `ke-${i + 1}`}
+                              </span>
+                              <span className="block text-[11px] text-[#6B7280]">
+                                Dipakai bila hanya sebagian peserta yang bisa hadir di waktu ini
+                                (mis. pagi saja / malam saja). Peserta lain tidak ikut terhitung di sesi ini.
+                              </span>
+                            </span>
+                          </label>
+                          {((s.participant_ids || []).length > 0 || s.pickOn === true) && (
+                            <div className="mt-2.5">
+                              <PesertaPicker
+                                value={s.participant_ids || []}
+                                onChange={(v) => setSession(i, "participant_ids", v)}
+                                testid={`keg-session-picker-${i}`}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                     <datalist id="session-presets">
@@ -336,7 +371,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                     checked={pickMode} onChange={(e) => setPickMode(e.target.checked)} />
                   <span>
                     <span className="block text-sm font-bold text-[#111827] inline-flex items-center gap-1.5">
-                      <ListChecks size={15} /> Pilih peserta tertentu (mode ceklis)
+                      <ListChecks size={15} /> Pilih peserta tertentu
                     </span>
                     <span className="block text-xs text-[#6B7280] mt-1 leading-relaxed">
                       Dicentang = hanya peserta yang Anda pilih yang masuk daftar absen, halaman

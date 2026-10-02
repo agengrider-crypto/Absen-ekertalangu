@@ -196,6 +196,7 @@ export default function LaporanView() {
 function PesertaLaporanList({ rows }) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("semua");
+  const [sort, setSort] = useState("nama");
 
   // FASE 18 — filter laporan: rajin / cukup / jarang / belum pernah hadir
   const bucket = (p) => {
@@ -217,6 +218,8 @@ function PesertaLaporanList({ rows }) {
     { key: "belum", label: "Belum Pernah Hadir", desc: "0 kehadiran", cls: "bg-[#4B5563] text-white" },
   ];
   const list = filter === "semua" ? rows : rows.filter((p) => bucket(p) === filter);
+  const sorted = sort === "nama" ? list
+    : [...list].sort((a, b) => (sort === "tertinggi" ? b.ratio - a.ratio : a.ratio - b.ratio));
   const active = FILTERS.find((x) => x.key === filter);
 
   return (
@@ -255,9 +258,14 @@ function PesertaLaporanList({ rows }) {
               })}
             </div>
             <p className="text-[11px] text-[#6B7280] mt-2">
-              Menampilkan <b>{list.length}</b> peserta · kategori <b>{active?.label}</b> ({active?.desc}).
-              Persen dihitung dari kehadiran dibagi jumlah pertemuan yang wajib diikuti peserta tersebut.
+              Menampilkan <b>{sorted.length}</b> peserta · kategori <b>{active?.label}</b> ({active?.desc}).
             </p>
+            <div className="mt-2 flex items-center gap-1 bg-[#F4F4F1] rounded-xl p-1 w-fit" data-testid="laporan-sort">
+              {[["nama", "A–Z"], ["tertinggi", "Tertinggi"], ["terendah", "Terendah"]].map(([v, l]) => (
+                <button key={v} data-testid={`laporan-sort-${v}`} onClick={() => setSort(v)}
+                  className={`h-9 px-3 rounded-lg text-xs font-semibold ${sort === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+              ))}
+            </div>
           </div>
           <div className="overflow-x-auto max-h-[52vh] overflow-y-auto">
           <table className="w-full text-sm">
@@ -271,7 +279,7 @@ function PesertaLaporanList({ rows }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#ECECE8]">
-              {list.map((p, i) => (
+              {sorted.map((p, i) => (
                 <tr key={i} data-testid={`laporan-peserta-row-${i}`}>
                   <td className="px-4 py-2.5">
                     <div className="font-medium text-[#111827]">{p.name}</div>
@@ -287,7 +295,7 @@ function PesertaLaporanList({ rows }) {
                   <td className="px-4 py-2.5 text-right font-bold text-[#111114]">{p.ratio}%</td>
                 </tr>
               ))}
-              {list.length === 0 && (
+              {sorted.length === 0 && (
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Tidak ada peserta pada kategori ini.</td></tr>
               )}
             </tbody>

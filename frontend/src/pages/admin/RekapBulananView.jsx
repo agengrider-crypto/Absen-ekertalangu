@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PercentBar } from "@/pages/PublicRekapGabungan";
 import { SkeletonList } from "@/components/GlobalLoading";
-import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "./rekapUtils";
+import { REKAP, PersenRingkas, ratioColor } from "./rekapUtils";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
   "Agustus", "September", "Oktober", "November", "Desember"];
@@ -38,6 +38,7 @@ export default function RekapBulananView() {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("semua"); // semua | jarang | rajin | belum
   const [gender, setGender] = useState("semua"); // semua | L | P
+  const [sort, setSort] = useState("nama");      // nama | tertinggi | terendah
   const [share, setShare] = useState(null);
   const [sharing, setSharing] = useState(false);
 
@@ -59,8 +60,12 @@ export default function RekapBulananView() {
     if (filter === "jarang") list = list.filter((r) => r.pertemuan > 0 && r.ratio < 50);
     if (filter === "rajin") list = list.filter((r) => r.ratio >= 80 && r.pertemuan > 0);
     if (filter === "belum") list = list.filter((r) => r.pertemuan > 0 && r.hadir === 0);
+    // FASE 21 — urutkan menurut kehadiran tertinggi / terendah
+    if (sort !== "nama") {
+      list = [...list].sort((a, b) => (sort === "tertinggi" ? b.ratio - a.ratio : a.ratio - b.ratio));
+    }
     return list;
-  }, [data, q, filter, gender]);
+  }, [data, q, filter, gender, sort]);
 
   const getLink = async () => {
     if (share) return share;
@@ -210,6 +215,12 @@ export default function RekapBulananView() {
                     className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#0F766E] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
+              <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1" data-testid="rekap-bulanan-sort-tabs">
+                {[["nama", "A–Z"], ["tertinggi", "Tertinggi"], ["terendah", "Terendah"]].map(([v, l]) => (
+                  <button key={v} data-testid={`rekap-bulanan-sort-${v}`} onClick={() => setSort(v)}
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${sort === v ? "bg-white text-[#0F766E] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                ))}
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -218,7 +229,7 @@ export default function RekapBulananView() {
                   <tr>
                     <th className="px-3 py-2 font-semibold">Nama Peserta</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Ikut</th>
-                    <th className="px-3 py-2 font-semibold w-[40%]">Tingkat kehadiran &amp; keterangan</th>
+                    <th className="px-3 py-2 font-semibold w-[30%]">Kehadiran</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Izin</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Alpha</th>
                     <th className="px-3 py-2 font-semibold whitespace-nowrap">Terakhir hadir</th>
@@ -246,9 +257,6 @@ export default function RekapBulananView() {
                         </td>
                         <td className="px-3 py-2.5">
                           <PersenRingkas value={r.ratio} testid={`persen-bulanan-${r.user_id}`} />
-                          <div className="text-[11px] font-semibold text-[#4B5563] mt-1" data-testid={`keterangan-bulanan-${r.user_id}`}>
-                            {keteranganHitungan({ hadir: r.hadir, izin: r.izin, alpha: r.alpha, total: r.pertemuan })}
-                          </div>
                         </td>
                         <td className="px-3 py-2.5 text-center tabular-nums text-[#D97706] font-semibold">{r.izin}</td>
                         <td className="px-3 py-2.5 text-center tabular-nums text-[#DC2626] font-semibold">{r.alpha}</td>
@@ -286,12 +294,8 @@ export default function RekapBulananView() {
           </div>
 
           <div className="rounded-2xl border-2 border-dashed border-[#E8E8E4] bg-white p-4 text-xs text-[#4B5563] space-y-1.5" data-testid="rekap-bulanan-legend">
-            <div className="font-bold text-[#111114] inline-flex items-center gap-1.5"><CheckCircle2 size={14} /> Keterangan hitungan</div>
-            <p>Persen kehadiran = jumlah <b>Hadir</b> ÷ jumlah pertemuan × 100.</p>
-            <p>Hadir + Izin + Alpha selalu sama dengan jumlah pertemuan peserta tersebut, sehingga persennya berjumlah <b>100%</b>.
-              Contoh: Hadir 5× (71,4%) + Izin 1× (14,3%) + Alpha 1× (14,3%) = 100% dari 7 pertemuan.</p>
-            <p>Warna persen: <span className="font-bold text-[#166534]">hijau ≥80%</span>, <span className="font-bold text-[#92400E]">kuning 50–79%</span>, <span className="font-bold text-[#991B1B]">merah &lt;50%</span>.</p>
-            <p>Hadir di salah satu sesi wajib pada hari itu sudah dihitung hadir untuk pertemuan tersebut.</p>
+            <div className="font-bold text-[#111114] inline-flex items-center gap-1.5"><CheckCircle2 size={14} /> Arti warna persen</div>
+            <p><span className="font-bold text-[#166534]">hijau ≥80%</span> · <span className="font-bold text-[#92400E]">kuning 50–79%</span> · <span className="font-bold text-[#991B1B]">merah &lt;50%</span></p>
           </div>
         </>
       )}

@@ -2,7 +2,7 @@
 // Musyawarah, dan Undangan Penting.
 import { useCallback, useEffect, useState } from "react";
 import {
-  Bell, X, CalendarDays, Megaphone, MessagesSquare, HeartHandshake, MailWarning,
+  Bell, X, CalendarDays, Megaphone, MessagesSquare, HeartHandshake,
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -11,7 +11,6 @@ const META = {
   pengumuman: { icon: Megaphone, label: "Pengumuman", cls: "bg-[#FEF3C7] text-[#92400E]" },
   musyawarah: { icon: MessagesSquare, label: "Musyawarah", cls: "bg-[#EEF2FF] text-[#3730A3]" },
   pengaduan: { icon: HeartHandshake, label: "Ruang Teduh", cls: "bg-[#FDF2F8] text-[#9D174D]" },
-  undangan: { icon: MailWarning, label: "Undangan penting", cls: "bg-[#FEE2E2] text-[#991B1B]" },
 };
 
 export default function NotificationBell({ onNavigate }) {

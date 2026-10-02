@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   LifeBuoy, BookOpen, MessageCircleQuestion, PhoneCall, ChevronDown, ScanLine,
-  QrCode, ListChecks, CalendarDays, FileBarChart2, HeartHandshake, MailWarning,
+  QrCode, ListChecks, CalendarDays, FileBarChart2, HeartHandshake,
   UserPlus, KeyRound, Loader2, Send, Mail, ShieldCheck, Maximize2, X,
 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -16,7 +16,7 @@ const GUIDES = {
       { icon: KeyRound, title: "Masuk ke aplikasi", desc: "Isi email / username / nomor HP, lalu kata sandi. Sandi awal peserta = tanggal lahir format HHBBTTTT (mis. 12031988).", img: "peserta-1-masuk" },
       { icon: QrCode, title: "Tunjukkan QR Saya", desc: "Buka tab QR Saya lalu tunjukkan ke petugas absen. QR ini tetap, jadi aman disimpan sebagai tangkapan layar.", img: "peserta-2-qr" },
       { icon: ScanLine, title: "Absen mandiri (bila dibuka)", desc: "Tab Scan dipakai saat pengurus membagikan barcode kegiatan: arahkan kamera ke barcode, kehadiran langsung tercatat.", img: "peserta-3-scan" },
-      { icon: CalendarDays, title: "Lihat jadwal & undangan", desc: "Tab Kegiatan memuat jadwal yang sesuai dengan data Anda. Undangan Penting muncul di beranda dan di lonceng notifikasi.", img: "peserta-4-kegiatan" },
+      { icon: CalendarDays, title: "Lihat jadwal kegiatan", desc: "Tab Kegiatan memuat jadwal yang sesuai dengan data Anda, termasuk kegiatan yang pesertanya dipilih pengurus.", img: "peserta-4-kegiatan" },
       { icon: HeartHandshake, title: "Izin & Ruang Teduh", desc: "Ajukan izin lewat kegiatan terkait, atau kirim keluhan/masukan secara pribadi (boleh tanpa nama) di Ruang Teduh.", img: "peserta-5-ruang-teduh" },
     ],
   },
@@ -25,10 +25,9 @@ const GUIDES = {
     icon: ListChecks,
     steps: [
       { icon: CalendarDays, title: "Buat kegiatan", desc: "Daftar Kegiatan → Tambah Kegiatan. Isi nama, tanggal, jam, pengajar; aktifkan Beberapa waktu bila sehari ada pagi/sore/malam.", img: "pengurus-1-tambah-kegiatan" },
-      { icon: ListChecks, title: "Pilih pesertanya", desc: "Saring lewat jenis kelamin, status, dan kelompok usia — atau centang orangnya langsung dengan Pilih peserta tertentu (mode ceklis).", img: "pengurus-2-mode-ceklis" },
+      { icon: ListChecks, title: "Pilih pesertanya", desc: "Saring lewat jenis kelamin, status, dan kelompok usia — atau centang orangnya langsung dengan Pilih peserta tertentu.", img: "pengurus-2-mode-ceklis" },
       { icon: ListChecks, title: "Catat kehadiran manual", desc: "Buka kegiatan → tab Absen Manual untuk menandai hadir/izin satu per satu.", img: "pengurus-3-absen-manual" },
       { icon: ScanLine, title: "Scan barcode peserta", desc: "Tab Scan Barcode memindai QR peserta; kehadiran langsung tercatat pada sesi yang dibuka.", img: "pengurus-4-scan" },
-      { icon: MailWarning, title: "Undangan penting", desc: "Tab Undangan Penting → centang peserta + tulis pesan. Undangan langsung tampil di lonceng dan beranda peserta.", img: "pengurus-5-undangan" },
       { icon: FileBarChart2, title: "Bagikan rekap", desc: "Tab Rekap / Laporan menyediakan tautan publik, QR, dan tombol bagikan WhatsApp. Penerima melihat rekap tanpa perlu login.", img: "pengurus-6-rekap" },
     ],
   },
@@ -41,7 +40,7 @@ const GUIDES = {
       { icon: FileBarChart2, title: "Pantau laporan", desc: "Menu Laporan: pilih rentang tanggal, lalu pakai filter keaktifan (Rajin ≥80%, Cukup 50–79%, Jarang <50%, Belum pernah hadir).", img: "admin-3-laporan" },
       { icon: CalendarDays, title: "Kalender kegiatan", desc: "Menu Kalender menampilkan seluruh jadwal satu bulan; tap tanggal untuk melihat rincian tiap sesi.", img: "admin-4-kalender" },
       { icon: BookOpen, title: "Program pembelajaran", desc: "Menu Program Pembelajaran: atur kurikulum, materi beserta media, dan jadwal untuk PAUD, Cabe Rawit 1–6, dan Muda-Mudi.", img: "admin-5-program" },
-      { icon: HeartHandshake, title: "Pantau notifikasi", desc: "Lonceng memuat pesan Ruang Teduh, kegiatan baru, pengumuman, musyawarah, dan undangan penting dalam satu daftar.", img: "admin-6-notifikasi" },
+      { icon: HeartHandshake, title: "Pantau notifikasi", desc: "Lonceng memuat pesan Ruang Teduh, kegiatan baru, pengumuman, dan musyawarah dalam satu daftar.", img: "admin-6-notifikasi" },
     ],
   },
 };

@@ -82,8 +82,8 @@ export default function ScanPresensiView() {
                 {r.teacher && <span className="inline-flex items-center gap-1"><User size={13} /> {r.teacher}</span>}
               </div>
 
-              <div className="mt-3 flex items-center gap-3">
-                <img src={r.image} alt={`QR ${r.base_name}`} className="w-28 h-28 rounded-xl border border-[#E8E8E4] p-1.5 shrink-0" data-testid={`scan-qr-${r.id}`} />
+              <div className="mt-3 flex flex-col sm:flex-row items-center gap-4">
+                <img src={r.image} alt={`QR ${r.base_name}`} className="w-56 h-56 sm:w-48 sm:h-48 rounded-xl border border-[#E8E8E4] p-2 shrink-0 bg-white" data-testid={`scan-qr-${r.id}`} />
                 <div className="min-w-0 text-xs text-[#6B7280] space-y-2">
                   <p className="leading-relaxed">
                     <QrCode size={13} className="inline mr-1 text-[#111114]" />

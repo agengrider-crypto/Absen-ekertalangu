@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, HeartHandshake, LifeBuoy, MailWarning, MessagesSquare } from "lucide-react";
+import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, HeartHandshake, LifeBuoy, MessagesSquare } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import RoleSwitcher from "@/components/RoleSwitcher";
 import BantuanView from "@/components/BantuanView";
 import DemoBanner from "@/components/DemoBanner";
-import UndanganSaya from "./peserta/UndanganSaya";
 import Beranda from "./peserta/Beranda";
 import KegiatanList from "./peserta/KegiatanList";
 import ScanTab from "./peserta/ScanTab";
@@ -39,7 +38,7 @@ export default function PesertaArea({ user }) {
   // Tab "Penjaga Absen" dinonaktifkan (absensi memakai kode akses kegiatan).
   const TABS = BASE_TABS;
 
-  // FASE 18 — lonceng notifikasi: semua fitur (kegiatan, pengumuman, undangan penting)
+  // FASE 18 — lonceng notifikasi: semua fitur (kegiatan, pengumuman, musyawarah)
   const loadUpdates = () => api.get("/notifications").then(({ data }) => {
     setUpdates(data.items || []);
     setUnread(data.count || 0);
@@ -116,11 +115,9 @@ export default function PesertaArea({ user }) {
                 ) : updates.map((u) => {
                   const meta = u.type === "kegiatan"
                     ? { Icon: CalendarDays, label: "Kegiatan baru", cls: "bg-[#F1F1EE] text-[#111114]", tab: "kegiatan" }
-                    : u.type === "undangan"
-                      ? { Icon: MailWarning, label: "Undangan penting", cls: "bg-[#FEE2E2] text-[#991B1B]", tab: "beranda" }
-                      : u.type === "musyawarah"
-                        ? { Icon: MessagesSquare, label: "Musyawarah", cls: "bg-[#EEF2FF] text-[#3730A3]", tab: "beranda" }
-                        : { Icon: Megaphone, label: "Pengumuman", cls: "bg-[#FEF3C7] text-[#92400E]", tab: "beranda" };
+                    : u.type === "musyawarah"
+                      ? { Icon: MessagesSquare, label: "Musyawarah", cls: "bg-[#EEF2FF] text-[#3730A3]", tab: "beranda" }
+                      : { Icon: Megaphone, label: "Pengumuman", cls: "bg-[#FEF3C7] text-[#92400E]", tab: "beranda" };
                   const Icon = meta.Icon;
                   return (
                     <button
@@ -148,7 +145,7 @@ export default function PesertaArea({ user }) {
 
       <main className="max-w-lg mx-auto px-4 py-4">
         <DemoBanner />
-        {tab === "beranda" && <><UndanganSaya /><Beranda user={user} onGoto={setTab} /></>}
+        {tab === "beranda" && <Beranda user={user} onGoto={setTab} />}
         {tab === "kegiatan" && <KegiatanList />}
         {tab === "scan" && <ScanTab />}
         {tab === "qr" && <QrSaya user={user} />}
