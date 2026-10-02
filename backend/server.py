@@ -21,7 +21,6 @@ from typing import List, Optional, Annotated
 import bcrypt
 import jwt
 import qrcode
-import requests
 from bson import ObjectId
 from fastapi import FastAPI, APIRouter, Request, Response, HTTPException, Depends, UploadFile, File
 from starlette.middleware.cors import CORSMiddleware
@@ -62,6 +61,9 @@ client = AsyncIOMotorClient(mongo_url, **_mongo_kwargs)
 _DB_NAME = os.environ.get('DB_NAME') or 'ekertalangu'
 _db_real = client[_DB_NAME]
 _db_demo = client[f"{_DB_NAME}_demo"]
+# Mode demo bisa dimatikan lewat env (mis. bila pengguna database tidak berhak
+# mengakses database kedua di MongoDB Atlas).
+DEMO_DB_ENABLED = (os.environ.get("DEMO_MODE") or "on").strip().lower() not in ("off", "0", "false", "no")
 
 # FASE 19 — Mode Demo: data demo benar-benar terpisah (database sendiri).
 # Semua query memakai proxy `db` yang mengikuti konteks request (real / demo),
@@ -731,9 +733,13 @@ async def login(body: LoginInput, request: Request, response: Response):
     # FASE 19 — cari di data real dulu, lalu di data demo (database terpisah).
     use_demo_db(False)
     user = await db.users.find_one(query)
-    if not user:
-        use_demo_db(True)
-        user = await db.users.find_one(query)
+    if not user and DEMO_DB_ENABLED:
+        try:
+            use_demo_db(True)
+            user = await db.users.find_one(query)
+        except Exception as exc:   # database demo tidak tersedia (mis. izin Atlas)
+            logger.warning("Pencarian akun di database demo gagal: %s", exc)
+            user = None
         if not user:
             use_demo_db(False)
     demo = is_demo_ctx()
@@ -5392,6 +5398,10 @@ MIME_TYPES = {
 
 
 def init_storage(force: bool = False):
+    """Ambil storage key. `requests` di-impor di dalam fungsi agar backend tetap
+    jalan di lingkungan tanpa paket tersebut (mis. build serverless lama)."""
+    import requests
+
     global _storage_key
     if _storage_key and not force:
         return _storage_key
@@ -5402,6 +5412,8 @@ def init_storage(force: bool = False):
 
 
 def put_object(path: str, data: bytes, content_type: str) -> dict:
+    import requests
+
     key = init_storage()
     resp = requests.put(f"{STORAGE_URL}/objects/{path}",
                         headers={"X-Storage-Key": key, "Content-Type": content_type},
@@ -5416,6 +5428,8 @@ def put_object(path: str, data: bytes, content_type: str) -> dict:
 
 
 def get_object(path: str):
+    import requests
+
     key = init_storage()
     resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
     if resp.status_code == 404:
@@ -5853,11 +5867,12 @@ DEMO_ACCOUNTS = [
 async def ensure_demo_init():
     """Siapkan database demo: index, kelompok, QR publik, dan akun demo."""
     global _demo_init_done
-    if _demo_init_done:
+    if _demo_init_done or not DEMO_DB_ENABLED:
         return
     async with _demo_init_lock:
         if _demo_init_done:
             return
+        _demo_init_done = True   # cukup satu kali per proses, termasuk bila gagal
         token = _current_db.set(_db_demo)
         try:
             await db.users.create_index("email", unique=True,
@@ -5931,7 +5946,8 @@ async def bootstrap_middleware(request: Request, call_next):
     """Gantikan background worker: init lazy + auto-close ter-throttle tiap request."""
     use_demo_db(False)
     await ensure_init()
-    await ensure_demo_init()
+    if not IS_SERVERLESS:
+        await ensure_demo_init()
     path = request.url.path
     if path.startswith("/api") and not path.startswith("/api/cron"):
         await maybe_auto_close()
