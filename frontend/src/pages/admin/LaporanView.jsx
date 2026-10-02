@@ -195,6 +195,30 @@ export default function LaporanView() {
 
 function PesertaLaporanList({ rows }) {
   const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState("semua");
+
+  // FASE 18 — filter laporan: rajin / cukup / jarang / belum pernah hadir
+  const bucket = (p) => {
+    if ((p.hadir || 0) === 0) return "belum";
+    if (p.ratio >= 80) return "rajin";
+    if (p.ratio >= 50) return "cukup";
+    return "jarang";
+  };
+  const counts = rows.reduce((acc, p) => {
+    const b = bucket(p);
+    acc[b] = (acc[b] || 0) + 1;
+    return acc;
+  }, {});
+  const FILTERS = [
+    { key: "semua", label: "Semua", desc: "seluruh peserta", cls: "bg-[#111114] text-white" },
+    { key: "rajin", label: "Rajin Kegiatan", desc: "kehadiran ≥ 80%", cls: "bg-[#047857] text-white" },
+    { key: "cukup", label: "Cukup", desc: "kehadiran 50–79%", cls: "bg-[#B45309] text-white" },
+    { key: "jarang", label: "Jarang", desc: "kehadiran < 50%", cls: "bg-[#DC2626] text-white" },
+    { key: "belum", label: "Belum Pernah Hadir", desc: "0 kehadiran", cls: "bg-[#4B5563] text-white" },
+  ];
+  const list = filter === "semua" ? rows : rows.filter((p) => bucket(p) === filter);
+  const active = FILTERS.find((x) => x.key === filter);
+
   return (
     <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden mt-5" data-testid="laporan-per-peserta">
       <button
@@ -209,7 +233,33 @@ function PesertaLaporanList({ rows }) {
         <span className="text-sm font-semibold text-[#111114]">{open ? "Tutup" : "Lihat"}</span>
       </button>
       {open && (
-        <div className="border-t border-[#E8E8E4] overflow-x-auto max-h-[52vh] overflow-y-auto">
+        <div className="border-t border-[#E8E8E4]">
+          <div className="p-4 bg-[#FAFAF8] border-b border-[#E8E8E4]" data-testid="laporan-filter-keaktifan">
+            <div className="text-xs font-bold uppercase tracking-wide text-[#9CA3AF] mb-2">Filter keaktifan</div>
+            <div className="flex flex-wrap gap-2">
+              {FILTERS.map((ft) => {
+                const on = filter === ft.key;
+                const n = ft.key === "semua" ? rows.length : (counts[ft.key] || 0);
+                return (
+                  <button
+                    key={ft.key}
+                    data-testid={`laporan-filter-${ft.key}`}
+                    onClick={() => setFilter(ft.key)}
+                    className={`h-10 px-3.5 rounded-xl border-2 text-xs sm:text-sm font-semibold transition-colors ${
+                      on ? `${ft.cls} border-transparent` : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
+                    }`}
+                  >
+                    {ft.label} <span className={on ? "text-white/85" : "text-[#9CA3AF]"}>({n})</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-[#6B7280] mt-2">
+              Menampilkan <b>{list.length}</b> peserta · kategori <b>{active?.label}</b> ({active?.desc}).
+              Persen dihitung dari kehadiran dibagi jumlah pertemuan yang wajib diikuti peserta tersebut.
+            </p>
+          </div>
+          <div className="overflow-x-auto max-h-[52vh] overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0">
               <tr className="bg-[#FAFAF8] text-[#9CA3AF] text-left text-[11px] uppercase tracking-wide">
@@ -221,7 +271,7 @@ function PesertaLaporanList({ rows }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#ECECE8]">
-              {rows.map((p, i) => (
+              {list.map((p, i) => (
                 <tr key={i} data-testid={`laporan-peserta-row-${i}`}>
                   <td className="px-4 py-2.5">
                     <div className="font-medium text-[#111827]">{p.name}</div>
@@ -237,11 +287,12 @@ function PesertaLaporanList({ rows }) {
                   <td className="px-4 py-2.5 text-right font-bold text-[#111114]">{p.ratio}%</td>
                 </tr>
               ))}
-              {rows.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Belum ada data peserta.</td></tr>
+              {list.length === 0 && (
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Tidak ada peserta pada kategori ini.</td></tr>
               )}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

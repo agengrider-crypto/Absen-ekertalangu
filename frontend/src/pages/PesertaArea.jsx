@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, HeartHandshake } from "lucide-react";
+import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, HeartHandshake, LifeBuoy, MailWarning, MessagesSquare } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import RoleSwitcher from "@/components/RoleSwitcher";
+import BantuanView from "@/components/BantuanView";
+import UndanganSaya from "./peserta/UndanganSaya";
 import Beranda from "./peserta/Beranda";
 import KegiatanList from "./peserta/KegiatanList";
 import ScanTab from "./peserta/ScanTab";
@@ -32,17 +34,14 @@ export default function PesertaArea({ user }) {
   const [panel, setPanel] = useState(false);
   const [switcher, setSwitcher] = useState(false);
   const multiRole = (user?.roles?.length || 0) > 1;
-  const seenKey = `upd_seen_${user?.id || "me"}`;
 
   // Tab "Penjaga Absen" dinonaktifkan (absensi memakai kode akses kegiatan).
   const TABS = BASE_TABS;
 
-  // FASE 12 — lonceng notifikasi: kegiatan baru + pengumuman baru
-  const loadUpdates = () => api.get("/me/updates").then(({ data }) => {
-    const items = data.items || [];
-    setUpdates(items);
-    const seen = localStorage.getItem(seenKey) || "";
-    setUnread(items.filter((i) => !seen || i.at > seen).length);
+  // FASE 18 — lonceng notifikasi: semua fitur (kegiatan, pengumuman, undangan penting)
+  const loadUpdates = () => api.get("/notifications").then(({ data }) => {
+    setUpdates(data.items || []);
+    setUnread(data.count || 0);
   }).catch(() => {});
 
   useEffect(() => {
@@ -52,10 +51,13 @@ export default function PesertaArea({ user }) {
     // eslint-disable-next-line
   }, []);
 
-  const openBell = () => {
-    setPanel((p) => !p);
-    if (updates.length) localStorage.setItem(seenKey, updates[0].at);
-    setUnread(0);
+  const openBell = async () => {
+    const next = !panel;
+    setPanel(next);
+    if (next && unread > 0) {
+      setUnread(0);
+      try { await api.post("/notifications/read"); } catch { /* abaikan */ }
+    }
   };
 
   const doLogout = async () => { await logout(); navigate("/login"); };
@@ -72,6 +74,11 @@ export default function PesertaArea({ user }) {
             <span className="font-heading font-bold text-sm">E-KERTALANGU</span>
           </div>
           <div className="flex items-center gap-1">
+            <button data-testid="peserta-bantuan" onClick={() => setTab("bantuan")}
+              className={`h-9 w-9 flex items-center justify-center rounded-lg transition-colors ${tab === "bantuan" ? "bg-[#F1F1EE] text-[#111114]" : "text-[#4B5563] hover:bg-[#F1F1EE] hover:text-[#111114]"}`}
+              title="Bantuan">
+              <LifeBuoy size={18} />
+            </button>
             <button data-testid="peserta-bell" onClick={openBell} className="relative h-9 w-9 flex items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F1F1EE] hover:text-[#111114] transition-colors" title="Notifikasi">
               <Bell size={18} />
               {unread > 0 && (
@@ -104,26 +111,34 @@ export default function PesertaArea({ user }) {
               </div>
               <div className="max-h-[60vh] overflow-y-auto divide-y divide-[#ECECE8]">
                 {updates.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-[#6B7280]">Belum ada kegiatan atau pengumuman baru.</div>
-                ) : updates.map((u) => (
-                  <button
-                    key={`${u.type}-${u.id}`}
-                    data-testid={`peserta-notif-${u.type}-${u.id}`}
-                    onClick={() => { setPanel(false); setTab(u.type === "kegiatan" ? "kegiatan" : "beranda"); }}
-                    className="w-full text-left px-4 py-3 hover:bg-[#F9FAFB] flex gap-3"
-                  >
-                    <span className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center ${u.type === "kegiatan" ? "bg-[#F1F1EE] text-[#111114]" : "bg-[#FEF3C7] text-[#92400E]"}`}>
-                      {u.type === "kegiatan" ? <CalendarDays size={17} /> : <Megaphone size={17} />}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
-                        {u.type === "kegiatan" ? "Kegiatan baru" : "Pengumuman"}
+                  <div className="p-6 text-center text-sm text-[#6B7280]">Belum ada notifikasi baru.</div>
+                ) : updates.map((u) => {
+                  const meta = u.type === "kegiatan"
+                    ? { Icon: CalendarDays, label: "Kegiatan baru", cls: "bg-[#F1F1EE] text-[#111114]", tab: "kegiatan" }
+                    : u.type === "undangan"
+                      ? { Icon: MailWarning, label: "Undangan penting", cls: "bg-[#FEE2E2] text-[#991B1B]", tab: "beranda" }
+                      : u.type === "musyawarah"
+                        ? { Icon: MessagesSquare, label: "Musyawarah", cls: "bg-[#EEF2FF] text-[#3730A3]", tab: "beranda" }
+                        : { Icon: Megaphone, label: "Pengumuman", cls: "bg-[#FEF3C7] text-[#92400E]", tab: "beranda" };
+                  const Icon = meta.Icon;
+                  return (
+                    <button
+                      key={`${u.type}-${u.id}`}
+                      data-testid={`peserta-notif-${u.type}-${u.id}`}
+                      onClick={() => { setPanel(false); setTab(meta.tab); }}
+                      className="w-full text-left px-4 py-3 hover:bg-[#F9FAFB] flex gap-3"
+                    >
+                      <span className={`h-9 w-9 shrink-0 rounded-xl flex items-center justify-center ${meta.cls}`}>
+                        <Icon size={17} />
                       </span>
-                      <span className="block font-semibold text-sm text-[#111114] truncate">{u.title}</span>
-                      {u.subtitle && <span className="block text-xs text-[#6B7280] truncate">{u.subtitle}</span>}
-                    </span>
-                  </button>
-                ))}
+                      <span className="min-w-0">
+                        <span className="block text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">{meta.label}</span>
+                        <span className="block font-semibold text-sm text-[#111114] truncate">{u.title}</span>
+                        {u.subtitle && <span className="block text-xs text-[#6B7280] truncate">{u.subtitle}</span>}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -131,11 +146,12 @@ export default function PesertaArea({ user }) {
       )}
 
       <main className="max-w-lg mx-auto px-4 py-4">
-        {tab === "beranda" && <Beranda user={user} onGoto={setTab} />}
+        {tab === "beranda" && <><UndanganSaya /><Beranda user={user} onGoto={setTab} /></>}
         {tab === "kegiatan" && <KegiatanList />}
         {tab === "scan" && <ScanTab />}
         {tab === "qr" && <QrSaya user={user} />}
         {tab === "curhat" && <RuangTeduh />}
+        {tab === "bantuan" && <BantuanView />}
         {tab === "profil" && <ProfilTab user={user} />}
       </main>
 

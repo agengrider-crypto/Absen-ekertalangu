@@ -2,6 +2,7 @@
 export const ROLE_LABEL = {
   admin: "Adminator",
   pengurus: "Pengurus",
+  guru: "Guru / Pengajar",
   peserta: "Peserta",
 };
 

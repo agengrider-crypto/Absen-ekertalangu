@@ -4,10 +4,12 @@ import {
   ListChecks, ScanLine, KeyRound, MessageSquareText, UserPlus, PhoneCall,
   Copy, RefreshCw, Download, Send, Trash2, CheckCircle2, AlertTriangle,
   Users, PhoneOff, ClipboardList, QrCode, MoreHorizontal, Pencil,
-  Share2, RotateCcw, Layers, FileBarChart2,
+  Share2, RotateCcw, Layers, FileBarChart2, MailWarning,
 } from "lucide-react";
 import { toast } from "sonner";
 import ActionModal from "@/components/ActionModal";
+import UndanganPenting from "./UndanganPenting";
+import KegiatanRekapPanel from "./KegiatanRekapPanel";
 import { api, formatApiErrorDetail, isOfflineError } from "@/lib/api";
 import { useOfflineQueue } from "@/lib/offline";
 import OfflineBanner from "@/components/OfflineBanner";
@@ -70,13 +72,10 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
   const TABS = useMemo(() => ([
     { key: "manual", label: "Absen Manual", icon: ListChecks },
     { key: "scan", label: "Scan Barcode", icon: ScanLine },
-    ...(publik ? [
-      { key: "tamu", label: "Tamu", icon: UserPlus },
-      { key: "publik", label: "Barcode Publik", icon: QrCode },
-    ] : []),
-    { key: "tindak", label: "Tidak Hadir Kemarin", icon: PhoneCall },
-    { key: "kode", label: "Kode Akses", icon: KeyRound },
-    { key: "pesan", label: "Pesan / Saran", icon: MessageSquareText },
+    ...(publik ? [{ key: "tamu", label: "Tamu", icon: UserPlus }] : []),
+    { key: "rekap", label: "Rekap / Laporan", icon: FileBarChart2 },
+    { key: "pesan", label: "Pesan / Kesan", icon: MessageSquareText },
+    { key: "undangan", label: "Undangan Penting", icon: MailWarning },
   ]), [publik]);
 
   if (!data) {
@@ -182,6 +181,8 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
             onReload={() => { load(true); if (onChanged) onChanged(); }} />
         )}
         {tab === "publik" && <BarcodePublikPanel kegiatanId={kegiatanId} />}
+        {tab === "rekap" && <KegiatanRekapPanel kegiatanId={kegiatanId} />}
+        {tab === "undangan" && <UndanganPenting kegiatanId={kegiatanId} />}
         {tab === "tindak" && <TindakLanjut kegiatanId={kegiatanId} />}
         {tab === "kode" && <KodeAksesPanel kegiatanId={kegiatanId} />}
         {tab === "pesan" && <PesanPanel kegiatanId={kegiatanId} />}
@@ -206,16 +207,6 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
               key: "absen-qr", testid: "detail-opsi-absen-qr", label: "QR Absen Mandiri",
               desc: "Peserta absen sendiri lewat akunnya", icon: QrCode,
               onClick: () => onAbsenQr && onAbsenQr(k),
-            },
-            {
-              key: "share", testid: "detail-opsi-share", label: "Bagikan Rekap",
-              desc: "Tautan & QR rekap kegiatan", icon: Share2,
-              onClick: () => onShareRekap && onShareRekap(k),
-            },
-            {
-              key: "reminder", testid: "detail-opsi-reminder", label: "Pengingat WhatsApp",
-              desc: "Kirim pengingat ke peserta", icon: Send,
-              onClick: () => onReminder && onReminder(k),
             },
             ...((k.session_total || 1) > 1 ? [{
               key: "gabungan", testid: "detail-opsi-gabungan", label: "Rekap Gabungan 1 Hari",

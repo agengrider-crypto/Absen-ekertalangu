@@ -3,6 +3,7 @@ import { ArrowLeft, Shield, Users, UserCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import ProfileMenu from "@/components/ProfileMenu";
 import AdminLayout from "@/pages/admin/AdminLayout";
+import GuruArea from "@/pages/GuruArea";
 import PesertaArea from "@/pages/PesertaArea";
 
 const META = {
@@ -29,6 +30,11 @@ export default function RoleArea() {
   // Peserta: mobile-first area with bottom navigation
   if (role === "peserta") {
     return <PesertaArea user={user} />;
+  }
+
+  // Guru / Pengajar: area khusus (segera hadir) + menu Bantuan
+  if (role === "guru") {
+    return <GuruArea user={user} />;
   }
 
   const meta = META[role] || META.peserta;

@@ -5,12 +5,15 @@ import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
   ShieldCheck, Menu, X, LogOut, MessagesSquare, Megaphone, UserCog, Layers,
   MonitorSmartphone, CalendarRange, ListPlus, CopyCheck, KeyRound, ScanLine,
-  ClipboardList, CalendarCheck, HeartHandshake,
+  ClipboardList, CalendarCheck, HeartHandshake, BookOpen, LifeBuoy, CalendarClock,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
-import RuangTeduhBell from "@/components/RuangTeduhBell";
+import NotificationBell from "@/components/NotificationBell";
+import BantuanView from "@/components/BantuanView";
+import ComingSoon from "./ComingSoon";
+import KalenderView from "./KalenderView";
 import { roleLabel } from "@/lib/roles";
 import DashboardView from "./DashboardView";
 import Peserta from "./Peserta";
@@ -46,6 +49,7 @@ const MENU = [
     group: "grup-kegiatan", label: "Kegiatan", icon: CalendarDays, roles: ["admin", "pengurus"],
     items: [
       { key: "kegiatan", label: "Daftar Kegiatan", icon: ClipboardList, roles: ["admin", "pengurus"] },
+      { key: "kalender", label: "Kalender Kegiatan", icon: CalendarClock, roles: ["admin", "pengurus"] },
       { key: "kode-akses", label: "Kode Akses", icon: KeyRound, roles: ["admin", "pengurus"] },
       { key: "scan-presensi", label: "Scan Presensi", icon: ScanLine, roles: ["admin", "pengurus"] },
       { key: "pengumuman", label: "Pengumuman", icon: Megaphone, roles: ["admin", "pengurus"] },
@@ -61,6 +65,8 @@ const MENU = [
   },
   { key: "musyawarah", label: "Musyawarah", icon: MessagesSquare, roles: ["admin", "pengurus"] },
   { key: "pengaduan", label: "Ruang Teduh", icon: HeartHandshake, roles: ["admin", "pengurus"] },
+  { key: "program", label: "Program Pembelajaran", icon: BookOpen, roles: ["admin"] },
+  { key: "bantuan", label: "Bantuan", icon: LifeBuoy, roles: ["admin", "pengurus"] },
   { key: "log", label: "Log Aktivitas", icon: ScrollText, roles: ["admin"] },
   { key: "hakakses", label: "Hak Akses", icon: ShieldCheck, roles: ["admin"] },
 ];
@@ -181,7 +187,13 @@ export default function AdminLayout({ user, role = "admin" }) {
               <Logo size={32} />
             </div>
             <div className="flex items-center gap-2">
-              <RuangTeduhBell onOpen={() => go("pengaduan")} active={active} />
+              <NotificationBell onNavigate={(target) => {
+                const map = {
+                  kegiatan: "kegiatan", pengumuman: "pengumuman",
+                  musyawarah: "musyawarah", pengaduan: "pengaduan",
+                };
+                go(map[target] || "dashboard");
+              }} />
               <ProfileMenu subtitle={roleLabel(role)} />
             </div>
           </div>
@@ -193,6 +205,12 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "peserta-bulk" && <PesertaBulkView />}
           {active === "peserta-duplikat" && <PesertaDuplikat />}
           {active === "kegiatan" && <KegiatanView />}
+          {active === "kalender" && <KalenderView />}
+          {active === "program" && role === "admin" && (
+            <ComingSoon title="Program Pembelajaran"
+              message="Kurikulum, materi per jenjang, dan jadwal pembelajaran peserta akan hadir pada fase berikutnya." />
+          )}
+          {active === "bantuan" && <BantuanView />}
           {active === "kode-akses" && <KodeAksesView />}
           {active === "scan-presensi" && <ScanPresensiView />}
           {active === "musyawarah" && <MusyawarahView />}

@@ -88,7 +88,7 @@ def resolve_base_url(request: Optional[Request] = None) -> str:
 # Session lifetime (masa percobaan): sesi bertahan 365 hari agar tetap login saat refresh web
 SESSION_DAYS = 365
 SESSION_MAX_AGE = SESSION_DAYS * 24 * 60 * 60  # detik
-VALID_ROLES = ["admin", "pengurus", "peserta"]
+VALID_ROLES = ["admin", "pengurus", "guru", "peserta"]
 EDUCATION_OPTIONS = ["TK", "SD", "SMP", "SMA", "D1", "D2", "D3", "D4", "S1", "S2", "S3"]
 MUBALIGH_OPTIONS = ["belum", "sudah"]
 # Status pernikahan peserta (dropdown)
@@ -1514,6 +1514,8 @@ class KegiatanInput(BaseModel):
     # FASE 9 — pengelompokan lanjutan
     marital_filter: str = "semua"      # semua | belum_menikah | sudah_menikah
     age_filter: List[str] = []         # [] = semua usia
+    # FASE 18 — daftar peserta tertentu (mode ceklis). [] = ikut penyaringan di atas.
+    participant_ids: List[str] = []
     # FASE 9 — beberapa waktu/sesi dalam 1 hari (pagi/sore/malam)
     sessions: List[SessionInput] = []
 
@@ -1531,6 +1533,7 @@ class KegiatanUpdate(BaseModel):
     gender_filter: Optional[str] = None
     marital_filter: Optional[str] = None
     age_filter: Optional[List[str]] = None
+    participant_ids: Optional[List[str]] = None
     session_label: Optional[str] = None
 
 
@@ -1596,6 +1599,7 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
         # FASE 9 — pengelompokan lanjutan + sesi (1 hari beberapa waktu)
         "marital_filter": k.get("marital_filter", "semua"),
         "age_filter": normalize_age_filter(k.get("age_filter")),
+        "participant_ids": list(k.get("participant_ids") or []),
         "filter_labels": kegiatan_filter_labels(k),
         "base_name": k.get("base_name") or k.get("name"),
         "session_label": k.get("session_label"),
@@ -1684,6 +1688,9 @@ def kegiatan_filter_labels(k: dict) -> list:
     ages = normalize_age_filter(k.get("age_filter"))
     if ages:
         labels.append("Khusus Usia " + ", ".join(AGE_GROUP_LABEL[a] for a in ages))
+    pids = k.get("participant_ids") or []
+    if pids:
+        labels.append(f"Peserta Terpilih ({len(pids)} orang)")
     return labels
 
 
@@ -1706,6 +1713,9 @@ def match_gender_filter(k: dict, user: dict) -> bool:
     status pernikahan & kelompok usia. Nama fungsi dipertahankan karena
     dipakai di banyak endpoint.
     """
+    pids = k.get("participant_ids") or []
+    if pids and str(user.get("_id")) not in set(pids):
+        return False
     gf = k.get("gender_filter") or "semua"
     if gf in ("L", "P") and (_derive_gender(user) or "L") != gf:
         return False
@@ -1904,6 +1914,11 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
     if marital_filter not in KEGIATAN_MARITAL_FILTERS:
         raise HTTPException(status_code=400, detail="Filter status pernikahan tidak valid")
     age_filter = normalize_age_filter(body.age_filter)
+    participant_ids = []
+    for pid in (body.participant_ids or []):
+        pid = str(pid).strip()
+        if pid and pid not in participant_ids:
+            participant_ids.append(pid)
 
     # FASE 9 — beberapa waktu/sesi dalam 1 hari (mis. pengajian pagi / sore / malam).
     # Setiap sesi menjadi KEGIATAN TERSENDIRI yang saling terhubung lewat
@@ -1960,6 +1975,7 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
                 "gender_filter": gender_filter,
                 "marital_filter": marital_filter,
                 "age_filter": age_filter,
+                "participant_ids": participant_ids,
                 "status": "open",
                 "closed_at": None,
                 "auto_closed": False,
@@ -2055,6 +2071,13 @@ async def update_kegiatan(kegiatan_id: str, body: KegiatanUpdate, admin: dict = 
             updates[field] = val.strip() if isinstance(val, str) else val
     if body.age_filter is not None:
         updates["age_filter"] = normalize_age_filter(body.age_filter)
+    if body.participant_ids is not None:
+        seen = []
+        for pid in body.participant_ids:
+            pid = str(pid).strip()
+            if pid and pid not in seen:
+                seen.append(pid)
+        updates["participant_ids"] = seen
     if "name" in updates and not k.get("session_label"):
         updates["base_name"] = updates["name"]
     if updates:
@@ -5211,6 +5234,163 @@ async def send_kesan_pesan(body: KesanPesanInput, user: dict = Depends(get_curre
                   "message": msg[:3000], "created_at": now_wita().isoformat()}},
         upsert=True)
     return {"message": "Alhamdulillah, jazakumullahu khoiro. Kesan & pesan Anda sudah terkirim."}
+
+
+# ------------------------- FASE 18: Undangan Penting -------------------------
+class UndanganInput(BaseModel):
+    user_ids: List[str] = []
+    message: Optional[str] = None
+
+
+def serialize_undangan(u: dict, k: Optional[dict] = None) -> dict:
+    d = {"kegiatan_id": u.get("kegiatan_id"), "user_ids": list(u.get("user_ids") or []),
+         "message": u.get("message") or "", "created_at": u.get("created_at"),
+         "created_by_name": u.get("created_by_name")}
+    if k:
+        d["kegiatan"] = {"id": k["_id"], "name": k.get("name"), "date": k.get("date"),
+                         "start_time": k.get("start_time"), "end_time": k.get("end_time"),
+                         "location": k.get("location"), "teacher": k.get("teacher"),
+                         "material": k.get("material")}
+    return d
+
+
+@api_router.get("/staff/kegiatan/{kegiatan_id}/undangan")
+async def get_undangan(kegiatan_id: str, staff: dict = Depends(require_staff)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    doc = await db.undangans.find_one({"_id": kegiatan_id}) or {"kegiatan_id": kegiatan_id}
+    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(5000)
+    rows = [{"user_id": str(p["_id"]), "name": p.get("name"),
+             "gender": _derive_gender(p), "status": p.get("status", "active")}
+            for p in peserta]
+    return {**serialize_undangan(doc, k), "peserta": rows}
+
+
+@api_router.post("/staff/kegiatan/{kegiatan_id}/undangan")
+async def save_undangan(kegiatan_id: str, body: UndanganInput,
+                        staff: dict = Depends(require_staff)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    ids = []
+    for uid in (body.user_ids or []):
+        uid = str(uid).strip()
+        if uid and uid not in ids:
+            ids.append(uid)
+    if not ids:
+        raise HTTPException(status_code=400, detail="Mohon centang minimal 1 peserta yang diundang.")
+    doc = {"_id": kegiatan_id, "kegiatan_id": kegiatan_id, "user_ids": ids,
+           "message": (body.message or "").strip()[:1000],
+           "created_at": now_wita().isoformat(),
+           "created_by_id": str(staff["_id"]), "created_by_name": staff.get("name")}
+    await db.undangans.replace_one({"_id": kegiatan_id}, doc, upsert=True)
+    await log_activity(staff, "undangan_penting",
+                       f"Mengirim undangan penting '{k.get('name')}' ke {len(ids)} peserta")
+    return {**serialize_undangan(doc, k),
+            "message_ok": f"Undangan penting terkirim ke {len(ids)} peserta."}
+
+
+@api_router.delete("/staff/kegiatan/{kegiatan_id}/undangan")
+async def delete_undangan(kegiatan_id: str, staff: dict = Depends(require_staff)):
+    await db.undangans.delete_one({"_id": kegiatan_id})
+    await log_activity(staff, "undangan_penting", f"Membatalkan undangan penting kegiatan {kegiatan_id}")
+    return {"ok": True}
+
+
+@api_router.get("/me/undangan")
+async def my_undangan(user: dict = Depends(get_current_user)):
+    uid = str(user["_id"])
+    docs = await db.undangans.find({"user_ids": uid}).sort("created_at", -1).to_list(50)
+    out = []
+    for d in docs:
+        k = await db.kegiatans.find_one({"_id": d.get("kegiatan_id")})
+        if not k:
+            continue
+        out.append(serialize_undangan(d, k))
+    return {"items": out}
+
+
+# ------------------------- FASE 18: Notifikasi semua fitur -------------------------
+NOTIF_SOURCE_LABEL = {
+    "pengaduan": "Ruang Teduh",
+    "kegiatan": "Kegiatan baru",
+    "pengumuman": "Pengumuman",
+    "musyawarah": "Musyawarah",
+    "undangan": "Undangan penting",
+}
+
+
+async def _notif_items_for(user: dict, staff: bool) -> list:
+    items = []
+    today = now_wita().strftime("%Y-%m-%d")
+    uid = str(user["_id"])
+
+    kegs = await db.kegiatans.find({"date": {"$gte": today}}).sort("created_at", -1).to_list(60)
+    for k in kegs:
+        if not staff and not match_gender_filter(k, user):
+            continue
+        items.append({
+            "type": "kegiatan", "id": k["_id"], "title": k.get("name"),
+            "subtitle": f"{k.get('date')} · {k.get('start_time')}–{k.get('end_time')} WITA"
+                        + (f" · {k.get('location')}" if k.get("location") else ""),
+            "at": to_utc_iso(k.get("created_at")), "target": "kegiatan",
+        })
+
+    for p in await db.pengumumans.find().sort("created_at", -1).to_list(30):
+        items.append({"type": "pengumuman", "id": p["_id"], "title": p.get("title"),
+                      "subtitle": (p.get("body") or "")[:90],
+                      "important": bool(p.get("important")),
+                      "at": to_utc_iso(p.get("created_at")), "target": "pengumuman"})
+
+    for d in await db.undangans.find({} if staff else {"user_ids": uid}) \
+            .sort("created_at", -1).to_list(30):
+        k = await db.kegiatans.find_one({"_id": d.get("kegiatan_id")}) or {}
+        items.append({"type": "undangan", "id": d.get("kegiatan_id"),
+                      "title": f"Undangan penting: {k.get('name') or 'Kegiatan'}",
+                      "subtitle": (d.get("message") or
+                                   f"{k.get('date')} · {k.get('start_time')}–{k.get('end_time')} WITA"),
+                      "at": to_utc_iso(d.get("created_at")), "target": "kegiatan"})
+
+    if staff:
+        for m in await db.musyawarahs.find().sort("created_at", -1).to_list(20):
+            items.append({"type": "musyawarah", "id": m["_id"],
+                          "title": MUSY_LABEL.get(m.get("category"), "Musyawarah"),
+                          "subtitle": (m.get("content") or "")[:90],
+                          "at": to_utc_iso(m.get("created_at")), "target": "musyawarah"})
+        for p in await db.pengaduans.find({"read_by": {"$size": 0}}) \
+                .sort("at", -1).to_list(30):
+            who = "Peserta (tanpa nama)" if p.get("anonymous") else (p.get("name") or "Peserta")
+            items.append({"type": "pengaduan", "id": p["_id"],
+                          "title": f"Pesan Ruang Teduh dari {who}",
+                          "subtitle": (p.get("message") or "")[:90],
+                          "at": to_utc_iso(p.get("at")), "target": "pengaduan"})
+
+    items = [i for i in items if i.get("at")]
+    items.sort(key=lambda x: x["at"], reverse=True)
+    return items[:40]
+
+
+@api_router.get("/notifications")
+async def notifications(user: dict = Depends(get_current_user)):
+    """FASE 18 — lonceng notifikasi untuk SEMUA fitur (bukan Ruang Teduh saja)."""
+    roles = user.get("roles") or []
+    staff = bool({"admin", "pengurus"} & set(roles))
+    items = await _notif_items_for(user, staff)
+    read = await db.notif_reads.find_one({"_id": str(user["_id"])}) or {}
+    seen = read.get("seen_at") or ""
+    unread = [i for i in items if not seen or i["at"] > seen]
+    return {"items": items, "count": len(unread), "seen_at": seen or None,
+            "labels": NOTIF_SOURCE_LABEL}
+
+
+@api_router.post("/notifications/read")
+async def notifications_read(user: dict = Depends(get_current_user)):
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.notif_reads.update_one({"_id": str(user["_id"])},
+                                    {"$set": {"seen_at": now_iso}}, upsert=True)
+    return {"ok": True, "seen_at": now_iso}
+
 
 
 @api_router.get("/health")

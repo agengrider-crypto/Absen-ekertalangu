@@ -1,5 +1,5 @@
 import { Navigate, useNavigate } from "react-router-dom";
-import { Shield, Users, UserCheck, LogOut, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
+import { Shield, Users, UserCheck, GraduationCap, LogOut, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
@@ -26,6 +26,18 @@ const ROLE_META = {
       "Buka sesi presensi pengajian, verifikasi kehadiran peserta, dan pantau rekap kehadiran harian.",
     badge: "Akses Operasional",
     action: "Masuk sebagai Pengurus",
+    color: "#4B5563",
+    bg: "#F1F1EE",
+    text: "#4B5563",
+    border: "#D5D5CE",
+  },
+  guru: {
+    icon: GraduationCap,
+    title: "Guru / Pengajar",
+    description:
+      "Jadwal mengajar, materi pembelajaran, dan catatan perkembangan peserta — segera hadir.",
+    badge: "Segera Hadir",
+    action: "Masuk sebagai Guru",
     color: "#4B5563",
     bg: "#F1F1EE",
     text: "#4B5563",
@@ -104,7 +116,7 @@ export default function RoleDashboard() {
         )}
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {["admin", "pengurus", "peserta"].map((rid) => {
+          {["admin", "pengurus", "guru", "peserta"].map((rid) => {
             const meta = ROLE_META[rid];
             const owned = roles.includes(rid);
             if (!owned) return null;

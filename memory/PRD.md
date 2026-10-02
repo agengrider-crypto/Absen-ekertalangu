@@ -663,3 +663,57 @@ Script verifikasi: `/app/tests/fase12_check.py`.
   daftar peserta dengan chip persen + keterangan + rincian status tiap sesi (bisa dibuka),
   serta blok keterangan rumus persen.
 - Diuji: tautan `/rekap-harian/u8TprXBkjQZ4ug` (23 Sep 2026) terbuka tanpa login, 3 sesi, 14 peserta.
+
+## FASE 18 — Peran Guru, Notifikasi Semua Fitur, Kalender & Undangan Penting (2 Okt 2026, uji manual tanpa testing agent)
+
+### Peran & menu baru
+- `VALID_ROLES` backend kini `["admin","pengurus","guru","peserta"]`. Label `guru` = "Guru / Pengajar"
+  (`lib/roles.js`), kartu peran baru di `RoleDashboard`, dan area `pages/GuruArea.jsx`
+  (Beranda "Segera Hadir" + tab Bantuan). Role `guru` bisa dicentang di Hak Akses & Detail Peserta.
+- **Program Pembelajaran** (admin saja) — menu sidebar baru, memakai `ComingSoon`.
+- **Bantuan** — `components/BantuanView.jsx` (Segera Hadir) tersedia di panel admin/pengurus
+  (menu sidebar), area Guru (tab), dan area Peserta (ikon perisai bantuan di header).
+- **Kalender Kegiatan** — menu sidebar baru (`admin/KalenderView.jsx`): grid bulan + jumlah kegiatan
+  per tanggal, panel rincian tanggal terpilih (sesi, pengajar, lokasi, H/I/A, persen).
+
+### Notifikasi semua fitur
+- Backend: `GET /api/notifications` (agregat Ruang Teduh belum dibaca, Kegiatan baru, Pengumuman,
+  Musyawarah, Undangan Penting; peserta hanya melihat yang relevan dengan penyaringan kegiatan) dan
+  `POST /api/notifications/read` (tanda sudah dibaca per user di koleksi `notif_reads`).
+- Frontend: `components/NotificationBell.jsx` menggantikan `RuangTeduhBell` di panel admin/pengurus
+  (dropdown berisi daftar notifikasi, klik langsung membuka menunya). Lonceng peserta memakai
+  endpoint yang sama dan menampilkan jenis undangan/musyawarah.
+
+### Perbaikan fitur absensi
+- **Form Tambah/Edit Kegiatan baru** (`admin/KegiatanFormModal.jsx`, dipisah dari `KegiatanView.jsx`):
+  modal portal berseksi (Informasi / Tanggal & Waktu / Peserta), bottom-sheet di HP dan dialog lebar
+  di PC, tombol simpan selalu terlihat di footer.
+- **Mode ceklis peserta tertentu**: field baru `participant_ids` pada kegiatan
+  (KegiatanInput/Update, `serialize_kegiatan`, `match_gender_filter`, label "Peserta Terpilih (n orang)").
+  Komponen `components/PesertaPicker.jsx` (cari, centang semua, kosongkan) dipakai di form kegiatan.
+- **Modal profil peserta** (`PesertaDetailModal.jsx`) dipindah ke portal + tampilan modal baru
+  (handle bar di HP, header judul + nama).
+- **Tab di detail kegiatan dirapikan** menjadi: Absen Manual, Scan Barcode, Tamu (kegiatan publik),
+  Rekap / Laporan (`admin/KegiatanRekapPanel.jsx` — tautan publik + QR + bagikan WhatsApp),
+  Pesan / Kesan, dan Undangan Penting. Tab Barcode Publik, Tidak Hadir Kemarin, dan Kode Akses
+  dihapus dari daftar; aksi "Bagikan Rekap" & "Pengingat WhatsApp" dihapus dari menu Aksi Kegiatan.
+- **Filter laporan keaktifan** di Rekap per Peserta: Semua / Rajin Kegiatan (≥80%) / Cukup (50–79%) /
+  Jarang (<50%) / Belum Pernah Hadir, lengkap dengan jumlah per kategori.
+
+### Undangan Penting (fitur baru)
+- Backend: `GET|POST|DELETE /api/staff/kegiatan/{id}/undangan` (koleksi `undangans`, 1 dokumen per
+  kegiatan: daftar `user_ids` + pesan, tercatat di Log Aktivitas) dan `GET /api/me/undangan`.
+- Frontend: tab `admin/UndanganPenting.jsx` (ceklis peserta + pesan + batalkan) dan kartu
+  `pages/peserta/UndanganSaya.jsx` di beranda peserta; undangan juga muncul di lonceng notifikasi.
+
+### Hasil uji manual (curl + screenshot)
+- Kegiatan mode ceklis 3 peserta → rekap hanya 3 nama, label "Peserta Terpilih (3 orang)".
+- Undangan terkirim ke 2 peserta → muncul di lonceng admin (2 notifikasi) & beranda peserta
+  (Umi Kulsum), `POST /notifications/read` menurunkan hitungan jadi 0.
+- Kalender Oktober 2026 menampilkan 1 kegiatan (5 Okt), filter laporan September: Jarang 12 orang,
+  Belum Pernah Hadir 2 orang. Area Guru tampil setelah role `guru` diberikan ke Budi Santoso.
+
+### Backlog berikutnya
+- P1: isi Program Pembelajaran & Bantuan (masih Segera Hadir), menu khusus role guru.
+- P1: unduh PDF/Excel rekap harian; daftar tautan bagikan yang bisa dinonaktifkan.
+- P2: kirim undangan penting via WhatsApp massal; grafik tren bulanan; rekap per kelompok sambung.

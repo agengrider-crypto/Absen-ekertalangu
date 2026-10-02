@@ -4,7 +4,7 @@ import { ShieldCheck, Loader2, Save, Search, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 
-const ROLES = ["admin", "pengurus", "peserta"];
+const ROLES = ["admin", "pengurus", "guru", "peserta"];
 
 function RoleRow({ u, currentUserId, draft, onToggle, onSave, saving }) {
   const set = draft || new Set();
