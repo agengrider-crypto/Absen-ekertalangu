@@ -1,12 +1,18 @@
 // FASE 19 — Halaman Bantuan: panduan langkah, tanya jawab, dan kontak pengurus.
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   LifeBuoy, BookOpen, MessageCircleQuestion, PhoneCall, ChevronDown, ScanLine,
   QrCode, ListChecks, CalendarDays, FileBarChart2, HeartHandshake,
-  UserPlus, KeyRound, Loader2, Send, Mail, ShieldCheck, Maximize2, X,
+  UserPlus, KeyRound, Loader2, Send, Mail, ShieldCheck,
 } from "lucide-react";
 import { api } from "@/lib/api";
+
+const ILUSTRASI = {
+  peserta: "https://static.prod-images.emergentagent.com/jobs/452a0aa0-8353-4535-86c4-8a7650973f70/images/8308b6c97a23b837fdbcdb93e1182aaa62c0e4217fbc11f317121bf766bfbe54.jpeg",
+  pengurus: "https://static.prod-images.emergentagent.com/jobs/452a0aa0-8353-4535-86c4-8a7650973f70/images/bb90c70dc7deeb693cd806a77e87f17b136829b15e55908ce7dcb1584855ae47.jpeg",
+  admin: "https://static.prod-images.emergentagent.com/jobs/452a0aa0-8353-4535-86c4-8a7650973f70/images/5f712d4962b7dd6dfc64667d73b1b22d0cc744e004c3dedd8ddff5ee91a6fcbd.jpeg",
+  guru: "https://static.prod-images.emergentagent.com/jobs/452a0aa0-8353-4535-86c4-8a7650973f70/images/fd090cc995debe7124a4d2fde18b997accdc6afb8b312e1133223ba0af4bb57c.jpeg",
+};
 
 const GUIDES = {
   peserta: {
@@ -31,15 +37,25 @@ const GUIDES = {
       { icon: FileBarChart2, title: "Bagikan rekap", desc: "Tab Rekap / Laporan menyediakan tautan publik, QR, dan tombol bagikan WhatsApp. Penerima melihat rekap tanpa perlu login.", img: "pengurus-6-rekap" },
     ],
   },
+  guru: {
+    label: "Guru / Pengajar",
+    icon: BookOpen,
+    steps: [
+      { icon: KeyRound, title: "Masuk ke area Guru", desc: "Setelah masuk, Anda langsung berada di Area Guru. Tombol ganti peran ada di menu profil bila Anda juga peserta/pengurus." },
+      { icon: BookOpen, title: "Program Pembelajaran", desc: "Kurikulum, materi, dan jadwal per jenjang sedang dirapikan — akan hadir kembali di tab Program Pembelajaran." },
+      { icon: ListChecks, title: "Catatan peserta", desc: "Catatan capaian dan hafalan peserta per jenjang menyusul pada pembaruan berikutnya." },
+      { icon: HeartHandshake, title: "Butuh bantuan", desc: "Hubungi pengurus lewat daftar kontak di bagian bawah halaman ini." },
+    ],
+  },
   admin: {
     label: "Adminator",
     icon: ShieldCheck,
     steps: [
       { icon: UserPlus, title: "Kelola peserta", desc: "Menu User untuk menambah/mengubah data. Lengkapi tanggal lahir, jenis kelamin, dan status agar penyaringan kegiatan akurat.", img: "admin-1-peserta" },
       { icon: KeyRound, title: "Atur hak akses", desc: "Menu Hak Akses untuk memberi peran Pengurus atau Guru/Pengajar, serta mengatur ulang kata sandi.", img: "admin-2-hak-akses" },
-      { icon: FileBarChart2, title: "Pantau laporan", desc: "Menu Laporan: pilih rentang tanggal, lalu pakai filter keaktifan (Rajin ≥80%, Cukup 50–79%, Jarang <50%, Belum pernah hadir).", img: "admin-3-laporan" },
+      { icon: FileBarChart2, title: "Pantau laporan", desc: "Menu Laporan menggabungkan harian & bulanan: pilih periode, lihat pantauan kehadiran, jumlah kegiatan, data peserta, lalu filter keaktifan atau buka detail per peserta.", img: "admin-3-laporan" },
       { icon: CalendarDays, title: "Kalender kegiatan", desc: "Menu Kalender menampilkan seluruh jadwal satu bulan; tap tanggal untuk melihat rincian tiap sesi.", img: "admin-4-kalender" },
-      { icon: BookOpen, title: "Program pembelajaran", desc: "Menu Program Pembelajaran: atur kurikulum, materi beserta media, dan jadwal untuk PAUD, Cabe Rawit 1–6, dan Muda-Mudi.", img: "admin-5-program" },
+      { icon: BookOpen, title: "Program pembelajaran", desc: "Menu Program Pembelajaran sedang dirapikan (segera hadir).", img: "admin-5-program" },
       { icon: HeartHandshake, title: "Pantau notifikasi", desc: "Lonceng memuat pesan Ruang Teduh, kegiatan baru, pengumuman, dan musyawarah dalam satu daftar.", img: "admin-6-notifikasi" },
     ],
   },
@@ -56,11 +72,10 @@ const FAQ = [
   { q: "Apa beda akun demo dan akun real?", a: "Akun demo memakai database terpisah sehingga bebas dicoba-coba: peserta, kegiatan, dan absensi demo tidak pernah tercampur dengan data real." },
 ];
 
-export default function BantuanView() {
-  const [role, setRole] = useState("peserta");
+export default function BantuanView({ role: roleProp = "peserta" }) {
+  const role = GUIDES[roleProp] ? roleProp : "peserta";
   const [openFaq, setOpenFaq] = useState(null);
   const [kontak, setKontak] = useState(null);
-  const [zoom, setZoom] = useState(null);
 
   useEffect(() => {
     api.get("/bantuan/kontak").then(({ data }) => setKontak(data.items || [])).catch(() => setKontak([]));
@@ -83,26 +98,14 @@ export default function BantuanView() {
       {/* Panduan langkah */}
       <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5" data-testid="bantuan-panduan">
         <div className="font-bold text-[#111827] inline-flex items-center gap-2">
-          <BookOpen size={17} /> Panduan Pemakaian
+          <BookOpen size={17} /> Panduan Pemakaian — {guide.label}
         </div>
-        <div className="flex flex-wrap gap-2 mt-3">
-          {Object.entries(GUIDES).map(([key, g]) => {
-            const Icon = g.icon;
-            const on = role === key;
-            return (
-              <button
-                key={key}
-                data-testid={`bantuan-panduan-${key}`}
-                onClick={() => setRole(key)}
-                className={`h-10 px-3.5 rounded-xl border-2 text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
-                  on ? "bg-[#111114] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
-                }`}
-              >
-                <Icon size={15} /> {g.label}
-              </button>
-            );
-          })}
-        </div>
+        <img
+          src={ILUSTRASI[role]}
+          alt={`Ilustrasi panduan ${guide.label}`}
+          data-testid={`bantuan-ilustrasi-${role}`}
+          className="mt-3 w-full max-h-64 object-contain rounded-xl bg-[#FAFAF8] border border-[#E8E8E4]"
+        />
         <ol className="mt-4 space-y-3">
           {guide.steps.map((s, i) => {
             const Icon = s.icon;
@@ -120,28 +123,6 @@ export default function BantuanView() {
                     <span className="block text-xs text-[#4B5563] mt-1 leading-relaxed">{s.desc}</span>
                   </span>
                 </div>
-                {s.img && (
-                  <button
-                    type="button"
-                    data-testid={`bantuan-step-img-${role}-${i}`}
-                    onClick={() => setZoom(`/panduan/${s.img}.jpg`)}
-                    className="mt-3 block w-full rounded-xl overflow-hidden border border-[#E8E8E4] bg-[#F4F4F1] group"
-                    title="Klik untuk memperbesar"
-                  >
-                    <span className={`block mx-auto ${role === "peserta" ? "max-w-[300px]" : "max-w-full"}`}>
-                      <img
-                        src={`/panduan/${s.img}.jpg`}
-                        alt={`Tangkapan layar: ${s.title}`}
-                        loading="lazy"
-                        className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-[1.01]"
-                      />
-                    </span>
-                    <span className="block text-[11px] text-[#6B7280] bg-white px-3 py-1.5 text-left border-t border-[#ECECE8]">
-                      <Maximize2 size={11} className="inline mr-1 -mt-0.5" />
-                      Tangkapan layar asli aplikasi — klik untuk memperbesar
-                    </span>
-                  </button>
-                )}
               </li>
             );
           })}
@@ -226,17 +207,6 @@ export default function BantuanView() {
         )}
       </div>
 
-      {zoom && createPortal((
-        <div data-testid="bantuan-zoom" onClick={() => setZoom(null)}
-          className="fixed inset-0 z-[90] bg-black/85 flex items-center justify-center p-4">
-          <button data-testid="bantuan-zoom-close"
-            className="absolute top-4 right-4 h-10 w-10 rounded-xl bg-white/15 text-white flex items-center justify-center hover:bg-white/25">
-            <X size={20} />
-          </button>
-          <img src={zoom} alt="Tangkapan layar panduan"
-            className="max-h-[88vh] max-w-[94vw] rounded-xl shadow-2xl object-contain bg-white" />
-        </div>
-      ), document.body)}
     </div>
   );
 }

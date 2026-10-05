@@ -5679,6 +5679,40 @@ async def download_program_file(file_id: str, user: dict = Depends(get_current_u
                                  f'inline; filename="{f.get("original_filename")}"'})
 
 
+@api_router.get("/staff/statistik-akun")
+async def statistik_akun(staff: dict = Depends(require_staff)):
+    """FASE 22 — ringkasan data peserta & akun untuk laporan terpadu."""
+    users = await db.users.find({"is_system": {"$ne": True}}).to_list(20000)
+    out = {"total_user": len(users), "peserta": 0, "aktif": 0, "belum_aktivasi": 0,
+           "nonaktif": 0, "laki": 0, "perempuan": 0, "belum_lengkap": 0,
+           "admin": 0, "pengurus": 0, "guru": 0}
+    for u in users:
+        roles = u.get("roles") or []
+        status = u.get("status") or "active"
+        if "peserta" in roles:
+            out["peserta"] += 1
+        if "admin" in roles:
+            out["admin"] += 1
+        if "pengurus" in roles:
+            out["pengurus"] += 1
+        if "guru" in roles:
+            out["guru"] += 1
+        if status == "active":
+            out["aktif"] += 1
+        elif status == "pending":
+            out["belum_aktivasi"] += 1
+        else:
+            out["nonaktif"] += 1
+        g = _derive_gender(u)
+        if g == "L":
+            out["laki"] += 1
+        elif g == "P":
+            out["perempuan"] += 1
+        if not u.get("dob") or not u.get("marital") or not g:
+            out["belum_lengkap"] += 1
+    return out
+
+
 @api_router.post("/notifications/read")
 async def notifications_read(user: dict = Depends(get_current_user)):
     now_iso = datetime.now(timezone.utc).isoformat()

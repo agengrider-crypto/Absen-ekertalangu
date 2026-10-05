@@ -14,7 +14,7 @@ import NotificationBell from "@/components/NotificationBell";
 import DemoBanner from "@/components/DemoBanner";
 import BantuanView from "@/components/BantuanView";
 import KalenderView from "./KalenderView";
-import ProgramPembelajaran from "./ProgramPembelajaran";
+import ComingSoon from "./ComingSoon";
 import { roleLabel } from "@/lib/roles";
 import DashboardView from "./DashboardView";
 import Peserta from "./Peserta";
@@ -60,8 +60,6 @@ const MENU = [
     group: "grup-laporan", label: "Laporan & Rekap", icon: FileBarChart2, roles: ["admin", "pengurus"],
     items: [
       { key: "laporan", label: "Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"] },
-      { key: "rekap-bulanan", label: "Rekap Bulanan", icon: CalendarRange, roles: ["admin", "pengurus"] },
-      { key: "rekap-harian", label: "Rekap Harian", icon: CalendarCheck, roles: ["admin", "pengurus"] },
     ],
   },
   { key: "musyawarah", label: "Musyawarah", icon: MessagesSquare, roles: ["admin", "pengurus"] },
@@ -129,9 +127,17 @@ function SidebarInner({ active, onNav, onLogout, role, menu }) {
           <LogOut size={18} /> Keluar
         </button>
       </div>
+
     </div>
   );
 }
+
+const SHORTCUTS = [
+  { key: "dashboard", label: "Beranda", icon: LayoutDashboard },
+  { key: "kegiatan", label: "Kegiatan", icon: ClipboardList },
+  { key: "scan-presensi", label: "Scan", icon: ScanLine },
+  { key: "laporan", label: "Laporan", icon: FileBarChart2 },
+];
 
 export default function AdminLayout({ user, role = "admin" }) {
   const navigate = useNavigate();
@@ -162,11 +168,15 @@ export default function AdminLayout({ user, role = "admin" }) {
 
       {/* Drawer mobile */}
       {drawer && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setDrawer(false)} />
-          <aside className="relative w-[264px] bg-white flex flex-col">
-            <button onClick={() => setDrawer(false)} className="absolute top-4 right-3 text-[#6B7280] h-8 w-8 flex items-center justify-center">
-              <X size={20} />
+        <div className="lg:hidden fixed inset-0 z-50 flex items-end" data-testid="admin-menu-sheet">
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" onClick={() => setDrawer(false)} />
+          <aside className="relative w-full bg-white rounded-t-3xl max-h-[88vh] overflow-y-auto pb-4">
+            <div className="pt-2.5 pb-1 flex justify-center sticky top-0 bg-white">
+              <div className="h-1.5 w-11 rounded-full bg-[#E8E8E4]" />
+            </div>
+            <button onClick={() => setDrawer(false)} data-testid="admin-menu-close"
+              className="absolute top-3 right-3 text-[#6B7280] h-9 w-9 flex items-center justify-center rounded-xl hover:bg-[#F4F4F1]">
+              <X size={19} />
             </button>
             <SidebarInner active={active} onNav={go} onLogout={doLogout} role={role} menu={menu} />
           </aside>
@@ -178,14 +188,12 @@ export default function AdminLayout({ user, role = "admin" }) {
         <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-[#E8E8E4]">
           <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button
-                data-testid="button-open-drawer"
-                onClick={() => setDrawer(true)}
-                className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg border border-[#E8E8E4] text-[#4B5563]"
-              >
-                <Menu size={20} />
-              </button>
-              <Logo size={32} />
+              <div className="min-w-0 max-w-[180px] sm:max-w-none truncate">
+                <Logo size={30} />
+              </div>
+              <span className="hidden sm:inline lg:hidden text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF] whitespace-nowrap">
+                {roleLabel(role)}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <NotificationBell onNavigate={(target) => {
@@ -200,7 +208,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           </div>
         </header>
 
-        <main className="px-4 sm:px-8 py-8 sm:py-10 max-w-6xl mx-auto">
+        <main className="px-4 sm:px-8 py-5 sm:py-10 pb-28 lg:pb-10 max-w-6xl mx-auto">
           <DemoBanner />
           {active === "dashboard" && <DashboardView user={user} onGoto={go} role={role} />}
           {active === "peserta" && <Peserta role={role} />}
@@ -208,8 +216,11 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "peserta-duplikat" && <PesertaDuplikat />}
           {active === "kegiatan" && <KegiatanView />}
           {active === "kalender" && <KalenderView />}
-          {active === "program" && role === "admin" && <ProgramPembelajaran />}
-          {active === "bantuan" && <BantuanView />}
+          {active === "program" && role === "admin" && (
+            <ComingSoon title="Program Pembelajaran"
+              message="Kurikulum, materi per jenjang, dan jadwal pembelajaran sedang dirapikan dan akan hadir kembali." />
+          )}
+          {active === "bantuan" && <BantuanView role={role === "admin" ? "admin" : "pengurus"} />}
           {active === "kode-akses" && <KodeAksesView />}
           {active === "scan-presensi" && <ScanPresensiView />}
           {active === "musyawarah" && <MusyawarahView />}
@@ -224,6 +235,30 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "hakakses" && role === "admin" && <HakAkses currentUserId={user?.id} />}
         </main>
       </div>
+
+      {/* FASE 22 — navigasi bawah khusus HP (mobile-first, seperti area peserta) */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[#E8E8E4] pb-[env(safe-area-inset-bottom)]"
+        data-testid="admin-bottomnav">
+        <div className="grid grid-cols-5">
+          {SHORTCUTS.filter((sc) => allKeys.includes(sc.key)).map((sc) => {
+            const Icon = sc.icon;
+            const on = active === sc.key;
+            return (
+              <button key={sc.key} data-testid={`admin-bottomnav-${sc.key}`} onClick={() => go(sc.key)}
+                className={`h-16 flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition-colors ${
+                  on ? "text-[#111114]" : "text-[#9CA3AF]"}`}>
+                <Icon size={20} />
+                {sc.label}
+                {on && <span className="absolute bottom-1 h-1 w-6 rounded-full bg-[#111114]" />}
+              </button>
+            );
+          })}
+          <button data-testid="button-open-drawer" onClick={() => setDrawer(true)}
+            className="h-16 flex flex-col items-center justify-center gap-1 text-[11px] font-semibold text-[#9CA3AF]">
+            <Menu size={20} /> Menu
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

@@ -1,364 +1,312 @@
-import { useCallback, useEffect, useState } from "react";
+// FASE 22 — Laporan terpadu: harian + bulanan + data peserta dalam satu halaman.
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
-  FileBarChart2, Loader2, FileSpreadsheet, FileText, TrendingUp, Award, AlertTriangle,
-  Link as LinkIcon, Copy, Download, X, ExternalLink, Send, Users,
+  FileBarChart2, Loader2, CalendarDays, CalendarRange, Users, ClipboardList,
+  Link2, Copy, Send, X, UserCheck, UserX, AlertTriangle, Search, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
-import { tanggalSingkat, TYPE_LABEL } from "./kegiatanUtils";
-import TamuLaporanList from "@/components/TamuLaporanList";
 
-const inp = "h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
+const inp = "h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white";
 
 function todayYmd() {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
 }
-function firstOfMonth() {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-01`;
-}
 
-export default function LaporanView() {
-  const [tab, setTab] = useState("bulanan");
-  const [from, setFrom] = useState(firstOfMonth());
-  const [to, setTo] = useState(todayYmd());
-  const [data, setData] = useState(null);
-  const [exporting, setExporting] = useState("");
-
-  const load = useCallback(() => {
-    setData(null);
-    api.get(`/admin/laporan?date_from=${from}&date_to=${to}`)
-      .then(({ data: d }) => setData(d))
-      .catch((e) => { setData(false); toast.error(formatApiErrorDetail(e.response?.data?.detail)); });
-  }, [from, to]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const setPreset = (t) => {
-    setTab(t);
-    if (t === "harian") { setFrom(todayYmd()); setTo(todayYmd()); }
-    else if (t === "bulanan") { setFrom(firstOfMonth()); setTo(todayYmd()); }
+function Stat({ icon: Icon, label, value, sub, tone = "default", testid }) {
+  const tones = {
+    default: "bg-white border-[#E8E8E4] text-[#111114]",
+    good: "bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]",
+    warn: "bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]",
+    bad: "bg-[#FEF2F2] border-[#FECACA] text-[#991B1B]",
   };
-
-  const doExport = async (format) => {
-    setExporting(format);
-    try {
-      const res = await api.get(`/admin/laporan/export?format=${format}&date_from=${from}&date_to=${to}`, { responseType: "blob" });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `laporan_${from}_${to}.${format === "pdf" ? "pdf" : "xlsx"}`;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast.error("Gagal mengekspor laporan");
-    } finally { setExporting(""); }
-  };
-
-  const [shareData, setShareData] = useState(null);
-  const [sharing, setSharing] = useState(false);
-
-  const buatLink = async () => {
-    setSharing(true);
-    try {
-      const { data: d } = await api.post("/admin/laporan/share", {
-        date_from: from, date_to: to, mode: tab,
-      });
-      setShareData(d);
-    } catch (e) {
-      toast.error(formatApiErrorDetail(e.response?.data?.detail));
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  const s = data?.summary || {};
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
-          <FileBarChart2 size={20} /> Laporan Kehadiran
-        </div>
-        <div className="flex items-center gap-2">
-          <button data-testid="button-buat-link-laporan" onClick={buatLink} disabled={sharing}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000] disabled:opacity-60">
-            {sharing ? <Loader2 className="animate-spin" size={16} /> : <LinkIcon size={16} />} Buat Link Laporan
-          </button>
-          <button data-testid="button-export-excel" onClick={() => doExport("excel")} disabled={!!exporting}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE] disabled:opacity-50">
-            {exporting === "excel" ? <Loader2 className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} Excel
-          </button>
-          <button data-testid="button-export-pdf" onClick={() => doExport("pdf")} disabled={!!exporting}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE] disabled:opacity-50">
-            {exporting === "pdf" ? <Loader2 className="animate-spin" size={16} /> : <FileText size={16} />} PDF
-          </button>
-        </div>
+    <div data-testid={testid} className={`rounded-2xl border-2 p-4 ${tones[tone]}`}>
+      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide opacity-70">
+        <Icon size={14} /> {label}
       </div>
-
-      {/* Tabs + range */}
-      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 mb-5">
-        <div className="flex items-center gap-1 bg-[#F4F4F1] rounded-xl p-1 w-fit mb-3">
-          {[["harian", "Harian"], ["bulanan", "Bulanan"], ["custom", "Rentang"]].map(([v, l]) => (
-            <button key={v} data-testid={`tab-${v}`} onClick={() => setPreset(v)}
-              className={`h-9 px-4 rounded-lg text-sm font-semibold ${tab === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
-          ))}
-        </div>
-        <div className="flex items-end gap-3 flex-wrap">
-          <div>
-            <label className="block text-xs font-semibold text-[#6B7280] mb-1">Dari</label>
-            <input data-testid="laporan-from" type="date" value={from} onChange={(e) => { setFrom(e.target.value); setTab("custom"); }} className={inp} />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#6B7280] mb-1">Sampai</label>
-            <input data-testid="laporan-to" type="date" value={to} onChange={(e) => { setTo(e.target.value); setTab("custom"); }} className={inp} />
-          </div>
-        </div>
-      </div>
-
-      {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
-      ) : data === false ? (
-        <div className="p-10 text-center text-[#6B7280]">Gagal memuat laporan.</div>
-      ) : (
-        <div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-5">
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#111114]">{s.ratio}%</div><div className="text-sm text-[#6B7280] mt-1">Kehadiran</div></div>
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#111114]">{s.hadir}</div><div className="text-sm text-[#6B7280] mt-1">Total Hadir</div></div>
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#92400E]">{s.izin}</div><div className="text-sm text-[#6B7280] mt-1">Total Izin</div></div>
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#991B1B]">{s.alpha}</div><div className="text-sm text-[#6B7280] mt-1">Total Alpha</div></div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 mb-5">
-            <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]">
-              <div className="text-sm font-semibold text-[#111827] mb-1">Kehadiran per Jenis Kelamin</div>
-              <div className="flex gap-4 text-sm text-[#4B5563]">
-                <span>Laki-laki: <b className="text-[#111114]">{data.gender_hadir?.L ?? 0}</b></span>
-                <span>Perempuan: <b className="text-[#9CA3AF]">{data.gender_hadir?.P ?? 0}</b></span>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]">
-              <div className="text-sm text-[#6B7280]">Periode <b className="text-[#111827]">{tanggalSingkat(data.date_from)}</b> s/d <b className="text-[#111827]">{tanggalSingkat(data.date_to)}</b> · {data.total_kegiatan} kegiatan · {data.total_peserta} peserta · <b className="text-[#B45309]">{data.total_tamu ?? 0} tamu</b></div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="laporan-table">
-            <div className="px-5 py-3.5 border-b border-[#E8E8E4] flex items-center gap-2 font-bold text-[#111827]"><TrendingUp size={17} /> Rincian per Kegiatan</div>
-            {(!data.per_kegiatan || data.per_kegiatan.length === 0) ? (
-              <div className="p-8 text-center text-[#6B7280] text-sm">Tidak ada kegiatan pada periode ini.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#FAFAF8] text-[#6B7280] text-left">
-                      <th className="px-4 py-3 font-semibold">Tanggal</th>
-                      <th className="px-4 py-3 font-semibold">Kegiatan</th>
-                      <th className="px-4 py-3 font-semibold text-center">Hadir</th>
-                      <th className="px-4 py-3 font-semibold text-center">Izin</th>
-                      <th className="px-4 py-3 font-semibold text-center">Alpha</th>
-                      <th className="px-4 py-3 font-semibold text-center">%</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E8E8E4]">
-                    {data.per_kegiatan.map((r) => (
-                      <tr key={r.id}>
-                        <td className="px-4 py-3 text-[#4B5563] whitespace-nowrap">{tanggalSingkat(r.date)}</td>
-                        <td className="px-4 py-3">
-                          <div className="font-semibold text-[#111827]">{r.name}</div>
-                          <div className="text-xs text-[#9CA3AF]">{TYPE_LABEL[r.type]}</div>
-                        </td>
-                        <td className="px-4 py-3 text-center text-[#111114] font-semibold">{r.hadir}</td>
-                        <td className="px-4 py-3 text-center text-[#92400E]">{r.izin}</td>
-                        <td className="px-4 py-3 text-center text-[#991B1B]">{r.alpha}</td>
-                        <td className="px-4 py-3 text-center font-bold text-[#111114]">{r.ratio}%</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Rekap per peserta (dropdown) */}
-          <PesertaLaporanList rows={data.per_peserta || []} />
-
-          {/* Daftar tamu TERPISAH dari peserta terdaftar */}
-          <TamuLaporanList rows={data.tamu || []} />
-        </div>
-      )}
-
-      {shareData && <LaporanLinkModal data={shareData} onClose={() => setShareData(null)} />}
+      <div className="font-heading font-bold text-2xl mt-1.5 tabular-nums">{value}</div>
+      {sub && <div className="text-[11px] opacity-70 mt-0.5">{sub}</div>}
     </div>
   );
 }
 
-function PesertaLaporanList({ rows }) {
-  const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState("semua");
-  const [sort, setSort] = useState("nama");
+function PersenChip({ value }) {
+  const cls = value >= 80 ? "bg-[#DCFCE7] text-[#166534]"
+    : value >= 50 ? "bg-[#FEF3C7] text-[#92400E]" : "bg-[#FEE2E2] text-[#991B1B]";
+  return <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold tabular-nums ${cls}`}>{value}%</span>;
+}
 
-  // FASE 18 — filter laporan: rajin / cukup / jarang / belum pernah hadir
-  const bucket = (p) => {
-    if ((p.hadir || 0) === 0) return "belum";
-    if (p.ratio >= 80) return "rajin";
-    if (p.ratio >= 50) return "cukup";
-    return "jarang";
+function DetailModal({ row, periode, onClose }) {
+  if (!row) return null;
+  const total = row.pertemuan || 0;
+  const pct = (n) => (total ? Math.round((n / total) * 1000) / 10 : 0);
+  return createPortal((
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative bg-[#F7F7F5] w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto"
+        data-testid="laporan-detail-modal">
+        <div className="sticky top-0 bg-white/95 backdrop-blur px-5 py-3.5 border-b border-[#ECECE8] flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="font-heading font-bold text-lg text-[#111827] truncate">{row.name}</h2>
+            <p className="text-xs text-[#6B7280]">{periode}</p>
+          </div>
+          <button onClick={onClose} data-testid="laporan-detail-close"
+            className="h-9 w-9 shrink-0 rounded-xl text-[#6B7280] hover:bg-[#F4F4F1] flex items-center justify-center"><X size={19} /></button>
+        </div>
+        <div className="p-4 sm:p-5 space-y-3">
+          <div className="rounded-2xl bg-white border border-[#E8E8E4] p-4 text-center">
+            <PersenChip value={row.ratio ?? 0} />
+            <p className="text-xs text-[#6B7280] mt-2">
+              Hadir {row.hadir ?? 0} dari {total} pertemuan yang diikuti
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[["Hadir", row.hadir ?? 0, "good"], ["Izin", row.izin ?? 0, "warn"], ["Alpha", row.alpha ?? 0, "bad"]]
+              .map(([l, v, t]) => (
+                <div key={l} className={`rounded-xl border-2 p-3 text-center ${
+                  t === "good" ? "bg-[#F0FDF4] border-[#BBF7D0] text-[#166534]"
+                    : t === "warn" ? "bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]"
+                      : "bg-[#FEF2F2] border-[#FECACA] text-[#991B1B]"}`}>
+                  <div className="text-[11px] font-bold uppercase opacity-70">{l}</div>
+                  <div className="font-bold text-xl tabular-nums">{v}</div>
+                  <div className="text-[11px] opacity-70">{pct(v)}%</div>
+                </div>
+              ))}
+          </div>
+          <div className="rounded-2xl bg-white border border-[#E8E8E4] p-4 text-sm text-[#4B5563] space-y-1.5">
+            <div><b className="text-[#111827]">Jenis kelamin:</b> {row.gender === "L" ? "Laki-laki" : row.gender === "P" ? "Perempuan" : "—"}</div>
+            {row.kelompok_name && <div><b className="text-[#111827]">Kelompok:</b> {row.kelompok_name}</div>}
+            <div><b className="text-[#111827]">Terakhir hadir:</b> {row.last_date || "—"}</div>
+            <div><b className="text-[#111827]">Status akun:</b> {row.account_status === "pending" ? "Belum aktivasi" : "Aktif"}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  ), document.body);
+}
+
+export default function LaporanView() {
+  const [mode, setMode] = useState("bulanan");          // bulanan | harian
+  const [month, setMonth] = useState(() => todayYmd().slice(0, 7));
+  const [date, setDate] = useState(todayYmd());
+  const [data, setData] = useState(null);
+  const [akun, setAkun] = useState(null);
+  const [q, setQ] = useState("");
+  const [filter, setFilter] = useState("semua");
+  const [sort, setSort] = useState("tertinggi");
+  const [detail, setDetail] = useState(null);
+  const [share, setShare] = useState(null);
+  const [sharing, setSharing] = useState(false);
+
+  const load = useCallback(() => {
+    setData(null); setShare(null);
+    const url = mode === "bulanan" ? `/staff/rekap-bulanan?month=${month}` : `/staff/rekap-harian?date=${date}`;
+    api.get(url).then(({ data: d }) => setData(d))
+      .catch((e) => { setData(false); toast.error(formatApiErrorDetail(e.response?.data?.detail)); });
+  }, [mode, month, date]);
+
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { api.get("/staff/statistik-akun").then(({ data: d }) => setAkun(d)).catch(() => {}); }, []);
+
+  const rows = useMemo(() => {
+    let list = (data?.rows || []).map((r) => ({
+      ...r,
+      pertemuan: r.pertemuan ?? r.sesi_total ?? 0,
+      ratio: r.ratio ?? 0,
+    }));
+    const s = q.trim().toLowerCase();
+    if (s) list = list.filter((r) => (r.name || "").toLowerCase().includes(s));
+    if (filter === "rajin") list = list.filter((r) => r.ratio >= 80);
+    if (filter === "cukup") list = list.filter((r) => r.ratio >= 50 && r.ratio < 80);
+    if (filter === "jarang") list = list.filter((r) => r.ratio < 50 && (r.hadir || 0) > 0);
+    if (filter === "belum") list = list.filter((r) => (r.hadir || 0) === 0);
+    if (sort !== "nama") {
+      list = [...list].sort((a, b) => (sort === "tertinggi" ? b.ratio - a.ratio : a.ratio - b.ratio));
+    }
+    return list;
+  }, [data, q, filter, sort]);
+
+  const ringkas = useMemo(() => {
+    const r = data?.rows || [];
+    const hadir = r.reduce((a, x) => a + (x.hadir || 0), 0);
+    const izin = r.reduce((a, x) => a + (x.izin || 0), 0);
+    const alpha = r.reduce((a, x) => a + (x.alpha || 0), 0);
+    const avg = r.length ? Math.round((r.reduce((a, x) => a + (x.ratio || 0), 0) / r.length) * 10) / 10 : 0;
+    const kegiatan = mode === "bulanan"
+      ? (data?.total_kegiatan ?? data?.total_pertemuan ?? 0)
+      : (data?.total_sesi ?? data?.sesi?.length ?? 0);
+    return { hadir, izin, alpha, avg, kegiatan, peserta: r.length };
+  }, [data, mode]);
+
+  const buatTautan = async () => {
+    setSharing(true);
+    try {
+      const url = mode === "bulanan"
+        ? `/staff/rekap-bulanan/share?month=${month}`
+        : `/staff/rekap-harian/share?date=${date}`;
+      const { data: d } = await api.post(url);
+      setShare(d);
+      toast.success("Tautan laporan siap dibagikan.");
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+    finally { setSharing(false); }
   };
-  const counts = rows.reduce((acc, p) => {
-    const b = bucket(p);
-    acc[b] = (acc[b] || 0) + 1;
-    return acc;
-  }, {});
-  const FILTERS = [
-    { key: "semua", label: "Semua", desc: "seluruh peserta", cls: "bg-[#111114] text-white" },
-    { key: "rajin", label: "Rajin Kegiatan", desc: "kehadiran ≥ 80%", cls: "bg-[#047857] text-white" },
-    { key: "cukup", label: "Cukup", desc: "kehadiran 50–79%", cls: "bg-[#B45309] text-white" },
-    { key: "jarang", label: "Jarang", desc: "kehadiran < 50%", cls: "bg-[#DC2626] text-white" },
-    { key: "belum", label: "Belum Pernah Hadir", desc: "0 kehadiran", cls: "bg-[#4B5563] text-white" },
-  ];
-  const list = filter === "semua" ? rows : rows.filter((p) => bucket(p) === filter);
-  const sorted = sort === "nama" ? list
-    : [...list].sort((a, b) => (sort === "tertinggi" ? b.ratio - a.ratio : a.ratio - b.ratio));
-  const active = FILTERS.find((x) => x.key === filter);
+
+  const unduh = async (format) => {
+    try {
+      const from = mode === "bulanan" ? `${month}-01` : date;
+      const to = mode === "bulanan" ? `${month}-31` : date;
+      const res = await api.get(`/admin/laporan/export?format=${format}&date_from=${from}&date_to=${to}`,
+        { responseType: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(res.data);
+      a.download = `laporan_${mode}_${mode === "bulanan" ? month : date}.${format === "pdf" ? "pdf" : "xlsx"}`;
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
+  const periode = mode === "bulanan" ? `Bulan ${month}` : `Tanggal ${date}`;
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden mt-5" data-testid="laporan-per-peserta">
-      <button
-        data-testid="laporan-peserta-toggle"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full px-5 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8]"
-      >
-        <span className="flex items-center gap-2 font-bold text-[#111827]">
-          <Users size={17} className="text-[#111114]" /> Rekap per Peserta
-          <span className="text-xs font-medium text-[#6B7280]">({rows.length})</span>
-        </span>
-        <span className="text-sm font-semibold text-[#111114]">{open ? "Tutup" : "Lihat"}</span>
-      </button>
-      {open && (
-        <div className="border-t border-[#E8E8E4]">
-          <div className="p-4 bg-[#FAFAF8] border-b border-[#E8E8E4]" data-testid="laporan-filter-keaktifan">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#9CA3AF] mb-2">Filter keaktifan</div>
-            <div className="flex flex-wrap gap-2">
-              {FILTERS.map((ft) => {
-                const on = filter === ft.key;
-                const n = ft.key === "semua" ? rows.length : (counts[ft.key] || 0);
-                return (
-                  <button
-                    key={ft.key}
-                    data-testid={`laporan-filter-${ft.key}`}
-                    onClick={() => setFilter(ft.key)}
-                    className={`h-10 px-3.5 rounded-xl border-2 text-xs sm:text-sm font-semibold transition-colors ${
-                      on ? `${ft.cls} border-transparent` : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
-                    }`}
-                  >
-                    {ft.label} <span className={on ? "text-white/85" : "text-[#9CA3AF]"}>({n})</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[11px] text-[#6B7280] mt-2">
-              Menampilkan <b>{sorted.length}</b> peserta · kategori <b>{active?.label}</b> ({active?.desc}).
-            </p>
-            <div className="mt-2 flex items-center gap-1 bg-[#F4F4F1] rounded-xl p-1 w-fit" data-testid="laporan-sort">
-              {[["nama", "A–Z"], ["tertinggi", "Tertinggi"], ["terendah", "Terendah"]].map(([v, l]) => (
+    <div data-testid="laporan-view" className="space-y-4">
+      <div>
+        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
+          <FileBarChart2 size={20} /> Laporan Kehadiran
+        </div>
+        <p className="text-sm text-[#6B7280] mt-0.5">
+          Pantauan kehadiran, jumlah kegiatan, dan data peserta — harian maupun bulanan dalam satu halaman.
+        </p>
+      </div>
+
+      {/* Pilih periode */}
+      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1 bg-[#F4F4F1] rounded-xl p-1" data-testid="laporan-mode">
+          {[["bulanan", "Bulanan", CalendarRange], ["harian", "Harian", CalendarDays]].map(([v, l, Ic]) => (
+            <button key={v} data-testid={`laporan-mode-${v}`} onClick={() => setMode(v)}
+              className={`h-10 px-3.5 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5 ${
+                mode === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>
+              <Ic size={15} /> {l}
+            </button>
+          ))}
+        </div>
+        {mode === "bulanan" ? (
+          <input data-testid="laporan-month" type="month" value={month}
+            onChange={(e) => setMonth(e.target.value)} className={inp} />
+        ) : (
+          <input data-testid="laporan-date" type="date" value={date}
+            onChange={(e) => setDate(e.target.value)} className={inp} />
+        )}
+        <div className="flex-1" />
+        <button data-testid="laporan-share" onClick={buatTautan} disabled={sharing}
+          className="h-11 px-3.5 rounded-xl bg-[#111114] text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-black disabled:opacity-60">
+          {sharing ? <Loader2 className="animate-spin" size={16} /> : <Link2 size={16} />} Tautan Laporan
+        </button>
+        <button data-testid="laporan-unduh-excel" onClick={() => unduh("excel")}
+          className="h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm font-semibold text-[#4B5563] inline-flex items-center gap-2 hover:border-[#111114] hover:text-[#111114]">
+          <Download size={16} /> Excel
+        </button>
+      </div>
+
+      {share && (
+        <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#F0FDFA] p-4" data-testid="laporan-share-box">
+          <div className="text-xs font-bold uppercase tracking-wide text-[#0F766E]">Tautan laporan ({periode})</div>
+          <a href={share.link} target="_blank" rel="noreferrer"
+            className="block text-sm font-semibold text-[#111114] mt-1 break-all hover:underline">{share.link}</a>
+          <div className="flex gap-2 mt-3 flex-wrap">
+            <button data-testid="laporan-share-copy"
+              onClick={() => { navigator.clipboard.writeText(share.link); toast.success("Tautan disalin"); }}
+              className="h-10 px-3 rounded-xl border-2 border-[#111114] text-[#111114] text-sm font-semibold inline-flex items-center gap-1.5">
+              <Copy size={15} /> Salin
+            </button>
+            <button data-testid="laporan-share-wa"
+              onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(share.wa_text || share.link)}`, "_blank")}
+              className="h-10 px-3 rounded-xl bg-[#25D366] text-white text-sm font-semibold inline-flex items-center gap-1.5">
+              <Send size={15} /> WhatsApp
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Ringkasan */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Stat testid="laporan-stat-kehadiran" icon={FileBarChart2} label="Pantauan kehadiran"
+          value={`${ringkas.avg}%`} sub={`Hadir ${ringkas.hadir} · Izin ${ringkas.izin} · Alpha ${ringkas.alpha}`}
+          tone={ringkas.avg >= 80 ? "good" : ringkas.avg >= 50 ? "warn" : "bad"} />
+        <Stat testid="laporan-stat-kegiatan" icon={ClipboardList}
+          label={mode === "bulanan" ? "Jumlah kegiatan" : "Jumlah sesi"} value={ringkas.kegiatan} sub={periode} />
+        <Stat testid="laporan-stat-peserta" icon={Users} label="Peserta dipantau" value={ringkas.peserta}
+          sub={akun ? `${akun.laki} laki-laki · ${akun.perempuan} perempuan` : ""} />
+        <Stat testid="laporan-stat-akun" icon={UserCheck} label="Akun aktif" value={akun?.aktif ?? "—"}
+          sub={akun ? `Belum aktivasi ${akun.belum_aktivasi} · Nonaktif ${akun.nonaktif}` : ""} tone="good" />
+      </div>
+
+      {akun && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3" data-testid="laporan-data-peserta">
+          <Stat icon={Users} label="Total data peserta" value={akun.peserta} sub={`${akun.total_user} akun terdaftar`} />
+          <Stat icon={UserX} label="Belum aktivasi" value={akun.belum_aktivasi} tone="warn" sub="akun belum dipakai" />
+          <Stat icon={AlertTriangle} label="Data belum lengkap" value={akun.belum_lengkap} tone="bad"
+            sub="tgl lahir / status / gender" />
+          <Stat icon={UserCheck} label="Pengurus & guru" value={`${akun.pengurus} / ${akun.guru}`}
+            sub={`${akun.admin} adminator`} />
+        </div>
+      )}
+
+      {/* Daftar peserta */}
+      <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
+        <div className="p-4 border-b border-[#ECECE8] space-y-3">
+          <div className="font-bold text-[#111827] inline-flex items-center gap-2">
+            <Users size={17} /> Laporan per Peserta
+            <span className="text-xs font-medium text-[#6B7280]">({rows.length})</span>
+          </div>
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+            <input data-testid="laporan-search" value={q} onChange={(e) => setQ(e.target.value)}
+              placeholder="Cari nama peserta…" className={`${inp} w-full pl-9`} />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[["semua", "Semua"], ["rajin", "Rajin ≥80%"], ["cukup", "Cukup 50–79%"],
+              ["jarang", "Jarang <50%"], ["belum", "Belum pernah hadir"]].map(([v, l]) => (
+              <button key={v} data-testid={`laporan-filter-${v}`} onClick={() => setFilter(v)}
+                className={`h-10 px-3 rounded-xl border-2 text-xs font-semibold ${
+                  filter === v ? "bg-[#111114] text-white border-transparent"
+                    : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114]"}`}>{l}</button>
+            ))}
+            <div className="flex items-center gap-1 bg-[#F4F4F1] rounded-xl p-1 ml-auto" data-testid="laporan-sort">
+              {[["tertinggi", "Tertinggi"], ["terendah", "Terendah"], ["nama", "A–Z"]].map(([v, l]) => (
                 <button key={v} data-testid={`laporan-sort-${v}`} onClick={() => setSort(v)}
                   className={`h-9 px-3 rounded-lg text-xs font-semibold ${sort === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
               ))}
             </div>
           </div>
-          <div className="overflow-x-auto max-h-[52vh] overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0">
-              <tr className="bg-[#FAFAF8] text-[#9CA3AF] text-left text-[11px] uppercase tracking-wide">
-                <th className="px-4 py-2.5 font-bold">Nama</th>
-                <th className="px-4 py-2.5 font-bold text-center w-20">Hadir</th>
-                <th className="px-4 py-2.5 font-bold text-center w-20">Izin</th>
-                <th className="px-4 py-2.5 font-bold text-center w-20">Alpha</th>
-                <th className="px-4 py-2.5 font-bold text-right w-20">%</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#ECECE8]">
-              {sorted.map((p, i) => (
-                <tr key={i} data-testid={`laporan-peserta-row-${i}`}>
-                  <td className="px-4 py-2.5">
-                    <div className="font-medium text-[#111827]">{p.name}</div>
-                    {p.account_status === "pending" && (
-                      <div className="text-[11px] font-semibold text-[#92400E] inline-flex items-center gap-1 mt-0.5">
-                        <AlertTriangle size={11} /> Belum aktivasi
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#111114] font-semibold">{p.hadir}</td>
-                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#92400E]">{p.izin}</td>
-                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#991B1B]">{p.alpha}</td>
-                  <td className="px-4 py-2.5 text-right font-bold text-[#111114]">{p.ratio}%</td>
-                </tr>
-              ))}
-              {sorted.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Tidak ada peserta pada kategori ini.</td></tr>
-              )}
-            </tbody>
-          </table>
-          </div>
         </div>
-      )}
-    </div>
-  );
-}
 
-function LaporanLinkModal({ data, onClose }) {
-  const copy = () => { navigator.clipboard.writeText(data.link); toast.success("Tautan laporan disalin"); };
-  const download = () => {
-    const a = document.createElement("a");
-    a.href = data.image;
-    a.download = `qr_laporan_${data.date_from}_${data.date_to}.png`;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
-  const shareWa = () => {
-    // Fase 7: template WhatsApp BAKU dikirim dari backend (wa_text).
-    const judul = (data.title || "Laporan Kehadiran").replace(/^laporan\s+/i, "").toLowerCase();
-    const text = data.wa_text
-      || `Assalamu'alaikum warahmatullahi wabarakatuh\n\nBerikut laporan ${judul}\n${data.link}\n\nAlhamdulillah, jazakumullahu khoiro.`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-  };
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/45" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid="modal-laporan-link">
-        <div className="sticky top-0 bg-white border-b border-[#E8E8E4] px-5 py-4 flex items-center justify-between">
-          <h3 className="font-heading font-bold text-[#111827]">Tautan Laporan Publik</h3>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"><X size={20} /></button>
-        </div>
-        <div className="p-5 text-center">
-          <img src={data.image} alt="QR Laporan" className="mx-auto w-52 h-52 rounded-xl border border-[#E8E8E4] p-2" data-testid="laporan-qr-image" />
-          <div className="mt-3 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl p-3 text-left">
-            <p className="text-sm font-semibold text-[#111114]">{data.title}</p>
-            <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
-              Siapa pun yang membuka tautan ini <b>langsung melihat laporannya tanpa perlu login</b>.
-              Tautan bersifat <b>permanen</b> untuk periode {tanggalSingkat(data.date_from)} s/d {tanggalSingkat(data.date_to)}.
-            </p>
+        {data === null ? (
+          <div className="p-14 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
+        ) : rows.length === 0 ? (
+          <div className="p-10 text-center text-sm text-[#6B7280]">Tidak ada data pada periode / kategori ini.</div>
+        ) : (
+          <div className="divide-y divide-[#F3F4F6]">
+            {rows.map((r) => (
+              <button key={r.user_id || r.name} data-testid={`laporan-row-${r.user_id || r.name}`}
+                onClick={() => setDetail(r)}
+                className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#FAFAF8]">
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-sm text-[#111827] truncate">{r.name}</span>
+                  <span className="block text-[11px] text-[#9CA3AF]">
+                    Hadir {r.hadir ?? 0} · Izin {r.izin ?? 0} · Alpha {r.alpha ?? 0}
+                    {r.account_status === "pending" ? " · belum aktivasi" : ""}
+                  </span>
+                </span>
+                <PersenChip value={r.ratio ?? 0} />
+              </button>
+            ))}
           </div>
-          <a
-            href={data.link}
-            target="_blank"
-            rel="noreferrer"
-            data-testid="laporan-link-open"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#111114] hover:underline break-all"
-          >
-            <ExternalLink size={14} className="shrink-0" /> {data.link}
-          </a>
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={16} /> Salin Link</button>
-            <button data-testid="laporan-link-qr" onClick={download} className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Download size={16} /> Unduh QR</button>
-          </div>
-          <button data-testid="laporan-link-wa" onClick={shareWa} className="mt-2 w-full h-12 rounded-xl bg-[#25D366] text-white font-bold flex items-center justify-center gap-2 hover:brightness-95">
-            <Send size={18} /> Bagikan Link via WhatsApp
-          </button>
-        </div>
+        )}
       </div>
+
+      <DetailModal row={detail} periode={periode} onClose={() => setDetail(null)} />
     </div>
   );
 }
-

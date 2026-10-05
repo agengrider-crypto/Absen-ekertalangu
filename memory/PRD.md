@@ -818,3 +818,25 @@ Script verifikasi: `/app/tests/fase12_check.py`.
   Mengatasi sesi gagal saat cookie lintas-domain diblokir browser. Teruji: `/auth/me` berhasil
   hanya dengan header token (tanpa cookie).
 - Catatan: pengujian dilakukan manual (curl + tangkapan layar) sesuai permintaan, tanpa testing agent.
+
+## FASE 22 — Laporan Terpadu, Mobile Admin & Penyederhanaan (5 Okt 2026, uji manual)
+- **Laporan jadi satu halaman** (`admin/LaporanView.jsx` ditulis ulang): tab Harian/Bulanan tanpa
+  rentang tanggal, kartu pantauan kehadiran, jumlah kegiatan/sesi, peserta dipantau, serta data akun
+  (total peserta, aktif, belum aktivasi, nonaktif, data belum lengkap, pengurus/guru/admin) dari
+  endpoint baru `GET /api/staff/statistik-akun`. Ditambah **tautan laporan** (share harian/bulanan +
+  WhatsApp), unduh Excel, pencarian, filter keaktifan, urutan tertinggi/terendah, dan **detail per
+  peserta** dalam modal. Menu Rekap Bulanan & Rekap Harian dihapus dari sidebar.
+- **Program Pembelajaran** dikembalikan ke "Segera Hadir" (admin & area Guru) sesuai permintaan.
+- **Bantuan dipisah per peran**: `BantuanView` menerima prop `role` dan hanya menampilkan panduan
+  peran yang sedang dipakai (peserta / pengurus / admin / guru) + ilustrasi AI (bukan tangkapan layar).
+- **Scan Presensi**: tombol **Tampilkan QR Besar** membuka modal layar penuh berisi QR kegiatan
+  (peserta tinggal scan), berdampingan dengan modal kamera untuk memindai QR peserta.
+- **Langsung masuk area**: setelah login diarahkan ke `/area/<peran utama>` (admin > pengurus > guru >
+  peserta); halaman pilih peran tidak lagi menghalangi, ganti peran lewat menu profil. Route `/`
+  ditangani `HomeGate`.
+- Checkbox **"sesi ini wajib" dihapus** (cukup pemilihan peserta per sesi).
+- **Tampilan mobile admin/pengurus**: navigasi bawah (Beranda, Kegiatan, Scan, Laporan, Menu),
+  menu lengkap berupa bottom-sheet, padding konten disesuaikan, dan viewport dikunci
+  `initial-scale=1, maximum-scale=1` agar skala stabil di Android/iPhone.
+- Uji manual: login demo langsung ke `/area/admin`, laporan menampilkan 9 peserta + statistik akun,
+  detail peserta terbuka, Bantuan menampilkan panduan Adminator saja dengan ilustrasi.

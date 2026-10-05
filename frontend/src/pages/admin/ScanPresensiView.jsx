@@ -1,7 +1,8 @@
 // FASE 15 — Halaman "Scan Presensi": daftar kegiatan per tanggal + QR kegiatan & kamera scan QR peserta.
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
-  ScanLine, Loader2, Copy, Download, Clock, MapPin, User, QrCode, Camera,
+  ScanLine, Loader2, Copy, Download, Clock, MapPin, User, QrCode, Camera, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -16,6 +17,7 @@ export default function ScanPresensiView() {
   const [date, setDate] = useState(todayYmd);
   const [data, setData] = useState(null);
   const [scanKegiatan, setScanKegiatan] = useState(null);
+  const [bigQr, setBigQr] = useState(null);   // FASE 22 — modal QR besar: peserta tinggal scan
 
   const load = useCallback(() => {
     setData(null);
@@ -100,17 +102,49 @@ export default function ScanPresensiView() {
                 </div>
               </div>
 
+              <div className="mt-3 grid sm:grid-cols-2 gap-2">
+              <button
+                data-testid={`scan-tampilkan-qr-${r.id}`}
+                onClick={() => setBigQr(r)}
+                className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"
+              >
+                <QrCode size={17} /> Tampilkan QR Besar
+              </button>
               <button
                 data-testid={`scan-open-camera-${r.id}`}
                 onClick={() => setScanKegiatan({ id: r.id, name: r.base_name, status: r.status })}
-                className="mt-3 w-full h-11 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#000000]"
+                className="h-11 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#000000]"
               >
                 <Camera size={17} /> Scan QR Peserta
               </button>
+              </div>
             </div>
           ))}
         </div>
       )}
+
+      {bigQr && createPortal((
+        <div className="fixed inset-0 z-[70] bg-[#0B0B0C] flex flex-col items-center justify-center p-5"
+          onClick={() => setBigQr(null)} data-testid="scan-qr-modal">
+          <button data-testid="scan-qr-modal-close"
+            className="absolute top-4 right-4 h-11 w-11 rounded-xl bg-white/15 text-white flex items-center justify-center">
+            <X size={22} />
+          </button>
+          <div className="bg-white rounded-3xl p-5 w-full max-w-md text-center">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
+              Scan Presensi{bigQr.session_label ? ` · ${bigQr.session_label}` : ""}
+            </div>
+            <div className="font-heading font-bold text-xl text-[#111827] mt-1">{bigQr.base_name}</div>
+            <div className="text-xs text-[#6B7280] mt-0.5">{bigQr.start_time}–{bigQr.end_time} WITA</div>
+            <img src={bigQr.image} alt="QR kegiatan"
+              className="mt-4 w-full max-w-[340px] mx-auto aspect-square object-contain" />
+            <p className="text-xs text-[#4B5563] mt-3 leading-relaxed">
+              Arahkan kamera HP peserta ke QR ini — kehadiran langsung tercatat.
+              Ketuk di mana saja untuk menutup.
+            </p>
+          </div>
+        </div>
+      ), document.body)}
 
       {scanKegiatan && (
         <ScanPesertaModal kegiatan={scanKegiatan} onClose={() => setScanKegiatan(null)} onChanged={load} />

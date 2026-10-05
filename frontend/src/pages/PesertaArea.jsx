@@ -150,7 +150,7 @@ export default function PesertaArea({ user }) {
         {tab === "scan" && <ScanTab />}
         {tab === "qr" && <QrSaya user={user} />}
         {tab === "curhat" && <RuangTeduh />}
-        {tab === "bantuan" && <BantuanView />}
+        {tab === "bantuan" && <BantuanView role="peserta" />}
         {tab === "profil" && <ProfilTab user={user} />}
       </main>
 

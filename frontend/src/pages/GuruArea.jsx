@@ -4,7 +4,7 @@ import { GraduationCap, LifeBuoy, Sparkles, BookOpen, ClipboardList } from "luci
 import ProfileMenu from "@/components/ProfileMenu";
 import BantuanView from "@/components/BantuanView";
 import DemoBanner from "@/components/DemoBanner";
-import ProgramPembelajaran from "@/pages/admin/ProgramPembelajaran";
+import ComingSoon from "@/pages/admin/ComingSoon";
 
 const TABS = [
   { key: "beranda", label: "Beranda", icon: GraduationCap },
@@ -70,7 +70,7 @@ export default function GuruArea({ user }) {
                 className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-4 text-left hover:border-[#111114] transition-colors">
                 <BookOpen size={18} className="text-[#111114]" />
                 <div className="font-semibold text-[#111827] text-sm mt-2">Program Pembelajaran</div>
-                <p className="text-xs text-[#6B7280] mt-1">Sudah aktif — kelola kurikulum, materi, media, dan jadwal per jenjang.</p>
+                <p className="text-xs text-[#6B7280] mt-1">Kurikulum, materi, dan jadwal per jenjang (segera hadir).</p>
               </button>
               <div className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-4">
                 <ClipboardList size={18} className="text-[#111114]" />
@@ -80,9 +80,10 @@ export default function GuruArea({ user }) {
             </div>
           </div>
         ) : tab === "program" ? (
-          <ProgramPembelajaran />
+          <ComingSoon title="Program Pembelajaran"
+            message="Kurikulum, materi, dan jadwal pembelajaran sedang dirapikan dan akan hadir kembali." />
         ) : (
-          <BantuanView />
+          <BantuanView role="guru" />
         )}
       </main>
     </div>

@@ -276,17 +276,6 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                             onChange={(e) => setSession(i, "location", e.target.value)} placeholder="Lokasi sesi ini"
                             className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
                         </div>
-                        <label className="flex items-start gap-2.5 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2.5 cursor-pointer hover:border-[#111114]">
-                          <input type="checkbox" data-testid={`keg-session-required-${i}`} checked={s.required !== false}
-                            onChange={(e) => setSession(i, "required", e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#111114]" />
-                          <span className="leading-snug">
-                            <span className="block text-xs font-bold text-[#111827]">Sesi ini WAJIB dihadiri</span>
-                            <span className="block text-[11px] text-[#6B7280]">
-                              Dilepas = sesi opsional/tambahan, tidak dihitung Alpha.
-                            </span>
-                          </span>
-                        </label>
-
                         {/* FASE 21 — peserta khusus untuk sesi ini (mis. yang bisa hadir pagi saja) */}
                         <div className="rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2.5">
                           <label className="flex items-start gap-2.5 cursor-pointer">

@@ -44,8 +44,23 @@ function ProfileGate() {
   const { user } = useAuth();
   if (user === null) return <Loading />;
   if (user === false) return <Navigate to="/login" replace />;
-  if (user.profile_complete !== false) return <Navigate to="/roles" replace />;
+  if (user.profile_complete !== false) {
+    const urut = ["admin", "pengurus", "guru", "peserta"];
+    const utama = urut.find((r) => (user.roles || []).includes(r));
+    return <Navigate to={utama ? `/area/${utama}` : "/roles"} replace />;
+  }
   return <CompleteProfile />;
+}
+
+// FASE 22 — beranda: langsung ke area peran utama tanpa halaman pilih peran.
+function HomeGate() {
+  const { user } = useAuth();
+  if (user === null) return <Loading />;
+  if (user === false) return <Navigate to="/login" replace />;
+  if (user.profile_complete === false) return <Navigate to="/lengkapi-akun" replace />;
+  const urut = ["admin", "pengurus", "guru", "peserta"];
+  const utama = urut.find((r) => (user.roles || []).includes(r));
+  return <Navigate to={utama ? `/area/${utama}` : "/roles"} replace />;
 }
 
 function PublicOnly({ children }) {
@@ -56,7 +71,7 @@ function PublicOnly({ children }) {
     if (user.profile_complete === false) return <Navigate to="/lengkapi-akun" replace />;
     // Hormati ?next= (mis. dari halaman absen: /login?next=/absen/<token>)
     const raw = params.get("next") || "";
-    const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/roles";
+    const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
     return <Navigate to={next} replace />;
   }
   return children;
@@ -65,6 +80,7 @@ function PublicOnly({ children }) {
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<HomeGate />} />
       <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
       <Route path="/register" element={<Register />} />
       <Route path="/activate" element={<Activate />} />
@@ -83,7 +99,7 @@ function AppRoutes() {
       <Route path="/absen-kode" element={<KodeAbsen />} />
       <Route path="/roles" element={<Protected><RoleDashboard /></Protected>} />
       <Route path="/area/:role" element={<Protected><RoleArea /></Protected>} />
-      <Route path="*" element={<Navigate to="/roles" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

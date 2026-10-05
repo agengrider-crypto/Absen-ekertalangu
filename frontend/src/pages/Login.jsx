@@ -45,7 +45,10 @@ function showLoginNotice(data) {
 
 /** Peran tunggal → langsung masuk areanya tanpa halaman pilih peran. */
 function autoRoleTarget(roles = []) {
-  return roles.length === 1 ? `/area/${roles[0]}` : "/roles";
+  // FASE 22 — langsung masuk ke area peran utama; ganti peran lewat tombol di dalam area.
+  const urut = ["admin", "pengurus", "guru", "peserta"];
+  const utama = urut.find((r) => roles.includes(r)) || roles[0];
+  return utama ? `/area/${utama}` : "/roles";
 }
 
 export default function Login() {  const navigate = useNavigate();
