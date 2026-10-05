@@ -7,6 +7,11 @@ import { PercentBar } from "./PublicRekapGabungan";
 import { SplashLoading } from "@/components/GlobalLoading";
 
 const GEN = [["semua", "Semua"], ["L", "Laki-laki"], ["P", "Perempuan"]];
+const KEAKTIFAN = [
+  ["semua", "Semua"], ["rajin", "Rajin ≥80%"], ["cukup", "Cukup 50–79%"],
+  ["jarang", "Jarang <50%"], ["belum", "Belum pernah hadir"],
+];
+const SORTS = [["tertinggi", "Tertinggi"], ["terendah", "Terendah"], ["nama", "A–Z"]];
 
 function badgeOf(r) {
   if (r.pertemuan === 0) return { t: "Tidak ada kegiatan", cls: "bg-[#F3F4F6] text-[#6B7280]" };
@@ -22,6 +27,8 @@ export default function PublicRekapBulanan() {
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [gender, setGender] = useState("semua");
+  const [aktif, setAktif] = useState("semua");
+  const [sort, setSort] = useState("tertinggi");
 
   useEffect(() => {
     api.get(`/rekap-bulanan/${token}`)
@@ -34,8 +41,17 @@ export default function PublicRekapBulanan() {
     if (gender !== "semua") list = list.filter((r) => r.gender === gender);
     const s = q.trim().toLowerCase();
     if (s) list = list.filter((r) => (r.name || "").toLowerCase().includes(s));
+    if (aktif === "rajin") list = list.filter((r) => r.ratio >= 80);
+    if (aktif === "cukup") list = list.filter((r) => r.ratio >= 50 && r.ratio < 80);
+    if (aktif === "jarang") list = list.filter((r) => r.ratio < 50 && (r.hadir || 0) > 0);
+    if (aktif === "belum") list = list.filter((r) => (r.hadir || 0) === 0);
+    if (sort !== "nama") {
+      list = [...list].sort((a, b) => (sort === "tertinggi" ? b.ratio - a.ratio : a.ratio - b.ratio));
+    } else {
+      list = [...list].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    }
     return list;
-  }, [data, q, gender]);
+  }, [data, q, gender, aktif, sort]);
 
   if (err) {
     return (
@@ -102,17 +118,33 @@ export default function PublicRekapBulanan() {
 
         {/* Daftar peserta */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] mt-4 overflow-hidden">
-          <div className="p-4 border-b border-[#E8E8E4] flex flex-wrap gap-2 items-center">
-            <div className="relative flex-1 min-w-[180px]">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-              <input data-testid="bulanan-public-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta…"
-                className="w-full h-10 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
+          <div className="p-4 border-b border-[#E8E8E4] space-y-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              <div className="relative flex-1 min-w-[180px]">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+                <input data-testid="bulanan-public-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta…"
+                  className="w-full h-10 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
+              </div>
+              <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1">
+                {GEN.map(([v, l]) => (
+                  <button key={v} data-testid={`bulanan-public-gender-${v}`} onClick={() => setGender(v)}
+                    className={`h-8 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1">
-              {GEN.map(([v, l]) => (
-                <button key={v} data-testid={`bulanan-public-gender-${v}`} onClick={() => setGender(v)}
-                  className={`h-8 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+            <div className="flex flex-wrap gap-2 items-center" data-testid="bulanan-public-filter">
+              {KEAKTIFAN.map(([v, l]) => (
+                <button key={v} data-testid={`bulanan-public-filter-${v}`} onClick={() => setAktif(v)}
+                  className={`h-9 px-3 rounded-xl border-2 text-xs font-semibold ${
+                    aktif === v ? "bg-[#111114] text-white border-transparent"
+                      : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114]"}`}>{l}</button>
               ))}
+              <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1 ml-auto" data-testid="bulanan-public-sort">
+                {SORTS.map(([v, l]) => (
+                  <button key={v} data-testid={`bulanan-public-sort-${v}`} onClick={() => setSort(v)}
+                    className={`h-8 px-3 rounded-lg text-xs font-semibold ${sort === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                ))}
+              </div>
             </div>
           </div>
           <div className="overflow-x-auto">

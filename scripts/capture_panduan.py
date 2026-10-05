@@ -22,7 +22,6 @@ MOBILE = {"width": 430, "height": 880}
 
 
 async def shot(page, name, clip_full=False):
-    # beri jeda agar notifikasi/toast sempat hilang dari layar
     await page.wait_for_timeout(1500)
     path = OUT / f"{name}.jpg"
     await page.screenshot(path=str(path), type="jpeg", quality=72, full_page=clip_full)
@@ -74,13 +73,11 @@ async def main():
         await ctx.close()
 
         # ---------- PENGURUS & ADMIN (tampilan PC) ----------
+        # FASE 23 — login kini langsung masuk /area/admin (tanpa halaman pilih peran).
         ctx = await browser.new_context(viewport=DESKTOP)
         page = await ctx.new_page()
         await login(page, "demo", "demo1234", DESKTOP)
         await page.click('[data-testid="button-login-submit"]', force=True)
-        await page.wait_for_timeout(4000)
-        await page.wait_for_selector("text=Masuk sebagai Adminator", timeout=45000)
-        await page.click("text=Masuk sebagai Adminator", force=True)
         await page.wait_for_selector('[data-testid="nav-kegiatan"]', timeout=45000)
         await page.wait_for_timeout(9000)   # tunggu toast selamat datang hilang
 
@@ -89,8 +86,10 @@ async def main():
         await page.click('[data-testid="button-add-kegiatan"]', force=True)
         await page.wait_for_timeout(1800)
         await shot(page, "pengurus-1-tambah-kegiatan")
-        await page.click('[data-testid="keg-pick-mode"]', force=True)
-        await page.wait_for_timeout(2500)
+        pick = page.locator('[data-testid="keg-pick-mode"]')
+        if await pick.count():
+            await pick.click(force=True)
+            await page.wait_for_timeout(2500)
         await shot(page, "pengurus-2-mode-ceklis")
         await page.click('[data-testid="kegiatan-form-close"]', force=True)
         await page.wait_for_timeout(1000)
@@ -102,8 +101,7 @@ async def main():
         await card.first.click(force=True)
         await page.wait_for_timeout(3500)
         await shot(page, "pengurus-3-absen-manual")
-        for tab, name in (("scan", "pengurus-4-scan"), ("undangan", "pengurus-5-undangan"),
-                          ("rekap", "pengurus-6-rekap")):
+        for tab, name in (("scan", "pengurus-4-scan"), ("rekap", "pengurus-6-rekap")):
             el = page.locator(f'[data-testid="keg-tab-{tab}"]')
             if await el.count():
                 await el.click(force=True)
@@ -120,17 +118,14 @@ async def main():
         await nav_admin(page, "hakakses")
         await shot(page, "admin-2-hak-akses")
         await nav_admin(page, "laporan")
-        toggle = page.locator('[data-testid="laporan-peserta-toggle"]')
-        if await toggle.count():
-            await toggle.click(force=True)
-            await page.wait_for_timeout(1500)
-            await page.mouse.wheel(0, 600)
-            await page.wait_for_timeout(1200)
+        await page.wait_for_timeout(2500)
         await shot(page, "admin-3-laporan")
         await nav_admin(page, "kalender")
         await shot(page, "admin-4-kalender")
         await nav_admin(page, "program")
         await shot(page, "admin-5-program")
+        await nav_admin(page, "scan-presensi")
+        await shot(page, "admin-7-scan-presensi")
         await page.click('[data-testid="bell-notifikasi"]', force=True)
         await page.wait_for_timeout(1800)
         await shot(page, "admin-6-notifikasi")

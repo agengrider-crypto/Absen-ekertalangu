@@ -840,3 +840,33 @@ Script verifikasi: `/app/tests/fase12_check.py`.
   `initial-scale=1, maximum-scale=1` agar skala stabil di Android/iPhone.
 - Uji manual: login demo langsung ke `/area/admin`, laporan menampilkan 9 peserta + statistik akun,
   detail peserta terbuka, Bantuan menampilkan panduan Adminator saja dengan ilustrasi.
+
+## FASE 23 — Filter Rekap Publik, Urutan Laporan & Panduan Bergambar (5 Okt 2026, uji manual tanpa testing agent)
+1. **Tautan publik Rekap Bulanan** (`PublicRekapBulanan.jsx`): tambah filter keaktifan
+   (Semua / Rajin ≥80% / Cukup 50–79% / Jarang <50% / Belum pernah hadir) + urutan
+   (Tertinggi / Terendah / A–Z), berdampingan dengan pencarian & tab L/P yang sudah ada.
+2. **Laporan admin diurutkan ulang** (`admin/LaporanView.jsx` ditulis ulang):
+   (1) kartu **Total Seluruhnya** — persen besar + keterangan kecil H/I/A dan jumlah catatan;
+   (2) **Jumlah kegiatan selama 1 bulan** + bar persentase + tulisan kecil total hadir/izin/alpha,
+   ditambah bar rincian tiap pertemuan/sesi; (3) **Daftar Peserta** ringkas (detail via modal);
+   (4) blok **Keterangan hitungan** di paling bawah (rumus persen, total 100%, arti warna).
+   Kartu statistik akun dibuat **2 kolom rapat di HP** (`lg:` tetap 4 kolom → desktop tidak berubah).
+3. **Animasi bar persentase**: komponen `BarPersen` — bar terisi beranimasi (transition width 700ms)
+   dan ketika diketuk membuka panel penjelasan "% kehadiran" (grid-rows transition) berisi rincian
+   hadir/izin/alpha beserta persennya. Dipakai di total, jumlah kegiatan, dan tiap pertemuan/sesi.
+4. **Mobile-only**: semua perubahan tata letak memakai breakpoint `lg:` sehingga tampilan desktop
+   persis seperti sebelumnya.
+5. **QR Aktivasi Akun** (`DashboardView.jsx`): modal layar penuh (createPortal, latar hitam, QR 340px)
+   seperti Scan Presensi; tombol **Unduh & Salin Tautan dihapus**.
+6. **Scan Presensi** (`ScanPresensiView.jsx`): tombol **Salin Tautan & Unduh QR dihapus** (cukup
+   Tampilkan QR Besar + Scan QR Peserta).
+7. **Bantuan → Panduan Pemakaian** (`components/BantuanView.jsx`): ilustrasi AI diganti
+   **tangkapan layar asli aplikasi per langkah** (`/panduan/*.jpg`, lightbox portal saat diketuk).
+   `scripts/capture_panduan.py` diperbarui (login kini langsung ke `/area/admin`, tab Undangan
+   dihapus, tambah tangkapan `admin-7-scan-presensi`) dan dijalankan ulang → 17 gambar baru.
+   Langkah baru pengurus: "Tampilkan QR besar".
+
+Verifikasi manual: filter publik "Belum pernah hadir" menyaring 3 nama; laporan HP menampilkan
+total 27,8% (5/18) + bar rincian yang bisa diketuk (panel penjelasan muncul); modal QR aktivasi
+layar penuh tanpa tombol unduh; Scan Presensi 0 tombol salin/unduh; halaman Bantuan menampilkan
+6 tangkapan layar Adminator.

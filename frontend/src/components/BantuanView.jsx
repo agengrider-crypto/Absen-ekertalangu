@@ -1,18 +1,12 @@
 // FASE 19 — Halaman Bantuan: panduan langkah, tanya jawab, dan kontak pengurus.
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   LifeBuoy, BookOpen, MessageCircleQuestion, PhoneCall, ChevronDown, ScanLine,
   QrCode, ListChecks, CalendarDays, FileBarChart2, HeartHandshake,
-  UserPlus, KeyRound, Loader2, Send, Mail, ShieldCheck,
+  UserPlus, KeyRound, Loader2, Send, Mail, ShieldCheck, Maximize2, X,
 } from "lucide-react";
 import { api } from "@/lib/api";
-
-const ILUSTRASI = {
-  peserta: "https://static.prod-images.emergentagent.com/jobs/452a0aa0-8353-4535-86c4-8a7650973f70/images/8308b6c97a23b837fdbcdb93e1182aaa62c0e4217fbc11f317121bf766bfbe54.jpeg",
-  pengurus: "https://static.prod-images.emergentagent.com/jobs/452a0aa0-8353-4535-86c4-8a7650973f70/images/bb90c70dc7deeb693cd806a77e87f17b136829b15e55908ce7dcb1584855ae47.jpeg",
-  admin: "https://static.prod-images.emergentagent.com/jobs/452a0aa0-8353-4535-86c4-8a7650973f70/images/5f712d4962b7dd6dfc64667d73b1b22d0cc744e004c3dedd8ddff5ee91a6fcbd.jpeg",
-  guru: "https://static.prod-images.emergentagent.com/jobs/452a0aa0-8353-4535-86c4-8a7650973f70/images/fd090cc995debe7124a4d2fde18b997accdc6afb8b312e1133223ba0af4bb57c.jpeg",
-};
 
 const GUIDES = {
   peserta: {
@@ -34,6 +28,7 @@ const GUIDES = {
       { icon: ListChecks, title: "Pilih pesertanya", desc: "Saring lewat jenis kelamin, status, dan kelompok usia — atau centang orangnya langsung dengan Pilih peserta tertentu.", img: "pengurus-2-mode-ceklis" },
       { icon: ListChecks, title: "Catat kehadiran manual", desc: "Buka kegiatan → tab Absen Manual untuk menandai hadir/izin satu per satu.", img: "pengurus-3-absen-manual" },
       { icon: ScanLine, title: "Scan barcode peserta", desc: "Tab Scan Barcode memindai QR peserta; kehadiran langsung tercatat pada sesi yang dibuka.", img: "pengurus-4-scan" },
+      { icon: QrCode, title: "Tampilkan QR besar", desc: "Menu Scan Presensi → tombol Tampilkan QR Besar. QR tampil layar penuh supaya peserta bisa memindainya langsung dari HP masing-masing.", img: "admin-7-scan-presensi" },
       { icon: FileBarChart2, title: "Bagikan rekap", desc: "Tab Rekap / Laporan menyediakan tautan publik, QR, dan tombol bagikan WhatsApp. Penerima melihat rekap tanpa perlu login.", img: "pengurus-6-rekap" },
     ],
   },
@@ -41,7 +36,7 @@ const GUIDES = {
     label: "Guru / Pengajar",
     icon: BookOpen,
     steps: [
-      { icon: KeyRound, title: "Masuk ke area Guru", desc: "Setelah masuk, Anda langsung berada di Area Guru. Tombol ganti peran ada di menu profil bila Anda juga peserta/pengurus." },
+      { icon: KeyRound, title: "Masuk ke area Guru", desc: "Setelah masuk, Anda langsung berada di Area Guru. Tombol ganti peran ada di menu profil bila Anda juga peserta/pengurus.", img: "peserta-1-masuk" },
       { icon: BookOpen, title: "Program Pembelajaran", desc: "Kurikulum, materi, dan jadwal per jenjang sedang dirapikan — akan hadir kembali di tab Program Pembelajaran." },
       { icon: ListChecks, title: "Catatan peserta", desc: "Catatan capaian dan hafalan peserta per jenjang menyusul pada pembaruan berikutnya." },
       { icon: HeartHandshake, title: "Butuh bantuan", desc: "Hubungi pengurus lewat daftar kontak di bagian bawah halaman ini." },
@@ -76,6 +71,7 @@ export default function BantuanView({ role: roleProp = "peserta" }) {
   const role = GUIDES[roleProp] ? roleProp : "peserta";
   const [openFaq, setOpenFaq] = useState(null);
   const [kontak, setKontak] = useState(null);
+  const [zoom, setZoom] = useState(null);   // tangkapan layar diperbesar
 
   useEffect(() => {
     api.get("/bantuan/kontak").then(({ data }) => setKontak(data.items || [])).catch(() => setKontak([]));
@@ -100,12 +96,9 @@ export default function BantuanView({ role: roleProp = "peserta" }) {
         <div className="font-bold text-[#111827] inline-flex items-center gap-2">
           <BookOpen size={17} /> Panduan Pemakaian — {guide.label}
         </div>
-        <img
-          src={ILUSTRASI[role]}
-          alt={`Ilustrasi panduan ${guide.label}`}
-          data-testid={`bantuan-ilustrasi-${role}`}
-          className="mt-3 w-full max-h-64 object-contain rounded-xl bg-[#FAFAF8] border border-[#E8E8E4]"
-        />
+        <p className="text-xs text-[#6B7280] mt-1">
+          Tiap langkah disertai <b>tangkapan layar asli</b> aplikasi — ketuk gambarnya untuk memperbesar.
+        </p>
         <ol className="mt-4 space-y-3">
           {guide.steps.map((s, i) => {
             const Icon = s.icon;
@@ -123,11 +116,35 @@ export default function BantuanView({ role: roleProp = "peserta" }) {
                     <span className="block text-xs text-[#4B5563] mt-1 leading-relaxed">{s.desc}</span>
                   </span>
                 </div>
+                {s.img && (
+                  <button type="button" onClick={() => setZoom({ src: `/panduan/${s.img}.jpg`, title: s.title })}
+                    data-testid={`bantuan-ss-${role}-${i}`}
+                    className="mt-3 block w-full rounded-xl overflow-hidden border border-[#E8E8E4] bg-white hover:border-[#111114] transition-colors">
+                    <img src={`/panduan/${s.img}.jpg`} alt={`Tangkapan layar: ${s.title}`} loading="lazy"
+                      className="w-full max-h-72 object-contain object-top bg-white" />
+                    <span className="block text-[11px] text-[#6B7280] px-3 py-1.5 text-left">
+                      <Maximize2 size={11} className="inline mr-1" /> Ketuk untuk memperbesar — {s.title}
+                    </span>
+                  </button>
+                )}
               </li>
             );
           })}
         </ol>
       </div>
+
+      {zoom && createPortal((
+        <div className="fixed inset-0 z-[90] bg-[#0B0B0C]/95 flex flex-col items-center justify-center p-4"
+          onClick={() => setZoom(null)} data-testid="bantuan-ss-zoom">
+          <button data-testid="bantuan-ss-zoom-close"
+            className="absolute top-4 right-4 h-11 w-11 rounded-xl bg-white/15 text-white flex items-center justify-center">
+            <X size={22} />
+          </button>
+          <div className="text-white/80 text-sm font-semibold mb-3 text-center px-10">{zoom.title}</div>
+          <img src={zoom.src} alt={zoom.title} className="max-h-[80vh] max-w-full rounded-xl bg-white" />
+          <p className="text-white/50 text-xs mt-3">Ketuk di mana saja untuk menutup</p>
+        </div>
+      ), document.body)}
 
       {/* Tanya jawab */}
       <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5" data-testid="bantuan-faq">

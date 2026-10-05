@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Users, UserCheck, UserX, CalendarDays, TrendingUp, Loader2, QrCode, Copy, CalendarPlus,
-  Megaphone, FileBarChart2, Download, X, ScanLine, ClipboardList,
+  Megaphone, FileBarChart2, X, ScanLine, ClipboardList,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -48,17 +49,7 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
     if (!actQr) api.get("/staff/activation-qr").then(({ data }) => setActQr(data)).catch(() => {});
   };
 
-  const downloadActQr = () => {
-    if (!actQr?.image) return;
-    const a = document.createElement("a");
-    a.href = actQr.image;
-    a.download = "qr-aktivasi-akun.png";
-    document.body.appendChild(a); a.click(); a.remove();
-  };
 
-  const copyActLink = () => {
-    if (actQr?.url) { navigator.clipboard.writeText(actQr.url); toast.success("Link aktivasi disalin"); }
-  };
 
   if (d === null) {
     return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>;
@@ -261,29 +252,32 @@ export default function DashboardView({ user, onGoto, role = "admin" }) {
         </div>
       </div>
 
-      {showActQr && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="modal-activation-qr">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowActQr(false)} />
-          <div className="relative bg-white w-full max-w-sm rounded-3xl shadow-2xl">
-            <div className="px-5 py-4 flex items-center justify-between border-b border-[#E8E8E4]">
-              <h3 className="font-heading font-bold text-[#111827] flex items-center gap-2"><ScanLine size={18} className="text-[#111114]" /> QR Aktivasi Akun</h3>
-              <button onClick={() => setShowActQr(false)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
+      {showActQr && createPortal((
+        <div className="fixed inset-0 z-[70] bg-[#0B0B0C] flex flex-col items-center justify-center p-5"
+          data-testid="modal-activation-qr" onClick={() => setShowActQr(false)}>
+          <button data-testid="activation-qr-close"
+            className="absolute top-4 right-4 h-11 w-11 rounded-xl bg-white/15 text-white flex items-center justify-center">
+            <X size={22} />
+          </button>
+          <div className="bg-white rounded-3xl p-5 w-full max-w-md text-center">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF] inline-flex items-center gap-1.5">
+              <ScanLine size={13} /> QR Aktivasi Akun
             </div>
-            <div className="p-5 text-center">
-              {actQr ? (
-                <img data-testid="activation-qr-image" src={actQr.image} alt="QR Aktivasi" className="mx-auto w-52 h-52 rounded-xl border border-[#E8E8E4] p-2" />
-              ) : (
-                <div className="mx-auto w-52 h-52 rounded-xl bg-[#F4F4F1] flex items-center justify-center"><Loader2 className="animate-spin text-[#111114]" size={26} /></div>
-              )}
-              <p className="text-sm text-[#4B5563] mt-3">Peserta cukup <b>scan</b> QR ini, lalu <b>cari nama</b> mereka untuk mengaktifkan akun sendiri.</p>
-              <div className="flex gap-2 mt-4">
-                <button data-testid="activation-qr-download" onClick={downloadActQr} disabled={!actQr} className="flex-1 h-11 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 disabled:opacity-60"><Download size={16} /> Download</button>
-                <button data-testid="activation-qr-copy" onClick={copyActLink} disabled={!actQr} className="h-11 px-4 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm inline-flex items-center justify-center gap-2 disabled:opacity-60"><Copy size={16} /></button>
+            {actQr ? (
+              <img data-testid="activation-qr-image" src={actQr.image} alt="QR Aktivasi"
+                className="mt-4 w-full max-w-[340px] mx-auto aspect-square object-contain" />
+            ) : (
+              <div className="mt-4 w-full max-w-[340px] mx-auto aspect-square rounded-xl bg-[#F4F4F1] flex items-center justify-center">
+                <Loader2 className="animate-spin text-[#111114]" size={26} />
               </div>
-            </div>
+            )}
+            <p className="text-xs text-[#4B5563] mt-3 leading-relaxed">
+              Peserta cukup <b>scan</b> QR ini, lalu <b>cari nama</b> mereka untuk mengaktifkan akun sendiri.
+              Ketuk di mana saja untuk menutup.
+            </p>
           </div>
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 }

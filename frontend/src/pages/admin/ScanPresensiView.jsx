@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  ScanLine, Loader2, Copy, Download, Clock, MapPin, User, QrCode, Camera, X,
+  ScanLine, Loader2, Clock, MapPin, User, QrCode, Camera, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -28,12 +28,6 @@ export default function ScanPresensiView() {
 
   useEffect(() => { load(); }, [load]);
 
-  const download = (row) => {
-    const a = document.createElement("a");
-    a.href = row.image;
-    a.download = `qr-kegiatan-${(row.base_name || "kegiatan").replace(/\s+/g, "_")}-${row.date}.png`;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
 
   return (
     <div>
@@ -91,14 +85,6 @@ export default function ScanPresensiView() {
                     <QrCode size={13} className="inline mr-1 text-[#111114]" />
                     QR ini berlaku <b>satu hari</b>{r.sessions > 1 ? " dan dipakai semua sesi hari itu" : ""}.
                   </p>
-                  <button data-testid={`scan-copy-${r.id}`} onClick={() => { navigator.clipboard.writeText(r.link); toast.success("Tautan absen disalin"); }}
-                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#4B5563] font-semibold hover:border-[#111114] hover:text-[#111114]">
-                    <Copy size={14} /> Salin Tautan
-                  </button>
-                  <button data-testid={`scan-download-${r.id}`} onClick={() => download(r)}
-                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#4B5563] font-semibold hover:border-[#111114] hover:text-[#111114]">
-                    <Download size={14} /> Unduh QR
-                  </button>
                 </div>
               </div>
 
