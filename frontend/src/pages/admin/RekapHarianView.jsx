@@ -125,11 +125,7 @@ export default function RekapHarianView() {
           </div>
 
           <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#F0FDFA] p-4 space-y-2.5" data-testid="rekap-harian-share">
-            <div className="text-sm font-bold text-[#115E59] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap hari ini</div>
-            <p className="text-[11px] text-[#0F766E] leading-relaxed">
-              Tautan publik: siapa pun yang klik bisa langsung melihat rincian tiap sesi,
-              keterangan hitungan, dan status kehadiran tiap peserta pada tanggal ini — tanpa perlu login.
-            </p>
+            <div className="text-xs font-bold uppercase tracking-wide text-[#0F766E] inline-flex items-center gap-1.5"><Link2 size={14} /> Tautan laporan harian</div>
             {share && (
               <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#E8E8E4] px-2.5 py-2 text-[#115E59]" data-testid="rekap-harian-link">{share.link}</div>
             )}

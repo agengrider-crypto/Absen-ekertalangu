@@ -870,3 +870,23 @@ Verifikasi manual: filter publik "Belum pernah hadir" menyaring 3 nama; laporan 
 total 27,8% (5/18) + bar rincian yang bisa diketuk (panel penjelasan muncul); modal QR aktivasi
 layar penuh tanpa tombol unduh; Scan Presensi 0 tombol salin/unduh; halaman Bantuan menampilkan
 6 tangkapan layar Adminator.
+
+## FASE 23b — Rekap & Laporan Kegiatan (5 Okt 2026, uji manual tanpa testing agent)
+1. Tab kegiatan **"Rekap / Laporan" → "Rekap & Laporan"**.
+2. `admin/KegiatanRekapPanel.jsx` ditulis ulang: menerima `counts`/`gender`/`rows`/`guests`
+   dari `KegiatanDetail` (tanpa fetch ulang). Isi: persen kehadiran besar, 4 kartu warna cerah
+   (Total peserta, Hadir #22C55E, Izin #F59E0B, Alpha #EF4444) + persen masing-masing,
+   chip Tamu / Sudah hadir sesi lain / Belum aktivasi, **donut chart beranimasi** (recharts,
+   animationDuration 1100, Tooltip "n orang (x%)" + Legend), **bar chart bertumpuk per jenis
+   kelamin** (Hadir/Izin/Alpha, Tooltip), serta **tabel Rincian Detail** per jenis kelamin
+   (peserta/hadir/izin/alpha/%) termasuk baris Tamu.
+3. **QR & Unduh QR dihapus** dari panel; tersisa **Salin Tautan** + **Bagikan lewat WhatsApp**
+   (tautan diambil dari `POST /admin/kegiatan/{id}/share`).
+4. Tab **Pesan / Kesan dihapus** dari navigasi; dipindah ke menu **Aksi Kegiatan**
+   (`detail-opsi-pesan` → `PesanModal` memakai ActionModal).
+5. `admin/RekapHarianView.jsx`: kalimat kecil penjelasan pada panel tautan rekap dihapus,
+   judul panel mengikuti gaya terbaru ("TAUTAN LAPORAN HARIAN").
+
+Verifikasi manual: tab tinggal 3 (Absen Manual, Scan Barcode, Rekap & Laporan); sesi Sore demo
+menampilkan 20% dengan donut + bar per gender + tabel rincian (L 3: 0H/1I/2A, P 2: 1H/0I/1A);
+QR 0, Salin Tautan & WhatsApp ada; Aksi Kegiatan memuat "Pesan / Kesan Peserta" dan modalnya terbuka.

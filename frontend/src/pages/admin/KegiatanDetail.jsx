@@ -48,6 +48,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
                                         onRekapGabungan, onSalinJadwal }) {
   const [tab, setTab] = useState("manual");
   const [showActions, setShowActions] = useState(false);
+  const [showPesan, setShowPesan] = useState(false);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
 
@@ -72,8 +73,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
     { key: "manual", label: "Absen Manual", icon: ListChecks },
     { key: "scan", label: "Scan Barcode", icon: ScanLine },
     ...(publik ? [{ key: "tamu", label: "Tamu", icon: UserPlus }] : []),
-    { key: "rekap", label: "Rekap / Laporan", icon: FileBarChart2 },
-    { key: "pesan", label: "Pesan / Kesan", icon: MessageSquareText },
+    { key: "rekap", label: "Rekap & Laporan", icon: FileBarChart2 },
   ]), [publik]);
 
   if (!data) {
@@ -179,11 +179,17 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
             onReload={() => { load(true); if (onChanged) onChanged(); }} />
         )}
         {tab === "publik" && <BarcodePublikPanel kegiatanId={kegiatanId} />}
-        {tab === "rekap" && <KegiatanRekapPanel kegiatanId={kegiatanId} />}
+        {tab === "rekap" && (
+          <KegiatanRekapPanel kegiatanId={kegiatanId} counts={data.counts || {}}
+            gender={data.gender || {}} rows={data.rows || []} guests={data.guests || []} />
+        )}
         {tab === "tindak" && <TindakLanjut kegiatanId={kegiatanId} />}
         {tab === "kode" && <KodeAksesPanel kegiatanId={kegiatanId} />}
-        {tab === "pesan" && <PesanPanel kegiatanId={kegiatanId} />}
       </div>
+
+      {showPesan && (
+        <PesanModal kegiatanId={kegiatanId} nama={k.name} onClose={() => setShowPesan(false)} />
+      )}
 
       {showActions && (
         <ActionModal
@@ -215,6 +221,11 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
               desc: (k.session_total || 1) > 1 ? "Salin pola semua sesi hari ini ke tanggal lain" : "Salin jadwal ini ke tanggal lain",
               icon: Copy,
               onClick: () => onSalinJadwal && onSalinJadwal(k),
+            },
+            {
+              key: "pesan", testid: "detail-opsi-pesan", label: "Pesan / Kesan Peserta",
+              desc: "Baca kotak pesan & kesan dari peserta", icon: MessageSquareText,
+              onClick: () => setShowPesan(true),
             },
             {
               key: "edit", testid: "detail-opsi-edit", label: "Edit Kegiatan",
@@ -792,6 +803,15 @@ function KodeAksesPanel({ kegiatanId }) {
 }
 
 /* ------------------------- Pesan / saran ------------------------- */
+// FASE 23 — dipindah dari tab ke menu "Aksi Kegiatan" (modal).
+function PesanModal({ kegiatanId, nama, onClose }) {
+  return (
+    <ActionModal testid="detail-pesan-modal" title="Pesan / Kesan Peserta" subtitle={nama} onClose={onClose}>
+      <PesanPanel kegiatanId={kegiatanId} />
+    </ActionModal>
+  );
+}
+
 function PesanPanel({ kegiatanId }) {
   const [items, setItems] = useState(null);
   useEffect(() => {
