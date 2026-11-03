@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, QrCode, UserPlus, LogIn, KeyRound, X, Loader2, FlaskConical } from "lucide-react";
+import { Eye, EyeOff, UserPlus, LogIn, KeyRound, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -169,38 +169,12 @@ export default function Login() {  const navigate = useNavigate();
 
           <div className="grid gap-3">
             <button
-              data-testid="button-absen-kode"
-              onClick={() => navigate("/absen-kode")}
-              className="w-full h-[52px] rounded-xl bg-[#111114] text-white text-base font-bold flex items-center justify-center gap-2 hover:bg-[#000000] transition-colors"
-            >
-              <KeyRound size={22} /> Absen dengan Kode (6 Digit)
-            </button>
-            <button
-              data-testid="button-register-qr"
-              onClick={() => navigate("/register")}
-              className="w-full h-[52px] rounded-xl border-2 border-[#111114] text-[#111114] text-base font-bold flex items-center justify-center gap-2 hover:bg-[#F1F1EE] transition-colors"
-            >
-              <QrCode size={22} /> Daftar Baru (Scan QR)
-            </button>
-            <button
               data-testid="button-activate-qr"
               onClick={() => navigate("/activate")}
               className="w-full h-[52px] rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] text-base font-bold flex items-center justify-center gap-2 hover:bg-[#F4F4F1] transition-colors"
             >
               <UserPlus size={22} /> Aktivasi Akun (Cari Nama)
             </button>
-            <button
-              data-testid="button-isi-demo"
-              onClick={() => { setIdentifier("demo"); setPassword("demo1234"); }}
-              className="w-full h-[52px] rounded-xl border-2 border-dashed border-[#F59E0B] bg-[#FFFBEB] text-[#B45309] text-base font-bold flex items-center justify-center gap-2 hover:bg-[#FEF3C7] transition-colors"
-            >
-              <FlaskConical size={20} /> Coba Mode Demo (data terpisah)
-            </button>
-            <p className="text-xs text-[#9CA3AF] text-center leading-relaxed">
-              Akun demo: <b className="text-[#4B5563]">demo</b> / <b className="text-[#4B5563]">demo1234</b> ·
-              peserta demo: <b className="text-[#4B5563]">demopeserta</b> / <b className="text-[#4B5563]">demo1234</b>.
-              Database demo terpisah, aman dipakai coba-coba.
-            </p>
           </div>
         </div>
 

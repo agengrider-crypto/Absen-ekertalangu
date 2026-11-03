@@ -4,6 +4,13 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Perubahan halaman login
+
+- Menghapus tombol "Absen dengan Kode (6 Digit)", "Daftar Baru (Scan QR)", dan
+  "Coba Mode Demo", termasuk informasi akun demo, dari halaman login.
+- Alur aktivasi akun tetap tersedia. Route pendaftaran dan absen kode tidak dihapus
+  agar tautan atau QR yang sudah dibagikan tidak rusak.
+
 ## Fase 8 — Detail absen, filter jenis kelamin, tipe publik/tamu, mode offline
 
 ### Backend (`backend/server.py`)
