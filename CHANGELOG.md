@@ -12,7 +12,10 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
   Musyawarah dan pesan Ruang Teduh masuk ke kategori Laporan dengan label "Laporan Masuk".
 - Program Pembelajaran tidak lagi tampil di sidebar admin karena tersedia di area Guru.
 - Menu Pengurus tetap menyediakan Bantuan, tanpa kategori Pengaturan admin.
-- Tombol menu ponsel tetap berupa ikon hamburger dengan label aksesibilitas.
+- Menu ponsel kini berupa tombol ikon berlabel dalam kisi per kategori, dibuka lewat
+  tombol hamburger.
+- Tampilan mobile dimulai pada skala 100% dan tetap mendukung zoom/pinch; viewport
+  tidak membatasi skala maksimum.
 - Kartu nama barcode tidak ditambahkan karena QR pribadi berubah berkala dan saat ini
   belum ada fitur kartu peserta tercetak.
 

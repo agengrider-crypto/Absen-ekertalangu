@@ -85,7 +85,7 @@ function buildMenu(role) {
     .filter((m) => !m.items || m.items.length > 0);
 }
 
-function NavButton({ item, active, onNav, collapsed }) {
+function NavButton({ item, active, onNav, collapsed, mobile = false }) {
   const Icon = item.icon;
   const on = active === item.key;
   return (
@@ -94,19 +94,23 @@ function NavButton({ item, active, onNav, collapsed }) {
       onClick={() => onNav(item.key)}
       title={collapsed ? item.label : undefined}
       aria-label={item.label}
-      className={`w-full flex items-center ${collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 rounded-xl font-medium text-sm transition-colors ${
+      className={`w-full ${
+        mobile
+          ? `min-h-[76px] ${item.key === "dashboard" ? "col-span-2" : ""} flex-col justify-center gap-2 px-2 py-2 text-center text-xs`
+          : `flex items-center ${collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 text-sm`
+      } rounded-xl font-medium transition-colors ${
         on ? "bg-[#F1F1EE] text-[#111114] font-semibold" : "text-[#6B7280] hover:bg-[#F4F4F1] hover:text-[#111114]"
       }`}
     >
-      <Icon size={19} /> {!collapsed && item.label}
+      <Icon size={mobile ? 22 : 19} /> {(!collapsed || mobile) && <span>{item.label}</span>}
     </button>
   );
 }
 
-function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggleCollapse }) {
+function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggleCollapse, mobile = false }) {
   return (
     <div className="flex flex-col h-full">
-      <div className={`px-3 py-4 flex items-center ${collapsed ? "justify-center" : "justify-between"} gap-2.5 border-b border-[#E8E8E4]`}>
+      <div className={`px-3 ${mobile ? "pr-14" : ""} py-4 flex items-center ${collapsed ? "justify-center" : "justify-between"} gap-2.5 border-b border-[#E8E8E4]`}>
         {!collapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="h-9 w-9 rounded-xl bg-[#F1F1EE] flex items-center justify-center overflow-hidden p-1">
@@ -131,13 +135,19 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
       </div>
       <nav className={`flex-1 ${collapsed ? "px-2" : "px-3"} py-3 overflow-y-auto`}>
         {menu.map((m) => {
-          if (!m.items) return <NavButton key={m.key} item={m} active={active} onNav={onNav} collapsed={collapsed} />;
+          if (!m.items) {
+            return (
+              <div key={m.key} className={mobile ? "grid grid-cols-2 gap-2" : ""}>
+                <NavButton item={m} active={active} onNav={onNav} collapsed={collapsed} mobile={mobile} />
+              </div>
+            );
+          }
           return (
-            <div key={m.group} className="pt-3" data-testid={`submenu-${m.group}`}>
-              {!collapsed && <div className="px-3.5 pb-1 text-xs font-semibold text-[#6B7280]">{m.label}</div>}
-              <div className="space-y-0.5">
+            <div key={m.group} className={mobile ? "pt-4" : "pt-3"} data-testid={`submenu-${m.group}`}>
+              {!collapsed && <div className="px-3.5 pb-2 text-xs font-semibold text-[#6B7280]">{m.label}</div>}
+              <div className={mobile ? "grid grid-cols-2 gap-2" : "space-y-0.5"}>
                 {m.items.map((i) => (
-                  <NavButton key={i.key} item={i} active={active} onNav={onNav} collapsed={collapsed} />
+                  <NavButton key={i.key} item={i} active={active} onNav={onNav} collapsed={collapsed} mobile={mobile} />
                 ))}
               </div>
             </div>
@@ -191,11 +201,11 @@ export default function AdminLayout({ user, role = "admin" }) {
       {drawer && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/40" onClick={() => setDrawer(false)} />
-          <aside className="relative w-[264px] bg-white flex flex-col">
-            <button data-testid={ADMIN_SIDEBAR.closeButton} onClick={() => setDrawer(false)} aria-label="Tutup menu" className="absolute top-4 right-3 text-[#6B7280] h-9 w-9 flex items-center justify-center">
+          <aside className="relative w-[90vw] max-w-[360px] bg-white flex flex-col">
+            <button data-testid={ADMIN_SIDEBAR.closeButton} onClick={() => setDrawer(false)} aria-label="Tutup menu" className="absolute top-4 right-3 z-10 text-[#6B7280] h-11 w-11 flex items-center justify-center rounded-lg hover:bg-[#F4F4F1]">
               <X size={20} />
             </button>
-            <SidebarInner active={active} onNav={go} onLogout={doLogout} role={role} menu={menu} collapsed={false} onToggleCollapse={() => {}} />
+            <SidebarInner active={active} onNav={go} onLogout={doLogout} role={role} menu={menu} collapsed={false} onToggleCollapse={() => {}} mobile />
           </aside>
         </div>
       )}
