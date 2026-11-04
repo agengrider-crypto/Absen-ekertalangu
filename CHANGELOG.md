@@ -4,6 +4,18 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Perubahan navigasi Admin & Pengurus
+
+- Sidebar desktop kini dapat diciutkan/dibuka; tampilan menu lebih ringkas dan label
+  kategori tidak menggunakan huruf kapital berjarak.
+- Navigasi dikelompokkan menjadi Peserta, Kegiatan, Laporan, dan Pengaturan admin.
+  Musyawarah dan pesan Ruang Teduh masuk ke kategori Laporan dengan label "Laporan Masuk".
+- Program Pembelajaran tidak lagi tampil di sidebar admin karena tersedia di area Guru.
+- Menu Pengurus tetap menyediakan Bantuan, tanpa kategori Pengaturan admin.
+- Tombol menu ponsel tetap berupa ikon hamburger dengan label aksesibilitas.
+- Kartu nama barcode tidak ditambahkan karena QR pribadi berubah berkala dan saat ini
+  belum ada fitur kartu peserta tercetak.
+
 ## Perbaikan backend Vercel gagal dimuat
 
 - Menambahkan `requests` ke `requirements.txt` root dan `api/requirements.txt`.

@@ -20,19 +20,19 @@ Menu pojok kanan (`ProfileMenu.jsx`) tersedia di semua area: **Profil**,
 
 ## 2. Area Admin & Pengurus
 
-Sidebar (berubah menjadi drawer + hamburger di layar kecil):
+Sidebar desktop dapat diciutkan menjadi ikon; pada ponsel menu dibuka melalui tombol
+hamburger. Navigasi dikelompokkan agar mudah ditemukan:
 
 | Menu | File | Isi |
 |---|---|---|
-| Dashboard | `DashboardView.jsx` | Pintasan cepat, statistik, donut jenis kelamin, tren 6 bulan, kegiatan mendatang, QR pendaftaran |
-| Peserta | `Peserta.jsx` | Tabel + tab **Semua / Belum Aktivasi / Sudah Aktif**, Tambah, Bulk Data, Impor Excel, Template |
-| Kegiatan | `KegiatanView.jsx` + `KegiatanExtras.jsx` | List/Kalender, form, rekap, QR, pengingat WA, delegasi |
-| Penjaga Absen | `PenjagaAbsenView.jsx` | Kelola delegasi terpusat per bulan |
-| Musyawarah | `MusyawarahView.jsx` | Catatan 4S / Tim 7 + ekspor PDF |
-| Pengumuman | `PengumumanView.jsx` | CRUD + pin per peran |
-| Laporan | `LaporanView.jsx` | Harian/Bulanan/Rentang + Excel/PDF/Share WA |
-| Log Aktivitas | `LogAktivitas.jsx` | Jejak audit |
-| Hak Akses | `HakAkses.jsx` | Editor peran (admin) |
+| Dashboard | `DashboardView.jsx` | Pintasan cepat, statistik, tren 6 bulan, kegiatan mendatang |
+| Peserta | `Peserta.jsx`, `PesertaBulkView.jsx`, `PesertaDuplikat.jsx` | Kelola pengguna, bulk data, cek duplikat, dan kelompok |
+| Kegiatan | `KegiatanView.jsx`, `KalenderView.jsx`, `KodeAksesView.jsx`, `ScanPresensiView.jsx` | Daftar, kalender, kode akses, scan presensi, pengumuman |
+| Laporan | `LaporanView.jsx`, `RekapBulananView.jsx`, `RekapHarianView.jsx`, `MusyawarahView.jsx`, `RuangTeduhView.jsx` | Rekap, musyawarah, dan laporan masuk dari jamaah |
+| Pengaturan (admin) | `BantuanView.jsx`, `PantauLoginView.jsx`, `LogAktivitas.jsx`, `HakAkses.jsx` | Bantuan, aktivitas login, log, dan hak akses |
+
+Program Pembelajaran tersedia pada area Guru. Menu Bantuan tetap tersedia mandiri untuk
+Pengurus; menu Pengaturan dan alat admin tidak ditampilkan pada peran Pengurus.
 
 ### Pintasan Cepat
 

@@ -1,4 +1,4 @@
-// FASE 16 — Panel "Ruang Teduh": admin & pengurus membaca pesan peserta, menandai dibaca, atau menghapus riwayat.
+// Panel laporan masuk: admin & pengurus membaca pesan peserta, menandai dibaca, atau menghapus riwayat.
 import { useEffect, useState } from "react";
 import { HeartHandshake, Loader2, Search, CheckCheck, UserRound, Clock, Trash2, Eraser } from "lucide-react";
 import { toast } from "sonner";
@@ -40,7 +40,7 @@ export default function RuangTeduhView() {
   };
 
   const hapusSemua = async () => {
-    if (!window.confirm("Hapus SELURUH riwayat Ruang Teduh? Tindakan ini tidak bisa dibatalkan.")) return;
+    if (!window.confirm("Hapus SELURUH riwayat laporan masuk? Tindakan ini tidak bisa dibatalkan.")) return;
     try {
       const { data: d } = await api.delete("/staff/pengaduan");
       toast.success(`${d.deleted} pesan dihapus`);
@@ -59,7 +59,7 @@ export default function RuangTeduhView() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#111114] flex items-center gap-2">
-            <HeartHandshake size={22} className="text-[#111114]" /> Ruang Teduh
+            <HeartHandshake size={22} className="text-[#111114]" /> Laporan Masuk
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
             Pesan peserta: curhat, saran, pengaduan, kendala hadir, dan pertanyaan.
