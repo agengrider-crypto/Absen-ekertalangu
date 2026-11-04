@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import { PARTICIPANTS } from "@/constants/testIds";
 import ContactButtons from "@/components/ContactButtons";
 import { DateField } from "@/components/DateField";
 import { EDUCATION_OPTIONS, MUBALIGH_OPTIONS, MARITAL_OPTIONS, genderLabel, statusBadge } from "./adminUtils";
@@ -13,7 +14,7 @@ import { EDUCATION_OPTIONS, MUBALIGH_OPTIONS, MARITAL_OPTIONS, genderLabel, stat
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
 const lbl = "text-xs font-semibold text-[#6B7280] mb-1 block";
 
-export default function PesertaDetailModal({ userId, kelompokList, canManageRoles = true, onClose, onChanged }) {
+export default function PesertaDetailModal({ userId, kelompokList, canManageRoles = true, canResetPassword = false, onClose, onChanged }) {
   const [data, setData] = useState(null);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -83,7 +84,7 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
     setBusy("reset");
     try {
       const { data } = await api.post(`/admin/users/${userId}/reset-password`);
-      setResetResult(data.password);
+      setResetResult({ password: data.password, username: data.username });
       onChanged?.();
       load();
     } catch (e) {
@@ -333,10 +334,12 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
 
             {/* Actions */}
             <div className="grid sm:grid-cols-3 gap-3">
-              <button data-testid="button-reset-password" onClick={resetPassword} disabled={busy === "reset"}
-                className="h-11 rounded-xl border-2 border-[#9CA3AF] text-[#B45309] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#FFFBEB] disabled:opacity-50">
-                {busy === "reset" ? <Loader2 className="animate-spin" size={16} /> : <KeyRound size={16} />} Reset Sandi
-              </button>
+              {canResetPassword && (
+                <button data-testid="button-reset-password" onClick={resetPassword} disabled={busy === "reset"}
+                  className="h-11 rounded-xl border-2 border-[#9CA3AF] text-[#B45309] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#FFFBEB] disabled:opacity-50">
+                  {busy === "reset" ? <Loader2 className="animate-spin" size={16} /> : <KeyRound size={16} />} Reset Sandi
+                </button>
+              )}
               <button data-testid="button-toggle-status" onClick={toggleStatus} disabled={busy === "status"}
                 className={`h-11 rounded-xl border-2 font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 ${data.status === "active" ? "border-[#DC2626] text-[#DC2626] hover:bg-red-50" : "border-[#111114] text-[#111114] hover:bg-[#F1F1EE]"}`}>
                 {busy === "status" ? <Loader2 className="animate-spin" size={16} /> : <Power size={16} />} {data.status === "active" ? "Nonaktifkan" : "Aktifkan"}
@@ -356,7 +359,7 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
             <div className="mx-auto h-12 w-12 rounded-full bg-[#FEF3C7] text-[#B45309] flex items-center justify-center mb-3"><KeyRound size={24} /></div>
             <h3 className="font-heading font-bold text-[#111827] text-lg">Reset Kata Sandi?</h3>
             <p className="text-sm text-[#6B7280] mt-1.5">
-              Apakah Anda yakin mereset password <b className="text-[#111827]">{data?.name}</b>? Kata sandi akan diganti menjadi tanggal lahir (format DDMMYYYY).
+              Apakah Anda yakin mereset kata sandi <b className="text-[#111827]">{data?.name}</b>? Sandi sementara memakai tanggal lahir (DDMMYYYY) dan wajib diganti saat peserta masuk berikutnya.
             </p>
             <div className="grid grid-cols-2 gap-3 mt-5">
               <button data-testid="button-reset-cancel" onClick={() => setResetConfirm(false)}
@@ -373,9 +376,11 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center" onClick={(e) => e.stopPropagation()} data-testid="modal-reset-result">
             <div className="mx-auto h-12 w-12 rounded-full bg-[#F1F1EE] text-[#111114] flex items-center justify-center mb-3"><KeyRound size={24} /></div>
             <h3 className="font-heading font-bold text-[#111827] text-lg">Kata Sandi Direset</h3>
-            <p className="text-sm text-[#6B7280] mt-1.5">Kata sandi baru untuk <b className="text-[#111827]">{data?.name}</b>:</p>
-            <div className="my-3 py-3 rounded-xl bg-[#F4F4F1] font-mono text-2xl font-bold tracking-widest text-[#111114]" data-testid="reset-result-password">{resetResult}</div>
-            <p className="text-xs text-[#9CA3AF]">Sampaikan kata sandi ini kepada peserta. Format: DDMMYYYY.</p>
+            <p className="text-sm text-[#6B7280] mt-1.5">Nama pengguna:</p>
+            <div className="my-2 rounded-xl bg-[#F4F4F1] px-3 py-2 font-semibold text-[#111114]" data-testid={PARTICIPANTS.resetUsername}>{resetResult.username || data?.name}</div>
+            <p className="text-sm text-[#6B7280] mt-2">Kata sandi sementara:</p>
+            <div className="my-2 py-3 rounded-xl bg-[#F4F4F1] font-mono text-2xl font-bold tracking-widest text-[#111114]" data-testid="reset-result-password">{resetResult.password}</div>
+            <p className="text-xs text-[#9CA3AF]">Sampaikan dengan aman. Peserta harus mengganti kata sandi ini dan melengkapi data akun setelah masuk.</p>
             <button data-testid="button-reset-result-close" onClick={() => setResetResult(null)}
               className="mt-4 w-full h-11 rounded-xl bg-[#111114] text-white font-bold hover:bg-[#000000]">Tutup</button>
           </div>

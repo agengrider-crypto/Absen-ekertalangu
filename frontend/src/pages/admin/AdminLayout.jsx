@@ -195,6 +195,55 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
   );
 }
 
+function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
+  const sections = {
+    dashboard: ["dashboard"],
+    peserta: ["peserta", "peserta-bulk", "peserta-duplikat", "kelompok"],
+    kegiatan: ["kegiatan", "kalender", "kode-akses", "scan-presensi", "pengumuman"],
+    laporan: ["laporan", "rekap-bulanan", "rekap-harian", "musyawarah", "pengaduan"],
+  };
+  const activeSection = Object.keys(sections).find((key) => sections[key].includes(active));
+  const items = [
+    { key: "dashboard", label: "Beranda", icon: LayoutDashboard, action: () => onNavigate("dashboard") },
+    { key: "peserta", label: "Peserta", icon: Users, action: () => onNavigate("peserta") },
+    { key: "kegiatan", label: "Kegiatan", icon: CalendarDays, action: () => onNavigate("kegiatan") },
+    { key: "laporan", label: "Laporan", icon: FileBarChart2, action: () => onNavigate("laporan") },
+    { key: "menu", label: "Menu", icon: Menu, action: onOpenMenu },
+  ];
+
+  return (
+    <nav
+      aria-label="Navigasi utama"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E8E8E4] bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(17,17,20,0.06)] backdrop-blur lg:hidden"
+    >
+      <div className="mx-auto grid h-16 max-w-lg grid-cols-5">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const isActive = item.key === "menu" ? menuOpen || !activeSection : activeSection === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              data-testid={ADMIN_SIDEBAR.mobileNav[item.key]}
+              onClick={item.action}
+              aria-label={item.label}
+              aria-current={isActive ? "page" : undefined}
+              aria-expanded={item.key === "menu" ? menuOpen : undefined}
+              aria-controls={item.key === "menu" ? "admin-mobile-menu" : undefined}
+              className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-xs font-medium leading-none transition-colors ${
+                isActive ? "text-[#0D5C3A]" : "text-[#6B7280] hover:text-[#111114]"
+              }`}
+            >
+              <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+              <span className="w-full truncate text-center">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
 export default function AdminLayout({ user, role = "admin" }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -202,6 +251,9 @@ export default function AdminLayout({ user, role = "admin" }) {
   const [active, setActive] = useState("dashboard");
   const [drawer, setDrawer] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [addPesertaRequest, setAddPesertaRequest] = useState(0);
+  const [addKegiatanRequest, setAddKegiatanRequest] = useState(0);
+  const [kegiatanIdToOpen, setKegiatanIdToOpen] = useState(null);
 
   const allKeys = menu.flatMap((m) => (m.items ? m.items.map((i) => i.key) : [m.key]));
 
@@ -234,6 +286,7 @@ export default function AdminLayout({ user, role = "admin" }) {
             className="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
           />
           <aside
+            id="admin-mobile-menu"
             role="dialog"
             aria-modal="true"
             aria-label="Semua Menu"
@@ -250,14 +303,6 @@ export default function AdminLayout({ user, role = "admin" }) {
         <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-[#E8E8E4]">
           <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button
-                data-testid={ADMIN_SIDEBAR.openButton}
-                onClick={() => setDrawer(true)}
-                aria-label="Buka menu"
-                className="lg:hidden h-10 w-10 flex items-center justify-center rounded-lg border border-[#E8E8E4] text-[#4B5563]"
-              >
-                <Menu size={20} />
-              </button>
               <Logo size={32} />
             </div>
             <div className="flex items-center gap-2">
@@ -273,13 +318,44 @@ export default function AdminLayout({ user, role = "admin" }) {
           </div>
         </header>
 
-        <main className="px-4 sm:px-8 py-8 sm:py-10 max-w-6xl mx-auto">
+        <main className="px-4 pb-24 pt-6 sm:px-8 sm:pb-24 sm:pt-10 lg:py-10 max-w-6xl mx-auto">
           <DemoBanner />
-          {active === "dashboard" && <DashboardView user={user} onGoto={go} role={role} />}
-          {active === "peserta" && <Peserta role={role} />}
+          {active === "dashboard" && (
+            <DashboardView
+              user={user}
+              onGoto={go}
+              role={role}
+              onAddPeserta={() => {
+                setActive("peserta");
+                setAddPesertaRequest((request) => request + 1);
+              }}
+              onAddKegiatan={() => {
+                setActive("kegiatan");
+                setAddKegiatanRequest((request) => request + 1);
+              }}
+              onOpenKegiatan={(id) => {
+                setKegiatanIdToOpen(id);
+                setActive("kegiatan");
+              }}
+            />
+          )}
+          {active === "peserta" && (
+            <Peserta
+              role={role}
+              addRequest={addPesertaRequest}
+              onAddRequestHandled={() => setAddPesertaRequest(0)}
+            />
+          )}
           {active === "peserta-bulk" && <PesertaBulkView />}
           {active === "peserta-duplikat" && <PesertaDuplikat />}
-          {active === "kegiatan" && <KegiatanView />}
+          {active === "kegiatan" && (
+            <KegiatanView
+              addRequest={addKegiatanRequest}
+              initialDetailId={kegiatanIdToOpen}
+              onAddRequestHandled={() => setAddKegiatanRequest(0)}
+              onInitialDetailHandled={() => setKegiatanIdToOpen(null)}
+            />
+          )}
           {active === "kalender" && <KalenderView />}
           {active === "bantuan" && <BantuanView />}
           {active === "kode-akses" && <KodeAksesView />}
@@ -296,6 +372,12 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "hakakses" && role === "admin" && <HakAkses currentUserId={user?.id} />}
         </main>
       </div>
+      <MobileBottomNav
+        active={active}
+        menuOpen={drawer}
+        onNavigate={go}
+        onOpenMenu={() => setDrawer(true)}
+      />
     </div>
   );
 }

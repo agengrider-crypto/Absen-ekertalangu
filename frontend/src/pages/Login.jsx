@@ -6,6 +6,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import { DateField } from "@/components/DateField";
+import { LOGIN } from "@/constants/testIds";
 
 function fmtWaktu(iso) {
   if (!iso) return "-";
@@ -69,7 +70,7 @@ export default function Login() {  const navigate = useNavigate();
       setUser(data);
       // FASE 11 — notifikasi login untuk akun ini (perangkat, waktu, login sebelumnya)
       showLoginNotice(data);
-      if (data.profile_complete === false) {
+      if (data.profile_complete === false || data.must_change_password) {
         toast.warning(`Selamat datang, ${data.name}. Mohon lengkapi data akun Anda dahulu.`);
         navigate("/lengkapi-akun", { replace: true });
         return;
@@ -94,6 +95,9 @@ export default function Login() {  const navigate = useNavigate();
           <p className="text-[#6B7280] text-base mt-1 mb-6">
             Gunakan Nomor HP, Email, atau Username Anda.
           </p>
+          <div className="mb-5 rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-3 text-sm leading-relaxed text-[#78350F]" data-testid={LOGIN.temporaryCredentialsNotice}>
+            Akun yang baru diaktifkan pengurus: gunakan nama pengguna yang tertera di daftar dan tanggal lahir (DDMMYYYY) sebagai sandi awal. Ganti sandi setelah masuk.
+          </div>
 
           <form onSubmit={submit} className="space-y-4">
             <div>

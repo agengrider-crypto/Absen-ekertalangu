@@ -59,6 +59,7 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://<domain>/api/cron/auto-clos
 | POST | `/api/auth/self-reset` | — | `{phone, dob, new_password}` — **hanya** akun berperan tunggal `peserta` (403 untuk lainnya) |
 | GET | `/api/activation/search?q=` | — | Cari nama berstatus `pending` (min. 2 karakter, maks 20 hasil) |
 | POST | `/api/activation/complete` | — | `{user_id, phone, email?, dob, address?, password, gender, avatar_gender?}` — `dob` harus cocok data pengurus |
+| POST | `/api/me/complete-account` | login dengan `must_change_password=true` | Lengkapi profil dan ganti kata sandi sementara `{name, gender, dob, phone, address, new_password, ...}` |
 
 ```bash
 curl -c ck.txt -X POST https://<domain>/api/auth/login \
@@ -86,17 +87,18 @@ curl -b ck.txt https://<domain>/api/auth/me
 
 | Method | Path | Guard | Keterangan |
 |---|---|---|---|
-| GET | `/api/admin/users` | `require_staff` | Daftar peserta |
+| GET | `/api/admin/users` | `require_staff` | Daftar akun, akun sistem dikecualikan |
 | POST | `/api/admin/users` | `require_staff` | Buat akun (`AdminCreateUser`) |
 | GET | `/api/admin/users/{user_id}` | `require_staff` | Detail (termasuk foto) |
 | PATCH | `/api/admin/users/{user_id}` | `require_staff` | Ubah data (`PesertaUpdate`) |
 | DELETE | `/api/admin/users/{user_id}` | `require_admin` | Hapus (tidak bisa hapus diri sendiri) |
 | PATCH | `/api/admin/users/{user_id}/roles` | `require_admin` | `{roles: [...]}` |
 | POST | `/api/admin/users/{user_id}/move` | `require_staff` | Pindah kelompok `{kelompok_id, keterangan}` — tercatat di log |
-| POST | `/api/admin/users/{user_id}/reset-password` | `require_staff` | Reset oleh pengurus |
+| POST | `/api/admin/users/{user_id}/reset-password` | `require_staff` | Reset sementara untuk akun berperan tunggal Peserta; respons berisi username dan sandi DDMMYYYY, wajib diganti saat login |
 | GET | `/api/admin/users/{user_id}/photo` | `require_staff` | Foto sebagai gambar biner (404 bila belum ada) |
 | POST | `/api/admin/users/bulk` | `require_staff` | Tambah banyak `{entries: [...], kelompok_id}` |
 | POST | `/api/admin/users/bulk-delete` | `require_admin` | `{ids: [...]}` |
+| POST | `/api/admin/users/bulk-activate` | `require_staff` | Aktifkan akun berperan tunggal Peserta yang pending `{ids: [...]}` dan tanggal lahirnya valid; set kata sandi sementara DDMMYYYY dan wajib ganti saat login |
 | POST | `/api/admin/users/pending` | `require_staff` | Daftar nama menunggu aktivasi `{entries:[{name, dob}]}` |
 | POST | `/api/admin/users/import` | `require_staff` | Impor Excel (multipart) |
 | GET | `/api/admin/import-template` | `require_staff` | Unduh template Excel |

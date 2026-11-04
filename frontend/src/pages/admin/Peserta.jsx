@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Users, Search, Loader2, UserPlus, Trash2, X, Eye, AlertTriangle,
-  ClipboardList, CalendarDays, Heart,
+  ClipboardList, CalendarDays, Heart, Printer, QrCode, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
 import { api, API, formatApiErrorDetail } from "@/lib/api";
+import { PARTICIPANTS } from "@/constants/testIds";
 import { DateField } from "@/components/DateField";
 import PesertaDetailModal from "./PesertaDetailModal";
 import { formatTanggal, genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
@@ -23,6 +25,27 @@ export function dataMissing(u) {
   return m;
 }
 const MISSING_LABEL = { dob: "Tgl lahir", marital: "Status nikah" };
+
+function normalizeParticipantDob(value) {
+  const dob = String(value || "").slice(0, 10);
+  let year;
+  let month;
+  let day;
+  let match = dob.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) [, year, month, day] = match;
+  else {
+    match = dob.match(/^(\d{2})[-/.](\d{2})[-/.](\d{4})$/);
+    if (match) [, day, month, year] = match;
+    else {
+      match = dob.match(/^(\d{4})[/.](\d{2})[/.](\d{2})$/);
+      if (!match) return null;
+      [, year, month, day] = match;
+    }
+  }
+  const normalized = `${year}-${month}-${day}`;
+  const date = new Date(`${normalized}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== normalized ? null : normalized;
+}
 
 function PesertaAvatar({ user }) {
   const [err, setErr] = useState(false);
@@ -46,41 +69,64 @@ function PesertaAvatar({ user }) {
   );
 }
 
-export default function Peserta({ role = "admin" }) {
+export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHandled }) {
   const isAdmin = role === "admin";
+  const handledAddRequest = useRef(0);
   const [users, setUsers] = useState(null);
   const [kelompok, setKelompok] = useState([]);
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // all | pending | active | incomplete
+  const [roleFilter, setRoleFilter] = useState("all");
   const [selected, setSelected] = useState(new Set());
   const [detailId, setDetailId] = useState(null);
   const [modal, setModal] = useState(null); // "add" | "bulk" | null
+  const [showNameTags, setShowNameTags] = useState(false);
 
   const load = () =>
     api.get("/admin/users")
-      .then(({ data }) => setUsers(data.filter((u) => u.roles?.includes("peserta"))))
-      .catch((e) => toast.error(formatApiErrorDetail(e.response?.data?.detail)));
+      .then(({ data }) => setUsers(data))
+      .catch((e) => {
+        setUsers(false);
+        toast.error(formatApiErrorDetail(e.response?.data?.detail));
+      });
 
   useEffect(() => {
     load();
-    api.get("/admin/kelompok").then(({ data }) => setKelompok(data)).catch(() => {});
+    api.get("/admin/kelompok")
+      .then(({ data }) => setKelompok(data))
+      .catch((e) => toast.error(formatApiErrorDetail(e.response?.data?.detail)));
   }, []);
+
+  useEffect(() => {
+    if (addRequest > handledAddRequest.current) {
+      handledAddRequest.current = addRequest;
+      setModal("add");
+      onAddRequestHandled?.();
+    }
+  }, [addRequest, onAddRequestHandled]);
 
   const counts = useMemo(() => {
     const all = users || [];
+    const roleUsers = roleFilter === "all" ? all : all.filter((u) => u.roles?.includes(roleFilter));
     return {
-      all: all.length,
-      pending: all.filter((u) => u.status === "pending").length,
-      active: all.filter((u) => u.status === "active").length,
-      incomplete: all.filter((u) => dataMissing(u).length > 0).length,
-      missingDob: all.filter((u) => dataMissing(u).includes("dob")).length,
-      missingMarital: all.filter((u) => dataMissing(u).includes("marital")).length,
+      all: roleUsers.length,
+      pending: roleUsers.filter((u) => u.status === "pending").length,
+      active: roleUsers.filter((u) => u.status === "active").length,
+      incomplete: roleUsers.filter((u) => dataMissing(u).length > 0).length,
+      missingDob: roleUsers.filter((u) => dataMissing(u).includes("dob")).length,
+      missingMarital: roleUsers.filter((u) => dataMissing(u).includes("marital")).length,
+      roles: {
+        peserta: all.filter((u) => u.roles?.includes("peserta")).length,
+        pengurus: all.filter((u) => u.roles?.includes("pengurus")).length,
+        admin: all.filter((u) => u.roles?.includes("admin")).length,
+        guru: all.filter((u) => u.roles?.includes("guru")).length,
+      },
     };
-  }, [users]);
+  }, [users, roleFilter]);
 
   const filtered = useMemo(() => {
     if (!users) return [];
-    let list = users;
+    let list = roleFilter === "all" ? users : users.filter((u) => u.roles?.includes(roleFilter));
     if (statusFilter === "pending") list = list.filter((u) => u.status === "pending");
     else if (statusFilter === "active") list = list.filter((u) => u.status === "active");
     else if (statusFilter === "incomplete") list = list.filter((u) => dataMissing(u).length > 0);
@@ -88,9 +134,20 @@ export default function Peserta({ role = "admin" }) {
     if (!t) return list;
     return list.filter((u) =>
       (u.name || "").toLowerCase().includes(t) ||
+      (u.username || "").toLowerCase().includes(t) ||
       (u.phone || "").toLowerCase().includes(t) ||
       (u.birthplace || "").toLowerCase().includes(t));
-  }, [users, q, statusFilter]);
+  }, [users, q, statusFilter, roleFilter]);
+
+  const selectedParticipants = (users || []).filter((u) =>
+    selected.has(u.id) && u.roles?.includes("peserta"));
+  const pureParticipants = selectedParticipants.filter((u) => u.roles?.length === 1);
+  const deletableSelected = pureParticipants;
+  const activatableSelected = pureParticipants.filter((u) =>
+    u.status === "pending" && !!normalizeParticipantDob(u.dob));
+  const pendingWithoutDobSelected = pureParticipants.filter((u) =>
+    u.status === "pending" && !normalizeParticipantDob(u.dob));
+  const detailUser = (users || []).find((u) => u.id === detailId);
 
   const allChecked = filtered.length > 0 && filtered.every((u) => selected.has(u.id));
   const toggleAll = () => {
@@ -108,7 +165,7 @@ export default function Peserta({ role = "admin" }) {
   });
 
   const bulkDelete = async () => {
-    const ids = Array.from(selected);
+    const ids = deletableSelected.map((u) => u.id);
     if (ids.length === 0) return;
     if (!window.confirm(`Hapus ${ids.length} peserta terpilih? Tindakan ini tidak bisa dibatalkan.`)) return;
     try {
@@ -121,23 +178,83 @@ export default function Peserta({ role = "admin" }) {
     }
   };
 
+  const bulkActivate = async () => {
+    const ids = activatableSelected.map((u) => u.id);
+    if (!ids.length) return;
+    const confirmed = window.confirm(
+      `Aktifkan ${ids.length} akun peserta terpilih? Kata sandi sementara memakai tanggal lahir format DDMMYYYY dan wajib diganti saat pertama masuk.`,
+    );
+    if (!confirmed) return;
+    try {
+      const { data } = await api.post("/admin/users/bulk-activate", { ids });
+      setSelected(new Set());
+      await load();
+      if (data.activated.length) {
+        toast.success(`${data.activated.length} akun diaktifkan. Nama pengguna tercantum di daftar; kata sandi awalnya tanggal lahir (DDMMYYYY) dan wajib diganti saat login.`);
+      }
+      if (data.skipped.length) {
+        toast.warning(`${data.skipped.length} akun tidak diaktifkan. Periksa status dan tanggal lahirnya.`);
+      }
+      if (!data.activated.length && !data.skipped.length) {
+        toast.error("Tidak ada akun yang diproses.");
+      }
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    }
+  };
+
   return (
     <div>
-      {/* FASE 15 — Bulk data & import dipindah ke halaman Bulk Data tersendiri */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
-          <Users size={20} /> Peserta
+          <Users size={20} /> Peserta &amp; Akun
           {users && <span className="text-sm font-medium text-[#6B7280]">({users.length})</span>}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button data-testid="button-open-add" onClick={() => setModal("add")}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]">
+          <button
+            data-testid={PARTICIPANTS.openNameTags}
+            onClick={() => setShowNameTags(true)}
+            disabled={!users?.some((u) => u.roles?.includes("peserta"))}
+            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] bg-white text-[#111114] font-semibold text-sm hover:border-[#111114] disabled:opacity-50"
+          >
+            <QrCode size={16} /> Kartu Nama / QR
+          </button>
+          <button data-testid={PARTICIPANTS.openAdd} onClick={() => setModal("add")}
+            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]">
             <UserPlus size={16} /> Tambah Peserta
           </button>
         </div>
       </div>
 
-      {/* Search + bulk delete */}
+      <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Kategori peran" data-testid={PARTICIPANTS.roleFilter}>
+        {[
+          { key: "all", label: "Semua", count: users?.length || 0 },
+          { key: "peserta", label: "Peserta", count: counts.roles.peserta },
+          { key: "pengurus", label: "Pengurus", count: counts.roles.pengurus },
+          { key: "admin", label: "Admin", count: counts.roles.admin },
+          { key: "guru", label: "Guru", count: counts.roles.guru },
+        ].map((tab) => {
+          const active = roleFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              aria-pressed={active}
+              data-testid={`${PARTICIPANTS.roleTabPrefix}-${tab.key}`}
+              onClick={() => setRoleFilter(tab.key)}
+              className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border-2 px-4 text-sm font-semibold transition-colors ${
+                active ? "border-[#111114] bg-[#111114] text-white" : "border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#111114]"
+              }`}
+            >
+              {tab.label}
+              <span className={`rounded-full px-2 py-0.5 text-xs ${active ? "bg-white/20" : "bg-[#F3F4F6] text-[#374151]"}`}>{tab.count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[220px]">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
@@ -145,20 +262,31 @@ export default function Peserta({ role = "admin" }) {
             data-testid="input-search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Cari nama, No HP, tempat lahir..."
+            placeholder="Cari nama, nama pengguna, No HP..."
             className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white"
           />
         </div>
-        {selected.size > 0 && (
+        {activatableSelected.length > 0 && (
+          <button data-testid={PARTICIPANTS.bulkActivateButton} onClick={bulkActivate}
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#08452B]">
+            <CheckCircle2 size={16} /> Aktifkan Terpilih ({activatableSelected.length})
+          </button>
+        )}
+        {deletableSelected.length > 0 && (
           <button data-testid="button-bulk-delete" onClick={bulkDelete}
             className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#DC2626] text-white font-semibold text-sm hover:bg-[#B91C1C]">
-            <Trash2 size={16} /> Hapus Terpilih ({selected.size})
+            <Trash2 size={16} /> Hapus Peserta ({deletableSelected.length})
           </button>
+        )}
+        {pendingWithoutDobSelected.length > 0 && (
+          <span data-testid={PARTICIPANTS.pendingNoDobNotice} className="text-sm font-medium text-[#92400E]">
+            {pendingWithoutDobSelected.length} akun perlu tanggal lahir valid sebelum diaktifkan.
+          </span>
         )}
       </div>
 
       {/* Filter status aktivasi */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap" data-testid="status-filter">
+      <div className="flex items-center gap-2 mb-4 flex-wrap" data-testid={PARTICIPANTS.statusFilter}>
         {[
           { key: "all", label: "Semua", count: counts.all, cls: "bg-[#111114] text-white border-[#111114]" },
           { key: "pending", label: "Belum Aktivasi", count: counts.pending, cls: "bg-[#9CA3AF] text-white border-[#9CA3AF]" },
@@ -169,7 +297,8 @@ export default function Peserta({ role = "admin" }) {
           return (
             <button
               key={f.key}
-              data-testid={`filter-${f.key}`}
+              data-testid={`${PARTICIPANTS.statusFilterPrefix}-${f.key}`}
+              type="button"
               onClick={() => setStatusFilter(f.key)}
               className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-full border-2 text-sm font-semibold transition-colors ${on ? f.cls : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114]"}`}
             >
@@ -182,13 +311,13 @@ export default function Peserta({ role = "admin" }) {
         })}
         {counts.pending > 0 && statusFilter !== "pending" && (
           <span className="text-xs text-[#92400E] bg-[#FEF3C7] px-2.5 py-1 rounded-full">
-            {counts.pending} peserta belum mengaktifkan akun — bagikan QR Aktivasi untuk menindaklanjuti
+            {counts.pending} akun belum aktivasi
           </span>
         )}
       </div>
 
       {/* FASE 10 — Kelengkapan data (tanggal lahir & status pernikahan) */}
-      {users && counts.incomplete > 0 && (
+      {users && roleFilter === "peserta" && counts.incomplete > 0 && (
         <div className={`mb-4 rounded-2xl border-2 p-3.5 flex flex-wrap items-center gap-3 ${statusFilter === "incomplete" ? "border-[#9D174D] bg-[#FDF2F8]" : "border-[#F5D0E3] bg-[#FDF2F8]/60"}`} data-testid="kelengkapan-banner">
           <span className="h-10 w-10 rounded-xl bg-[#9D174D] text-white flex items-center justify-center shrink-0"><ClipboardList size={18} /></span>
           <div className="flex-1 min-w-[200px]">
@@ -213,28 +342,33 @@ export default function Peserta({ role = "admin" }) {
           )}
         </div>
       )}
-      {users && counts.incomplete === 0 && statusFilter === "incomplete" && (
+      {users && roleFilter === "peserta" && counts.incomplete === 0 && statusFilter === "incomplete" && (
         <div className="mb-4 rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-3.5 text-sm text-[#111114] font-semibold" data-testid="kelengkapan-complete">
           Semua peserta sudah melengkapi tanggal lahir dan status pernikahan.
         </div>
       )}
 
-      {/* Table */}
       <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="peserta-table">
-        {!users ? (
+        {users === null ? (
           <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
+        ) : users === false ? (
+          <div className="p-10 text-center">
+            <p className="text-[#6B7280]">Daftar akun gagal dimuat.</p>
+            <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#111114] px-4 font-semibold text-white">Coba lagi</button>
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="p-10 text-center text-[#6B7280]">{q ? "Tidak ada peserta cocok." : "Belum ada peserta."}</div>
+          <div className="p-10 text-center text-[#6B7280]">{q ? "Tidak ada akun yang cocok." : "Belum ada akun pada kategori ini."}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[#FAFAF8] text-[#6B7280] text-left">
                   <th className="px-4 py-3 w-10">
-                    <input type="checkbox" className="accent-[#111114] w-4 h-4" checked={allChecked} onChange={toggleAll} data-testid="checkbox-all" />
+                    <input aria-label="Pilih semua akun yang tampil" type="checkbox" className="accent-[#111114] w-4 h-4" checked={allChecked} onChange={toggleAll} data-testid="checkbox-all" />
                   </th>
                   <th className="px-4 py-3 font-semibold w-14">Foto</th>
                   <th className="px-4 py-3 font-semibold">Nama</th>
+                  <th className="px-4 py-3 font-semibold hidden lg:table-cell">Kategori Peran</th>
                   <th className="px-4 py-3 font-semibold hidden sm:table-cell">Jenis Kelamin</th>
                   <th className="px-4 py-3 font-semibold hidden md:table-cell">Tempat Lahir</th>
                   <th className="px-4 py-3 font-semibold hidden md:table-cell">Tgl Lahir</th>
@@ -248,10 +382,11 @@ export default function Peserta({ role = "admin" }) {
                 {filtered.map((u) => {
                   const b = statusBadge(u.status, u.needs_completion);
                   const miss = dataMissing(u);
+                  const roleNames = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta", guru: "Guru" };
                   return (
                     <tr key={u.id} data-testid={`peserta-row-${u.id}`} className={selected.has(u.id) ? "bg-[#FAFAF8]" : ""}>
                       <td className="px-4 py-3">
-                        <input type="checkbox" className="accent-[#111114] w-4 h-4" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} data-testid={`checkbox-${u.id}`} />
+                        <input aria-label={`Pilih ${u.name}`} type="checkbox" className="accent-[#111114] w-4 h-4" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} data-testid={`checkbox-${u.id}`} />
                       </td>
                       <td className="px-4 py-3">
                         <PesertaAvatar user={u} />
@@ -261,12 +396,22 @@ export default function Peserta({ role = "admin" }) {
                           {u.name}
                           {u.needs_completion && <AlertTriangle size={14} className="text-[#9CA3AF]" title="Perlu dilengkapi" />}
                         </div>
+                        {u.username && <div className="mt-0.5 text-xs text-[#6B7280]">Nama pengguna: {u.username}</div>}
                         <div className="text-xs text-[#9CA3AF] sm:hidden">{genderLabel(u.gender)} · {u.phone || "-"}</div>
                         {miss.length > 0 && (
                           <div className="text-[11px] text-[#9D174D] font-semibold md:hidden mt-0.5">
                             {miss.map((m) => MISSING_LABEL[m]).join(" & ")} belum diisi
                           </div>
                         )}
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {(u.roles || []).map((r) => (
+                            <span key={r} className="rounded-full bg-[#F1F1EE] px-2 py-0.5 text-xs font-medium text-[#374151]">
+                              {roleNames[r] || r}
+                            </span>
+                          ))}
+                        </div>
                       </td>
                       <td className="px-4 py-3 hidden sm:table-cell text-[#4B5563]">{genderLabel(u.gender)}</td>
                       <td className="px-4 py-3 hidden md:table-cell text-[#4B5563]">{u.birthplace || "-"}</td>
@@ -308,11 +453,19 @@ export default function Peserta({ role = "admin" }) {
           userId={detailId}
           kelompokList={kelompok}
           canManageRoles={isAdmin}
+          canResetPassword={detailUser?.roles?.length === 1 && detailUser?.roles?.includes("peserta")}
           onClose={() => setDetailId(null)}
           onChanged={load}
         />
       )}
       {modal === "add" && <AddModal kelompok={kelompok} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
+      {showNameTags && (
+        <NameTagModal
+          users={(users || []).filter((u) => u.roles?.includes("peserta"))}
+          kelompok={kelompok}
+          onClose={() => setShowNameTags(false)}
+        />
+      )}
     </div>
   );
 }
@@ -323,7 +476,7 @@ function ModalShell({ title, children, onClose, testid, wide = false }) {
       <div className={`bg-[#FAFAF8] w-full ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
         <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E8E8E4] px-5 py-3.5 flex items-center justify-between z-10">
           <h2 className="font-heading font-bold text-[#111827]">{title}</h2>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"><X size={20} /></button>
+          <button type="button" onClick={onClose} aria-label={`Tutup ${title}`} data-testid={PARTICIPANTS.closeModal} className="h-11 w-11 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"><X size={20} /></button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -356,34 +509,247 @@ function AddModal({ kelompok, onClose, onDone }) {
   };
 
   return (
-    <ModalShell title="Tambah Peserta" onClose={onClose} testid="modal-add">
-      <form onSubmit={submit} className="grid sm:grid-cols-2 gap-3">
-        <input data-testid="add-name" required value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Nama Lengkap *" className={`${inp} sm:col-span-2`} />
-        <select data-testid="add-gender" value={f.gender} onChange={(e) => set("gender", e.target.value)} className={inp}>
-          <option value="">Jenis Kelamin</option>
-          <option value="L">Laki-laki</option>
-          <option value="P">Perempuan</option>
-        </select>
-        <select data-testid="add-marital" value={f.marital} onChange={(e) => set("marital", e.target.value)} className={inp}>
-          <option value="">Status Pernikahan</option>
-          {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <input data-testid="add-birthplace" value={f.birthplace} onChange={(e) => set("birthplace", e.target.value)} placeholder="Tempat Lahir" className={inp} />
-        <DateField testid="add-dob" value={f.dob} onChange={(v) => set("dob", v)} placeholder="Tanggal Lahir" className="h-[46px]" />
-        <input data-testid="add-phone" value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="No. HP / Telepon" className={inp} />
-        <input data-testid="add-whatsapp" value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder="No. WhatsApp" className={inp} />
-        <input data-testid="add-email" type="email" value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="Email" className={inp} />
-        <input data-testid="add-address" value={f.address} onChange={(e) => set("address", e.target.value)} placeholder="Alamat" className={`${inp} sm:col-span-2`} />
-        <select data-testid="add-kelompok" value={f.kelompok_id} onChange={(e) => set("kelompok_id", e.target.value)} className={`${inp} sm:col-span-2`}>
-          <option value="">- Tanpa Kelompok -</option>
-          {kelompok.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
-        </select>
-        <button data-testid="button-submit-add" type="submit" disabled={saving}
-          className="sm:col-span-2 h-12 rounded-xl bg-[#111114] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
-          {saving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Tambahkan
+    <ModalShell title="Tambah Peserta" onClose={onClose} testid={PARTICIPANTS.addModal} wide>
+      <form onSubmit={submit} className="space-y-4">
+        <div className="rounded-2xl bg-[#0D5C3A] p-5 text-white">
+          <div className="flex items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15"><UserPlus size={22} /></span>
+            <div>
+              <h3 className="text-lg font-bold">Tambahkan jamaah ke daftar peserta</h3>
+              <p className="mt-1 text-sm leading-relaxed text-white/85">
+                Isi nama dan tanggal lahir. Peserta akan muncul sebagai Belum Aktivasi sampai Anda mengaktifkannya.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5">
+          <h3 className="mb-4 font-bold text-[#111827]">Data peserta</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="sm:col-span-2">
+              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Nama lengkap <span className="text-[#DC2626]">*</span></span>
+              <input data-testid={PARTICIPANTS.addName} required value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Masukkan nama sesuai identitas" className={inp} />
+            </label>
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Jenis kelamin</span>
+              <select data-testid={PARTICIPANTS.addGender} value={f.gender} onChange={(e) => set("gender", e.target.value)} className={inp}>
+                <option value="">Pilih jenis kelamin</option>
+                <option value="L">Laki-laki</option>
+                <option value="P">Perempuan</option>
+              </select>
+            </label>
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Status pernikahan</span>
+              <select data-testid={PARTICIPANTS.addMarital} value={f.marital} onChange={(e) => set("marital", e.target.value)} className={inp}>
+                <option value="">Pilih status</option>
+                {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </label>
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Tempat lahir</span>
+              <input data-testid={PARTICIPANTS.addBirthplace} value={f.birthplace} onChange={(e) => set("birthplace", e.target.value)} placeholder="Contoh: Denpasar" className={inp} />
+            </label>
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Tanggal lahir</span>
+              <DateField testid={PARTICIPANTS.addDob} value={f.dob} onChange={(v) => set("dob", v)} placeholder="Pilih tanggal lahir" className="h-[46px]" />
+              <span className="mt-1 block text-xs text-[#6B7280]">Dipakai sebagai kata sandi sementara saat aktivasi.</span>
+            </label>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5">
+          <h3 className="mb-4 font-bold text-[#111827]">Kontak dan kelompok</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Nomor HP</span>
+              <input data-testid={PARTICIPANTS.addPhone} value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="08xxxxxxxxxx" className={inp} />
+            </label>
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Nomor WhatsApp</span>
+              <input data-testid={PARTICIPANTS.addWhatsapp} value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder="Opsional" className={inp} />
+            </label>
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Email</span>
+              <input data-testid={PARTICIPANTS.addEmail} type="email" value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="nama@email.com" className={inp} />
+            </label>
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Kelompok sambung</span>
+              <select data-testid={PARTICIPANTS.addKelompok} value={f.kelompok_id} onChange={(e) => set("kelompok_id", e.target.value)} className={inp}>
+                <option value="">Tanpa kelompok</option>
+                {kelompok.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+              </select>
+            </label>
+            <label className="sm:col-span-2">
+              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Alamat</span>
+              <input data-testid={PARTICIPANTS.addAddress} value={f.address} onChange={(e) => set("address", e.target.value)} placeholder="Alamat tempat tinggal" className={inp} />
+            </label>
+          </div>
+        </section>
+
+        <button data-testid={PARTICIPANTS.addSubmit} type="submit" disabled={saving}
+          className="h-12 w-full rounded-xl bg-[#111114] text-base font-bold text-white inline-flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
+          {saving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Simpan Peserta
         </button>
       </form>
     </ModalShell>
   );
 }
 
+function NameTagModal({ users, kelompok, onClose }) {
+  const [search, setSearch] = useState("");
+  const [groupFilter, setGroupFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [orientation, setOrientation] = useState("portrait");
+  const [selected, setSelected] = useState(new Set());
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return users
+      .filter((user) => {
+        if (groupFilter !== "all" && user.kelompok_id !== groupFilter) return false;
+        if (statusFilter !== "all" && user.status !== statusFilter) return false;
+        return !term || (user.name || "").toLowerCase().includes(term);
+      })
+      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "id"));
+  }, [users, search, groupFilter, statusFilter]);
+
+  const visibleSelected = filtered.filter((user) => selected.has(user.id));
+  const allVisibleSelected = filtered.length > 0 && visibleSelected.length === filtered.length;
+
+  const toggleVisible = () => {
+    setSelected((previous) => {
+      const next = new Set(previous);
+      if (allVisibleSelected) filtered.forEach((user) => next.delete(user.id));
+      else filtered.forEach((user) => next.add(user.id));
+      return next;
+    });
+  };
+
+  const printTags = () => {
+    if (!visibleSelected.length) {
+      toast.error("Pilih minimal satu peserta untuk dicetak.");
+      return;
+    }
+    window.print();
+  };
+
+  return (
+    <ModalShell title="Kartu Nama Peserta" onClose={onClose} testid={PARTICIPANTS.nameTagModal} wide>
+      <div className="name-tag-screen-only space-y-4">
+        <div className="rounded-2xl border border-[#D1E7DD] bg-[#F0FDF4] p-4 text-sm leading-relaxed text-[#14532D]">
+          Barcode QR ini permanen untuk identifikasi nama tag. QR presensi peserta tetap memakai barcode berputar dari menu peserta.
+        </div>
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px_190px]">
+          <label className="relative">
+            <span className="sr-only">Cari nama peserta</span>
+            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+            <input
+              data-testid={PARTICIPANTS.nameTagSearch}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Cari nama peserta"
+              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-4 text-base outline-none focus:border-[#111114]"
+            />
+          </label>
+          <label>
+            <span className="sr-only">Filter kelompok</span>
+            <select
+              data-testid={PARTICIPANTS.nameTagGroupFilter}
+              value={groupFilter}
+              onChange={(event) => setGroupFilter(event.target.value)}
+              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-base outline-none focus:border-[#111114]"
+            >
+              <option value="all">Semua kelompok</option>
+              {kelompok.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+            </select>
+          </label>
+          <label>
+            <span className="sr-only">Filter status akun</span>
+            <select
+              data-testid={PARTICIPANTS.nameTagStatusFilter}
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-base outline-none focus:border-[#111114]"
+            >
+              <option value="all">Semua status</option>
+              <option value="active">Sudah aktif</option>
+              <option value="pending">Belum aktivasi</option>
+              <option value="nonaktif">Nonaktif</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <label className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#374151]">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={toggleVisible}
+              data-testid={PARTICIPANTS.nameTagSelectVisible}
+              className="h-5 w-5 accent-[#0D5C3A]"
+            />
+            Pilih semua hasil ({filtered.length})
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            {selected.size > 0 && (
+              <button type="button" onClick={() => setSelected(new Set())} data-testid={PARTICIPANTS.nameTagClearSelection}
+                className="min-h-11 rounded-lg border border-[#E8E8E4] bg-white px-3 text-sm font-semibold text-[#4B5563] hover:border-[#111114]">
+                Hapus pilihan
+              </button>
+            )}
+            <button type="button" aria-pressed={orientation === "portrait"} onClick={() => setOrientation("portrait")}
+              data-testid={PARTICIPANTS.nameTagPortrait}
+              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "portrait" ? "border-[#0D5C3A] bg-[#F0FDF4] text-[#0D5C3A]" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}>
+              Vertikal
+            </button>
+            <button type="button" aria-pressed={orientation === "landscape"} onClick={() => setOrientation("landscape")}
+              data-testid={PARTICIPANTS.nameTagLandscape}
+              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "landscape" ? "border-[#0D5C3A] bg-[#F0FDF4] text-[#0D5C3A]" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}>
+              Horizontal
+            </button>
+            <button type="button" onClick={printTags} data-testid={PARTICIPANTS.nameTagPrint}
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#111114] px-4 text-sm font-semibold text-white hover:bg-black">
+              <Printer size={16} /> Cetak ({visibleSelected.length})
+            </button>
+          </div>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-white p-8 text-center text-sm text-[#6B7280]">
+            Tidak ada peserta yang cocok dengan pencarian atau filter.
+          </div>
+        ) : (
+          <div className={`name-tag-selection-list grid gap-3 ${orientation === "portrait" ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`} data-orientation={orientation}>
+            {filtered.map((user) => (
+              <label key={user.id} className="flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border border-[#E8E8E4] bg-white px-3 py-2 text-sm font-medium text-[#374151] name-tag-screen-only">
+                <input
+                  type="checkbox"
+                  checked={selected.has(user.id)}
+                  onChange={() => setSelected((previous) => {
+                    const next = new Set(previous);
+                    if (next.has(user.id)) next.delete(user.id);
+                    else next.add(user.id);
+                    return next;
+                  })}
+                  data-testid={`${PARTICIPANTS.nameTagCheckboxPrefix}-${user.id}`}
+                  className="h-5 w-5 accent-[#0D5C3A]"
+                />
+                <span className="truncate">{user.name}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="name-tag-print-area">
+        <div className={`name-tag-print-grid name-tag-print-grid-${orientation}`} data-orientation={orientation}>
+          {visibleSelected.map((user) => (
+            <div key={user.id} className={`name-tag-card name-tag-card-${orientation}`}>
+              <div className="name-tag-card-name">{user.name}</div>
+              <QRCodeSVG value={`EKT:${user.id}`} title={`Barcode identitas ${user.name}`} size={108} level="M" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </ModalShell>
+  );
+}

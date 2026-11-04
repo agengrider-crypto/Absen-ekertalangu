@@ -4,6 +4,30 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan pengelolaan peserta
+
+- Daftar akun kini memiliki tab Semua, Peserta, Pengurus, Admin, dan Guru, serta filter
+  status aktivasi dan pencarian nama/nama pengguna/nomor HP.
+- Pengurus dapat memilih akun peserta yang belum aktivasi untuk diaktifkan massal.
+  Nama dipakai sebagai nama pengguna dan tanggal lahir `DDMMYYYY` menjadi sandi
+  sementara; hanya akun berperan tunggal Peserta yang diproses, lalu peserta wajib
+  mengganti sandi dan melengkapi profil saat login pertama.
+- Formulir Tambah Peserta ditata ulang dan diberi label/keterangan yang lebih jelas.
+- Kartu nama peserta menampilkan nama dan QR ID permanen, bisa dicari, difilter menurut
+  kelompok/status, dipilih, lalu dicetak vertikal atau horizontal. QR ini tidak dipakai
+  untuk presensi; QR presensi tetap berputar.
+
+## Penyederhanaan dashboard Admin & Pengurus
+
+- Sapaan dashboard hanya menampilkan nama pengguna, tanpa label peran.
+- Pintasan dibatasi ke Tambah Peserta, Tambah Kegiatan, dan Laporan; dua formulir
+  tambah dapat dibuka langsung dari dashboard.
+- Statistik jenis kelamin, rasio kehadiran, dan kartu statistik lain dihapus;
+  dashboard hanya menampilkan total peserta.
+- Tren kehadiran diubah menjadi grafik batang horizontal.
+- Kegiatan mendatang ditampilkan dalam tabel; nama kegiatan dapat dipilih untuk
+  membuka detailnya.
+
 ## Perubahan navigasi Admin & Pengurus
 
 - Sidebar desktop kini dapat diciutkan/dibuka; tampilan menu lebih ringkas dan label
@@ -12,12 +36,13 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
   Musyawarah dan pesan Ruang Teduh masuk ke kategori Laporan dengan label "Laporan Masuk".
 - Program Pembelajaran tidak lagi tampil di sidebar admin karena tersedia di area Guru.
 - Menu Pengurus tetap menyediakan Bantuan, tanpa kategori Pengaturan admin.
-- Menu ponsel kini berupa bottom sheet "Semua Menu" dengan tombol ikon berlabel
-  dalam kisi empat kolom per kategori, dibuka lewat tombol hamburger.
+- Menu ponsel kini memakai Bottom Navigation Bar dengan tombol Beranda, Peserta,
+  Kegiatan, Laporan, dan Menu. Menu membuka bottom sheet berisi kisi empat kolom
+  untuk fitur tambahan; ikon dan label navigasi bawah diratakan.
 - Tampilan mobile dimulai pada skala 100% dan tetap mendukung zoom/pinch; viewport
   tidak membatasi skala maksimum.
-- Kartu nama barcode tidak ditambahkan karena QR pribadi berubah berkala dan saat ini
-  belum ada fitur kartu peserta tercetak.
+- QR pribadi untuk presensi tetap berubah berkala dan tidak digunakan sebagai QR
+  identitas pada kartu nama.
 
 ## Perbaikan backend Vercel gagal dimuat
 

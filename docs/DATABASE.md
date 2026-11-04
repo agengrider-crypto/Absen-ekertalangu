@@ -29,8 +29,9 @@ Tidak ada relasi/`$lookup`. Referensi antar dokumen memakai **id string**.
   education: "SMA" | null,                  // EDUCATION_OPTIONS
   mubaligh: "belum" | "sudah" | null,
   kelompok_id: "<uuid>" | null,
-  roles: ["peserta"],                       // admin | pengurus | peserta
+  roles: ["peserta"],                       // admin | pengurus | peserta | guru
   status: "active" | "pending" | "nonaktif",
+  must_change_password: false,              // true untuk kata sandi sementara; login dibatasi ke setup
   source: "seed" | "admin" | "qr_public",
   avatar_gender: "male" | "female",
   needs_completion: false,
@@ -40,6 +41,9 @@ Tidak ada relasi/`$lookup`. Referensi antar dokumen memakai **id string**.
   created_at: "2026-09-06T16:00:09+00:00"   // string ISO UTC
 }
 ```
+
+`username` dibuat dari nama peserta untuk akun yang didaftarkan pengurus. Nama kembar
+mendapat akhiran angka agar tetap unik.
 
 **Index:** `email` (unik, partial `$type: string`), `username` (unik, partial),
 `phone`, `name`, `status`, `kelompok_id`.

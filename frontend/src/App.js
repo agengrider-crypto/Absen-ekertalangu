@@ -36,7 +36,7 @@ function Protected({ children }) {
     const next = `${location.pathname}${location.search}`;
     return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
   }
-  if (user.profile_complete === false) return <Navigate to="/lengkapi-akun" replace />;
+  if (user.profile_complete === false || user.must_change_password) return <Navigate to="/lengkapi-akun" replace />;
   return children;
 }
 
@@ -44,7 +44,7 @@ function ProfileGate() {
   const { user } = useAuth();
   if (user === null) return <Loading />;
   if (user === false) return <Navigate to="/login" replace />;
-  if (user.profile_complete !== false) return <Navigate to="/roles" replace />;
+  if (user.profile_complete !== false && !user.must_change_password) return <Navigate to="/roles" replace />;
   return <CompleteProfile />;
 }
 
@@ -53,7 +53,7 @@ function PublicOnly({ children }) {
   const [params] = useSearchParams();
   if (user === null) return <Loading />;
   if (user) {
-    if (user.profile_complete === false) return <Navigate to="/lengkapi-akun" replace />;
+    if (user.profile_complete === false || user.must_change_password) return <Navigate to="/lengkapi-akun" replace />;
     // Hormati ?next= (mis. dari halaman absen: /login?next=/absen/<token>)
     const raw = params.get("next") || "";
     const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/roles";

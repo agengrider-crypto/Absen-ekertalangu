@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import { PARTICIPANTS } from "@/constants/testIds";
 import { useAuth } from "@/context/AuthContext";
 import { resizeImageFile } from "@/lib/image";
 import { Logo } from "@/components/Logo";
@@ -37,6 +38,8 @@ export default function CompleteProfile() {
   const fileRef = useRef(null);
   const [photo, setPhoto] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [f, setF] = useState({
     name: user?.name || "",
     gender: user?.gender || "",
@@ -90,6 +93,7 @@ export default function CompleteProfile() {
 
   const submit = async (e) => {
     e.preventDefault();
+    const mustChangePassword = Boolean(user?.must_change_password);
     const need = [
       ["name", "Nama Lengkap"], ["gender", "Jenis Kelamin"],
       ["dob", "Tanggal Lahir"], ["phone", "No. HP"], ["address", "Alamat"],
@@ -98,9 +102,21 @@ export default function CompleteProfile() {
       toast.error(`Mohon lengkapi: ${need.join(", ")}`);
       return;
     }
+    if (mustChangePassword && newPassword.length < 8) {
+      toast.error("Kata sandi baru minimal 8 karakter.");
+      return;
+    }
+    if (mustChangePassword && newPassword !== confirmPassword) {
+      toast.error("Konfirmasi kata sandi belum sama.");
+      return;
+    }
     setSaving(true);
     try {
-      await api.patch("/me/profile", f);
+      if (mustChangePassword) {
+        await api.post("/me/complete-account", { ...f, new_password: newPassword });
+      } else {
+        await api.patch("/me/profile", f);
+      }
       const fresh = await refresh();
       if (fresh && fresh.profile_complete) {
         toast.success("Alhamdulillah, data akun Anda sudah lengkap. Jazakumullahu khoiro.");
@@ -165,6 +181,16 @@ export default function CompleteProfile() {
           </div>
         </div>
 
+        {user?.must_change_password && (
+          <div className="mt-4 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-4" data-testid={PARTICIPANTS.temporaryPasswordWarning}>
+            <h2 className="font-bold text-[#92400E]">Ganti kata sandi sementara</h2>
+            <p className="mt-1 text-sm leading-relaxed text-[#78350F]">
+              Kata sandi awal memakai tanggal lahir. Buat kata sandi baru yang tidak mudah ditebak;
+              Anda harus menggantinya sebelum memakai aplikasi.
+            </p>
+          </div>
+        )}
+
         {/* Foto profil */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4 flex flex-col items-center">
           <div className="relative">
@@ -189,6 +215,36 @@ export default function CompleteProfile() {
         </div>
 
         <form onSubmit={submit} className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4 space-y-4">
+          {user?.must_change_password && (
+            <div className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-4 space-y-3">
+              <h2 className="font-bold text-[#111827]">Buat kata sandi baru</h2>
+              <Field label="Kata Sandi Baru" required filled={newPassword.length >= 8} hint="Minimal 8 karakter dan jangan gunakan tanggal lahir.">
+                <input
+                  data-testid={PARTICIPANTS.setupNewPassword}
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  minLength={8}
+                  required
+                  className={inp}
+                />
+              </Field>
+              <Field label="Ulangi Kata Sandi Baru" required filled={!!confirmPassword && confirmPassword === newPassword}>
+                <input
+                  data-testid={PARTICIPANTS.setupConfirmPassword}
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  minLength={8}
+                  required
+                  className={inp}
+                />
+              </Field>
+            </div>
+          )}
+
           <Field label="Nama Lengkap" required filled={!!f.name.trim()}>
             <input data-testid="complete-name" value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Nama sesuai identitas" className={inp} />
           </Field>
@@ -242,7 +298,7 @@ export default function CompleteProfile() {
             className="w-full h-[52px] rounded-xl bg-[#111114] text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60"
           >
             {saving ? <Loader2 className="animate-spin" size={19} /> : <ShieldCheck size={19} />}
-            Simpan &amp; Verifikasi Akun
+            {user?.must_change_password ? "Ganti Kata Sandi & Lengkapi Akun" : "Simpan & Verifikasi Akun"}
           </button>
           <p className="text-center text-xs text-[#9CA3AF]">
             Tanda <span className="text-[#DC2626] font-bold">*</span> wajib diisi

@@ -797,3 +797,9 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 ### Backlog berikutnya
 - P1: catatan/capaian peserta per jenjang (penilaian), kaitkan jenjang ke data peserta.
 - P2: tombol "Reset Data Demo"; unduh PDF/Excel rekap; undangan penting via WhatsApp massal.
+
+## Pembaruan 2026-11-04 — Aktivasi dan kartu nama peserta
+- Daftar akun memiliki tab kategori Semua, Peserta, Pengurus, Admin, Guru dan filter status/pencarian.
+- Aktivasi massal hanya berlaku untuk akun berperan tunggal Peserta yang pending dengan tanggal lahir valid.
+- Login awal peserta hasil aktivasi massal memakai nama sebagai username dan DOB format DDMMYYYY sebagai sandi sementara; login wajib dilanjutkan dengan ganti sandi dan lengkapi profil.
+- Kartu nama mencetak nama + QR ID akun permanen, dalam orientasi vertikal maupun horizontal. QR permanen hanya untuk identifikasi; QR presensi tetap rotating.

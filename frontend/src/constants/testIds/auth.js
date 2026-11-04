@@ -17,6 +17,7 @@ export const LOGIN = {
 	submitButton: 'login-submit-button',
 	forgotPasswordLink: 'login-forgot-password-link',
 	registerLink: 'login-register-link',
+	temporaryCredentialsNotice: 'login-temporary-credentials-notice',
 };
 
 export const REGISTER = {

@@ -20,15 +20,15 @@ Menu pojok kanan (`ProfileMenu.jsx`) tersedia di semua area: **Profil**,
 
 ## 2. Area Admin & Pengurus
 
-Sidebar desktop dapat diciutkan menjadi ikon; pada ponsel menu dibuka melalui tombol
-hamburger dan muncul sebagai bottom sheet "Semua Menu" berisi kisi empat kolom
-tombol ikon berlabel per kategori. Tampilan ponsel dimulai pada skala 100% dan tetap
-mendukung zoom:
+Sidebar desktop dapat diciutkan menjadi ikon. Di ponsel, Bottom Navigation Bar
+menyediakan Beranda, Peserta, Kegiatan, Laporan, dan Menu dengan ikon serta label
+sejajar; Menu membuka bottom sheet "Semua Menu" berisi kisi empat kolom untuk fitur
+lainnya. Tampilan ponsel dimulai pada skala 100% dan tetap mendukung zoom:
 
 | Menu | File | Isi |
 |---|---|---|
-| Dashboard | `DashboardView.jsx` | Pintasan cepat, statistik, tren 6 bulan, kegiatan mendatang |
-| Peserta | `Peserta.jsx`, `PesertaBulkView.jsx`, `PesertaDuplikat.jsx` | Kelola pengguna, bulk data, cek duplikat, dan kelompok |
+| Dashboard | `DashboardView.jsx` | Sapaan nama, pintasan tambah peserta/kegiatan dan laporan, total peserta, tren kehadiran horizontal, serta tabel kegiatan mendatang yang membuka detail |
+| Peserta | `Peserta.jsx`, `PesertaBulkView.jsx`, `PesertaDuplikat.jsx` | Kelola akun lewat tab kategori peran dan filter status, aktivasi massal peserta pending, kartu nama QR permanen siap cetak, bulk data, cek duplikat, dan kelompok |
 | Kegiatan | `KegiatanView.jsx`, `KalenderView.jsx`, `KodeAksesView.jsx`, `ScanPresensiView.jsx` | Daftar, kalender, kode akses, scan presensi, pengumuman |
 | Laporan | `LaporanView.jsx`, `RekapBulananView.jsx`, `RekapHarianView.jsx`, `MusyawarahView.jsx`, `RuangTeduhView.jsx` | Rekap, musyawarah, dan laporan masuk dari jamaah |
 | Pengaturan (admin) | `BantuanView.jsx`, `PantauLoginView.jsx`, `LogAktivitas.jsx`, `HakAkses.jsx` | Bantuan, aktivitas login, log, dan hak akses |
@@ -38,8 +38,20 @@ Pengurus; menu Pengaturan dan alat admin tidak ditampilkan pada peran Pengurus.
 
 ### Pintasan Cepat
 
-Grid tombol di dashboard: Peserta, Kegiatan, Pengumuman, Penjaga Absen, Laporan,
-QR Aktivasi. Sekali klik langsung menuju menu terkait.
+Dashboard menyediakan tiga pintasan: Tambah Peserta dan Tambah Kegiatan langsung
+membuka formulir, sedangkan Laporan membuka halaman laporan.
+
+### Akun Peserta dan kartu nama
+
+- Tab peran menampilkan Semua, Peserta, Pengurus, Admin, dan Guru; pencarian nama,
+  nama pengguna, serta nomor HP dapat digabung dengan filter status.
+- Akun dengan peran tunggal Peserta yang pending dapat diaktifkan massal bila tanggal lahir valid.
+  Nama menjadi nama pengguna; kata sandi sementara adalah tanggal lahir `DDMMYYYY`.
+  Saat pertama masuk, peserta wajib mengganti sandi dan melengkapi profil sebelum
+  menggunakan aplikasi.
+- Kartu nama berisi nama dan QR identitas permanen (ID akun), dengan pencarian nama,
+  filter kelompok/status, pilihan kartu, dan cetak ukuran vertikal atau horizontal.
+  QR ini hanya untuk identifikasi; presensi tetap memakai QR pribadi yang berputar.
 
 ---
 

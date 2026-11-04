@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays, Plus, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
   Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
@@ -31,7 +31,14 @@ function todayYmd() {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
 }
 
-export default function KegiatanView() {
+export default function KegiatanView({
+  addRequest = 0,
+  initialDetailId = null,
+  onAddRequestHandled,
+  onInitialDetailHandled,
+}) {
+  const handledAddRequest = useRef(0);
+  const handledInitialDetailId = useRef(null);
   const [month, setMonth] = useState(() => todayYmd().slice(0, 7));
   const [items, setItems] = useState(null);
   const [view, setView] = useState("list");
@@ -55,6 +62,22 @@ export default function KegiatanView() {
   }, [month]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (addRequest > handledAddRequest.current) {
+      handledAddRequest.current = addRequest;
+      setShowAdd(true);
+      onAddRequestHandled?.();
+    }
+  }, [addRequest, onAddRequestHandled]);
+
+  useEffect(() => {
+    if (initialDetailId && initialDetailId !== handledInitialDetailId.current) {
+      handledInitialDetailId.current = initialDetailId;
+      setDetailId(initialDetailId);
+      onInitialDetailHandled?.();
+    }
+  }, [initialDetailId, onInitialDetailHandled]);
 
   const [y, m] = month.split("-").map((x) => parseInt(x, 10));
   const shiftMonth = (delta) => {

@@ -214,6 +214,19 @@ Pengurus cetak QR aktivasi (GET /api/staff/activation-qr) → /activate
   → status menjadi "active", langsung login
 ```
 
+### c. Aktivasi massal peserta oleh pengurus
+
+`POST /api/admin/users/bulk-activate` hanya mengaktifkan akun dengan peran tunggal
+Peserta dengan peran tunggal `peserta` yang masih berstatus `pending` dan mempunyai
+tanggal lahir valid. Nama peserta menjadi nama pengguna (nama kembar mendapat akhiran
+angka), sedangkan kata sandi awal adalah tanggal lahir format `DDMMYYYY`.
+
+Kredensial tanggal lahir hanya bersifat sementara dan lemah bila diketahui orang lain.
+Pada login pertama `must_change_password=true` menahan semua halaman aplikasi dan
+mengarahkan peserta ke `/lengkapi-akun`. Peserta wajib melengkapi data profil dan
+membuat kata sandi baru minimal 8 karakter yang bukan tanggal lahir. Backend mengubah
+kata sandi dan profil sekaligus serta mencabut token lama.
+
 ### c. Dibuatkan langsung oleh pengurus
 
 `POST /api/admin/users` dengan `password`, atau impor Excel
@@ -243,7 +256,8 @@ Berhasil → `token_version` dinaikkan (mencabut semua sesi lama) + catatan
 
 ### Oleh pengurus — `POST /api/admin/users/{user_id}/reset-password`
 
-Guard `require_staff`, tercatat di `activity_logs`.
+Guard `require_staff`, tercatat di `activity_logs`. Kata sandi tanggal lahir menjadi
+kredensial sementara; akun wajib mengganti kata sandi saat login berikutnya.
 
 ---
 

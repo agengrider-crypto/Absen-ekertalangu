@@ -228,6 +228,7 @@ def public_user(user: dict, include_photo: bool = False) -> dict:
         "kelompok_id": user.get("kelompok_id"),
         "roles": user.get("roles", []),
         "status": user.get("status", "active"),
+        "must_change_password": bool(user.get("must_change_password", False)),
         "source": user.get("source", "admin"),
         "avatar_gender": user.get("avatar_gender", "male"),
         "needs_completion": bool(user.get("needs_completion", False)),
@@ -313,6 +314,9 @@ class BulkCreateInput(BaseModel):
 class BulkDeleteInput(BaseModel):
     ids: List[str]
 
+class BulkActivateInput(BaseModel):
+    ids: List[str]
+
 class PesertaUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
@@ -369,6 +373,16 @@ async def get_current_user(request: Request) -> dict:
             raise HTTPException(status_code=401, detail="Pengguna tidak ditemukan")
         if payload.get("ver", 0) != user.get("token_version", 0):
             raise HTTPException(status_code=401, detail="Sesi telah berakhir")
+        allowed_setup_paths = {
+            "/api/auth/me",
+            "/api/me/complete-account",
+            "/api/me/photo",
+        }
+        if user.get("must_change_password") and request.url.path not in allowed_setup_paths:
+            raise HTTPException(
+                status_code=403,
+                detail="Ganti kata sandi sementara dan lengkapi data akun sebelum menggunakan aplikasi.",
+            )
         return user
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token kadaluarsa")
@@ -899,7 +913,7 @@ async def self_reset(body: SelfResetInput):
     user = await db.users.find_one({"phone": phone, "dob": dob})
     if not user:
         raise HTTPException(status_code=404, detail="Data tidak cocok. Periksa Nomor HP & tanggal lahir Anda.")
-    if set(user.get("roles", [])) != {"peserta"}:
+    if set(user.get("roles") or []) != {"peserta"}:
         raise HTTPException(status_code=403, detail="Reset mandiri hanya untuk akun Peserta. Akun dengan peran lain hubungi administrator.")
     await db.users.update_one({"_id": user["_id"]}, {
         "$set": {"password_hash": hash_password(body.new_password), "status": "active"},
@@ -1055,9 +1069,10 @@ async def admin_create_user(body: AdminCreateUser, admin: dict = Depends(require
         raise HTTPException(status_code=409, detail="Email sudah terdaftar")
     if phone and await db.users.find_one({"phone": phone}):
         raise HTTPException(status_code=409, detail="Nomor HP sudah terdaftar")
+    username = await unique_username_from_name(name) if "peserta" in roles else None
 
     doc = {
-        "name": name, "email": email, "username": None, "phone": phone,
+        "name": name, "email": email, "username": username, "phone": phone,
         "whatsapp": body.whatsapp.strip() if body.whatsapp else None,
         "dob": normalize_dob(body.dob),
         "birthplace": body.birthplace.strip() if body.birthplace else None,
@@ -1096,6 +1111,7 @@ async def admin_create_pending(body: AdminPendingNames, admin: dict = Depends(re
         if entry.dob and str(entry.dob).strip() and normalize_dob(entry.dob) is None:
             invalid_dates.append({"name": name, "value": str(entry.dob).strip()})
         doc = build_pending_doc(name, entry.dob)
+        doc["username"] = await unique_username_from_name(name)
         res = await db.users.insert_one(doc)
         doc["_id"] = res.inserted_id
         created.append(public_user(doc))
@@ -1159,6 +1175,7 @@ async def admin_import_users(file: UploadFile = File(...), admin: dict = Depends
         if dob_val is not None and str(dob_val).strip() and normalize_dob(dob_val) is None:
             invalid_dates.append({"name": name, "value": str(dob_val).strip()})
         doc = build_pending_doc(name, dob_val)
+        doc["username"] = await unique_username_from_name(name)
         if duplicate:
             doc["needs_completion"] = True
             flagged.append(name)
@@ -1322,7 +1339,7 @@ async def admin_bulk_create(body: BulkCreateInput, admin: dict = Depends(require
             invalid_dates.append({"name": name, "value": str(entry.dob).strip()})
         g = normalize_gender(entry.gender)
         doc = {
-            "name": name, "email": None, "username": None,
+            "name": name, "email": None, "username": await unique_username_from_name(name),
             "phone": entry.phone.strip() if entry.phone else None, "whatsapp": None,
             "dob": normalize_dob(entry.dob),
             "birthplace": entry.birthplace.strip() if entry.birthplace else None,
@@ -1357,23 +1374,100 @@ async def admin_bulk_delete(body: BulkDeleteInput, admin: dict = Depends(require
     await log_activity(admin, "hapus_massal", f"Menghapus {res.deleted_count} akun sekaligus")
     return {"deleted": res.deleted_count}
 
+async def unique_username_from_name(name: str, exclude_id=None) -> str:
+    base = " ".join(name.strip().lower().split())
+    for suffix in range(1, 10000):
+        candidate = base if suffix == 1 else f"{base} {suffix}"
+        query = {"username": candidate}
+        if exclude_id is not None:
+            query["_id"] = {"$ne": exclude_id}
+        if await db.users.find_one(query) is None:
+            return candidate
+    raise HTTPException(status_code=409, detail="Nama pengguna tidak dapat dibuat karena terlalu banyak nama yang sama.")
+
+
+@api_router.post("/admin/users/bulk-activate")
+async def admin_bulk_activate(body: BulkActivateInput, admin: dict = Depends(require_staff)):
+    if not body.ids:
+        raise HTTPException(status_code=400, detail="Pilih minimal satu akun peserta.")
+    activated = []
+    skipped = []
+    seen = set()
+    for user_id in body.ids:
+        if user_id in seen:
+            continue
+        seen.add(user_id)
+        try:
+            oid = parse_object_id(user_id)
+        except HTTPException:
+            skipped.append({"id": user_id, "reason": "ID tidak valid"})
+            continue
+        user = await db.users.find_one({"_id": oid})
+        if not user:
+            skipped.append({"id": user_id, "reason": "Peserta tidak ditemukan"})
+            continue
+        if set(user.get("roles") or []) != {"peserta"}:
+            skipped.append({"id": user_id, "reason": "Aktivasi massal hanya untuk akun dengan peran Peserta saja"})
+            continue
+        if user.get("status") != "pending":
+            skipped.append({"id": user_id, "reason": "Akun tidak berstatus Belum Aktivasi"})
+            continue
+        dob = normalize_dob(user.get("dob"))
+        if not dob:
+            skipped.append({"id": user_id, "reason": "Tanggal lahir belum valid"})
+            continue
+        year, month, day = dob.split("-")
+        username = user.get("username") or await unique_username_from_name(user.get("name") or "peserta")
+        result = await db.users.update_one(
+            {"_id": oid, "status": "pending"},
+            {"$set": {
+                "username": username,
+                "password_hash": hash_password(f"{day}{month}{year}"),
+                "status": "active",
+                "must_change_password": True,
+            }, "$inc": {"token_version": 1}},
+        )
+        if result.modified_count:
+            await db.login_attempts.delete_many({"identifier": user_id})
+            activated.append({"id": user_id, "name": user.get("name"), "username": username})
+        else:
+            skipped.append({"id": user_id, "reason": "Status akun berubah saat diproses"})
+
+    await log_activity(
+        admin, "aktivasi_massal",
+        f"Mengaktifkan {len(activated)} akun Peserta; {len(skipped)} dilewati",
+    )
+    return {"activated": activated, "skipped": skipped}
+
 @api_router.post("/admin/users/{user_id}/reset-password")
 async def admin_reset_password(user_id: str, admin: dict = Depends(require_staff)):
     oid = parse_object_id(user_id)
     user = await db.users.find_one({"_id": oid})
     if not user:
         raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan")
+    if set(user.get("roles") or []) != {"peserta"}:
+        raise HTTPException(status_code=403, detail="Kata sandi tanggal lahir hanya dapat digunakan untuk akun Peserta murni.")
     dob = normalize_dob(user.get("dob"))
     if not dob:
         raise HTTPException(status_code=400, detail="Tanggal lahir belum diisi. Lengkapi dulu untuk membuat sandi ddmmyyyy.")
     y, m, d = dob.split("-")
     new_pw = f"{d}{m}{y}"  # ddmmyyyy
-    set_fields = {"password_hash": hash_password(new_pw)}
+    set_fields = {
+        "password_hash": hash_password(new_pw),
+        "must_change_password": True,
+    }
+    if not user.get("username"):
+        set_fields["username"] = await unique_username_from_name(user.get("name") or "peserta")
     if user.get("status") == "pending":
         set_fields["status"] = "active"
     await db.users.update_one({"_id": oid}, {"$set": set_fields, "$inc": {"token_version": 1}})
+    await db.login_attempts.delete_many({"identifier": user_id})
     await log_activity(admin, "reset_sandi", f"Reset sandi '{user.get('name')}' (format ddmmyyyy)", user_id)
-    return {"password": new_pw, "message": "Kata sandi direset ke format tanggal lahir (ddmmyyyy)."}
+    return {
+        "password": new_pw,
+        "username": set_fields.get("username", user.get("username")),
+        "message": "Kata sandi sementara direset ke tanggal lahir (ddmmyyyy); peserta wajib menggantinya saat masuk.",
+    }
 
 @api_router.post("/admin/users/{user_id}/move")
 async def admin_move_kelompok(user_id: str, body: MoveInput, admin: dict = Depends(require_staff)):
@@ -4297,6 +4391,10 @@ class ProfileUpdate(BaseModel):
     marital: Optional[str] = None
 
 
+class CompleteAccountInput(ProfileUpdate):
+    new_password: str
+
+
 @api_router.get("/me/profile")
 async def get_my_profile(user: dict = Depends(get_current_user)):
     """Data profil pengguna yang sedang login (dipakai halaman Profil)."""
@@ -4320,6 +4418,58 @@ async def update_my_profile(body: ProfileUpdate, user: dict = Depends(get_curren
         await db.users.update_one({"_id": user["_id"]}, {"$set": updates})
     u = await db.users.find_one({"_id": user["_id"]})
     return public_user(u)
+
+
+@api_router.post("/me/complete-account")
+async def complete_account(body: CompleteAccountInput, response: Response,
+                           user: dict = Depends(get_current_user)):
+    if not user.get("must_change_password"):
+        raise HTTPException(status_code=400, detail="Akun ini tidak memerlukan penggantian kata sandi sementara.")
+    if len(body.new_password) < 8 or len(body.new_password.encode("utf-8")) > 72:
+        raise HTTPException(status_code=400, detail="Kata sandi baru harus 8–72 byte.")
+    updates = {}
+    for field in ["name", "phone", "whatsapp", "birthplace", "address", "education"]:
+        value = getattr(body, field)
+        if value is not None:
+            updates[field] = value.strip() if isinstance(value, str) else value
+    if body.dob is not None:
+        updates["dob"] = normalize_dob(body.dob)
+        if not updates["dob"]:
+            raise HTTPException(status_code=400, detail="Tanggal lahir tidak valid.")
+    if body.gender is not None:
+        updates["gender"] = normalize_gender(body.gender)
+    if body.marital is not None:
+        updates["marital"] = body.marital if body.marital in MARITAL_OPTIONS else None
+
+    candidate = {**user, **updates}
+    candidate_dob = normalize_dob(candidate.get("dob"))
+    if not candidate_dob:
+        raise HTTPException(status_code=400, detail="Tanggal lahir tidak valid.")
+    candidate["dob"] = candidate_dob
+    updates["dob"] = candidate_dob
+    temporary_dobs = {normalize_dob(user.get("dob")), candidate_dob}
+    for dob in temporary_dobs:
+        if dob:
+            year, month, day = dob.split("-")
+            if body.new_password == f"{day}{month}{year}":
+                raise HTTPException(status_code=400, detail="Kata sandi baru tidak boleh sama dengan tanggal lahir.")
+    missing = profile_missing_fields(candidate)
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Mohon lengkapi data: {', '.join(missing)}.")
+    phone = candidate.get("phone")
+    if phone and await db.users.find_one({"phone": phone, "_id": {"$ne": user["_id"]}}):
+        raise HTTPException(status_code=409, detail="Nomor HP sudah terdaftar.")
+
+    updates.update({
+        "password_hash": hash_password(body.new_password),
+        "must_change_password": False,
+    })
+    await db.users.update_one({"_id": user["_id"]}, {
+        "$set": updates, "$inc": {"token_version": 1}})
+    fresh_user = await db.users.find_one({"_id": user["_id"]})
+    set_auth_cookies(response, str(user["_id"]), fresh_user.get("token_version", 0), is_demo_ctx())
+    await log_activity(fresh_user, "lengkapi_akun", "Melengkapi data dan mengganti kata sandi sementara")
+    return public_user(fresh_user)
 
 
 # ------------------------- Dashboard -------------------------
