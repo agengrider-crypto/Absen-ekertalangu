@@ -3,7 +3,7 @@ export const ADMIN_SIDEBAR = {
   closeButton: "admin-sidebar-close-button",
   overlayBackdrop: "admin-sidebar-overlay-backdrop",
   nameTags: "admin-sidebar-name-tags",
-  participantReportComingSoon: "admin-sidebar-participant-report-coming-soon",
+  participantReport: "admin-sidebar-participant-report",
   mobileNav: {
     dashboard: "admin-mobile-nav-dashboard",
     peserta: "admin-mobile-nav-peserta",

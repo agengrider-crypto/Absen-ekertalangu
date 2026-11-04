@@ -174,8 +174,12 @@ Tiga mode: **Harian**, **Bulanan**, **Rentang**.
 Isi laporan: rasio kehadiran, total hadir/izin/alpha, kehadiran per jenis kelamin,
 **Paling Rajin** (5 teratas), **Paling Sering Alpha** (5 teratas), rincian per kegiatan.
 
-Rincian **per peserta** tersedia dalam bentuk dropdown "Rekap per Peserta"
-(nama, hadir, izin, alpha, persentase).
+Menu **Laporan per Peserta** menampilkan rekap bulanan atau mingguan dengan pencarian
+nama, kotak centang per peserta, pilihan semua hasil pencarian, serta jumlah hadir, izin,
+sakit, Alpha, pertemuan, dan persentase kehadiran.
+
+Pada halaman Laporan umum, rincian **per peserta** juga tersedia dalam bentuk dropdown
+"Rekap per Peserta" (nama, hadir, izin, alpha, persentase).
 
 | Tombol | Hasil |
 |---|---|

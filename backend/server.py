@@ -5104,7 +5104,7 @@ async def public_rekap_harian(token: str):
     return await build_rekap_harian(doc.get("date"))
 
 
-async def build_laporan(date_from: str, date_to: str) -> dict:
+async def build_laporan(date_from: str, date_to: str, include_user_ids: bool = False) -> dict:
     if not date_from or not date_to:
         now = now_wita()
         first = now.replace(day=1).strftime("%Y-%m-%d")
@@ -5173,7 +5173,6 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
                 if g in gender_hadir:
                     gender_hadir[g] += 1
 
-    tvals = list(tally.values())
     n_keg = len(kegiatans)
     keg_map = {k["_id"]: k for k in kegiatans}
     # Daftar TAMU terpisah supaya mudah dibedakan dari peserta terdaftar
@@ -5186,8 +5185,14 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
           "added_by": g.get("added_by")} for g in guests],
         key=lambda x: (x["date"] or "", (x["name"] or "").lower()))
     per_peserta = sorted(
-        [{**v, "ratio": round((v["hadir"] / v["kegiatan"]) * 100, 1) if v["kegiatan"] else 0.0}
-         for v in tvals],
+        [
+            {
+                **v,
+                **({"user_id": uid} if include_user_ids else {}),
+                "ratio": round((v["hadir"] / v["kegiatan"]) * 100, 1) if v["kegiatan"] else 0.0,
+            }
+            for uid, v in tally.items()
+        ],
         key=lambda x: (x["name"] or "").lower())
     return {
         "date_from": date_from, "date_to": date_to,
@@ -5281,6 +5286,18 @@ async def public_laporan(token: str):
 @api_router.get("/admin/laporan")
 async def admin_laporan(admin: dict = Depends(require_staff), date_from: str = "", date_to: str = ""):
     return await build_laporan(date_from.strip(), date_to.strip())
+
+
+@api_router.get("/admin/laporan/peserta")
+async def admin_laporan_peserta(admin: dict = Depends(require_staff),
+                                date_from: str = "", date_to: str = ""):
+    data = await build_laporan(date_from.strip(), date_to.strip(), include_user_ids=True)
+    return {
+        "date_from": data["date_from"],
+        "date_to": data["date_to"],
+        "total_kegiatan": data["total_kegiatan"],
+        "per_peserta": data["per_peserta"],
+    }
 
 
 @api_router.get("/admin/laporan/export")

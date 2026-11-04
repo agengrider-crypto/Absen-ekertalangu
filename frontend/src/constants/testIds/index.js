@@ -16,4 +16,5 @@ export * from './home';
 export * from './adminSidebar';
 export * from './dashboard';
 export * from './participants';
+export * from './participantReport';
 export * from './activities';

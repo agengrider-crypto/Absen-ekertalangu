@@ -26,6 +26,7 @@ import KegiatanView from "./KegiatanView";
 import KodeAksesView from "./KodeAksesView";
 import ScanPresensiView from "./ScanPresensiView";
 import LaporanView from "./LaporanView";
+import LaporanPesertaView from "./LaporanPesertaView";
 import LogAktivitas from "./LogAktivitas";
 import HakAkses from "./HakAkses";
 import MusyawarahView from "./MusyawarahView";
@@ -62,7 +63,7 @@ const MENU = [
     group: "grup-laporan", label: "Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"],
     items: [
       { key: "laporan", label: "Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"] },
-      { key: "laporan-peserta", label: "Laporan per Peserta", icon: Users, roles: ["admin", "pengurus"], comingSoon: true },
+      { key: "laporan-peserta", label: "Laporan per Peserta", icon: Users, roles: ["admin", "pengurus"] },
       { key: "rekap-bulanan", label: "Rekap Bulanan", icon: CalendarRange, roles: ["admin", "pengurus"] },
       { key: "rekap-harian", label: "Rekap Harian", icon: CalendarCheck, roles: ["admin", "pengurus"] },
       { key: "musyawarah", label: "Musyawarah", icon: MessagesSquare, roles: ["admin", "pengurus"] },
@@ -91,8 +92,8 @@ function buildMenu(role) {
 function NavButton({ item, active, onNav, collapsed, mobile = false }) {
   const Icon = item.icon;
   const on = active === item.key;
-  const testId = item.comingSoon
-    ? ADMIN_SIDEBAR.participantReportComingSoon
+  const testId = item.key === "laporan-peserta"
+    ? ADMIN_SIDEBAR.participantReport
     : item.key === "kartu-nama" ? ADMIN_SIDEBAR.nameTags : `nav-${item.key}`;
   const activeClass = mobile
     ? (on ? "text-[#0D5C3A] font-semibold" : "text-[#4B5563] hover:bg-[#F7F7F5]")
@@ -101,17 +102,15 @@ function NavButton({ item, active, onNav, collapsed, mobile = false }) {
     <button
       data-testid={testId}
       type="button"
-      disabled={item.comingSoon}
-      onClick={() => { if (!item.comingSoon) onNav(item.key); }}
-      title={collapsed ? `${item.label}${item.comingSoon ? " — Segera hadir" : ""}` : undefined}
-      aria-label={`${item.label}${item.comingSoon ? ", segera hadir" : ""}`}
+      onClick={() => onNav(item.key)}
+      title={collapsed ? item.label : undefined}
+      aria-label={item.label}
       aria-current={on ? "page" : undefined}
-      aria-disabled={item.comingSoon || undefined}
       className={`w-full ${
         mobile
           ? "flex min-h-[104px] flex-col items-center justify-start gap-1.5 px-1 py-2 text-center text-xs"
           : `flex items-center ${collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 text-sm`
-      } rounded-xl font-medium transition-colors ${item.comingSoon ? "cursor-not-allowed text-[#9CA3AF]" : activeClass}`}
+      } rounded-xl font-medium transition-colors ${activeClass}`}
     >
       {mobile ? (
         <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${on ? "bg-[#0D9B6C] text-white" : "bg-[#F3F4F6] text-[#4B5563]"}`}>
@@ -121,7 +120,6 @@ function NavButton({ item, active, onNav, collapsed, mobile = false }) {
       {(!collapsed || mobile) && (
         <span className={mobile ? "flex min-h-10 w-full flex-col items-center justify-start break-words leading-5" : "min-w-0 flex-1 text-left"}>
           <span>{item.label}</span>
-          {item.comingSoon && <span className="text-xs font-semibold text-[#9CA3AF]">Segera hadir</span>}
         </span>
       )}
     </button>
@@ -379,6 +377,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "pengumuman" && <PengumumanView />}
           {active === "pengaduan" && <RuangTeduhView />}
           {active === "laporan" && <LaporanView />}
+          {active === "laporan-peserta" && <LaporanPesertaView />}
           {active === "rekap-bulanan" && <RekapBulananView />}
           {active === "rekap-harian" && <RekapHarianView />}
           {active === "pantau-login" && role === "admin" && <PantauLoginView />}
