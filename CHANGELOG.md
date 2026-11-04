@@ -38,6 +38,9 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ## Pembaruan daftar dan detail kegiatan
 
+- Halaman Kegiatan menyediakan animasi panduan pembuatan kegiatan dengan narasi
+  tersinkron, kontrol putar/jeda, dan navigasi langkah; panel dapat ditutup dengan tombol
+  X atau Escape.
 - Daftar kegiatan mendukung pencarian, filter jenis, status Hari Ini/Akan Datang/Selesai,
   pemilihan kegiatan atau sesi, dan hapus massal dengan laporan bila sebagian gagal.
 - Tanggal dan waktu tampil di sisi kiri kartu; beberapa sesi diringkas dalam baris yang

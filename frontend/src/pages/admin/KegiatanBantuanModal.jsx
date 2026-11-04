@@ -1,0 +1,340 @@
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import {
+  CalendarDays, Check, ChevronLeft, ChevronRight, CircleCheck, Clock3,
+  MapPin, Pause, Play, RotateCcw, Users, X,
+} from "lucide-react";
+import { ACTIVITIES } from "@/constants/testIds";
+
+const STEPS = [
+  {
+    title: "Mulai dari menu Kegiatan",
+    narration: "Tekan Tambah Kegiatan, lalu isi nama dan jenis kegiatan. Ini baru contoh panduan—belum membuat atau mengubah kegiatan di aplikasi Anda.",
+  },
+  {
+    title: "Isi informasi kegiatan",
+    narration: "Masukkan pengajar, materi, dan lokasi. Pilih saran yang tersedia atau ketik sendiri. Alamat maupun kata kunci Google Maps juga bisa ditambahkan.",
+  },
+  {
+    title: "Atur tanggal dan jadwal",
+    narration: "Pilih tanggal, jam mulai, dan durasi 30 menit, 1 jam, 1,5 jam, atau 2 jam. Atur manual untuk memilih jam selesai sendiri. Jika sehari memiliki beberapa sesi, tentukan jadwal dan peserta wajib untuk tiap sesi. Pengulangan rutin bulanan tersedia untuk 1, 2, 3, 6, atau 12 jadwal.",
+  },
+  {
+    title: "Tentukan peserta",
+    narration: "Pilih jenis peserta dan gunakan filter, atau tentukan peserta tertentu. Peserta di luar pilihan wajib tetap dapat terlihat dan tidak otomatis dihitung Alpha.",
+  },
+  {
+    title: "Periksa, lalu simpan",
+    narration: "Tinjau lagi informasi kegiatan. Setelah mencentang konfirmasi, tekan Simpan Kegiatan. Kegiatan baru dibuat setelah tombol Simpan ditekan.",
+  },
+];
+
+const inputClass = "flex h-9 min-w-0 items-center rounded-lg border border-[#E8E8E4] bg-white px-2.5 text-xs text-[#374151]";
+
+function Field({ label, value, highlighted = false }) {
+  return (
+    <div className={`min-w-0 ${highlighted ? "rounded-lg ring-2 ring-[#111114] ring-offset-2" : ""}`}>
+      <div className="mb-1 text-[10px] font-semibold text-[#6B7280]">{label}</div>
+      <div className={`${inputClass} truncate`}>{value}</div>
+    </div>
+  );
+}
+
+function PreviewScene({ step }) {
+  return (
+    <div
+      key={step}
+      className="flex aspect-video w-full flex-col overflow-hidden rounded-xl border border-[#E5E7EB] bg-white shadow-sm animate-[riseIn_0.32s_ease-out_both] motion-reduce:animate-none"
+      aria-label={`Ilustrasi langkah ${step + 1}: ${STEPS[step].title}`}
+    >
+      <div className="flex h-9 shrink-0 items-center justify-between border-b border-[#E8E8E4] bg-[#FAFAF8] px-3">
+        <div className="flex items-center gap-1.5" aria-hidden="true">
+          <span className="h-2 w-2 rounded-full bg-[#D1D5DB]" />
+          <span className="h-2 w-2 rounded-full bg-[#D1D5DB]" />
+          <span className="h-2 w-2 rounded-full bg-[#D1D5DB]" />
+        </div>
+        <span className="text-[10px] font-semibold text-[#4B5563]">Contoh Formulir Kegiatan</span>
+        <span className="w-7" />
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="truncate text-xs font-bold text-[#111827] sm:text-sm">{STEPS[step].title}</div>
+          <span className="shrink-0 rounded-full bg-[#F1F1EE] px-2 py-1 text-[9px] font-bold text-[#111114]">
+            {step + 1} / {STEPS.length}
+          </span>
+        </div>
+
+        <div className="min-h-0 flex-1">
+          {step === 0 && (
+            <div className="grid h-full content-center gap-2.5 sm:max-w-sm">
+              <Field label="Nama kegiatan" value="Kajian Ahad Pagi" highlighted />
+              <div>
+                <div className="mb-1 text-[10px] font-semibold text-[#6B7280]">Jenis kegiatan</div>
+                <div className="flex gap-2">
+                  <span className="rounded-lg bg-[#111114] px-3 py-1.5 text-[10px] font-semibold text-white">Rutin</span>
+                  <span className="rounded-lg border border-[#E8E8E4] px-3 py-1.5 text-[10px] font-semibold text-[#4B5563]">Khusus</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 1 && (
+            <div className="grid h-full content-center grid-cols-2 gap-2.5">
+              <Field label="Pengajar" value="Ustaz Ahmad" highlighted />
+              <Field label="Materi" value="Tafsir Al-Qur'an" />
+              <Field label="Lokasi" value="Musholla Kertalangu" />
+              <Field label="Alamat Google Maps" value="Majelis Kertalangu" />
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="grid h-full content-center gap-2.5">
+              <div className="grid grid-cols-3 gap-2">
+                <Field label="Tanggal kegiatan" value="08 Nov 2026" highlighted />
+                <Field label="Jam mulai" value="08.00 WITA" />
+                <Field label="Durasi" value="1,5 jam" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {["Pagi · 08.00–10.00", "Sore · 16.00–17.30"].map((session, index) => (
+                  <div key={session} className={`rounded-lg border bg-[#FAFAF8] p-2 ${index === 0 ? "border-[#111114] ring-2 ring-[#111114] ring-offset-1" : "border-[#E8E8E4]"}`}>
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#111827]">
+                      <Clock3 size={12} /> {session}
+                    </div>
+                    <div className="mt-1 text-[9px] text-[#6B7280]">Peserta wajib sesi ini</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="grid h-full content-center gap-2.5">
+              <div className="flex flex-wrap gap-1.5">
+                {["Reguler", "Remaja", "Khusus"].map((audience, index) => (
+                  <span key={audience} className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${index === 0 ? "bg-[#111114] text-white" : "border border-[#E8E8E4] text-[#4B5563]"}`}>
+                    {audience}
+                  </span>
+                ))}
+                <span className="rounded-full border border-[#111114] px-2.5 py-1 text-[9px] font-semibold text-[#111114]">Filter kelompok</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  ["AH", "Ahmad Hidayat"],
+                  ["SN", "Siti Nurhaliza"],
+                  ["MR", "Muhammad Ridwan"],
+                  ["FA", "Fatimah Azzahra"],
+                ].map(([initials, name], index) => (
+                  <div key={name} className={`flex min-w-0 items-center gap-2 rounded-lg border bg-white p-2 ${index === 1 ? "border-[#111114] ring-2 ring-[#111114] ring-offset-1" : "border-[#E8E8E4]"}`}>
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F1F1EE] text-[8px] font-bold text-[#111114]">{initials}</span>
+                    <span className="truncate text-[9px] font-medium text-[#374151]">{name}</span>
+                    {index === 1 && <Check size={12} className="ml-auto shrink-0 text-[#111114]" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="grid h-full content-center gap-2.5 sm:max-w-md">
+              <div className="grid grid-cols-2 gap-2">
+                <Field label="Nama kegiatan" value="Kajian Ahad Pagi" />
+                <Field label="Tanggal" value="08 Nov 2026" />
+                <Field label="Waktu" value="08.00–09.30 WITA" />
+                <Field label="Peserta" value="24 peserta" />
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-2 text-[10px] font-semibold text-[#166534]">
+                <CircleCheck size={14} /> Informasi sudah ditinjau
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-[9px] font-medium text-[#4B5563]">
+                  <span className="flex h-4 w-4 items-center justify-center rounded border border-[#111114] bg-[#111114] text-white"><Check size={10} /></span>
+                  Saya sudah memeriksa informasi
+                </span>
+                <span className="rounded-lg bg-[#111114] px-3 py-2 text-[9px] font-bold text-white">Simpan Kegiatan</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function KegiatanBantuanModal({ onClose }) {
+  const [step, setStep] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+      if (event.key === "ArrowRight") setStep((current) => Math.min(current + 1, STEPS.length - 1));
+      if (event.key === "ArrowLeft") setStep((current) => Math.max(current - 1, 0));
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!isPlaying) return undefined;
+    const timer = window.setTimeout(() => {
+      if (step === STEPS.length - 1) setIsPlaying(false);
+      else setStep((current) => current + 1);
+    }, 8500);
+    return () => window.clearTimeout(timer);
+  }, [isPlaying, step]);
+
+  const togglePlayback = () => {
+    if (isPlaying) {
+      setIsPlaying(false);
+      return;
+    }
+    if (step === STEPS.length - 1) setStep(0);
+    setIsPlaying(true);
+  };
+
+  const moveToStep = (nextStep) => {
+    setStep(Math.max(0, Math.min(nextStep, STEPS.length - 1)));
+  };
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="kegiatan-animation-title"
+        data-testid={ACTIVITIES.helpModal}
+        className="flex max-h-[96vh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#FAFAF8] shadow-2xl sm:max-h-[92vh] sm:max-w-5xl sm:rounded-3xl"
+      >
+        <header className="flex items-start justify-between gap-3 border-b border-[#E8E8E4] bg-white px-4 py-3.5 sm:px-5">
+          <div className="min-w-0">
+            <h2 id="kegiatan-animation-title" className="font-heading text-lg font-bold text-[#111827]">
+              Animasi Panduan: Membuat Kegiatan
+            </h2>
+            <p className="mt-0.5 text-base text-[#6B7280]">
+              Ikuti langkah-langkahnya, atau putar animasi dari awal sampai akhir.
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Tutup animasi panduan"
+            title="Tutup jika sudah paham"
+            data-testid={ACTIVITIES.helpClose}
+            onClick={onClose}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#111114] hover:text-[#111114]"
+          >
+            <X size={20} />
+          </button>
+        </header>
+
+        <div className="grid min-h-0 gap-4 overflow-y-auto p-4 sm:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.9fr)] sm:p-5">
+          <div className="min-w-0">
+            <div data-testid={ACTIVITIES.helpAnimation} aria-live="polite">
+              <PreviewScene step={step} />
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                type="button"
+                aria-label={isPlaying ? "Jeda animasi" : step === STEPS.length - 1 ? "Putar ulang animasi" : "Putar animasi"}
+                data-testid={ACTIVITIES.helpPlay}
+                onClick={togglePlayback}
+                className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#111114] px-4 text-base font-semibold text-white hover:bg-black"
+              >
+                {isPlaying ? <Pause size={17} /> : step === STEPS.length - 1 ? <RotateCcw size={17} /> : <Play size={17} />}
+                {isPlaying ? "Jeda" : step === STEPS.length - 1 ? "Putar lagi" : "Putar"}
+              </button>
+              <button
+                type="button"
+                aria-label="Langkah sebelumnya"
+                data-testid={ACTIVITIES.helpPrevious}
+                onClick={() => moveToStep(step - 1)}
+                disabled={step === 0}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#E8E8E4] bg-white text-[#111114] disabled:opacity-40"
+              >
+                <ChevronLeft size={19} />
+              </button>
+              <button
+                type="button"
+                aria-label="Langkah berikutnya"
+                data-testid={ACTIVITIES.helpNext}
+                onClick={() => moveToStep(step + 1)}
+                disabled={step === STEPS.length - 1}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#E8E8E4] bg-white text-[#111114] disabled:opacity-40"
+              >
+                <ChevronRight size={19} />
+              </button>
+              <div className="ml-auto min-w-0 text-right text-sm font-semibold text-[#4B5563]" aria-live="polite">
+                Langkah {step + 1} dari {STEPS.length}
+              </div>
+            </div>
+            <div role="group" aria-label="Pilih langkah animasi" className="mt-3 flex gap-1.5">
+              {STEPS.map((item, index) => (
+                <button
+                  type="button"
+                  key={item.title}
+                  aria-label={`Lihat langkah ${index + 1}: ${item.title}`}
+                  aria-current={index === step ? "step" : undefined}
+                  data-testid={`${ACTIVITIES.helpStep}-${index + 1}`}
+                  onClick={() => moveToStep(index)}
+                  className={`h-2 flex-1 rounded-full transition-colors ${index <= step ? "bg-[#111114]" : "bg-[#E8E8E4]"}`}
+                />
+              ))}
+            </div>
+            <p className="mt-2 text-sm text-[#6B7280]">
+              Contoh animasi—tidak mengubah atau menyimpan data kegiatan Anda.
+            </p>
+          </div>
+
+          <section
+            aria-labelledby="kegiatan-narration-title"
+            data-testid={ACTIVITIES.helpNarration}
+            className="rounded-2xl border border-[#E8E8E4] bg-white p-4"
+          >
+            <h3 id="kegiatan-narration-title" className="mb-3 inline-flex items-center gap-2 font-bold text-[#111827]">
+              <Play size={16} /> Naskah Narasi
+            </h3>
+            <div key={step} className="rounded-xl bg-[#FAFAF8] p-4 animate-[riseIn_0.32s_ease-out_both] motion-reduce:animate-none">
+              <h4 className="text-base font-bold text-[#111114]">{STEPS[step].title}</h4>
+              <p className="mt-2 text-base leading-relaxed text-[#4B5563]">{STEPS[step].narration}</p>
+              {step === 2 && (
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#E8E8E4] bg-white p-2.5 text-sm text-[#4B5563]">
+                  <CalendarDays size={15} /> <Clock3 size={15} /> Sesi pagi dan sore
+                </div>
+              )}
+              {step === 3 && (
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#E8E8E4] bg-white p-2.5 text-sm text-[#4B5563]">
+                  <Users size={15} /> Peserta dipilih sesuai kebutuhan
+                </div>
+              )}
+              {step === 1 && (
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#E8E8E4] bg-white p-2.5 text-sm text-[#4B5563]">
+                  <MapPin size={15} /> Saran isian dan lokasi Google Maps
+                </div>
+              )}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {STEPS.map((item, index) => (
+                <button
+                  type="button"
+                  key={item.title}
+                  onClick={() => moveToStep(index)}
+                  data-testid={`${ACTIVITIES.helpNarrationStep}-${index + 1}`}
+                  aria-current={index === step ? "step" : undefined}
+                  className={`min-h-10 rounded-xl border px-3 text-sm font-semibold ${index === step ? "border-[#111114] bg-[#111114] text-white" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}
+                >
+                  {index + 1}. {item.title.split(" ").slice(0, 3).join(" ")}
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>,
+    document.body,
+  );
+}

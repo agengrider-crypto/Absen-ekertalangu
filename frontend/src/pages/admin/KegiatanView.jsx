@@ -4,7 +4,7 @@ import {
   Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
   Clock, MapPin, User, ScanLine, MessageSquareText,
   MoreHorizontal, Pencil, FileBarChart2, ChevronDown, AlertTriangle,
-  KeyRound, RefreshCw, Send, Layers, SlidersHorizontal,
+  KeyRound, RefreshCw, Send, Layers, SlidersHorizontal, Play,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -19,6 +19,7 @@ import {
 } from "./kegiatanUtils";
 import KegiatanDetail from "./KegiatanDetail";
 import KegiatanFormModal from "./KegiatanFormModal";
+import KegiatanBantuanModal from "./KegiatanBantuanModal";
 import { ReminderModal, DelegasiModal, ScanPesertaModal } from "./KegiatanExtras";
 import { RekapGabunganModal, SalinJadwalModal } from "./SesiExtras";
 import ActionModal from "@/components/ActionModal";
@@ -49,6 +50,7 @@ export default function KegiatanView({
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showAdd, setShowAdd] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [detailId, setDetailId] = useState(null);
   const [editItem, setEditItem] = useState(null);
   const [reminderItem, setReminderItem] = useState(null);
@@ -226,10 +228,16 @@ export default function KegiatanView({
         <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
           <CalendarDays size={20} /> Kegiatan
         </div>
-        <button data-testid="button-add-kegiatan" onClick={() => setShowAdd(true)}
-          className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]">
-          <Plus size={17} /> Tambah Kegiatan
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" data-testid={ACTIVITIES.helpButton} onClick={() => setShowHelp(true)}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 text-base font-semibold text-[#111114] hover:border-[#111114]">
+            <Play size={16} /> Animasi Panduan
+          </button>
+          <button data-testid="button-add-kegiatan" onClick={() => setShowAdd(true)}
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]">
+            <Plus size={17} /> Tambah Kegiatan
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -351,6 +359,7 @@ export default function KegiatanView({
 
       {showAdd && <KegiatanFormModal suggestions={Array.isArray(items) ? items : []}
         onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
+      {showHelp && <KegiatanBantuanModal onClose={() => setShowHelp(false)} />}
       {gabunganId && <RekapGabunganModal kegiatanId={gabunganId} onClose={() => setGabunganId(null)} />}
       {salinGroup && (
         <SalinJadwalModal group={salinGroup} onClose={() => setSalinGroup(null)}
