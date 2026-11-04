@@ -167,7 +167,6 @@ export default function KegiatanBantuanModal({ onClose }) {
   const [voiceStatus, setVoiceStatus] = useState("Memeriksa suara pada perangkat...");
   const playbackRef = useRef("stopped");
   const voiceRef = useRef(null);
-  const hasIndonesianVoiceRef = useRef(false);
   const playbackTimerRef = useRef(null);
   const speakStepRef = useRef(null);
 
@@ -179,26 +178,33 @@ export default function KegiatanBantuanModal({ onClose }) {
   const speakStep = (stepIndex) => {
     if (playbackRef.current !== "playing") return;
     const speech = window.speechSynthesis;
-    const voice = voiceRef.current;
-    if (!speech || !hasIndonesianVoiceRef.current) {
-      playbackTimerRef.current = window.setTimeout(() => {
-        if (playbackRef.current !== "playing") return;
-        if (stepIndex === STEPS.length - 1) {
-          updatePlayback("stopped");
-          return;
-        }
-        setStep(stepIndex + 1);
-        speakStepRef.current?.(stepIndex + 1);
-      }, 8500);
+    if (!speech || typeof SpeechSynthesisUtterance === "undefined") {
+      setVoiceStatus("Peramban ini tidak mendukung suara narasi. Perbarui peramban untuk mendengarkan panduan.");
+      updatePlayback("stopped");
       return;
     }
+
+    const voices = speech.getVoices();
+    const indonesianVoices = voices.filter((voice) => /^id(?:-|$)/i.test(voice.lang));
+    const maleVoice = indonesianVoices.find((voice) => /(ardi|\bmale\b|masculine|\bman\b|putra|pria)/i.test(voice.name));
+    const voice = maleVoice || indonesianVoices[0] || voices.find((item) => item.default) || voices[0] || voiceRef.current;
+    if (maleVoice) setVoiceStatus("Narasi menggunakan suara laki-laki Bahasa Indonesia.");
+    else if (indonesianVoices.length) setVoiceStatus("Narasi menggunakan suara Bahasa Indonesia yang tersedia di perangkat.");
+    else if (voice) setVoiceStatus("Suara Bahasa Indonesia tidak ditemukan; narasi memakai suara bawaan perangkat.");
+    else setVoiceStatus("Meminta suara narasi dari perangkat. Pastikan volume media ponsel tidak senyap.");
 
     speech.cancel();
     const utterance = new SpeechSynthesisUtterance(STEPS[stepIndex].narration);
     utterance.lang = "id-ID";
     utterance.rate = 0.92;
     utterance.pitch = 0.96;
+    utterance.volume = 1;
     if (voice) utterance.voice = voice;
+    utterance.onstart = () => {
+      if (!indonesianVoices.length && !maleVoice) {
+        setVoiceStatus("Narasi sedang dibacakan dengan suara bawaan perangkat.");
+      }
+    };
     utterance.onend = () => {
       if (playbackRef.current !== "playing") return;
       if (stepIndex === STEPS.length - 1) {
@@ -211,9 +217,10 @@ export default function KegiatanBantuanModal({ onClose }) {
     };
     utterance.onerror = (event) => {
       if (event.error === "interrupted" || event.error === "canceled") return;
-      setVoiceStatus("Suara narasi gagal diputar. Periksa dukungan suara di perangkat Anda.");
+      setVoiceStatus("Suara tidak berhasil diputar. Aktifkan suara media dan coba putar kembali.");
       updatePlayback("stopped");
     };
+    speech.resume();
     speech.speak(utterance);
   };
   speakStepRef.current = speakStep;
@@ -236,11 +243,11 @@ export default function KegiatanBantuanModal({ onClose }) {
       const voices = speech.getVoices();
       const indonesianVoices = voices.filter((voice) => /^id(?:-|$)/i.test(voice.lang));
       const maleVoice = indonesianVoices.find((voice) => /(ardi|\bmale\b|masculine|\bman\b|putra|pria)/i.test(voice.name));
-      voiceRef.current = maleVoice || indonesianVoices[0] || null;
-      hasIndonesianVoiceRef.current = indonesianVoices.length > 0;
+      voiceRef.current = maleVoice || indonesianVoices[0] || voices.find((voice) => voice.default) || voices[0] || null;
       if (maleVoice) setVoiceStatus("Suara laki-laki Bahasa Indonesia tersedia.");
-      else if (indonesianVoices.length) setVoiceStatus("Suara laki-laki tidak terdeteksi; suara Bahasa Indonesia yang tersedia akan digunakan.");
-      else setVoiceStatus("Suara Bahasa Indonesia tidak tersedia; animasi tetap bisa diputar tanpa suara.");
+      else if (indonesianVoices.length) setVoiceStatus("Suara Bahasa Indonesia tersedia di perangkat.");
+      else if (voiceRef.current) setVoiceStatus("Suara Bahasa Indonesia tidak terdeteksi; narasi akan memakai suara bawaan perangkat.");
+      else setVoiceStatus("Daftar suara perangkat belum tersedia; narasi akan mencoba suara bawaan saat diputar.");
     };
 
     updateVoices();
@@ -271,8 +278,7 @@ export default function KegiatanBantuanModal({ onClose }) {
     }
     if (playback === "paused") {
       updatePlayback("playing");
-      if (hasIndonesianVoiceRef.current) window.speechSynthesis?.resume();
-      else speakStep(step);
+      window.speechSynthesis?.resume();
       return;
     }
     const firstStep = step === STEPS.length - 1 ? 0 : step;
@@ -374,6 +380,9 @@ export default function KegiatanBantuanModal({ onClose }) {
             </p>
             <p className="mt-1 inline-flex items-start gap-1.5 text-sm text-[#6B7280]" role="status" aria-live="polite">
               <Volume2 size={15} className="mt-0.5 shrink-0" /> {voiceStatus}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-[#6B7280]">
+              Jika belum terdengar, naikkan volume media ponsel dan pastikan suara pada peramban tidak dibisukan.
             </p>
           </div>
 
