@@ -15,8 +15,9 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 - Saat kegiatan ditutup manual atau otomatis, peserta wajib yang belum memiliki status
   otomatis dicatat Alpha; peserta di luar daftar wajib tetap tidak diubah.
 - Rekap kegiatan menampilkan daftar khusus peserta Izin, Sakit, dan Alpha.
-- Mengaktifkan menu Laporan per Peserta dengan periode bulanan/mingguan, pencarian nama,
-  pilihan peserta melalui checkbox, dan ringkasan status kehadiran.
+- Mengaktifkan Laporan per Peserta dengan pilihan bulanan/pekanan, pencarian nama/nomor
+  HP/email, kotak pilihan peserta, detail enam bulan dan daftar kegiatan, serta berbagi lewat
+  WhatsApp/tautan internal untuk pengurus.
 
 ---
 

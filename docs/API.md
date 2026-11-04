@@ -3,7 +3,7 @@
 Semua endpoint berprefix **`/api`**. Auth memakai **JWT di httpOnly cookie** — bukan
 header `Authorization`. Gunakan session yang menyimpan cookie.
 
-Total: **81 endpoint**.
+Total: **82 endpoint**.
 
 ## Tingkat akses
 
@@ -191,6 +191,19 @@ tidak ada hitungan gabungan seperti hadir minimal satu sesi atau hadir semua ses
 
 ---
 
+### Laporan per peserta
+
+| Method | Path | Guard | Keterangan |
+|---|---|---|---|
+| GET | `/api/admin/laporan/peserta?month=YYYY-MM&week=bulanan\|1..5&q=` | `require_staff` | Daftar peserta dan hitungan Hadir/Izin/Sakit/Alpha/Belum diabsen untuk satu bulan atau pekan |
+| GET | `/api/admin/laporan/peserta/{user_id}?month=YYYY-MM&week=bulanan\|1..5` | `require_staff` | Detail peserta, ringkasan periode terpilih, kegiatan, serta ringkasan bulanan enam bulan terakhir |
+
+Pekan dibagi per tanggal dalam bulan: pekan 1 tanggal 1–7, pekan 2 tanggal 8–14,
+dan seterusnya. Tanggal di masa depan tidak ikut dihitung. Tautan berbagi dari detail
+peserta mengarah ke halaman internal; penerima wajib masuk sebagai admin atau pengurus.
+
+---
+
 ## 7. Endpoint publik berbasis token
 
 | Method | Path | Guard | Keterangan |
@@ -272,7 +285,6 @@ Delegasi **otomatis dicabut** saat kegiatan ditutup (manual maupun otomatis).
 |---|---|---|---|
 | GET | `/api/admin/dashboard` | `require_staff` | Statistik panel |
 | GET | `/api/admin/laporan` | `require_staff` | `?date_from=&date_to=` |
-| GET | `/api/admin/laporan/peserta` | `require_staff` | Rekap per peserta untuk rentang tanggal: `?date_from=&date_to=`; respons menyediakan `user_id` untuk pemilihan peserta oleh staf |
 | GET | `/api/admin/laporan/export` | `require_staff` | `?format=excel\|pdf&date_from=&date_to=` — file biner |
 | POST | `/api/admin/laporan/share` | `require_staff` | `{date_from, date_to, mode}` — buat **tautan laporan publik permanen**. Balas `{token, link, image (QR data URL), title, mode}`. **Idempoten**: rentang + mode yang sama memakai token yang sama. **400** bila tanggal kosong / `date_from > date_to` |
 
@@ -298,8 +310,6 @@ gender_hadir, per_kegiatan[], per_peserta[], top_rajin[] (5), top_alpha[] (5)
 `per_peserta[]` (baru sejak Fase 6) berisi seluruh peserta terurut nama:
 `{name, gender, account_status, hadir, izin, alpha, ratio}` — dipakai dropdown
 "Rekap per Peserta" pada panel laporan dan halaman laporan publik.
-Endpoint khusus `/api/admin/laporan/peserta` menambahkan `user_id` pada setiap baris
-untuk mendukung pemilihan peserta; identitas ini tidak ditambahkan ke laporan publik.
 
 ---
 

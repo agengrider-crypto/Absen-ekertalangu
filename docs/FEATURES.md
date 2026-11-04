@@ -30,7 +30,7 @@ lainnya. Tampilan ponsel dimulai pada skala 100% dan tetap mendukung zoom:
 | Dashboard | `DashboardView.jsx` | Sapaan nama, pintasan tambah peserta/kegiatan dan laporan, total peserta, tren kehadiran horizontal, serta tabel kegiatan mendatang yang membuka detail |
 | Peserta | `Peserta.jsx`, `PesertaBulkView.jsx`, `PesertaDuplikat.jsx` | Kelola akun lewat tab kategori peran dan filter status, aktivasi massal peserta pending, kartu nama QR permanen siap cetak, bulk data, cek duplikat, dan kelompok |
 | Kegiatan | `KegiatanView.jsx`, `KalenderView.jsx`, `KodeAksesView.jsx`, `ScanPresensiView.jsx` | Daftar, kalender, kode akses, scan presensi, pengumuman |
-| Laporan | `LaporanView.jsx`, `RekapBulananView.jsx`, `RekapHarianView.jsx`, `MusyawarahView.jsx`, `RuangTeduhView.jsx` | Rekap, musyawarah, dan laporan masuk dari jamaah |
+| Laporan | `LaporanView.jsx`, `LaporanPesertaView.jsx`, `RekapBulananView.jsx`, `RekapHarianView.jsx`, `MusyawarahView.jsx`, `RuangTeduhView.jsx` | Rekap, laporan per peserta, musyawarah, dan laporan masuk dari jamaah |
 | Pengaturan (admin) | `BantuanView.jsx`, `PantauLoginView.jsx`, `LogAktivitas.jsx`, `HakAkses.jsx` | Bantuan, aktivitas login, log, dan hak akses |
 
 Program Pembelajaran tersedia pada area Guru. Menu Bantuan tetap tersedia mandiri untuk
@@ -174,12 +174,14 @@ Tiga mode: **Harian**, **Bulanan**, **Rentang**.
 Isi laporan: rasio kehadiran, total hadir/izin/alpha, kehadiran per jenis kelamin,
 **Paling Rajin** (5 teratas), **Paling Sering Alpha** (5 teratas), rincian per kegiatan.
 
-Menu **Laporan per Peserta** menampilkan rekap bulanan atau mingguan dengan pencarian
-nama, kotak centang per peserta, pilihan semua hasil pencarian, serta jumlah hadir, izin,
-sakit, Alpha, pertemuan, dan persentase kehadiran.
+Menu **Laporan per Peserta** menyediakan daftar bulanan atau mingguan (pekan tanggal 1–7,
+8–14, dan seterusnya), pencarian nama/nomor HP/email, serta pilihan peserta melalui kotak centang.
+Nama peserta membuka detail dengan persentase dan jumlah pertemuan pada periode terpilih,
+ringkasan status, grafik enam bulan terakhir, serta daftar kegiatan dan status kehadiran.
+Detail dapat dibagikan lewat WhatsApp atau tautan internal yang memerlukan login pengurus.
 
-Pada halaman Laporan umum, rincian **per peserta** juga tersedia dalam bentuk dropdown
-"Rekap per Peserta" (nama, hadir, izin, alpha, persentase).
+Rincian **per peserta** tersedia dalam bentuk dropdown "Rekap per Peserta"
+(nama, hadir, izin, alpha, persentase).
 
 | Tombol | Hasil |
 |---|---|

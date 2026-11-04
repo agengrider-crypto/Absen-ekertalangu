@@ -9,9 +9,9 @@
   absensi dicatat otomatis sebagai Alpha. Peserta di luar daftar wajib tetap tidak dihitung.
 - Rekap kegiatan menampilkan daftar peserta Izin, Sakit, dan Alpha serta grafik batang
   beranimasi.
-- Menu Laporan per Peserta aktif dengan pilihan periode bulanan/mingguan, pencarian nama,
-  checkbox peserta, dan ringkasan status kehadiran peserta yang dipilih. Endpoint khusus
-  staf menyertakan ID peserta tanpa mengeksposnya pada laporan publik.
+- Menu Laporan per Peserta menyediakan daftar bulanan/pekanan, pencarian nama, nomor
+  HP, atau email, kotak pilihan peserta, detail kehadiran enam bulan dan daftar kegiatan, serta
+  berbagi tautan internal yang hanya dapat dibuka admin/pengurus.
 
 ## Penyempurnaan jadwal dan rekap kegiatan
 - Penyimpanan formulir kegiatan mensyaratkan langkah Tinjau dan konfirmasi eksplisit;

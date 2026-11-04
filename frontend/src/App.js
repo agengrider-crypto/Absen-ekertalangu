@@ -1,5 +1,5 @@
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import Login from "@/pages/Login";
@@ -65,6 +65,23 @@ function PublicOnly({ children }) {
   return children;
 }
 
+function ParticipantReportLink() {
+  const { user } = useAuth();
+  const { userId } = useParams();
+  const [params] = useSearchParams();
+  if (!user || user === false) return <Navigate to="/login" replace />;
+  const role = user.roles?.includes("pengurus")
+    ? "pengurus"
+    : user.roles?.includes("admin") ? "admin" : null;
+  if (!role) return <Navigate to="/roles" replace />;
+  const query = new URLSearchParams({
+    laporanPesertaId: userId,
+    bulan: params.get("bulan") || "",
+    pekan: params.get("pekan") || "bulanan",
+  });
+  return <Navigate to={`/area/${role}?${query.toString()}`} replace />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -78,6 +95,7 @@ function AppRoutes() {
       <Route path="/rekap-harian/:token" element={<PublicRekapHarian />} />
       <Route path="/musyawarah/:token" element={<PublicMusyawarah />} />
       <Route path="/laporan/:token" element={<PublicLaporan />} />
+      <Route path="/laporan-peserta/:userId" element={<Protected><ParticipantReportLink /></Protected>} />
       {/* Absen mandiri: wajib login & fokus 1 peserta (halaman menangani sesinya sendiri) */}
       <Route path="/absen/:token" element={<SelfAbsen />} />
       <Route path="/absensi/:token" element={<PublicAbsensi />} />

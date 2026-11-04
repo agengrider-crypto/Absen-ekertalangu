@@ -4712,6 +4712,187 @@ def _tanggal_indo(ymd: str) -> str:
     return f"{int(p[2])} {BULAN_ID[int(p[1]) - 1]} {p[0]}"
 
 
+def peserta_report_range(month: str, week: str = "bulanan") -> tuple:
+    if not re.fullmatch(r"\d{4}-\d{2}", month or ""):
+        raise HTTPException(status_code=400, detail="Format bulan harus YYYY-MM")
+    try:
+        first = datetime.strptime(f"{month}-01", "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Bulan laporan tidak valid")
+    today = now_wita().date()
+    if first > today:
+        raise HTTPException(status_code=400, detail="Bulan laporan tidak boleh melebihi bulan berjalan")
+    next_month = (first.replace(day=28) + timedelta(days=4)).replace(day=1)
+    last = next_month - timedelta(days=1)
+    if week in ("", "bulanan", "semua"):
+        start, end = first, last
+    else:
+        try:
+            week_number = int(week)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Pilihan pekan tidak valid")
+        if week_number < 1 or week_number > 5:
+            raise HTTPException(status_code=400, detail="Pekan harus antara 1 dan 5")
+        start = first + timedelta(days=(week_number - 1) * 7)
+        if start > last:
+            raise HTTPException(status_code=400, detail="Pekan tersebut tidak tersedia pada bulan ini")
+        if start > today:
+            raise HTTPException(status_code=400, detail="Pekan tersebut belum dimulai")
+        end = min(start + timedelta(days=6), last)
+    return start.strftime("%Y-%m-%d"), min(end, today).strftime("%Y-%m-%d")
+
+
+async def build_peserta_attendance_rows(date_from: str, date_to: str,
+                                        detail_user_id: Optional[str] = None,
+                                        group_by_month: bool = False) -> tuple:
+    participants = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
+    rows = {
+        str(p["_id"]): {
+            "user_id": str(p["_id"]), "name": p.get("name") or "Peserta",
+            "phone": p.get("phone"), "email": p.get("email"),
+            "account_status": p.get("status", "active"),
+            "hadir": 0, "izin": 0, "sakit": 0, "alpha": 0,
+            "belum_diabsen": 0, "total_pertemuan": 0, "ratio": 0.0,
+            **({"by_month": {}} if group_by_month else {}),
+        }
+        for p in participants
+    }
+    if date_to < date_from:
+        return rows, []
+    kegiatan = await db.kegiatans.find(
+        {"date": {"$gte": date_from, "$lte": date_to}}
+    ).sort([("date", 1), ("start_time", 1)]).to_list(5000)
+    kegiatan_ids = [k["_id"] for k in kegiatan]
+    absensi = await db.absensis.find(
+        {"kegiatan_id": {"$in": kegiatan_ids}}
+    ).to_list(100000) if kegiatan_ids else []
+    status_by = {(a["kegiatan_id"], a["user_id"]): a.get("status") for a in absensi}
+    activities = []
+
+    for k in kegiatan:
+        for participant in filter_peserta_for_kegiatan(k, participants):
+            user_id = str(participant["_id"])
+            status = status_by.get((k["_id"], user_id))
+            if not session_requires_participant(k, user_id) and status not in ABSEN_STATUS:
+                continue
+            status = status if status in ABSEN_STATUS else "belum_diabsen"
+            row = rows[user_id]
+            row[status] += 1
+            row["total_pertemuan"] += 1
+            if group_by_month:
+                month_key = str(k.get("date") or "")[:7]
+                month_row = row["by_month"].setdefault(
+                    month_key,
+                    {"hadir": 0, "izin": 0, "sakit": 0, "alpha": 0,
+                     "belum_diabsen": 0, "total_pertemuan": 0},
+                )
+                month_row[status] += 1
+                month_row["total_pertemuan"] += 1
+            if detail_user_id == user_id:
+                activities.append({
+                    "id": k["_id"], "name": k.get("base_name") or k.get("name") or "Kegiatan",
+                    "date": k.get("date"), "start_time": k.get("start_time"),
+                    "end_time": k.get("end_time"), "session_label": k.get("session_label"),
+                    "status": status, "type": k.get("type"),
+                })
+
+    for row in rows.values():
+        total = row["total_pertemuan"]
+        row["ratio"] = round(row["hadir"] / total * 100, 1) if total else 0.0
+        for month_row in row.get("by_month", {}).values():
+            month_total = month_row["total_pertemuan"]
+            month_row["ratio"] = round(month_row["hadir"] / month_total * 100, 1) if month_total else 0.0
+    return rows, activities
+
+
+@api_router.get("/admin/laporan/peserta")
+async def admin_laporan_peserta(admin: dict = Depends(require_staff),
+                                month: str = "", week: str = "bulanan", q: str = ""):
+    selected_month = month.strip() or now_wita().strftime("%Y-%m")
+    selected_week = week.strip() or "bulanan"
+    date_from, date_to = peserta_report_range(selected_month, selected_week)
+    rows, _ = await build_peserta_attendance_rows(date_from, date_to)
+    term = q.strip().casefold()
+    result = list(rows.values())
+    if term:
+        result = [
+            row for row in result
+            if term in row["name"].casefold()
+            or term in str(row.get("phone") or "").casefold()
+            or term in str(row.get("email") or "").casefold()
+        ]
+    return {
+        "month": selected_month, "week": selected_week,
+        "date_from": date_from, "date_to": date_to,
+        "total_pertemuan": await db.kegiatans.count_documents(
+            {"date": {"$gte": date_from, "$lte": date_to}}
+        ) if date_to >= date_from else 0,
+        "rows": result,
+    }
+
+
+@api_router.get("/admin/laporan/peserta/{user_id}")
+async def admin_laporan_peserta_detail(user_id: str, admin: dict = Depends(require_staff),
+                                       month: str = "", week: str = "bulanan"):
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+    participant = await db.users.find_one({"_id": ObjectId(user_id), **PESERTA_QUERY})
+    if not participant:
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+
+    selected_month = month.strip() or now_wita().strftime("%Y-%m")
+    week_value = week.strip() or "bulanan"
+    date_from, date_to = peserta_report_range(selected_month, week_value)
+    selected_rows, activities = await build_peserta_attendance_rows(
+        date_from, date_to, user_id)
+    selected = selected_rows[user_id]
+
+    today = now_wita().date()
+    current_month = today.replace(day=1)
+    first_history_month = current_month.replace(day=1)
+    for _ in range(5):
+        first_history_month = (first_history_month.replace(day=1) - timedelta(days=1)).replace(day=1)
+    history_from = first_history_month.strftime("%Y-%m-%d")
+    history_to = today.strftime("%Y-%m-%d")
+    history_rows, _ = await build_peserta_attendance_rows(
+        history_from, history_to, group_by_month=True)
+    monthly_totals = history_rows[user_id].get("by_month", {})
+
+    monthly_history = []
+    month_start = first_history_month
+    for offset in range(6):
+        month_key = month_start.strftime("%Y-%m")
+        month_row = monthly_totals.get(month_key, {
+            "hadir": 0, "izin": 0, "sakit": 0, "alpha": 0,
+            "belum_diabsen": 0, "total_pertemuan": 0, "ratio": 0.0,
+        })
+        month_row["month"] = month_key
+        month_row["label"] = BULAN_ID[month_start.month - 1]
+        monthly_history.append(month_row)
+        month_start = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
+
+    total_six_months = {
+        key: sum(row[key] for row in monthly_history)
+        for key in ("hadir", "izin", "sakit", "alpha", "belum_diabsen", "total_pertemuan")
+    }
+    total_six_months["ratio"] = (
+        round(total_six_months["hadir"] / total_six_months["total_pertemuan"] * 100, 1)
+        if total_six_months["total_pertemuan"] else 0.0
+    )
+    return {
+        "participant": {
+            "id": user_id, "name": participant.get("name") or "Peserta",
+            "phone": participant.get("phone"), "email": participant.get("email"),
+            "account_status": participant.get("status", "active"),
+        },
+        "month": selected_month, "week": week_value,
+        "date_from": date_from, "date_to": date_to,
+        "summary": selected,
+        "six_months": {"summary": total_six_months, "months": monthly_history},
+        "activities": activities,
+    }
+
+
 @api_router.get("/staff/rekap-harian")
 async def rekap_harian(date: Optional[str] = None, staff: dict = Depends(require_staff)):
     return await build_rekap_harian(date)
@@ -5104,7 +5285,7 @@ async def public_rekap_harian(token: str):
     return await build_rekap_harian(doc.get("date"))
 
 
-async def build_laporan(date_from: str, date_to: str, include_user_ids: bool = False) -> dict:
+async def build_laporan(date_from: str, date_to: str) -> dict:
     if not date_from or not date_to:
         now = now_wita()
         first = now.replace(day=1).strftime("%Y-%m-%d")
@@ -5173,6 +5354,7 @@ async def build_laporan(date_from: str, date_to: str, include_user_ids: bool = F
                 if g in gender_hadir:
                     gender_hadir[g] += 1
 
+    tvals = list(tally.values())
     n_keg = len(kegiatans)
     keg_map = {k["_id"]: k for k in kegiatans}
     # Daftar TAMU terpisah supaya mudah dibedakan dari peserta terdaftar
@@ -5185,14 +5367,8 @@ async def build_laporan(date_from: str, date_to: str, include_user_ids: bool = F
           "added_by": g.get("added_by")} for g in guests],
         key=lambda x: (x["date"] or "", (x["name"] or "").lower()))
     per_peserta = sorted(
-        [
-            {
-                **v,
-                **({"user_id": uid} if include_user_ids else {}),
-                "ratio": round((v["hadir"] / v["kegiatan"]) * 100, 1) if v["kegiatan"] else 0.0,
-            }
-            for uid, v in tally.items()
-        ],
+        [{**v, "ratio": round((v["hadir"] / v["kegiatan"]) * 100, 1) if v["kegiatan"] else 0.0}
+         for v in tvals],
         key=lambda x: (x["name"] or "").lower())
     return {
         "date_from": date_from, "date_to": date_to,
@@ -5286,18 +5462,6 @@ async def public_laporan(token: str):
 @api_router.get("/admin/laporan")
 async def admin_laporan(admin: dict = Depends(require_staff), date_from: str = "", date_to: str = ""):
     return await build_laporan(date_from.strip(), date_to.strip())
-
-
-@api_router.get("/admin/laporan/peserta")
-async def admin_laporan_peserta(admin: dict = Depends(require_staff),
-                                date_from: str = "", date_to: str = ""):
-    data = await build_laporan(date_from.strip(), date_to.strip(), include_user_ids=True)
-    return {
-        "date_from": data["date_from"],
-        "date_to": data["date_to"],
-        "total_kegiatan": data["total_kegiatan"],
-        "per_peserta": data["per_peserta"],
-    }
 
 
 @api_router.get("/admin/laporan/export")

@@ -1,6 +1,6 @@
 // Navigasi Admin/Pengurus: sidebar desktop dan menu bottom-sheet di ponsel.
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
   ShieldCheck, Menu, X, LogOut, MessagesSquare, Megaphone, UserCog, Layers,
@@ -102,15 +102,17 @@ function NavButton({ item, active, onNav, collapsed, mobile = false }) {
     <button
       data-testid={testId}
       type="button"
-      onClick={() => onNav(item.key)}
-      title={collapsed ? item.label : undefined}
-      aria-label={item.label}
+      disabled={item.comingSoon}
+      onClick={() => { if (!item.comingSoon) onNav(item.key); }}
+      title={collapsed ? `${item.label}${item.comingSoon ? " — Segera hadir" : ""}` : undefined}
+      aria-label={`${item.label}${item.comingSoon ? ", segera hadir" : ""}`}
       aria-current={on ? "page" : undefined}
+      aria-disabled={item.comingSoon || undefined}
       className={`w-full ${
         mobile
           ? "flex min-h-[104px] flex-col items-center justify-start gap-1.5 px-1 py-2 text-center text-xs"
           : `flex items-center ${collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 text-sm`
-      } rounded-xl font-medium transition-colors ${activeClass}`}
+      } rounded-xl font-medium transition-colors ${item.comingSoon ? "cursor-not-allowed text-[#9CA3AF]" : activeClass}`}
     >
       {mobile ? (
         <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${on ? "bg-[#0D9B6C] text-white" : "bg-[#F3F4F6] text-[#4B5563]"}`}>
@@ -120,6 +122,7 @@ function NavButton({ item, active, onNav, collapsed, mobile = false }) {
       {(!collapsed || mobile) && (
         <span className={mobile ? "flex min-h-10 w-full flex-col items-center justify-start break-words leading-5" : "min-w-0 flex-1 text-left"}>
           <span>{item.label}</span>
+          {item.comingSoon && <span className="text-xs font-semibold text-[#9CA3AF]">Segera hadir</span>}
         </span>
       )}
     </button>
@@ -258,9 +261,14 @@ function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
 
 export default function AdminLayout({ user, role = "admin" }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useAuth();
   const menu = buildMenu(role);
-  const [active, setActive] = useState("dashboard");
+  const [active, setActive] = useState(() => (
+    new URLSearchParams(location.search).has("laporanPesertaId")
+      ? "laporan-peserta"
+      : "dashboard"
+  ));
   const [drawer, setDrawer] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [addPesertaRequest, setAddPesertaRequest] = useState(0);
