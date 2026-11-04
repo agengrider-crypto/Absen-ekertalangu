@@ -1,5 +1,5 @@
 // FASE 18 — Form Tambah/Edit Kegiatan: tampilan baru (modal berlapis, nyaman di HP & PC).
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   X, Plus, Loader2, Layers, Trash2, SlidersHorizontal, AlertTriangle,
@@ -38,6 +38,16 @@ function addMinutes(time, minutes) {
 function timeMinutes(time) {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
+}
+
+function uniqueSuggestions(items, fields) {
+  const found = new Map();
+  (items || []).forEach((item) => fields.forEach((field) => {
+    const value = String(item?.[field] || "").trim();
+    const key = value.toLocaleLowerCase("id");
+    if (value && !found.has(key)) found.set(key, value);
+  }));
+  return Array.from(found.values()).sort((a, b) => a.localeCompare(b, "id"));
 }
 
 function Section({ icon: Icon, title, desc, children, testid }) {
@@ -80,7 +90,7 @@ function Chip({ on, children, ...rest }) {
   );
 }
 
-export default function KegiatanFormModal({ onClose, onDone, initial }) {
+export default function KegiatanFormModal({ onClose, onDone, initial, suggestions = [] }) {
   const editing = Boolean(initial?.id);
   const [f, setF] = useState({
     name: initial?.name || "", type: initial?.type || "rutin",
@@ -105,6 +115,11 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
   ]);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState(0);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const teacherSuggestions = useMemo(() => uniqueSuggestions(suggestions, ["teacher"]), [suggestions]);
+  const materialSuggestions = useMemo(() => uniqueSuggestions(suggestions, ["material"]), [suggestions]);
+  const locationSuggestions = useMemo(() => uniqueSuggestions(suggestions, ["location"]), [suggestions]);
+  const mapsSuggestions = useMemo(() => uniqueSuggestions(suggestions, ["maps_query", "location"]), [suggestions]);
   const [duration, setDuration] = useState(() => {
     const [startHour, startMinute] = (initial?.start_time || "20:00").split(":").map(Number);
     const [endHour, endMinute] = (initial?.end_time || "21:30").split(":").map(Number);
@@ -112,20 +127,35 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
     return DURATIONS.some((option) => option.value === minutes) ? minutes : "custom";
   });
 
-  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
-  const toggleAge = (val) => setF((p) => {
-    const cur = p.age_filter || [];
-    return { ...p, age_filter: cur.includes(val) ? cur.filter((x) => x !== val) : [...cur, val] };
-  });
+  const set = (k, v) => {
+    setReviewConfirmed(false);
+    setF((p) => ({ ...p, [k]: v }));
+  };
+  const toggleAge = (val) => {
+    setReviewConfirmed(false);
+    setF((p) => {
+      const cur = p.age_filter || [];
+      return { ...p, age_filter: cur.includes(val) ? cur.filter((x) => x !== val) : [...cur, val] };
+    });
+  };
 
-  const setSession = (i, key, val) => setSessions((p) => p.map((s, idx) => (idx === i ? { ...s, [key]: val } : s)));
-  const addSession = () => setSessions((p) => {
-    const used = p.map((s) => s.label);
-    const next = SESSION_LABEL_PRESETS.find((l) => !used.includes(l)) || `Sesi ${p.length + 1}`;
-    const [st, en] = SESSION_DEFAULT_TIME[next] || ["08:00", "10:00"];
-    return [...p, { label: next, start_time: st, end_time: en, teacher: "", material: "", location: "", required: true }];
-  });
-  const removeSession = (i) => setSessions((p) => p.filter((_, idx) => idx !== i));
+  const setSession = (i, key, val) => {
+    setReviewConfirmed(false);
+    setSessions((p) => p.map((s, idx) => (idx === i ? { ...s, [key]: val } : s)));
+  };
+  const addSession = () => {
+    setReviewConfirmed(false);
+    setSessions((p) => {
+      const used = p.map((s) => s.label);
+      const next = SESSION_LABEL_PRESETS.find((l) => !used.includes(l)) || `Sesi ${p.length + 1}`;
+      const [st, en] = SESSION_DEFAULT_TIME[next] || ["08:00", "10:00"];
+      return [...p, { label: next, start_time: st, end_time: en, teacher: "", material: "", location: "", required: true }];
+    });
+  };
+  const removeSession = (i) => {
+    setReviewConfirmed(false);
+    setSessions((p) => p.filter((_, idx) => idx !== i));
+  };
 
   const validateStep = (currentStep) => {
     if (currentStep === 0 && !f.name.trim()) {
@@ -155,6 +185,14 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (step !== 3) {
+      toast.info("Tinjau semua informasi terlebih dahulu sebelum menyimpan.");
+      return;
+    }
+    if (!reviewConfirmed) {
+      toast.error("Centang konfirmasi setelah memastikan data kegiatan sudah benar.");
+      return;
+    }
     for (let currentStep = 0; currentStep <= 2; currentStep += 1) {
       if (!validateStep(currentStep)) {
         setStep(currentStep);
@@ -254,26 +292,42 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
               </div>
               <div>
                 <label className={lbl}>Pengajar</label>
-                <input data-testid="keg-teacher" value={f.teacher} onChange={(e) => set("teacher", e.target.value)}
-                  placeholder="cth: Ust. Hasan Basri" className={fld} />
+                <input data-testid={ACTIVITIES.teacher} list="kegiatan-teacher-suggestions" value={f.teacher}
+                  onChange={(e) => set("teacher", e.target.value)}
+                  placeholder="Mulai ketik untuk melihat saran" autoComplete="on" className={fld} />
+                <datalist id="kegiatan-teacher-suggestions">
+                  {teacherSuggestions.map((value) => <option key={value} value={value} />)}
+                </datalist>
               </div>
               <div>
                 <label className={lbl}>Materi</label>
-                <input data-testid="keg-material" value={f.material} onChange={(e) => set("material", e.target.value)}
-                  placeholder="cth: Kitab Fiqih Bab Sholat" className={fld} />
+                <input data-testid={ACTIVITIES.material} list="kegiatan-material-suggestions" value={f.material}
+                  onChange={(e) => set("material", e.target.value)}
+                  placeholder="Mulai ketik untuk melihat saran" autoComplete="on" className={fld} />
+                <datalist id="kegiatan-material-suggestions">
+                  {materialSuggestions.map((value) => <option key={value} value={value} />)}
+                </datalist>
               </div>
               <div>
                 <label className={lbl}>Lokasi</label>
-                <input data-testid="keg-location" value={f.location} onChange={(e) => set("location", e.target.value)}
-                  placeholder="cth: Masjid Kertalangu" className={fld} />
+                <input data-testid={ACTIVITIES.location} list="kegiatan-location-suggestions" value={f.location}
+                  onChange={(e) => set("location", e.target.value)}
+                  placeholder="Mulai ketik untuk melihat saran" autoComplete="on" className={fld} />
+                <datalist id="kegiatan-location-suggestions">
+                  {locationSuggestions.map((value) => <option key={value} value={value} />)}
+                </datalist>
               </div>
               <div className="sm:col-span-2">
                 <label className={lbl}>Alamat atau kata kunci Google Maps</label>
-                <input data-testid={ACTIVITIES.mapsQuery} value={f.maps_query}
+                <input data-testid={ACTIVITIES.mapsQuery} list="kegiatan-maps-suggestions" value={f.maps_query}
                   onChange={(e) => set("maps_query", e.target.value)}
-                  placeholder="cth: Masjid Kertalangu, Denpasar" className={fld} />
+                  placeholder="Mulai ketik untuk melihat saran" autoComplete="on" className={fld} />
+                <datalist id="kegiatan-maps-suggestions">
+                  {mapsSuggestions.map((value) => <option key={value} value={value} />)}
+                </datalist>
               </div>
             </div>
+            <p className="mt-2 text-xs text-[#6B7280]">Saran diambil dari jadwal tersimpan. Anda tetap bisa mengetik pilihan baru.</p>
           </Section>}
 
           {step === 1 && <Section icon={CalendarDays} title="Jadwal Kegiatan" testid="form-section-waktu"
@@ -335,7 +389,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
               <>
                 <label className="mt-3 flex items-start gap-2.5 rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-3.5 cursor-pointer hover:border-[#111114]">
                   <input data-testid="keg-multi-session" type="checkbox" className="accent-[#111114] w-4 h-4 mt-0.5"
-                    checked={multi} onChange={(e) => setMulti(e.target.checked)} />
+                    checked={multi} onChange={(e) => { setReviewConfirmed(false); setMulti(e.target.checked); }} />
                   <span>
                     <span className="block text-sm font-bold text-[#111827] inline-flex items-center gap-1.5">
                       <Layers size={15} /> Beberapa waktu dalam 1 hari (pagi / sore / malam)
@@ -382,8 +436,8 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                           </button>
                         </div>
                         <div className="grid sm:grid-cols-3 gap-2">
-                          <input data-testid={`keg-session-location-${i}`} value={s.location || ""}
-                            onChange={(e) => setSession(i, "location", e.target.value)} placeholder="Lokasi sesi ini"
+                          <input data-testid={`${ACTIVITIES.sessionLocationPrefix}${i}`} list="kegiatan-location-suggestions" value={s.location || ""}
+                            onChange={(e) => setSession(i, "location", e.target.value)} placeholder="Lokasi sesi"
                             className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
                         </div>
                         <div className="rounded-xl border border-[#E8E8E4] bg-white p-3">
@@ -453,7 +507,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
               <div className="rounded-2xl border-2 border-[#111114] bg-white p-3.5" data-testid="keg-pick-mode-box">
                 <label className="flex items-start gap-2.5 cursor-pointer">
                   <input data-testid="keg-pick-mode" type="checkbox" className="accent-[#111114] w-4 h-4 mt-0.5"
-                    checked={pickMode} onChange={(e) => setPickMode(e.target.checked)} />
+                    checked={pickMode} onChange={(e) => { setReviewConfirmed(false); setPickMode(e.target.checked); }} />
                   <span>
                     <span className="block text-sm font-bold text-[#111827] inline-flex items-center gap-1.5">
                       <ListChecks size={15} /> Pilih peserta tertentu (mode ceklis)
@@ -467,7 +521,10 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                 </label>
                 {pickMode && (
                   <div className="mt-3">
-                    <PesertaPicker value={participants} onChange={setParticipants} testid={ACTIVITIES.participantPicker} />
+                    <PesertaPicker value={participants} onChange={(ids) => {
+                      setReviewConfirmed(false);
+                      setParticipants(ids);
+                    }} testid={ACTIVITIES.participantPicker} />
                   </div>
                 )}
               </div>
@@ -483,7 +540,10 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                   </p>
                   <PesertaPicker
                     value={requiredParticipants}
-                    onChange={setRequiredParticipants}
+                    onChange={(ids) => {
+                      setReviewConfirmed(false);
+                      setRequiredParticipants(ids);
+                    }}
                     testid={ACTIVITIES.attendanceParticipantPicker}
                   />
                 </div>
@@ -549,21 +609,35 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                   ? sessions.map((session) => `${session.label} ${session.start_time}–${session.end_time}`).join(", ")
                   : `${f.start_time}–${f.end_time} WITA`} />
                 <ReviewItem label="Pengajar" value={f.teacher || "Belum ditentukan"} />
+                <ReviewItem label="Materi" value={f.material || "Belum ditentukan"} />
                 <ReviewItem label="Lokasi" value={f.location || "Belum ditentukan"} />
+                <ReviewItem label="Alamat Google Maps" value={f.maps_query || "Belum ditentukan"} />
                 <ReviewItem label="Peserta" value={pickMode ? `${participants.length} peserta dipilih` : AUDIENCE_OPTIONS.find((option) => option.value === f.audience)?.short || "Reguler"} />
                 <ReviewItem label="Pengulangan" value={!editing && Number(f.recurring_months)
                   ? `Bulanan, ${f.recurring_months} jadwal` : "Tidak berulang"} />
               </dl>
               <p className="mt-4 rounded-xl bg-[#F0FDF4] p-3 text-sm text-[#14532D]">
-                {editing ? "Perubahan akan diterapkan pada kegiatan ini." : "Jadwal akan dibuat setelah Anda memilih Simpan Kegiatan."}
+                Periksa kembali semua informasi. Data belum disimpan sampai tombol Simpan ditekan.
               </p>
+              <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2 text-sm font-semibold text-[#111827]">
+                <input type="checkbox" data-testid={ACTIVITIES.reviewConfirm} checked={reviewConfirmed}
+                  onChange={(event) => setReviewConfirmed(event.target.checked)}
+                  className="h-5 w-5 accent-[#111114]" />
+                Saya sudah memeriksa informasi kegiatan.
+              </label>
             </Section>
           )}
         </form>
 
         {/* Navigasi langkah dan aksi utama selalu terlihat */}
         <div className="bg-white border-t border-[#ECECE8] px-4 sm:px-5 py-3 flex gap-2">
-          <button type="button" onClick={step === 0 ? onClose : () => setStep((current) => Math.max(current - 1, 0))}
+          <button type="button" onClick={() => {
+            if (step === 0) onClose();
+            else {
+              setReviewConfirmed(false);
+              setStep((current) => Math.max(current - 1, 0));
+            }
+          }}
             data-testid={step === 0 ? "kegiatan-form-cancel" : ACTIVITIES.wizardPrevious}
             className="h-12 px-4 rounded-xl bg-[#F4F4F1] text-[#4B5563] font-semibold hover:bg-[#E9EDE9]">
             {step === 0 ? "Batal" : "Kembali"}
@@ -574,7 +648,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
               Lanjut
             </button>
           ) : (
-          <button form="kegiatan-form" type="submit" data-testid="button-submit-kegiatan" disabled={saving}
+          <button form="kegiatan-form" type="submit" data-testid="button-submit-kegiatan" disabled={saving || !reviewConfirmed}
             className="flex-1 h-12 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-black disabled:opacity-60">
             {saving ? <Loader2 className="animate-spin" size={18} /> : editing ? <Save size={18} /> : <Plus size={18} />}
             {editing ? "Simpan Perubahan" : "Simpan Kegiatan"}

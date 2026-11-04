@@ -1,6 +1,14 @@
 # E-KERTALANGU — PRD
 
 ## Penyempurnaan jadwal dan rekap kegiatan
+- Penyimpanan formulir kegiatan mensyaratkan langkah Tinjau dan konfirmasi eksplisit;
+  submit dengan Enter di langkah lain tidak menyimpan.
+- Kolom pengajar, materi, lokasi, dan alamat Maps menawarkan saran dari jadwal yang ada.
+- Rekap multi-sesi berfokus pada status masing-masing sesi tanpa agregat "hadir minimal
+  satu sesi" atau "hadir semua sesi". Halaman absensi menyediakan Rekap/Laporan dan
+  tautan laporan publik yang dibagikan dengan sesi akses terverifikasi.
+- Salin jadwal menampilkan rincian pola setiap sesi dan jumlah jadwal yang akan dibuat
+  untuk tanggal tujuan.
 - Formulir kegiatan menerima durasi 30/60/90/120 menit atau jam selesai manual dan
   pengulangan bulanan 1/2/3/6/12 jadwal.
 - Alamat/kata kunci Maps disimpan sebagai teks; detail kegiatan membentuk tautan Google
@@ -399,13 +407,11 @@ Permintaan user (3 fitur, tanpa testing agent — verifikasi manual curl + scree
 ### 1. Rekap Gabungan 1 Hari (semua sesi pagi/sore/malam)
 - `GET /api/admin/kegiatan/{kegiatan_id}/rekap-gabungan` — `kegiatan_id` boleh salah satu
   sesi dari grup (`sesi_group_docs()` mengambil semua dokumen dengan `session_group_id` sama).
-  Mengembalikan: `sessions[]` (counts per sesi), `summary` {total, hadir_min_1, hadir_semua,
-  izin_saja, tidak_hadir, tamu, ratio_min_1, ratio_semua}, `rows[]` (jamaah × sesi:
-  status/arrival_time per sesi, `null` bila tidak termasuk daftar sesi tsb).
-- Rekap per sesi TETAP terpisah; endpoint ini hanya menggabungkan untuk tampilan 1 hari.
-- UI: `SesiExtras.jsx` → `RekapGabunganModal` (kartu ringkasan, kartu per sesi, tombol
-  "Salin Ringkasan (teks WhatsApp)", tabel jamaah × sesi dengan filter Semua/Hadir ≥1/Tidak
-  hadir + pencarian). Tombol: `SessionGroupCard` di daftar kegiatan
+  Mengembalikan `sessions[]` (counts per sesi) dan `rows[]` (status/arrival_time per sesi,
+  `null` bila tidak termasuk daftar sesi). Agregat lintas sesi tidak lagi dikembalikan.
+- UI: `SesiExtras.jsx` → `RekapGabunganModal` menampilkan persentase/status per sesi dan
+  tabel jamaah × sesi dengan pencarian; tidak ada ringkasan atau filter hadir lintas sesi.
+  Tombol: `SessionGroupCard` di daftar kegiatan
   (`sesi-rekap-gabungan-{gid}`), kartu info detail sesi (`detail-rekap-gabungan`), dan
   menu Aksi Kegiatan (`detail-opsi-gabungan`).
 
@@ -478,11 +484,12 @@ Pantau Login = panel ringkas Dashboard + halaman penuh; TANPA fitur keluarkan pa
   "Lihat semua" → menu Pantau Login), refresh 60 detik.
 
 ## FASE 12 — 8 Revisi (2026-09-21) — SELESAI (uji manual curl + screenshot, tanpa testing agent)
-1. **Rekap gabungan jadi LINK**: `POST /api/admin/kegiatan/{id}/share-gabungan` → token grup
+1. **Rekap sesi jadi LINK**: `POST /api/admin/kegiatan/{id}/share-gabungan` → token grup
    (`group_share_token`, 7 hari) + publik `GET /api/rekap-gabungan/{token}` dan halaman
-   `/rekap-gabungan/:token` (`PublicRekapGabungan.jsx`) berisi **bar persen** (hadir ≥1 sesi,
-   hadir semua sesi, per sesi). Modal Rekap Gabungan kini punya "Bagikan ke WhatsApp" &
-   "Salin Tautan". Halaman `/rekap/:token` biasa juga dapat bar persen (hadir/izin/alpha + gender).
+   `/rekap-gabungan/:token` (`PublicRekapGabungan.jsx`) berisi **bar persen dan status
+   masing-masing sesi**. Ringkasan agregat "hadir minimal 1 sesi"/"hadir semua sesi" telah
+   dihapus; modal rekap menyediakan "Bagikan ke WhatsApp" dan "Salin Tautan".
+   Halaman `/rekap/:token` biasa juga dapat bar persen (hadir/izin/alpha + gender).
 2. **Kolom baru per sesi**: `SessionInput` + dokumen kegiatan menerima `teacher/material/location`
    per sesi (kosong = warisi kegiatan induk). Form Tambah Kegiatan punya 3 input per baris sesi
    (`keg-session-teacher-i`, `-material-i`, `-location-i`); kartu sesi & rekap menampilkannya.
@@ -509,10 +516,9 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 
 ### Revisi Rekap Gabungan (2026-09-21, lanjutan FASE 12)
 - Peserta yang sudah HADIR di sesi lebih awal → kolom sesi berikutnya berstatus `exempt`
-  (ditampilkan ✓ abu-abu, bukan Alpha) dan tidak masuk `eligible`, sehingga totalnya 1/1 bukan 1/2.
-  Ikut memperbaiki metrik "Hadir semua sesi".
-- Baris jamaah menambah `required_sessions` & `multi_sesi` → badge "Wajib N sesi" (kuning) pada
-  nama yang terdaftar di beberapa sesi, di modal admin maupun halaman publik rekap gabungan.
+  (ditampilkan ✓ abu-abu, bukan Alpha) pada sesi yang tidak diwajibkan.
+- Rekap versi terdahulu juga menampilkan metrik lintas sesi dan badge "Wajib N sesi".
+  Keduanya sudah dihapus; tampilan kini hanya berfokus pada status setiap sesi.
 
 ## FASE 13 — Sesi Wajib & Rekap Bulanan (2026-09-21) — SELESAI (uji manual, tanpa testing agent)
 - **Aturan sesi wajib**: `SessionInput.required` (default True) → dokumen `session_required`,

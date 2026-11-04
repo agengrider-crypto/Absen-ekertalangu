@@ -53,7 +53,7 @@ export default function KegiatanView({
   const [editItem, setEditItem] = useState(null);
   const [reminderItem, setReminderItem] = useState(null);
   const [detailKey, setDetailKey] = useState(0);
-  // FASE 10 — rekap gabungan 1 hari & salin jadwal sesi
+  // FASE 10 — rekap per sesi & salin jadwal sesi
   const [gabunganId, setGabunganId] = useState(null);
   const [salinGroup, setSalinGroup] = useState(null);
 
@@ -205,6 +205,7 @@ export default function KegiatanView({
         {editItem && (
           <KegiatanFormModal
             initial={editItem}
+            suggestions={Array.isArray(items) ? items : []}
             onClose={() => setEditItem(null)}
             onDone={() => { setEditItem(null); load(); setDetailKey((v) => v + 1); }}
           />
@@ -348,7 +349,8 @@ export default function KegiatanView({
         </>
       )}
 
-      {showAdd && <KegiatanFormModal onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
+      {showAdd && <KegiatanFormModal suggestions={Array.isArray(items) ? items : []}
+        onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
       {gabunganId && <RekapGabunganModal kegiatanId={gabunganId} onClose={() => setGabunganId(null)} />}
       {salinGroup && (
         <SalinJadwalModal group={salinGroup} onClose={() => setSalinGroup(null)}
@@ -436,7 +438,7 @@ function KegiatanCard({ k, selected, onSelect, onOpen, onSalin }) {
  *
  * Setiap sesi punya absensi, rekap, kode akses & barcode SENDIRI, sehingga
  * peserta yang hadir sesi pagi tidak otomatis terhitung hadir di sesi lain.
- * FASE 10 — tombol Rekap Gabungan 1 Hari & Salin Jadwal ke tanggal lain.
+ * FASE 10 — tombol Rekap Kehadiran per Sesi & Salin Jadwal ke tanggal lain.
  */
 function SessionGroupCard({ group, selectedIds, onToggle, onOpen, onRekapGabungan, onSalin }) {
   const first = group.items[0];
@@ -505,7 +507,7 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen, onRekapGabunga
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button type="button" data-testid={`sesi-rekap-gabungan-${first.session_group_id}`} onClick={onRekapGabungan}
           className="h-11 rounded-xl bg-[#111114] text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#000000]">
-          <FileBarChart2 size={15} /> Rekap Gabungan 1 Hari
+          <FileBarChart2 size={15} /> Rekap Kehadiran per Sesi
         </button>
         <button type="button" data-testid={`sesi-salin-jadwal-${first.session_group_id}`} onClick={onSalin}
           className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#F1F1EE]">

@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import {
   CalendarDays, Clock, MapPin, User, BookOpen, Loader2, KeyRound, ShieldAlert,
   Search, ScanLine, ListChecks, AlertTriangle, CheckCircle2, RefreshCw,
-  UserPlus, Trash2, Users,
+  UserPlus, Trash2, Users, FileBarChart2, Link2, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail, isOfflineError } from "@/lib/api";
@@ -11,6 +11,7 @@ import { useOfflineQueue } from "@/lib/offline";
 import OfflineBanner from "@/components/OfflineBanner";
 import QrScanner from "@/components/QrScanner";
 import { Logo } from "@/components/Logo";
+import { ACTIVITIES } from "@/constants/testIds";
 import { TYPE_LABEL, tanggalPanjang, hhmm, AUDIENCE_LABEL, GENDER_FILTER_LABEL } from "./admin/kegiatanUtils";
 
 /**
@@ -31,6 +32,15 @@ const STATUS_BTN = {
   alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#DC2626]" },
 };
 
+const REPORT_STATUS = {
+  hadir: { label: "Hadir", cls: "bg-[#E8F5EE] text-[#14532D]" },
+  izin: { label: "Izin", cls: "bg-[#FEF3C7] text-[#92400E]" },
+  sakit: { label: "Sakit", cls: "bg-[#DBEAFE] text-[#1D4ED8]" },
+  alpha: { label: "Alpha", cls: "bg-[#FEE2E2] text-[#991B1B]" },
+  belum_diabsen: { label: "Belum diabsen", cls: "bg-[#F3F4F6] text-[#4B5563]" },
+  optional: { label: "Tidak wajib", cls: "bg-[#EEF2FF] text-[#4F46E5]" },
+};
+
 function storageKey(token) {
   return `absensi_access_${token}`;
 }
@@ -49,6 +59,8 @@ export default function PublicAbsensi() {
   const [lastScan, setLastScan] = useState(null);
   const [guestName, setGuestName] = useState("");
   const [guestSaving, setGuestSaving] = useState(false);
+  const [reportShare, setReportShare] = useState(null);
+  const [reportSharing, setReportSharing] = useState(false);
   const scanLock = useRef(false);
 
   const dropAccess = useCallback(() => {
@@ -172,6 +184,46 @@ export default function PublicAbsensi() {
     }
   };
 
+  const getReportShare = async () => {
+    if (reportShare) return reportShare;
+    setReportSharing(true);
+    try {
+      const { data: result } = await api.post(`/absensi/${token}/share-rekap`, { access });
+      setReportShare(result);
+      return result;
+    } catch (error) {
+      toast.error(formatApiErrorDetail(error.response?.data?.detail));
+      return null;
+    } finally {
+      setReportSharing(false);
+    }
+  };
+
+  const copyReportLink = async () => {
+    const result = await getReportShare();
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.link);
+      toast.success("Tautan laporan disalin.");
+    } catch {
+      toast.error("Tautan gagal disalin. Silakan coba lagi.");
+    }
+  };
+
+  const shareReportWhatsApp = async () => {
+    const popup = window.open("", "_blank");
+    const result = await getReportShare();
+    if (!result) {
+      popup?.close();
+      return;
+    }
+    if (popup) {
+      popup.location.href = `https://wa.me/?text=${encodeURIComponent(result.wa_text)}`;
+    } else {
+      toast.error("WhatsApp tidak dapat dibuka. Salin tautan laporan untuk membagikannya.");
+    }
+  };
+
   const onScan = async (text) => {
     if (scanLock.current) return;
     if (!text || !text.startsWith("EKP:")) {
@@ -265,6 +317,22 @@ export default function PublicAbsensi() {
   const alphaAllowed = closed || Date.now() >= Date.parse(`${k.date}T${k.end_time}:00+08:00`);
   const publik = (k.audience || "reguler") === "publik";
   const guests = data.guests || [];
+  const reportRows = [
+    ...(data.rows || []).map((row) => {
+      const status = statusMap[row.user_id] || row.status;
+      return {
+        ...row,
+        status,
+        reportStatus: status || (row.required_for_session ? "belum_diabsen" : "optional"),
+        isGuest: false,
+      };
+    }),
+    ...guests.map((guest) => ({
+      ...guest,
+      reportStatus: "hadir",
+      isGuest: true,
+    })),
+  ];
 
   return (
     <Shell>
@@ -298,11 +366,13 @@ export default function PublicAbsensi() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 mt-3" data-testid="absensi-counts">
+      <div className="grid grid-cols-2 gap-2 mt-3 sm:grid-cols-3" data-testid="absensi-counts">
         <Stat value={c.total} label="Total" bg="#F4F4F1" fg="#111827" />
         <Stat value={c.hadir} label="Hadir" bg="#F1F1EE" fg="#111114" />
         <Stat value={c.izin} label="Izin" bg="#FEF3C7" fg="#92400E" />
+        <Stat value={c.sakit} label="Sakit" bg="#DBEAFE" fg="#1D4ED8" />
         <Stat value={c.alpha} label="Alpha" bg="#FEE2E2" fg="#991B1B" />
+        <Stat value={c.belum_diabsen} label="Belum diabsen" bg="#F3F4F6" fg="#4B5563" />
       </div>
 
       {closed && (
@@ -320,6 +390,7 @@ export default function PublicAbsensi() {
         {publik && (
           <TabBtn active={tab === "tamu"} onClick={() => setTab("tamu")} icon={UserPlus} label={`Tamu (${guests.length})`} testid="absensi-tab-tamu" />
         )}
+        <TabBtn active={tab === "report"} onClick={() => setTab("report")} icon={FileBarChart2} label="Rekap/Laporan" testid={ACTIVITIES.absensiTabReport} />
       </div>
 
       {tab === "manual" && (
@@ -473,6 +544,89 @@ export default function PublicAbsensi() {
         </div>
       )}
 
+      {tab === "report" && (
+        <section className="mt-3 space-y-3" data-testid={ACTIVITIES.absensiReport}>
+          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4">
+            <h2 className="mb-3 inline-flex items-center gap-2 font-bold text-[#111827]">
+              <FileBarChart2 size={18} /> Rekap Kehadiran
+            </h2>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {[
+                ["hadir", "Hadir"], ["izin", "Izin"], ["sakit", "Sakit"],
+                ["alpha", "Alpha"], ["belum_diabsen", "Belum diabsen"],
+              ].map(([status, label]) => (
+                <div key={status} className="rounded-xl bg-[#FAFAF8] p-3" data-testid={`absensi-report-count-${status}`}>
+                  <div className="text-xl font-bold text-[#111827]">{c[status] || 0}</div>
+                  <div className="text-xs text-[#6B7280]">{label}</div>
+                </div>
+              ))}
+              {guests.length > 0 && (
+                <div className="rounded-xl bg-[#EEF2FF] p-3">
+                  <div className="text-xl font-bold text-[#3730A3]">{guests.length}</div>
+                  <div className="text-xs text-[#4F46E5]">Tamu hadir</div>
+                </div>
+              )}
+            </div>
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <span className="text-sm font-semibold text-[#4B5563]">Persentase kehadiran</span>
+              <span className="text-xl font-bold text-[#14532D]">{c.ratio || 0}%</span>
+            </div>
+            <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-[#E8E8E4]">
+              <div className="h-full rounded-full bg-[#0D5C3A] transition-all duration-700"
+                style={{ width: `${Math.min(Math.max(Number(c.ratio) || 0, 0), 100)}%` }} />
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-[#E8E8E4] bg-white">
+            <h3 className="border-b border-[#E8E8E4] px-4 py-3 font-bold text-[#111827]">Rincian peserta</h3>
+            {reportRows.length === 0 ? (
+              <div className="p-6 text-center text-sm text-[#6B7280]">Belum ada data peserta.</div>
+            ) : (
+              <ul className="max-h-80 divide-y divide-[#ECECE8] overflow-y-auto">
+                {reportRows.map((row, index) => {
+                  const status = REPORT_STATUS[row.reportStatus] || REPORT_STATUS.belum_diabsen;
+                  return (
+                    <li key={row.user_id || row.id || index} className="flex items-center gap-3 px-4 py-3">
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-[#111827]">{row.name}</span>
+                        <span className="block text-xs text-[#9CA3AF]">
+                          {row.isGuest ? "Tamu" : row.gender === "L" ? "Laki-laki" : row.gender === "P" ? "Perempuan" : "Peserta"}
+                          {row.arrival_time ? ` · ${hhmm(row.arrival_time)}` : ""}
+                        </span>
+                      </span>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${status.cls}`}>{status.label}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4">
+            <h3 className="inline-flex items-center gap-2 font-bold text-[#111827]"><Link2 size={17} /> Bagikan laporan</h3>
+            <p className="mt-1 text-sm text-[#6B7280]">Bagikan tautan rekap ini tanpa kode akses absensi.</p>
+            {reportShare && (
+              <div className="mt-3 break-all rounded-xl bg-[#FAFAF8] p-3 text-xs font-medium text-[#111827]"
+                data-testid={ACTIVITIES.absensiReportLink}>{reportShare.link}</div>
+            )}
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <button type="button" onClick={shareReportWhatsApp} disabled={reportSharing}
+                data-testid={ACTIVITIES.absensiReportShareWhatsApp}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#25D366] px-3 font-semibold text-white hover:brightness-95 disabled:opacity-60">
+                {reportSharing ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+                Bagikan ke WhatsApp
+              </button>
+              <button type="button" onClick={copyReportLink} disabled={reportSharing}
+                data-testid={ACTIVITIES.absensiReportCopyLink}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#111114] px-3 font-semibold text-[#111114] hover:bg-[#F1F1EE] disabled:opacity-60">
+                <Link2 size={16} /> Salin tautan laporan
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-[#9CA3AF]">Tautan laporan berlaku 7 hari.</p>
+          </div>
+        </section>
+      )}
+
       <button
         data-testid="absensi-refresh"
         onClick={() => load(access)}
@@ -511,7 +665,7 @@ function TabBtn({ active, onClick, icon: Icon, label, testid }) {
     <button
       data-testid={testid}
       onClick={onClick}
-      className={`flex-1 h-11 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 border-2 transition-colors ${active ? "bg-[#111114] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"}`}
+      className={`min-w-[136px] shrink-0 sm:flex-1 h-11 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 border-2 transition-colors ${active ? "bg-[#111114] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"}`}
     >
       <Icon size={16} /> {label}
     </button>

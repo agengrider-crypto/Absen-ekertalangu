@@ -2514,7 +2514,7 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
     }
 
 
-# ------------------- FASE 10: Rekap gabungan 1 hari (semua sesi) -------------------
+# ------------------- FASE 10: Rekap kehadiran per sesi -------------------
 async def sesi_group_docs(kegiatan_id: str) -> list:
     """Semua kegiatan dalam 1 grup sesi (pagi/sore/malam) dari salah satu id-nya.
     Bila kegiatan tidak bersesi, kembalikan list berisi 1 kegiatan itu saja."""
@@ -2530,13 +2530,7 @@ async def sesi_group_docs(kegiatan_id: str) -> list:
 
 
 async def build_rekap_gabungan(docs: list) -> dict:
-    """Ringkasan SATU HARI yang menggabungkan kehadiran semua sesi (pagi/sore/malam).
-
-    - Setiap sesi tetap punya rekap terpisah (kolom per sesi).
-    - "hadir_min_1"   : peserta hadir minimal pada 1 sesi.
-    - "hadir_semua"   : peserta hadir pada SEMUA sesi.
-    - "tidak_hadir"   : tidak hadir di sesi mana pun (dan tidak izin).
-    """
+    """Rekap semua sesi dalam satu hari dengan status tetap dipisahkan per sesi."""
     ids = [d["_id"] for d in docs]
     all_users = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
     absens = await db.absensis.find({"kegiatan_id": {"$in": ids}}).to_list(50000)
@@ -2580,23 +2574,13 @@ async def build_rekap_gabungan(docs: list) -> dict:
         })
 
     rows = []
-    status_summary = {
-        "hadir": 0, "izin": 0, "sakit": 0, "alpha": 0, "belum_diabsen": 0,
-    }
-    hadir_min_1 = hadir_semua = izin_saja = tidak_hadir = 0
     for pid, p in sorted(peserta_union.items(), key=lambda x: (x[1].get("name") or "").lower()):
         per = []
-        n_hadir = n_izin = n_sakit = n_eligible = 0
-        n_alpha = n_pending = 0
-        req_labels = []
-        done = False   # sudah hadir di sesi sebelumnya pada hari yang sama
         for d in docs:
             if pid not in eligible_by_keg[d["_id"]]:
                 per.append(None)   # tidak termasuk daftar sesi ini
                 continue
             is_req = session_requires_participant(d, pid)
-            if is_req:
-                req_labels.append(d.get("session_label") or d.get("name"))
             a = abs_by_keg.get(d["_id"], {}).get(pid)
             st = a.get("status") if a else None
             if not is_req and not st:
@@ -2611,48 +2595,13 @@ async def build_rekap_gabungan(docs: list) -> dict:
                 continue
             if not st:
                 st = "belum_diabsen"
-            n_eligible += 1
             per.append({"status": st, "arrival_time": a.get("arrival_time") if a else None})
-            if st == "hadir":
-                n_hadir += 1
-            elif st == "izin":
-                n_izin += 1
-            elif st == "sakit":
-                n_sakit += 1
-            elif st == "alpha":
-                n_alpha += 1
-            elif st == "belum_diabsen":
-                n_pending += 1
-        if n_hadir >= 1:
-            hadir_min_1 += 1
-        if req_labels and n_hadir == len(req_labels):
-            hadir_semua += 1
-        if n_hadir == 0 and n_izin > 0:
-            izin_saja += 1
-        if n_hadir == 0 and n_izin == 0 and n_sakit == 0 and n_alpha > 0:
-            tidak_hadir += 1
-        if n_eligible:
-            if n_hadir:
-                status_summary["hadir"] += 1
-            elif n_sakit:
-                status_summary["sakit"] += 1
-            elif n_izin:
-                status_summary["izin"] += 1
-            elif n_alpha:
-                status_summary["alpha"] += 1
-            else:
-                status_summary["belum_diabsen"] += 1
         rows.append({
             "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
             "account_status": p.get("status", "active"),
-            "sessions": per, "hadir": n_hadir, "izin": n_izin, "eligible": n_eligible,
-            "sakit": n_sakit, "alpha": n_alpha, "belum_diabsen": n_pending,
-            "required_sessions": len(req_labels),
-            "required_labels": req_labels,
-            "multi_sesi": len(req_labels) > 1,
+            "sessions": per,
         })
 
-    total = sum(1 for row in rows if row["eligible"] > 0)
     total_guests = sum(guest_by_keg.values())
     first = docs[0]
     return {
@@ -2664,21 +2613,7 @@ async def build_rekap_gabungan(docs: list) -> dict:
         "teacher": first.get("teacher"),
         "filter_labels": kegiatan_filter_labels(first),
         "sessions": sessions_out,
-        "summary": {
-            "total": total,
-            "hadir": status_summary["hadir"],
-            "izin": status_summary["izin"],
-            "hadir_min_1": hadir_min_1,
-            "hadir_semua": hadir_semua,
-            "izin_saja": izin_saja,
-            "sakit": status_summary["sakit"],
-            "alpha": status_summary["alpha"],
-            "belum_diabsen": status_summary["belum_diabsen"],
-            "tidak_hadir": tidak_hadir,
-            "tamu": total_guests,
-            "ratio_min_1": round((hadir_min_1 / total) * 100, 1) if total else 0.0,
-            "ratio_semua": round((hadir_semua / total) * 100, 1) if total else 0.0,
-        },
+        "tamu": total_guests,
         "rows": rows,
     }
 
@@ -3306,6 +3241,10 @@ class AbsensiMarkInput(BaseModel):
     status: str  # hadir | izin | alpha
 
 
+class AbsensiAccessInput(BaseModel):
+    access: str
+
+
 class AbsensiScanInput(BaseModel):
     access: str
     content: str
@@ -3535,6 +3474,19 @@ async def get_absensi_page(token: str, access: str = ""):
     verify_absensi_access(access, k["_id"], token)
     data = await build_absensi_rows(k)
     return {"kegiatan": public_kegiatan_info(k), **data}
+
+
+@api_router.post("/absensi/{token}/share-rekap")
+async def share_absensi_rekap(token: str, body: AbsensiAccessInput, request: Request):
+    """Share link is available to holders of a verified, time-limited attendance session."""
+    k = await kegiatan_by_akses_token(token)
+    verify_absensi_access(body.access, k["_id"], token)
+    info = await ensure_share(k["_id"], request)
+    return {
+        "link": info["link"],
+        "expires_at": info["expires_at"],
+        "wa_text": wa_template_laporan(k.get("name") or "kegiatan", info["link"]),
+    }
 
 
 @api_router.post("/absensi/{token}/mark")

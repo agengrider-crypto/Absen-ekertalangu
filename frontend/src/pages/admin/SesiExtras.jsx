@@ -44,7 +44,6 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
-  const [mode, setMode] = useState("semua"); // semua | hadir | tidak
   const [showRows, setShowRows] = useState(false);
   const [share, setShare] = useState(null);
   const [sharing, setSharing] = useState(false);
@@ -67,21 +66,26 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
     if (!d) return;
     try {
       await navigator.clipboard.writeText(d.link);
-      toast.success("Tautan rekap gabungan disalin.");
+      toast.success("Tautan rekap per sesi disalin.");
     } catch { toast.info("Tautan siap disalin manual dari kotak di atas."); }
   };
 
   const shareWa = async () => {
+    const popup = window.open("", "_blank");
     const d = await getLink();
-    if (!d) return;
-    window.open(`https://wa.me/?text=${encodeURIComponent(d.wa_text)}`, "_blank");
+    if (!d) {
+      popup?.close();
+      return;
+    }
+    if (popup) popup.location.href = `https://wa.me/?text=${encodeURIComponent(d.wa_text)}`;
+    else toast.error("WhatsApp tidak dapat dibuka. Salin tautan rekap untuk membagikannya.");
   };
 
   const load = useCallback(() => {
     setErr("");
     api.get(`/admin/kegiatan/${kegiatanId}/rekap-gabungan`)
       .then(({ data: d }) => setData(d))
-      .catch((e) => setErr(formatApiErrorDetail(e.response?.data?.detail) || "Gagal memuat rekap gabungan"));
+      .catch((e) => setErr(formatApiErrorDetail(e.response?.data?.detail) || "Gagal memuat rekap per sesi"));
   }, [kegiatanId]);
 
   useEffect(() => { load(); }, [load]);
@@ -89,36 +93,30 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
   const rows = useMemo(() => {
     if (!data) return [];
     const t = q.trim().toLowerCase();
-    let list = data.rows;
-    if (mode === "hadir") list = list.filter((r) => r.hadir > 0);
-    else if (mode === "tidak") list = list.filter((r) => r.hadir === 0);
-    return t ? list.filter((r) => (r.name || "").toLowerCase().includes(t)) : list;
-  }, [data, q, mode]);
+    return t ? data.rows.filter((r) => (r.name || "").toLowerCase().includes(t)) : data.rows;
+  }, [data, q]);
 
   const copyText = async () => {
     if (!data) return;
-    const s = data.summary;
     const lines = [
-      `*REKAP GABUNGAN ${String(data.base_name || "").toUpperCase()}*`,
+      `*REKAP KEHADIRAN PER SESI ${String(data.base_name || "").toUpperCase()}*`,
       tanggalPanjang(data.date),
       "",
-      ...data.sessions.map((x) => `• ${x.label} (${x.start_time}–${x.end_time}): Hadir ${x.counts.hadir} / ${x.counts.total} (${x.counts.ratio}%)`),
-      "",
-      `Total peserta: ${s.total}`,
-      `Hadir: ${s.hadir} · Izin: ${s.izin} · Sakit: ${s.sakit} · Alpha: ${s.alpha}`,
-      `Belum diabsen: ${s.belum_diabsen}`,
-      ...(s.tamu ? [`Tamu: ${s.tamu}`] : []),
+      ...data.sessions.map((x) => (
+        `• ${x.label} (${x.start_time}–${x.end_time}): `
+        + `Hadir ${x.counts.hadir}/${x.counts.total} (${x.counts.ratio}%) · `
+        + `Izin ${x.counts.izin} · Sakit ${x.counts.sakit} · Alpha ${x.counts.alpha} · `
+        + `Belum diabsen ${x.counts.belum_diabsen}`
+      )),
     ];
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
-      toast.success("Ringkasan gabungan disalin — siap ditempel ke WhatsApp.");
+      toast.success("Rekap per sesi disalin — siap ditempel ke WhatsApp.");
     } catch { toast.error("Gagal menyalin teks"); }
   };
 
-  const s = data?.summary;
-
   return (
-    <Shell title="Rekap Gabungan 1 Hari" subtitle={data ? `${data.base_name} · ${tanggalPanjang(data.date)}` : ""} onClose={onClose} testid="modal-rekap-gabungan" wide>
+    <Shell title="Rekap Kehadiran per Sesi" subtitle={data ? `${data.base_name} · ${tanggalPanjang(data.date)}` : ""} onClose={onClose} testid="modal-rekap-gabungan" wide>
       {err && !data ? (
         <div className="p-8 text-center">
           <p className="text-sm text-[#DC2626] mb-3" data-testid="rekap-gabungan-error">{err}</p>
@@ -128,21 +126,6 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
         <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5" data-testid="rekap-gabungan-summary">
-            {[
-              ["total", "Peserta terhitung", "bg-[#F4F4F1]", "text-[#111827]"],
-              ["hadir_min_1", "Hadir", "bg-[#E8F5EE]", "text-[#14532D]"],
-              ["izin", "Izin", "bg-[#FEF3C7]", "text-[#92400E]"],
-              ["sakit", "Sakit", "bg-[#DBEAFE]", "text-[#1D4ED8]"],
-              ["alpha", "Alpha", "bg-[#FEE2E2]", "text-[#991B1B]"],
-            ].map(([key, label, bg, fg]) => (
-              <div key={key} className={`rounded-xl ${bg} p-3`}>
-                <div className={`text-lg font-bold ${fg}`}>{key === "hadir_min_1" ? s.hadir_min_1 : s[key] || 0}</div>
-                <div className="text-xs text-[#6B7280]">{label}{key === "hadir_min_1" ? ` · ${s.ratio_min_1}%` : ""}</div>
-              </div>
-            ))}
-          </div>
-
           <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="rekap-gabungan-per-sesi">
             <h3 className="mb-3 font-bold text-[#111827]">Kehadiran tiap waktu</h3>
             <div className="space-y-3">
@@ -208,12 +191,6 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                 <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
                 <input data-testid="rekap-gabungan-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-10 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
               </div>
-              <div className="flex gap-1 bg-white border border-[#E8E8E4] rounded-xl p-1">
-                {[["semua", "Semua"], ["hadir", "Hadir ≥1"], ["tidak", "Tidak hadir"]].map(([v, l]) => (
-                  <button key={v} type="button" data-testid={`rekap-gabungan-mode-${v}`} onClick={() => setMode(v)}
-                    className={`h-8 px-3 rounded-lg text-xs font-semibold ${mode === v ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}>{l}</button>
-                ))}
-              </div>
             </div>
             <div className="overflow-x-auto max-h-[46vh] overflow-y-auto">
               <table className="w-full text-sm">
@@ -221,25 +198,15 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                   <tr>
                     <th className="px-3 py-2 font-semibold">Nama</th>
                     {data.sessions.map((x) => <th key={x.id} className="px-2 py-2 font-semibold text-center whitespace-nowrap">{x.label}{x.required === false ? <span className="block text-[9px] font-bold text-[#6366F1]">opsional</span> : null}</th>)}
-                    <th className="px-2 py-2 font-semibold text-center">Hadir</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#ECECE8]">
                   {rows.length === 0 ? (
-                    <tr><td colSpan={data.sessions.length + 2} className="p-8 text-center text-[#6B7280]">Tidak ada peserta.</td></tr>
+                    <tr><td colSpan={data.sessions.length + 1} className="p-8 text-center text-[#6B7280]">Tidak ada peserta.</td></tr>
                   ) : rows.map((r) => (
                     <tr key={r.user_id} data-testid={`rekap-gabungan-row-${r.user_id}`}>
                       <td className="px-3 py-2">
-                        <div className="font-semibold text-[#111827] truncate max-w-[180px] sm:max-w-none flex items-center gap-1.5">
-                          <span className="truncate">{r.name}</span>
-                          {r.multi_sesi && (
-                            <span title={`Wajib hadir di sesi: ${(r.required_labels || []).join(", ")}`}
-                              data-testid={`gab-multi-sesi-${r.user_id}`}
-                              className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
-                              <Layers size={10} /> Wajib {(r.required_labels || []).join(" + ")}
-                            </span>
-                          )}
-                        </div>
+                        <div className="font-semibold text-[#111827] truncate max-w-[180px] sm:max-w-none">{r.name}</div>
                         <div className="text-[11px] text-[#9CA3AF]">{r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—"}</div>
                       </td>
                       {r.sessions.map((c, i) => (
@@ -254,7 +221,6 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                           )}
                         </td>
                       ))}
-                      <td className="px-2 py-2 text-center font-bold tabular-nums text-[#111114]">{r.hadir}/{r.eligible}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -263,7 +229,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
               </div>
               <p className="text-[11px] text-[#9CA3AF] leading-relaxed">
                 <b>H</b> hadir · <b>I</b> izin · <b>S</b> sakit · <b>A</b> alpha · <b>—</b> belum diabsen atau tidak termasuk sesi.
-                Angka per sesi tetap tercatat terpisah; ringkasan ini hanya menggabungkannya untuk 1 hari.
+                Setiap kolom menunjukkan kehadiran pada sesi yang bersangkutan.
               </p>
             </div>
           )}
@@ -297,8 +263,13 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    const clean = Array.from(new Set(dates.filter(Boolean)));
+    const selectedDates = dates.filter(Boolean);
+    const clean = Array.from(new Set(selectedDates));
     if (!clean.length) { toast.error("Pilih minimal 1 tanggal tujuan"); return; }
+    if (clean.length !== selectedDates.length) {
+      toast.error("Tanggal tujuan tidak boleh dipilih lebih dari satu kali.");
+      return;
+    }
     if (clean.includes(first.date)) { toast.error("Tanggal tujuan sama dengan tanggal asal"); return; }
     setSaving(true);
     try {
@@ -313,10 +284,9 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
   const chip = "h-9 px-3 rounded-full border-2 border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] hover:border-[#111114] hover:text-[#111114]";
 
   return (
-    <Shell title="Salin Jadwal ke Tanggal Lain" subtitle={`${first.base_name || first.name} · ${tanggalSingkat(first.date)}`} onClose={onClose} testid="modal-salin-jadwal">
+    <Shell title="Salin Jadwal ke Tanggal Lain" subtitle={`${first.base_name || first.name} · ${tanggalSingkat(first.date)}`} onClose={onClose} testid="modal-salin-jadwal" wide>
       <form onSubmit={submit} className="space-y-4">
-        {/* Pola yang akan disalin */}
-        <div className="rounded-xl border border-[#E8E8E4] bg-white p-3.5" data-testid="salin-pola">
+        <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="salin-pola">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[first.type]}1a`, color: TYPE_COLOR[first.type] }}>{TYPE_LABEL[first.type]}</span>
             {items.length > 1 && (
@@ -325,18 +295,27 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
             {(first.filter_labels || []).map((l) => <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{l}</span>)}
           </div>
           <div className="font-bold text-[#111827] mt-1.5">{first.base_name || first.name}</div>
-          <div className="text-xs text-[#6B7280] mt-1 flex flex-wrap gap-x-3 gap-y-1">
-            {first.location && <span className="inline-flex items-center gap-1"><MapPin size={12} /> {first.location}</span>}
-            {first.teacher && <span className="inline-flex items-center gap-1"><User size={12} /> {first.teacher}</span>}
-          </div>
-          <div className="mt-2 grid gap-1">
+          <div className="mt-3 grid gap-2 sm:grid-cols-2" data-testid="salin-preview-sesi">
             {items.map((k) => (
-              <div key={k.id} className="text-xs text-[#4B5563] inline-flex items-center gap-1.5 rounded-lg bg-[#FAFAF8] px-2.5 py-1.5">
-                <Clock size={12} className="text-[#111114]" />
-                <b className="text-[#111114]">{k.session_label || "Jadwal"}</b> {k.start_time}–{k.end_time} WITA
+              <div key={k.id} className="rounded-xl bg-[#FAFAF8] p-3">
+                <div className="inline-flex items-center gap-1.5 text-sm font-bold text-[#111114]">
+                  <Clock size={14} /> {k.session_label || "Jadwal"} · {k.start_time}–{k.end_time} WITA
+                </div>
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#6B7280]">
+                  {k.teacher && <span className="inline-flex items-center gap-1"><User size={12} /> {k.teacher}</span>}
+                  {k.material && <span>{k.material}</span>}
+                  {k.location && <span className="inline-flex items-center gap-1"><MapPin size={12} /> {k.location}</span>}
+                  {k.maps_query && k.maps_query !== k.location && (
+                    <span className="inline-flex items-center gap-1"><MapPin size={12} /> Maps: {k.maps_query}</span>
+                  )}
+                  {k.session_participant_ids?.length > 0 && (
+                    <span>{k.session_participant_ids.length} peserta wajib</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
+          <p className="mt-3 text-xs text-[#6B7280]">Pola jadwal, pengajar, materi, lokasi, Google Maps, dan pilihan peserta akan mengikuti kegiatan ini. Data absensi tidak disalin.</p>
         </div>
 
         {/* Tanggal tujuan */}
@@ -353,6 +332,7 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
                 <div className="relative flex-1">
                   <CalendarDays size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] pointer-events-none" />
                   <input data-testid={`salin-date-${i}`} type="date" required value={d} onChange={(e) => setDate(i, e.target.value)}
+                    aria-label={`Tanggal tujuan ke-${i + 1}`}
                     className="w-full h-11 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
                 </div>
                 <span className="hidden sm:block text-xs text-[#6B7280] w-[150px] truncate">{d ? tanggalPanjang(d) : ""}</span>
@@ -367,9 +347,13 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
           </button>
         </div>
 
+        <p className="rounded-xl bg-[#F1F1EE] px-3 py-2 text-sm font-semibold text-[#111114]" data-testid="salin-jumlah-ringkasan">
+          Akan dibuat {dates.filter(Boolean).length * items.length} jadwal baru untuk {dates.filter(Boolean).length} tanggal.
+        </p>
+
         <p className="text-[11px] text-[#92400E] leading-relaxed bg-[#FEF3C7] rounded-lg px-2.5 py-2 inline-flex items-start gap-1.5">
           <AlertTriangle size={13} className="mt-0.5 shrink-0" />
-          <span>Yang disalin: nama, jenis, semua sesi &amp; jam, pengajar, materi, lokasi, dan penyaringan peserta.
+          <span>Yang disalin: nama, jenis, sesi &amp; jam, pengajar, materi, lokasi/Maps, serta penyaringan dan peserta wajib.
             <b> Absensi tidak ikut disalin</b> — jadwal baru punya kode akses &amp; barcode sendiri.</span>
         </p>
 

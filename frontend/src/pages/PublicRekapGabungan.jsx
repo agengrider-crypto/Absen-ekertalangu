@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { CalendarDays, Clock, MapPin, User, Loader2, Layers, Users } from "lucide-react";
+import { CalendarDays, Clock, MapPin, User, Loader2, Layers } from "lucide-react";
 import { api } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import { TYPE_LABEL, tanggalPanjang, hhmm } from "./admin/kegiatanUtils";
@@ -8,7 +8,9 @@ import { TYPE_LABEL, tanggalPanjang, hhmm } from "./admin/kegiatanUtils";
 const ST = {
   hadir: { t: "H", cls: "bg-[#111114] text-white", title: "Hadir" },
   izin: { t: "I", cls: "bg-[#9CA3AF] text-white", title: "Izin" },
+  sakit: { t: "S", cls: "bg-[#DBEAFE] text-[#1D4ED8]", title: "Sakit" },
   alpha: { t: "A", cls: "bg-[#FEE2E2] text-[#991B1B]", title: "Alpha" },
+  belum_diabsen: { t: "—", cls: "bg-[#FEF3C7] text-[#92400E]", title: "Belum diabsen" },
   exempt: { t: "✓", cls: "bg-[#F3F4F6] text-[#9CA3AF]", title: "Sudah hadir di sesi sebelumnya — tidak dihitung" },
   optional: { t: "·", cls: "bg-[#EEF2FF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
 };
@@ -38,8 +40,8 @@ export default function PublicRekapGabungan() {
     api.get(`/rekap-gabungan/${token}`)
       .then(({ data: d }) => setData(d))
       .catch((e) => {
-        if (e.response?.status === 410) setErr("Tautan rekap gabungan sudah kadaluarsa (berlaku 7 hari).");
-        else setErr("Tautan rekap gabungan tidak ditemukan.");
+        if (e.response?.status === 410) setErr("Tautan rekap per sesi sudah kedaluwarsa (berlaku 7 hari).");
+        else setErr("Tautan rekap per sesi tidak ditemukan.");
       });
   }, [token]);
 
@@ -55,8 +57,6 @@ export default function PublicRekapGabungan() {
     return <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>;
   }
 
-  const s = data.summary || {};
-
   return (
     <div className="min-h-screen bg-[#FAFAF8] pb-14" data-testid="rekap-gabungan-public">
       <header className="bg-[#111114] text-white">
@@ -64,7 +64,7 @@ export default function PublicRekapGabungan() {
           <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" /></div>
           <div className="leading-tight">
             <div className="font-bold font-heading">E-KERTALANGU</div>
-            <div className="text-white/70 text-xs">Rekap Gabungan 1 Hari</div>
+            <div className="text-white/70 text-xs">Rekap Kehadiran per Sesi</div>
           </div>
         </div>
       </header>
@@ -84,25 +84,7 @@ export default function PublicRekapGabungan() {
           </div>
         </div>
 
-        {/* Ringkasan + bar persen */}
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4 space-y-4" data-testid="gabungan-public-summary">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#111114] font-semibold text-sm"><Users size={17} /> Total peserta</div>
-            <div className="text-2xl font-bold text-[#111827] tabular-nums">{s.total}</div>
-          </div>
-          <PercentBar label="Hadir minimal 1 sesi" value={s.ratio_min_1} sub={`${s.hadir_min_1} orang`} testid="bar-min1" />
-          <PercentBar label="Hadir semua sesi" value={s.ratio_semua} sub={`${s.hadir_semua} orang`} color="#14532D" testid="bar-semua" />
-          <div className="flex flex-wrap gap-2 pt-1 text-xs">
-            <span className="px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#92400E] font-semibold">Izin saja: {s.izin_saja}</span>
-            <span className="px-2.5 py-1 rounded-full bg-[#FEE2E2] text-[#991B1B] font-semibold">Tidak hadir: {s.tidak_hadir}</span>
-            {s.tamu > 0 && <span className="px-2.5 py-1 rounded-full bg-[#EEF2FF] text-[#111114] font-semibold">Tamu: {s.tamu}</span>}
-          </div>
-          <p className="text-[11px] text-[#9CA3AF] leading-relaxed">
-            Peserta yang sudah hadir di sesi sebelumnya tidak dihitung Alpha pada sesi berikutnya (kolomnya dikosongkan ✓).
-          </p>
-        </div>
-
-        {/* Per sesi dengan bar */}
+        {/* Rekap dipisahkan per sesi */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4 space-y-4" data-testid="gabungan-public-sesi">
           <div className="font-semibold text-[#111827] text-sm">Kehadiran per Sesi</div>
           {data.sessions.map((x) => (
@@ -114,7 +96,9 @@ export default function PublicRekapGabungan() {
                 testid={`bar-sesi-${x.id}`}
               />
               <div className="text-[11px] text-[#9CA3AF] mt-1 flex flex-wrap gap-x-3">
-                <span>Hadir {x.counts.hadir}</span><span>Izin {x.counts.izin}</span><span>Alpha {x.counts.alpha}</span>
+                <span>Hadir {x.counts.hadir}</span><span>Izin {x.counts.izin}</span>
+                <span>Sakit {x.counts.sakit || 0}</span><span>Alpha {x.counts.alpha}</span>
+                <span>Belum diabsen {x.counts.belum_diabsen || 0}</span>
                 {x.counts.sudah_sesi_lain > 0 && <span>Sudah hadir sesi lain {x.counts.sudah_sesi_lain}</span>}
                 {x.teacher && <span className="inline-flex items-center gap-1"><User size={11} /> {x.teacher}</span>}
                 {x.location && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {x.location}</span>}
@@ -132,7 +116,6 @@ export default function PublicRekapGabungan() {
                 <tr>
                   <th className="px-3 py-2 font-semibold">Nama</th>
                   {data.sessions.map((x) => <th key={x.id} className="px-2 py-2 font-semibold text-center whitespace-nowrap">{x.label}{x.required === false ? <span className="block text-[9px] font-bold text-[#6366F1]">opsional</span> : null}</th>)}
-                  <th className="px-2 py-2 font-semibold text-center">Hadir</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#ECECE8]">
@@ -141,13 +124,6 @@ export default function PublicRekapGabungan() {
                     <td className="px-3 py-2 font-semibold text-[#111827]">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span>{r.name}</span>
-                        {r.multi_sesi && (
-                          <span title={`Wajib hadir di sesi: ${(r.required_labels || []).join(", ")}`}
-                            data-testid={`multi-sesi-${r.user_id}`}
-                            className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
-                            <Layers size={10} /> Wajib {(r.required_labels || []).join(" + ")}
-                          </span>
-                        )}
                       </div>
                     </td>
                     {r.sessions.map((c, i) => (
@@ -160,7 +136,6 @@ export default function PublicRekapGabungan() {
                         )}
                       </td>
                     ))}
-                    <td className="px-2 py-2 text-center font-bold tabular-nums text-[#111114]">{r.hadir}/{r.eligible}</td>
                   </tr>
                 ))}
               </tbody>

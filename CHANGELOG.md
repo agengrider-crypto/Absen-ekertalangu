@@ -6,6 +6,13 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ## Penyempurnaan jadwal dan rekap kegiatan
 
+- Simpan kegiatan hanya tersedia setelah informasi ditinjau dan pengguna mencentang
+  konfirmasi; pengiriman formulir dengan tombol Enter tidak melewati langkah tinjau.
+- Pengajar, materi, lokasi, dan alamat Maps memberi saran dari jadwal sebelumnya; teks
+  contoh pada kolom isian dihilangkan. Salin jadwal menampilkan rincian pola per sesi
+  sebelum dibuat di tanggal tujuan.
+- Rekap multi-sesi hanya menampilkan kehadiran per sesi. Halaman absensi memiliki tab
+  Rekap/Laporan dengan status peserta dan tautan laporan yang dapat dibagikan.
 - Formulir jadwal mendukung durasi 30 menit, 1 jam, 1,5 jam, 2 jam, atau jam selesai
   manual; jadwal rutin dapat dibuat bulanan untuk 1, 2, 3, 6, atau 12 bulan.
 - Lokasi dapat ditautkan ke Google Maps dari detail kegiatan tanpa menyimpan URL Maps

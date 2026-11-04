@@ -164,6 +164,8 @@ pilihan tetap terlihat, tetapi tidak otomatis dihitung Alpha.
 |---|---|---|---|
 | POST | `/api/admin/kegiatan/{kegiatan_id}/absen` | `require_staff` | `{user_id, status}` — `hadir`\|`izin`\|`sakit`\|`alpha`. Upsert; Alpha ditolak sebelum waktu selesai atau kegiatan ditutup |
 | GET | `/api/admin/kegiatan/{kegiatan_id}/rekap` | `require_staff` | `counts` + hitungan gender/status + baris peserta. Status kosong tetap belum diabsen |
+| GET | `/api/admin/kegiatan/{kegiatan_id}/rekap-gabungan` | `require_staff` | Rekap per sesi (pagi/sore/malam); tidak menghitung agregat hadir lintas sesi |
+| POST | `/api/admin/kegiatan/{kegiatan_id}/share-gabungan` | `require_staff` | Tautan publik rekap per sesi, berlaku 7 hari |
 | GET | `/api/admin/kegiatan/{kegiatan_id}/qr` | `require_staff` | QR menuju halaman rekap |
 | POST | `/api/admin/kegiatan/{kegiatan_id}/share` | `require_staff` | Tautan rekap publik, berlaku 7 hari |
 | POST | `/api/admin/kegiatan/{kegiatan_id}/absen-qr` | `require_staff` | QR absen mandiri → `{token, link, image}` |
@@ -182,6 +184,8 @@ pilihan tetap terlihat, tetapi tidak otomatis dihitung Alpha.
 
 `alpha` hanya berisi status Alpha yang dicatat; status kosong tidak otomatis menjadi Alpha.
 Sisa peserta dihitung sebagai `belum_diabsen`. `ratio` adalah hadir dibagi total.
+Rekap multi-sesi menampilkan jumlah dan status peserta pada setiap sesi secara terpisah;
+tidak ada hitungan gabungan seperti hadir minimal satu sesi atau hadir semua sesi.
 
 ---
 
@@ -190,7 +194,11 @@ Sisa peserta dihitung sebagai `belum_diabsen`. `ratio` adalah hadir dibagi total
 | Method | Path | Guard | Keterangan |
 |---|---|---|---|
 | GET | `/api/rekap/{token}` | — | Rekap publik. **410** bila kedaluwarsa, **404** bila token salah |
+| GET | `/api/rekap-gabungan/{token}` | — | Rekap status tiap sesi secara terpisah; tanpa ringkasan hadir lintas sesi |
 | GET | `/api/laporan/{token}` | — | **Laporan publik (tautan permanen)**. **404** bila token salah |
+| POST | `/api/absensi/{token}/share-rekap` | Sesi absensi terverifikasi | `{access}` — buat/ambil tautan publik rekap untuk dibagikan, berlaku 7 hari |
+| POST | `/api/absensi/{token}/verify` | — | `{code}` — verifikasi kode akses untuk membuka halaman absensi |
+| GET | `/api/absensi/{token}` | Sesi absensi terverifikasi | Info kegiatan, rekap status, dan daftar peserta |
 | GET | `/api/absen/{token}` | — | Info kegiatan + daftar peserta (dipakai absen **manual**) |
 | POST | `/api/absen/{token}/mark` | — | `{user_id}` — **403** bila kegiatan sudah ditutup |
 | POST | `/api/absen/{token}/feedback` | — | `{name?, message}` |

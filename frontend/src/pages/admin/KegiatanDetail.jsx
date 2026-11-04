@@ -151,12 +151,12 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
           {k.teacher && <span className="inline-flex items-center gap-1.5"><User size={15} /> {k.teacher}</span>}
           {k.material && <span className="inline-flex items-center gap-1.5"><BookOpen size={15} /> {k.material}</span>}
         </div>
-        {/* FASE 10 — aksi cepat grup sesi: rekap gabungan 1 hari & salin jadwal */}
+        {/* FASE 10 — aksi cepat grup sesi: rekap per sesi & salin jadwal */}
         {(k.session_total || 1) > 1 && k.session_group_id && (
           <div className="mt-3 flex flex-wrap gap-2" data-testid="detail-sesi-actions">
             <button type="button" data-testid="detail-rekap-gabungan" onClick={() => onRekapGabungan && onRekapGabungan(k)}
               className="h-10 px-3.5 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#000000]">
-              <FileBarChart2 size={16} /> Rekap Gabungan 1 Hari ({k.session_total} sesi)
+              <FileBarChart2 size={16} /> Rekap Kehadiran per Sesi ({k.session_total} sesi)
             </button>
             <button type="button" data-testid="detail-salin-jadwal" onClick={() => onSalinJadwal && onSalinJadwal(k)}
               className="h-10 px-3.5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#F1F1EE]">
@@ -224,7 +224,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
               onClick: () => onToggleStatus && onToggleStatus(k),
             },
             ...((k.session_total || 1) > 1 ? [{
-              key: "gabungan", testid: "detail-opsi-gabungan", label: "Rekap Gabungan 1 Hari",
+              key: "gabungan", testid: "detail-opsi-gabungan", label: "Rekap Kehadiran per Sesi",
               desc: "Gabungkan kehadiran semua sesi (pagi/sore/malam)", icon: Layers,
               onClick: () => onRekapGabungan && onRekapGabungan(k),
             }] : []),
