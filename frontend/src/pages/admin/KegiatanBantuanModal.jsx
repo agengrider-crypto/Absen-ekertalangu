@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight, CircleCheck, Clock3,
-  MapPin, Pause, Play, RotateCcw, Users, X,
+  MapPin, Pause, Play, RotateCcw, Users, Volume2, X,
 } from "lucide-react";
 import { ACTIVITIES } from "@/constants/testIds";
 
@@ -163,38 +163,122 @@ function PreviewScene({ step }) {
 
 export default function KegiatanBantuanModal({ onClose }) {
   const [step, setStep] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [playback, setPlayback] = useState("stopped");
+  const [voiceStatus, setVoiceStatus] = useState("Memeriksa suara pada perangkat...");
+  const playbackRef = useRef("stopped");
+  const voiceRef = useRef(null);
+  const hasIndonesianVoiceRef = useRef(false);
+  const playbackTimerRef = useRef(null);
+  const speakStepRef = useRef(null);
+
+  const updatePlayback = useCallback((status) => {
+    playbackRef.current = status;
+    setPlayback(status);
+  }, []);
+
+  const speakStep = (stepIndex) => {
+    if (playbackRef.current !== "playing") return;
+    const speech = window.speechSynthesis;
+    const voice = voiceRef.current;
+    if (!speech || !hasIndonesianVoiceRef.current) {
+      playbackTimerRef.current = window.setTimeout(() => {
+        if (playbackRef.current !== "playing") return;
+        if (stepIndex === STEPS.length - 1) {
+          updatePlayback("stopped");
+          return;
+        }
+        setStep(stepIndex + 1);
+        speakStepRef.current?.(stepIndex + 1);
+      }, 8500);
+      return;
+    }
+
+    speech.cancel();
+    const utterance = new SpeechSynthesisUtterance(STEPS[stepIndex].narration);
+    utterance.lang = "id-ID";
+    utterance.rate = 0.92;
+    utterance.pitch = 0.96;
+    if (voice) utterance.voice = voice;
+    utterance.onend = () => {
+      if (playbackRef.current !== "playing") return;
+      if (stepIndex === STEPS.length - 1) {
+        updatePlayback("stopped");
+        return;
+      }
+      const nextStep = stepIndex + 1;
+      setStep(nextStep);
+      speakStepRef.current?.(nextStep);
+    };
+    utterance.onerror = (event) => {
+      if (event.error === "interrupted" || event.error === "canceled") return;
+      setVoiceStatus("Suara narasi gagal diputar. Periksa dukungan suara di perangkat Anda.");
+      updatePlayback("stopped");
+    };
+    speech.speak(utterance);
+  };
+  speakStepRef.current = speakStep;
+
+  const moveToStep = useCallback((nextStep) => {
+    window.speechSynthesis?.cancel();
+    window.clearTimeout(playbackTimerRef.current);
+    updatePlayback("stopped");
+    setStep(Math.max(0, Math.min(nextStep, STEPS.length - 1)));
+  }, [updatePlayback]);
+
+  useEffect(() => {
+    const speech = window.speechSynthesis;
+    if (!speech) {
+      setVoiceStatus("Peramban ini tidak mendukung suara narasi.");
+      return undefined;
+    }
+
+    const updateVoices = () => {
+      const voices = speech.getVoices();
+      const indonesianVoices = voices.filter((voice) => /^id(?:-|$)/i.test(voice.lang));
+      const maleVoice = indonesianVoices.find((voice) => /(ardi|\bmale\b|masculine|\bman\b|putra|pria)/i.test(voice.name));
+      voiceRef.current = maleVoice || indonesianVoices[0] || null;
+      hasIndonesianVoiceRef.current = indonesianVoices.length > 0;
+      if (maleVoice) setVoiceStatus("Suara laki-laki Bahasa Indonesia tersedia.");
+      else if (indonesianVoices.length) setVoiceStatus("Suara laki-laki tidak terdeteksi; suara Bahasa Indonesia yang tersedia akan digunakan.");
+      else setVoiceStatus("Suara Bahasa Indonesia tidak tersedia; animasi tetap bisa diputar tanpa suara.");
+    };
+
+    updateVoices();
+    speech.addEventListener("voiceschanged", updateVoices);
+    return () => {
+      speech.removeEventListener("voiceschanged", updateVoices);
+      speech.cancel();
+      window.clearTimeout(playbackTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "Escape") onClose();
-      if (event.key === "ArrowRight") setStep((current) => Math.min(current + 1, STEPS.length - 1));
-      if (event.key === "ArrowLeft") setStep((current) => Math.max(current - 1, 0));
+      if (event.key === "ArrowRight") moveToStep(step + 1);
+      if (event.key === "ArrowLeft") moveToStep(step - 1);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!isPlaying) return undefined;
-    const timer = window.setTimeout(() => {
-      if (step === STEPS.length - 1) setIsPlaying(false);
-      else setStep((current) => current + 1);
-    }, 8500);
-    return () => window.clearTimeout(timer);
-  }, [isPlaying, step]);
+  }, [moveToStep, onClose, step]);
 
   const togglePlayback = () => {
-    if (isPlaying) {
-      setIsPlaying(false);
+    if (playback === "playing") {
+      window.speechSynthesis?.pause();
+      window.clearTimeout(playbackTimerRef.current);
+      updatePlayback("paused");
       return;
     }
-    if (step === STEPS.length - 1) setStep(0);
-    setIsPlaying(true);
-  };
-
-  const moveToStep = (nextStep) => {
-    setStep(Math.max(0, Math.min(nextStep, STEPS.length - 1)));
+    if (playback === "paused") {
+      updatePlayback("playing");
+      if (hasIndonesianVoiceRef.current) window.speechSynthesis?.resume();
+      else speakStep(step);
+      return;
+    }
+    const firstStep = step === STEPS.length - 1 ? 0 : step;
+    setStep(firstStep);
+    updatePlayback("playing");
+    speakStep(firstStep);
   };
 
   return createPortal(
@@ -240,13 +324,13 @@ export default function KegiatanBantuanModal({ onClose }) {
             <div className="mt-3 flex items-center gap-2">
               <button
                 type="button"
-                aria-label={isPlaying ? "Jeda animasi" : step === STEPS.length - 1 ? "Putar ulang animasi" : "Putar animasi"}
+                aria-label={playback === "playing" ? "Jeda animasi" : playback === "paused" ? "Lanjutkan narasi" : step === STEPS.length - 1 ? "Putar ulang animasi dengan narasi" : "Putar animasi dengan narasi"}
                 data-testid={ACTIVITIES.helpPlay}
                 onClick={togglePlayback}
                 className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#111114] px-4 text-base font-semibold text-white hover:bg-black"
               >
-                {isPlaying ? <Pause size={17} /> : step === STEPS.length - 1 ? <RotateCcw size={17} /> : <Play size={17} />}
-                {isPlaying ? "Jeda" : step === STEPS.length - 1 ? "Putar lagi" : "Putar"}
+                {playback === "playing" ? <Pause size={17} /> : step === STEPS.length - 1 ? <RotateCcw size={17} /> : <Play size={17} />}
+                {playback === "playing" ? "Jeda" : playback === "paused" ? "Lanjutkan" : step === STEPS.length - 1 ? "Putar lagi" : "Putar"}
               </button>
               <button
                 type="button"
@@ -287,6 +371,9 @@ export default function KegiatanBantuanModal({ onClose }) {
             </div>
             <p className="mt-2 text-sm text-[#6B7280]">
               Contoh animasi—tidak mengubah atau menyimpan data kegiatan Anda.
+            </p>
+            <p className="mt-1 inline-flex items-start gap-1.5 text-sm text-[#6B7280]" role="status" aria-live="polite">
+              <Volume2 size={15} className="mt-0.5 shrink-0" /> {voiceStatus}
             </p>
           </div>
 

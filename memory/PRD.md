@@ -34,7 +34,8 @@
   tampilan Semua mengikuti bulan yang dipilih.
 - Formulir kegiatan memakai empat langkah: Kegiatan, Jadwal, Peserta, dan Tinjau.
 - Halaman Kegiatan menyediakan animasi panduan pembuatan kegiatan dengan narasi
-  tersinkron, kontrol putar/jeda, dan navigasi langkah; panel dapat ditutup melalui
+  suara Bahasa Indonesia yang memprioritaskan suara laki-laki yang tersedia di perangkat,
+  teks tersinkron, kontrol putar/jeda, dan navigasi langkah; panel dapat ditutup melalui
   tombol X atau tombol Escape.
 - Detail kegiatan menyediakan scan barcode di dekat Aksi Kegiatan serta rekap peserta
   hadir, pemisahan jumlah laki-laki/perempuan, dan berbagi tautan melalui WhatsApp.
