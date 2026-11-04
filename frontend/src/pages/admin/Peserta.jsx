@@ -69,7 +69,7 @@ function PesertaAvatar({ user }) {
   );
 }
 
-export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHandled }) {
+export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHandled, openNameTags = false, onNameTagsClose }) {
   const isAdmin = role === "admin";
   const handledAddRequest = useRef(0);
   const [users, setUsers] = useState(null);
@@ -81,6 +81,10 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
   const [detailId, setDetailId] = useState(null);
   const [modal, setModal] = useState(null); // "add" | "bulk" | null
   const [showNameTags, setShowNameTags] = useState(false);
+
+  useEffect(() => {
+    if (openNameTags) setShowNameTags(true);
+  }, [openNameTags]);
 
   const load = () =>
     api.get("/admin/users")
@@ -143,18 +147,20 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
     selected.has(u.id) && u.roles?.includes("peserta"));
   const pureParticipants = selectedParticipants.filter((u) => u.roles?.length === 1);
   const deletableSelected = pureParticipants;
-  const activatableSelected = pureParticipants.filter((u) =>
+  const activationEligible = filtered.filter((u) =>
+    u.roles?.length === 1 && u.roles.includes("peserta") &&
     u.status === "pending" && !!normalizeParticipantDob(u.dob));
+  const activatableSelected = activationEligible.filter((u) => selected.has(u.id));
   const pendingWithoutDobSelected = pureParticipants.filter((u) =>
     u.status === "pending" && !normalizeParticipantDob(u.dob));
   const detailUser = (users || []).find((u) => u.id === detailId);
 
-  const allChecked = filtered.length > 0 && filtered.every((u) => selected.has(u.id));
+  const allChecked = activationEligible.length > 0 && activationEligible.every((u) => selected.has(u.id));
   const toggleAll = () => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (allChecked) filtered.forEach((u) => next.delete(u.id));
-      else filtered.forEach((u) => next.add(u.id));
+      if (allChecked) activationEligible.forEach((u) => next.delete(u.id));
+      else activationEligible.forEach((u) => next.add(u.id));
       return next;
     });
   };
@@ -364,7 +370,18 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
               <thead>
                 <tr className="bg-[#FAFAF8] text-[#6B7280] text-left">
                   <th className="px-4 py-3 w-10">
-                    <input aria-label="Pilih semua akun yang tampil" type="checkbox" className="accent-[#111114] w-4 h-4" checked={allChecked} onChange={toggleAll} data-testid="checkbox-all" />
+                    <label className="inline-flex items-center gap-1.5" title="Pilih semua peserta yang memenuhi syarat aktivasi">
+                      <input
+                        aria-label={`Pilih semua peserta yang bisa diaktifkan (${activationEligible.length})`}
+                        type="checkbox"
+                        className="accent-[#0D5C3A] w-4 h-4"
+                        checked={allChecked}
+                        disabled={activationEligible.length === 0}
+                        onChange={toggleAll}
+                        data-testid={PARTICIPANTS.selectAllActivatable}
+                      />
+                      <span className="text-xs font-semibold text-[#4B5563]">{activationEligible.length}</span>
+                    </label>
                   </th>
                   <th className="px-4 py-3 font-semibold w-14">Foto</th>
                   <th className="px-4 py-3 font-semibold">Nama</th>
@@ -463,7 +480,13 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         <NameTagModal
           users={(users || []).filter((u) => u.roles?.includes("peserta"))}
           kelompok={kelompok}
-          onClose={() => setShowNameTags(false)}
+          loading={users === null}
+          loadError={users === false}
+          onRetry={load}
+          onClose={() => {
+            setShowNameTags(false);
+            onNameTagsClose?.();
+          }}
         />
       )}
     </div>
@@ -595,11 +618,12 @@ function AddModal({ kelompok, onClose, onDone }) {
   );
 }
 
-function NameTagModal({ users, kelompok, onClose }) {
+function NameTagModal({ users, kelompok, loading, loadError, onRetry, onClose }) {
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [orientation, setOrientation] = useState("portrait");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [selected, setSelected] = useState(new Set());
 
   const filtered = useMemo(() => {
@@ -707,6 +731,11 @@ function NameTagModal({ users, kelompok, onClose }) {
               className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "landscape" ? "border-[#0D5C3A] bg-[#F0FDF4] text-[#0D5C3A]" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}>
               Horizontal
             </button>
+            <button type="button" aria-expanded={previewOpen} onClick={() => setPreviewOpen((open) => !open)}
+              data-testid={PARTICIPANTS.nameTagPreviewToggle} disabled={!visibleSelected.length}
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#E8E8E4] bg-white px-3 text-sm font-semibold text-[#374151] hover:border-[#111114] disabled:opacity-50">
+              <Eye size={16} /> {previewOpen ? "Tutup pratinjau" : `Pratinjau cetak (${visibleSelected.length})`}
+            </button>
             <button type="button" onClick={printTags} data-testid={PARTICIPANTS.nameTagPrint}
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#111114] px-4 text-sm font-semibold text-white hover:bg-black">
               <Printer size={16} /> Cetak ({visibleSelected.length})
@@ -714,7 +743,34 @@ function NameTagModal({ users, kelompok, onClose }) {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {previewOpen && (
+          <section className="name-tag-screen-only rounded-xl border border-[#E8E8E4] bg-[#F7F7F5] p-3 sm:p-4" data-testid={PARTICIPANTS.nameTagPreview}>
+            <div className="mb-3">
+              <h3 className="font-bold text-[#111827]">Pratinjau siap cetak</h3>
+              <p className="text-sm text-[#6B7280]">{visibleSelected.length} kartu terpilih · {orientation === "portrait" ? "Vertikal" : "Horizontal"}</p>
+            </div>
+            {visibleSelected.length ? (
+              <div className="grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2">
+                {visibleSelected.map((user) => <NameTagCard key={user.id} user={user} orientation={orientation} preview />)}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-[#CBD5E1] bg-white p-5 text-center text-sm text-[#6B7280]">
+                Pilih peserta untuk melihat kartu yang siap dicetak.
+              </p>
+            )}
+          </section>
+        )}
+
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 rounded-xl border border-[#E8E8E4] bg-white p-8 text-sm text-[#6B7280]">
+            <Loader2 className="animate-spin" size={18} /> Memuat daftar peserta...
+          </div>
+        ) : loadError ? (
+          <div className="rounded-xl border border-[#FECACA] bg-white p-6 text-center">
+            <p className="text-sm text-[#6B7280]">Daftar peserta gagal dimuat.</p>
+            <button type="button" onClick={onRetry} data-testid={PARTICIPANTS.nameTagRetry} className="mt-3 min-h-11 rounded-xl bg-[#111114] px-4 font-semibold text-white">Coba lagi</button>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-white p-8 text-center text-sm text-[#6B7280]">
             Tidak ada peserta yang cocok dengan pencarian atau filter.
           </div>
@@ -743,13 +799,19 @@ function NameTagModal({ users, kelompok, onClose }) {
       <div className="name-tag-print-area">
         <div className={`name-tag-print-grid name-tag-print-grid-${orientation}`} data-orientation={orientation}>
           {visibleSelected.map((user) => (
-            <div key={user.id} className={`name-tag-card name-tag-card-${orientation}`}>
-              <div className="name-tag-card-name">{user.name}</div>
-              <QRCodeSVG value={`EKT:${user.id}`} title={`Barcode identitas ${user.name}`} size={108} level="M" />
-            </div>
+            <NameTagCard key={user.id} user={user} orientation={orientation} />
           ))}
         </div>
       </div>
     </ModalShell>
+  );
+}
+
+function NameTagCard({ user, orientation, preview = false }) {
+  return (
+    <div className={`name-tag-card name-tag-card-${orientation}${preview ? " name-tag-preview-card" : ""}`}>
+      <div className="name-tag-card-name">{user.name}</div>
+      <QRCodeSVG value={`EKT:${user.id}`} title={`Barcode identitas ${user.name}`} size={108} level="M" />
+    </div>
   );
 }

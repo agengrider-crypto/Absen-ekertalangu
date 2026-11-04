@@ -2,6 +2,7 @@ export const ADMIN_SIDEBAR = {
   collapseButton: "admin-sidebar-collapse-button",
   closeButton: "admin-sidebar-close-button",
   overlayBackdrop: "admin-sidebar-overlay-backdrop",
+  nameTags: "admin-sidebar-name-tags",
   mobileNav: {
     dashboard: "admin-mobile-nav-dashboard",
     peserta: "admin-mobile-nav-peserta",

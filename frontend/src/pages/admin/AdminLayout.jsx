@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
   ShieldCheck, Menu, X, LogOut, MessagesSquare, Megaphone, UserCog, Layers,
   MonitorSmartphone, CalendarRange, ListPlus, CopyCheck, KeyRound, ScanLine,
-  ClipboardList, CalendarCheck, HeartHandshake, LifeBuoy, CalendarClock,
+  ClipboardList, CalendarCheck, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
   PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -41,6 +41,7 @@ const MENU = [
     group: "grup-peserta", label: "Peserta", icon: Users, roles: ["admin", "pengurus"],
     items: [
       { key: "peserta", label: "User", icon: UserCog, roles: ["admin", "pengurus"] },
+      { key: "kartu-nama", label: "Kartu Nama", icon: QrCode, roles: ["admin", "pengurus"] },
       { key: "peserta-bulk", label: "Bulk Data", icon: ListPlus, roles: ["admin", "pengurus"] },
       { key: "peserta-duplikat", label: "Cek Duplikat", icon: CopyCheck, roles: ["admin", "pengurus"] },
       { key: "kelompok", label: "Kelompok Sambung", icon: Layers, roles: ["admin", "pengurus"] },
@@ -93,23 +94,23 @@ function NavButton({ item, active, onNav, collapsed, mobile = false }) {
     : (on ? "bg-[#F1F1EE] text-[#111114] font-semibold" : "text-[#6B7280] hover:bg-[#F4F4F1] hover:text-[#111114]");
   return (
     <button
-      data-testid={`nav-${item.key}`}
+      data-testid={item.key === "kartu-nama" ? ADMIN_SIDEBAR.nameTags : `nav-${item.key}`}
       onClick={() => onNav(item.key)}
       title={collapsed ? item.label : undefined}
       aria-label={item.label}
       aria-current={on ? "page" : undefined}
       className={`w-full ${
         mobile
-          ? "min-h-[88px] flex-col justify-start gap-1.5 px-1 py-2 text-center text-xs"
+          ? "flex min-h-[104px] flex-col items-center justify-start gap-1.5 px-1 py-2 text-center text-xs"
           : `flex items-center ${collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 text-sm`
       } rounded-xl font-medium transition-colors ${activeClass}`}
     >
       {mobile ? (
-        <span className={`flex h-14 w-14 items-center justify-center rounded-2xl ${on ? "bg-[#0D9B6C] text-white" : "bg-[#F3F4F6] text-[#4B5563]"}`}>
+        <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${on ? "bg-[#0D9B6C] text-white" : "bg-[#F3F4F6] text-[#4B5563]"}`}>
           <Icon size={24} />
         </span>
       ) : <Icon size={19} />}
-      {(!collapsed || mobile) && <span className={mobile ? "max-w-full leading-tight" : ""}>{item.label}</span>}
+      {(!collapsed || mobile) && <span className={mobile ? "flex min-h-10 w-full items-start justify-center break-words leading-5" : ""}>{item.label}</span>}
     </button>
   );
 }
@@ -198,7 +199,7 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
 function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
   const sections = {
     dashboard: ["dashboard"],
-    peserta: ["peserta", "peserta-bulk", "peserta-duplikat", "kelompok"],
+    peserta: ["peserta", "kartu-nama", "peserta-bulk", "peserta-duplikat", "kelompok"],
     kegiatan: ["kegiatan", "kalender", "kode-akses", "scan-presensi", "pengumuman"],
     laporan: ["laporan", "rekap-bulanan", "rekap-harian", "musyawarah", "pengaduan"],
   };
@@ -339,11 +340,13 @@ export default function AdminLayout({ user, role = "admin" }) {
               }}
             />
           )}
-          {active === "peserta" && (
+          {(active === "peserta" || active === "kartu-nama") && (
             <Peserta
               role={role}
+              openNameTags={active === "kartu-nama"}
               addRequest={addPesertaRequest}
               onAddRequestHandled={() => setAddPesertaRequest(0)}
+              onNameTagsClose={() => go("peserta")}
             />
           )}
           {active === "peserta-bulk" && <PesertaBulkView />}

@@ -15,7 +15,10 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 - Formulir Tambah Peserta ditata ulang dan diberi label/keterangan yang lebih jelas.
 - Kartu nama peserta menampilkan nama dan QR ID permanen, bisa dicari, difilter menurut
   kelompok/status, dipilih, lalu dicetak vertikal atau horizontal. QR ini tidak dipakai
-  untuk presensi; QR presensi tetap berputar.
+  untuk presensi; QR presensi tetap berputar. Menu Kartu Nama tersedia di sidebar dan
+  menyediakan pratinjau kartu terpilih sebelum dicetak.
+- Pemilihan massal menandai hanya peserta tunggal yang masih pending dan memiliki
+  tanggal lahir valid; jumlahnya ditampilkan pada kotak centang dan tombol aktivasi.
 
 ## Penyederhanaan dashboard Admin & Pengurus
 
@@ -38,7 +41,8 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 - Menu Pengurus tetap menyediakan Bantuan, tanpa kategori Pengaturan admin.
 - Menu ponsel kini memakai Bottom Navigation Bar dengan tombol Beranda, Peserta,
   Kegiatan, Laporan, dan Menu. Menu membuka bottom sheet berisi kisi empat kolom
-  untuk fitur tambahan; ikon dan label navigasi bawah diratakan.
+  untuk fitur tambahan; ikon dan label menu disusun dalam kolom dengan tinggi seragam
+  agar teks dua baris tidak menggeser label fitur lain.
 - Tampilan mobile dimulai pada skala 100% dan tetap mendukung zoom/pinch; viewport
   tidak membatasi skala maksimum.
 - QR pribadi untuk presensi tetap berubah berkala dan tidak digunakan sebagai QR

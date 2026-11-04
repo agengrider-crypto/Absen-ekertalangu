@@ -803,3 +803,6 @@ Script verifikasi: `/app/tests/fase12_check.py`.
 - Aktivasi massal hanya berlaku untuk akun berperan tunggal Peserta yang pending dengan tanggal lahir valid.
 - Login awal peserta hasil aktivasi massal memakai nama sebagai username dan DOB format DDMMYYYY sebagai sandi sementara; login wajib dilanjutkan dengan ganti sandi dan lengkapi profil.
 - Kartu nama mencetak nama + QR ID akun permanen, dalam orientasi vertikal maupun horizontal. QR permanen hanya untuk identifikasi; QR presensi tetap rotating.
+- Akses Kartu Nama tersedia dari sidebar; pratinjau menunjukkan kartu yang dipilih dan orientasinya sebelum dicetak.
+- Kotak centang pilih-semua dan tombol aktivasi menghitung hanya akun Peserta tunggal yang pending dengan tanggal lahir valid.
+- Label pada kisi menu mobile memiliki tata letak kolom dan tinggi seragam agar tidak bergeser saat nama fitur terbungkus dua baris.
