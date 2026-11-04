@@ -2021,16 +2021,53 @@ async def kegiatan_counts(kegiatan, total: Optional[int] = None) -> dict:
     return compute_counts(peserta, absens, guests, skip, k)
 
 
+async def mark_missing_alpha(k: dict, marked_at: Optional[str] = None) -> None:
+    """Tandai Alpha untuk peserta wajib yang belum diabsen saat kegiatan ditutup."""
+    participants = await peserta_for_kegiatan(k)
+    existing = await db.absensis.find({"kegiatan_id": k["_id"]}).to_list(10000)
+    existing_by_user = {row["user_id"]: row for row in existing}
+    timestamp = marked_at or now_wita().isoformat()
+    alpha_fields = {
+        "kegiatan_id": k["_id"],
+        "status": "alpha",
+        "arrival_time": None,
+        "marked_by": "Sistem (otomatis)",
+        "updated_at": timestamp,
+    }
+
+    for participant in participants:
+        user_id = str(participant["_id"])
+        required = session_requires_participant(k, user_id)
+        if not required:
+            continue
+        existing_row = existing_by_user.get(user_id)
+        if existing_row and existing_row.get("status") in ABSEN_STATUS:
+            continue
+        if existing_row:
+            await db.absensis.update_one(
+                {"kegiatan_id": k["_id"], "user_id": user_id, "status": {"$nin": ABSEN_STATUS}},
+                {"$set": {**alpha_fields, "user_id": user_id}},
+            )
+        else:
+            await db.absensis.update_one(
+                {"kegiatan_id": k["_id"], "user_id": user_id},
+                {"$setOnInsert": {**alpha_fields, "user_id": user_id}},
+                upsert=True,
+            )
+
+
 async def auto_close_kegiatan():
     """Tutup otomatis kegiatan (per-kegiatan) saat jam selesai WITA sudah lewat."""
     now = now_wita()
     async for k in db.kegiatans.find({"status": "open"}):
         end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
         if end and now >= end:
-            await db.kegiatans.update_one(
-                {"_id": k["_id"]},
+            result = await db.kegiatans.update_one(
+                {"_id": k["_id"], "status": "open"},
                 {"$set": {"status": "closed", "closed_at": now.isoformat(), "auto_closed": True}})
-            await revoke_delegations_for_kegiatan(k["_id"], "Kegiatan ditutup otomatis")
+            if result.modified_count:
+                await mark_missing_alpha(k, now.isoformat())
+                await revoke_delegations_for_kegiatan(k["_id"], "Kegiatan ditutup otomatis")
 
 
 async def auto_close_loop():
@@ -2367,6 +2404,7 @@ async def close_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
     await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": {
         "status": "closed", "closed_at": now_wita().isoformat(), "auto_closed": False}})
+    await mark_missing_alpha(k)
     await revoke_delegations_for_kegiatan(kegiatan_id, "Kegiatan diselesaikan")
     await log_activity(admin, "selesaikan_kegiatan", f"Menyelesaikan kegiatan '{k.get('name')}'")
     k = await db.kegiatans.find_one({"_id": kegiatan_id})

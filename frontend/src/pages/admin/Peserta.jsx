@@ -507,28 +507,32 @@ function AddModal({ kelompok, onClose, onDone }) {
 
   return (
     <ModalShell title="Tambah Peserta" onClose={onClose} testid={PARTICIPANTS.addModal} wide>
-      <form onSubmit={submit} className="space-y-4">
-        <div className="rounded-2xl bg-[#0D5C3A] p-5 text-white">
-          <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15"><UserPlus size={22} /></span>
-            <div>
-              <h3 className="text-lg font-bold">Tambahkan jamaah ke daftar peserta</h3>
-              <p className="mt-1 text-sm leading-relaxed text-white/85">
-                Isi nama dan tanggal lahir. Peserta akan muncul sebagai Belum Aktivasi sampai Anda mengaktifkannya.
-              </p>
-            </div>
+      <form onSubmit={submit} className="space-y-4" data-testid={PARTICIPANTS.addForm}>
+        <div className="flex items-start gap-3 rounded-2xl border border-[#B7E4CA] bg-[#E8F5EE] p-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#0D5C3A]"><UserPlus size={21} /></span>
+          <div>
+            <h3 className="font-bold text-[#14532D]">Akun baru menunggu aktivasi</h3>
+            <p className="mt-1 text-sm leading-relaxed text-[#166534]">
+              Nama wajib diisi. Data lainnya bisa dilengkapi sekarang atau nanti.
+            </p>
           </div>
         </div>
 
-        <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5">
-          <h3 className="mb-4 font-bold text-[#111827]">Data peserta</h3>
+        <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addMainSection}>
+          <div className="mb-4 flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#111114] text-sm font-bold text-white">1</span>
+            <div>
+              <h3 className="font-bold text-[#111827]">Data utama</h3>
+              <p className="text-sm text-[#6B7280]">Informasi dasar peserta</p>
+            </div>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="sm:col-span-2">
-              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Nama lengkap <span className="text-[#DC2626]">*</span></span>
-              <input data-testid={PARTICIPANTS.addName} required value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Masukkan nama sesuai identitas" className={inp} />
+              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Nama lengkap <span className="text-[#DC2626]">*</span></span>
+              <input data-testid={PARTICIPANTS.addName} required autoFocus value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Masukkan nama peserta" className={inp} />
             </label>
             <label>
-              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Jenis kelamin</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Jenis kelamin</span>
               <select data-testid={PARTICIPANTS.addGender} value={f.gender} onChange={(e) => set("gender", e.target.value)} className={inp}>
                 <option value="">Pilih jenis kelamin</option>
                 <option value="L">Laki-laki</option>
@@ -536,57 +540,68 @@ function AddModal({ kelompok, onClose, onDone }) {
               </select>
             </label>
             <label>
-              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Status pernikahan</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Status pernikahan</span>
               <select data-testid={PARTICIPANTS.addMarital} value={f.marital} onChange={(e) => set("marital", e.target.value)} className={inp}>
                 <option value="">Pilih status</option>
                 {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </label>
             <label>
-              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Tempat lahir</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Tempat lahir</span>
               <input data-testid={PARTICIPANTS.addBirthplace} value={f.birthplace} onChange={(e) => set("birthplace", e.target.value)} placeholder="Contoh: Denpasar" className={inp} />
             </label>
             <label>
-              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Tanggal lahir</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Tanggal lahir</span>
               <DateField testid={PARTICIPANTS.addDob} value={f.dob} onChange={(v) => set("dob", v)} placeholder="Pilih tanggal lahir" className="h-[46px]" />
-              <span className="mt-1 block text-xs text-[#6B7280]">Dipakai sebagai kata sandi sementara saat aktivasi.</span>
+              <span className="mt-1 block text-sm text-[#6B7280]">Diperlukan untuk aktivasi akun.</span>
             </label>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5">
-          <h3 className="mb-4 font-bold text-[#111827]">Kontak dan kelompok</h3>
+        <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addContactSection}>
+          <div className="mb-4 flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F1F1EE] text-sm font-bold text-[#111114]">2</span>
+            <div>
+              <h3 className="font-bold text-[#111827]">Kontak dan kelompok</h3>
+              <p className="text-sm text-[#6B7280]">Semua isian pada bagian ini bersifat opsional</p>
+            </div>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label>
-              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Nomor HP</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Nomor HP</span>
               <input data-testid={PARTICIPANTS.addPhone} value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="08xxxxxxxxxx" className={inp} />
             </label>
             <label>
-              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Nomor WhatsApp</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Nomor WhatsApp</span>
               <input data-testid={PARTICIPANTS.addWhatsapp} value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder="Opsional" className={inp} />
             </label>
             <label>
-              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Email</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Email</span>
               <input data-testid={PARTICIPANTS.addEmail} type="email" value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="nama@email.com" className={inp} />
             </label>
             <label>
-              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Kelompok sambung</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Kelompok sambung</span>
               <select data-testid={PARTICIPANTS.addKelompok} value={f.kelompok_id} onChange={(e) => set("kelompok_id", e.target.value)} className={inp}>
                 <option value="">Tanpa kelompok</option>
                 {kelompok.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
               </select>
             </label>
             <label className="sm:col-span-2">
-              <span className="mb-1.5 block text-sm font-semibold text-[#374151]">Alamat</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Alamat</span>
               <input data-testid={PARTICIPANTS.addAddress} value={f.address} onChange={(e) => set("address", e.target.value)} placeholder="Alamat tempat tinggal" className={inp} />
             </label>
           </div>
         </section>
 
-        <button data-testid={PARTICIPANTS.addSubmit} type="submit" disabled={saving}
-          className="h-12 w-full rounded-xl bg-[#111114] text-base font-bold text-white inline-flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
-          {saving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Simpan Peserta
-        </button>
+        <div className="sticky bottom-0 -mx-5 -mb-5 flex gap-2 border-t border-[#E8E8E4] bg-[#FAFAF8]/95 p-4 backdrop-blur">
+          <button data-testid={PARTICIPANTS.addCancel} type="button" onClick={onClose} className="min-h-12 flex-1 rounded-xl border-2 border-[#E8E8E4] bg-white text-base font-semibold text-[#374151] hover:bg-[#F4F4F1]">
+            Batal
+          </button>
+          <button data-testid={PARTICIPANTS.addSubmit} type="submit" disabled={saving}
+            className="min-h-12 flex-[2] rounded-xl bg-[#0D5C3A] text-base font-bold text-white inline-flex items-center justify-center gap-2 hover:bg-[#09492E] disabled:opacity-60">
+            {saving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Simpan Peserta
+          </button>
+        </div>
       </form>
     </ModalShell>
   );

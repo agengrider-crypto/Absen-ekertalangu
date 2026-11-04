@@ -77,11 +77,9 @@ body {
     display: none;
 }
 
-/* FASE 14 — animasi indikator loading global */
-@keyframes loadingslide {
-    0% { transform: translateX(-120%); }
-    50% { transform: translateX(120%); }
-    100% { transform: translateX(320%); }
+@keyframes rekap-bar-grow {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
 }
 
 /* FASE 16 — masuk halus tiap layar (gaya clean, animasi sangat tipis) */

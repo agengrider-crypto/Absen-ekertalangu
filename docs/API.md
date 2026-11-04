@@ -119,7 +119,7 @@ curl -b ck.txt https://<domain>/api/auth/me
 | GET | `/api/admin/kegiatan/{kegiatan_id}` | `require_staff` | Detail |
 | PATCH | `/api/admin/kegiatan/{kegiatan_id}` | `require_staff` | `KegiatanUpdate` |
 | DELETE | `/api/admin/kegiatan/{kegiatan_id}` | `require_staff` | Hapus |
-| POST | `/api/admin/kegiatan/{kegiatan_id}/close` | `require_staff` | Tutup manual (mencabut delegasi) |
+| POST | `/api/admin/kegiatan/{kegiatan_id}/close` | `require_staff` | Tutup manual, tandai peserta wajib yang belum diabsen sebagai Alpha, lalu cabut delegasi |
 | POST | `/api/admin/kegiatan/{kegiatan_id}/reopen` | `require_staff` | Buka kembali |
 
 `KegiatanInput`:
@@ -163,7 +163,7 @@ pilihan tetap terlihat, tetapi tidak otomatis dihitung Alpha.
 | Method | Path | Guard | Keterangan |
 |---|---|---|---|
 | POST | `/api/admin/kegiatan/{kegiatan_id}/absen` | `require_staff` | `{user_id, status}` — `hadir`\|`izin`\|`sakit`\|`alpha`. Upsert; Alpha ditolak sebelum waktu selesai atau kegiatan ditutup |
-| GET | `/api/admin/kegiatan/{kegiatan_id}/rekap` | `require_staff` | `counts` + hitungan gender/status + baris peserta. Status kosong tetap belum diabsen |
+| GET | `/api/admin/kegiatan/{kegiatan_id}/rekap` | `require_staff` | `counts` + hitungan gender/status + baris peserta. Setelah kegiatan ditutup, peserta wajib yang belum diabsen otomatis berstatus Alpha |
 | GET | `/api/admin/kegiatan/{kegiatan_id}/rekap-gabungan` | `require_staff` | Rekap per sesi (pagi/sore/malam); tidak menghitung agregat hadir lintas sesi |
 | POST | `/api/admin/kegiatan/{kegiatan_id}/share-gabungan` | `require_staff` | Tautan publik rekap per sesi, berlaku 7 hari |
 | GET | `/api/admin/kegiatan/{kegiatan_id}/qr` | `require_staff` | QR menuju halaman rekap |
@@ -182,9 +182,11 @@ pilihan tetap terlihat, tetapi tidak otomatis dihitung Alpha.
 }
 ```
 
-`alpha` hanya berisi status Alpha yang dicatat; status kosong tidak otomatis menjadi Alpha.
-Sisa peserta dihitung sebagai `belum_diabsen`. `ratio` adalah hadir dibagi total.
-Rekap multi-sesi menampilkan jumlah dan status peserta pada setiap sesi secara terpisah;
+Sebelum kegiatan ditutup, peserta tanpa status dihitung sebagai `belum_diabsen`.
+Saat kegiatan ditutup manual atau otomatis setelah jam selesai, peserta wajib yang belum
+memiliki status absensi otomatis dicatat sebagai Alpha; peserta di luar daftar wajib tidak
+diubah. `ratio` adalah hadir dibagi total. Rekap multi-sesi menampilkan persentase
+kehadiran pada setiap sesi secara terpisah;
 tidak ada hitungan gabungan seperti hadir minimal satu sesi atau hadir semua sesi.
 
 ---

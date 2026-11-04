@@ -1,5 +1,17 @@
 # E-KERTALANGU — PRD
 
+## Pembaruan 2026-11-05
+- Splash "Memuat aplikasi" dan indikator loading global dihapus. Pemeriksaan sesi hanya
+  menampilkan status teks sederhana; pemuatan data tetap ditangani pada halaman terkait.
+- Formulir tambah peserta diperbarui menjadi lebih jelas, ringkas, dan ramah ponsel.
+- Rekap per sesi disusun mendatar dengan grafik persentase kehadiran saja.
+- Saat kegiatan ditutup manual atau otomatis, peserta wajib yang belum memiliki status
+  absensi dicatat otomatis sebagai Alpha. Peserta di luar daftar wajib tetap tidak dihitung.
+- Rekap kegiatan menampilkan daftar peserta Izin, Sakit, dan Alpha serta grafik batang
+  beranimasi.
+- Sidebar laporan menampilkan menu "Laporan per Peserta — Segera hadir" dalam keadaan
+  nonaktif sampai halamannya tersedia.
+
 ## Penyempurnaan jadwal dan rekap kegiatan
 - Penyimpanan formulir kegiatan mensyaratkan langkah Tinjau dan konfirmasi eksplisit;
   submit dengan Enter di langkah lain tidak menyimpan.
@@ -546,10 +558,9 @@ Script verifikasi: `/app/tests/fase12_check.py`.
   (koleksi `bulanan_links`, token permanen per bulan) + publik `GET /api/rekap-bulanan/{token}`
   dan halaman `/rekap-bulanan/:token` (`PublicRekapBulanan.jsx`) — bisa dibuka siapa pun,
   lengkap dengan filter nama, tab L/P, bar persen, dan rincian sesi.
-- **Loading global** (`components/GlobalLoading.jsx`): interceptor axios di `lib/api.js` menghitung
-  permintaan tertunda → bar tipis di atas + pil "Memuat…" bila delay > 450ms (berlaku untuk
-  laporan, absen, rekap, semua halaman). `SplashLoading` jadi layar pembuka saat web dibuka /
-  sesi diperiksa; `SkeletonList` untuk kerangka tabel. Keyframe `loadingslide` di `index.css`.
+- **Loading global (dihapus 2026-11-05)**: sebelumnya interceptor axios menghitung permintaan
+  tertunda untuk menampilkan bar/pil "Memuat…" dan `SplashLoading` menjadi layar pembuka.
+  Kini halaman memakai indikator pemuatan masing-masing; `SkeletonList` tetap dipakai untuk tabel.
 - **Pisah L/P di rekap bulanan**: `gender` di respons (jamaah, hadir, pertemuan, izin, alpha,
   rajin, jarang, ratio per L & P) → 2 bar "Pisah Laki-laki & Perempuan" + tab filter L/P
   pada daftar jamaah (admin & halaman publik).

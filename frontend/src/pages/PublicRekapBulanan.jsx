@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { CalendarRange, Users, TrendingDown, TrendingUp, Search, Layers } from "lucide-react";
+import { CalendarRange, Users, TrendingDown, TrendingUp, Search, Layers, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import { PercentBar } from "./PublicRekapGabungan";
-import { SplashLoading } from "@/components/GlobalLoading";
 
 const GEN = [["semua", "Semua"], ["L", "Laki-laki"], ["P", "Perempuan"]];
 
@@ -45,7 +44,14 @@ export default function PublicRekapBulanan() {
       </div>
     );
   }
-  if (!data) return <SplashLoading label="Memuat rekap bulanan…" />;
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-[#FAFAF8] px-4 py-10" role="status" aria-label="Memuat rekap bulanan">
+        <div className="mx-auto h-2 max-w-3xl animate-pulse rounded-full bg-[#E8E8E4]" />
+        <Loader2 size={20} className="mx-auto mt-8 animate-spin text-[#6B7280]" />
+      </div>
+    );
+  }
 
   const g = data.gender || {};
 

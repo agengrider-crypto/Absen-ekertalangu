@@ -4,6 +4,21 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 5 November 2026
+
+- Menghapus layar pembuka "Memuat aplikasi" dan indikator loading global; pemuatan data
+  tetap memiliki indikator pada halaman yang membutuhkannya.
+- Memperbarui formulir Tambah Peserta dengan bagian Data Utama dan Kontak/Kelompok,
+  keterangan aktivasi, serta tombol aksi yang mudah dijangkau di ponsel.
+- Rekap beberapa sesi ditampilkan mendatar dengan persentase kehadiran dan grafik
+  batang beranimasi.
+- Saat kegiatan ditutup manual atau otomatis, peserta wajib yang belum memiliki status
+  otomatis dicatat Alpha; peserta di luar daftar wajib tetap tidak diubah.
+- Rekap kegiatan menampilkan daftar khusus peserta Izin, Sakit, dan Alpha.
+- Menambahkan menu sidebar "Laporan per Peserta — Segera hadir" dalam keadaan nonaktif.
+
+---
+
 ## Penyempurnaan jadwal dan rekap kegiatan
 
 - Simpan kegiatan hanya tersedia setelah informasi ditinjau dan pengguna mencentang

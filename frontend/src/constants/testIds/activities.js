@@ -21,6 +21,7 @@ export const ACTIVITIES = {
   scanResults: "detail-scan-results",
   scanResultPrefix: "detail-scan-result",
   recapAttendees: "detail-rekap-attendees",
+  recapAbsentees: "detail-rekap-absentees",
   recapShare: "detail-rekap-share",
   recapError: "detail-rekap-error",
   recapRowsToggle: "rekap-gabungan-toggle-rows",

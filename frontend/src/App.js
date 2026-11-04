@@ -2,7 +2,6 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import GlobalLoading, { SplashLoading } from "@/components/GlobalLoading";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Activate from "@/pages/Activate";
@@ -20,8 +19,12 @@ import PublicHadir from "@/pages/PublicHadir";
 import KodeAbsen from "@/pages/KodeAbsen";
 import CompleteProfile from "@/pages/CompleteProfile";
 
-function Loading() {
-  return <SplashLoading />;
+function CheckingSession() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#FAFAF8] px-4" role="status">
+      <span className="text-base text-[#4B5563]">Memeriksa sesi akun…</span>
+    </main>
+  );
 }
 
 /**
@@ -31,7 +34,7 @@ function Loading() {
 function Protected({ children }) {
   const { user } = useAuth();
   const location = useLocation();
-  if (user === null) return <Loading />;
+  if (user === null) return <CheckingSession />;
   if (user === false) {
     const next = `${location.pathname}${location.search}`;
     return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
@@ -42,7 +45,7 @@ function Protected({ children }) {
 
 function ProfileGate() {
   const { user } = useAuth();
-  if (user === null) return <Loading />;
+  if (user === null) return <CheckingSession />;
   if (user === false) return <Navigate to="/login" replace />;
   if (user.profile_complete !== false && !user.must_change_password) return <Navigate to="/roles" replace />;
   return <CompleteProfile />;
@@ -51,7 +54,7 @@ function ProfileGate() {
 function PublicOnly({ children }) {
   const { user } = useAuth();
   const [params] = useSearchParams();
-  if (user === null) return <Loading />;
+  if (user === null) return <CheckingSession />;
   if (user) {
     if (user.profile_complete === false || user.must_change_password) return <Navigate to="/lengkapi-akun" replace />;
     // Hormati ?next= (mis. dari halaman absen: /login?next=/absen/<token>)
@@ -95,7 +98,6 @@ function App() {
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>
-        <GlobalLoading />
         <Toaster position="top-center" richColors />
       </AuthProvider>
     </div>

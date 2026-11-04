@@ -128,25 +128,21 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
         <div className="space-y-4">
           <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="rekap-gabungan-per-sesi">
             <h3 className="mb-3 font-bold text-[#111827]">Kehadiran tiap waktu</h3>
-            <div className="space-y-3">
+            <div className="grid auto-cols-[minmax(12rem,1fr)] grid-flow-col gap-3 overflow-x-auto pb-2">
               {data.sessions.map((session) => (
-                <div key={session.id} className="rounded-xl bg-[#FAFAF8] p-3" data-testid={`gab-bar-sesi-${session.id}`}>
-                  <div className="mb-2 flex items-center justify-between gap-3">
+                <div key={session.id} className="min-w-0 rounded-xl bg-[#FAFAF8] p-3" data-testid={`gab-bar-sesi-${session.id}`}>
+                  <div className="mb-2 flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="font-bold text-[#111827]">{session.label}</div>
-                      <div className="text-xs text-[#6B7280]">{session.start_time}–{session.end_time} WITA{session.required === false ? " · Opsional" : ""}</div>
+                      <div className="truncate font-bold text-[#111827]">{session.label}</div>
+                      <div className="text-xs text-[#6B7280]">{session.start_time}–{session.end_time} WITA</div>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <div className="text-xl font-bold text-[#111114]">{session.counts.ratio}%</div>
-                      <div className="text-xs text-[#6B7280]">
-                        H {session.counts.hadir} · I {session.counts.izin} · S {session.counts.sakit || 0} · A {session.counts.alpha}
-                      </div>
-                    </div>
+                    <div className="shrink-0 text-xl font-bold text-[#111114]">{session.counts.ratio}%</div>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-[#E8E8E4]">
-                    <div className="h-full rounded-full bg-[#0D5C3A] transition-all duration-700 ease-out"
+                    <div className="h-full origin-left rounded-full bg-[#0D5C3A] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
                       style={{ width: `${Math.min(Math.max(session.counts.ratio || 0, 0), 100)}%` }} />
                   </div>
+                  {session.required === false && <div className="mt-1 text-[11px] text-[#6B7280]">Sesi opsional</div>}
                 </div>
               ))}
             </div>

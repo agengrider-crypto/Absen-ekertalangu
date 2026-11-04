@@ -40,6 +40,14 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
 
   const { link, rekap } = data;
   const hadirRows = (rekap.rows || []).filter((row) => row.status === "hadir" && !row.attended_other);
+  const absentStatuses = [
+    { key: "izin", label: "Izin", color: "text-[#92400E]", bg: "bg-[#FEF3C7]" },
+    { key: "sakit", label: "Sakit", color: "text-[#1D4ED8]", bg: "bg-[#DBEAFE]" },
+    { key: "alpha", label: "Alpha", color: "text-[#991B1B]", bg: "bg-[#FEE2E2]" },
+  ].map((status) => ({
+    ...status,
+    rows: (rekap.rows || []).filter((row) => row.status === status.key && !row.attended_other),
+  }));
   const guestCount = (rekap.guests || []).length;
   const counts = rekap.counts || {};
   const genderStatus = rekap.gender_status || {};
@@ -76,7 +84,7 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
           <span className="ml-auto text-lg font-bold text-[#0D5C3A]">{counts.ratio || 0}% hadir</span>
         </div>
         <div className="grid gap-2 sm:grid-cols-2" data-testid={ACTIVITIES.recapGraph}>
-          {statuses.map((status) => {
+          {statuses.map((status, index) => {
             const value = Number(counts[status.key]) || 0;
             const percent = counts.total ? Math.min((value / counts.total) * 100, 100) : 0;
             return (
@@ -90,12 +98,39 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
                   {status.key === "hadir" && guestCount ? ` · Tamu ${guestCount}` : ""}
                 </div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/80">
-                  <div className={`h-full rounded-full ${status.color} transition-all duration-700 ease-out`}
-                    style={{ width: `${percent}%` }} />
+                  <div className={`h-full origin-left rounded-full ${status.color} motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]`}
+                    style={{ width: `${percent}%`, animationDelay: `${index * 90}ms` }} />
                 </div>
               </div>
             );
           })}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={ACTIVITIES.recapAbsentees}>
+        <h3 className="mb-3 inline-flex items-center gap-2 font-bold text-[#111827]">
+          <Users size={17} /> Peserta Tidak Hadir
+        </h3>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {absentStatuses.map((status) => (
+            <div key={status.key} className="overflow-hidden rounded-xl border border-[#E8E8E4]">
+              <div className={`flex items-center justify-between px-3 py-2 ${status.bg}`}>
+                <span className={`font-bold ${status.color}`}>{status.label}</span>
+                <span className={`text-sm font-bold ${status.color}`}>{status.rows.length}</span>
+              </div>
+              {status.rows.length ? (
+                <ul className="max-h-48 divide-y divide-[#ECECE8] overflow-y-auto">
+                  {status.rows.map((row) => (
+                    <li key={row.user_id} className="px-3 py-2.5 text-sm font-medium text-[#111827]">
+                      <span className="block truncate">{row.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="px-3 py-4 text-center text-sm text-[#6B7280]">Tidak ada peserta.</p>
+              )}
+            </div>
+          ))}
         </div>
       </section>
 
