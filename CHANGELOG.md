@@ -4,6 +4,13 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Perbaikan backend Vercel gagal dimuat
+
+- Menambahkan `requests` ke `requirements.txt` root dan `api/requirements.txt`.
+  `backend/server.py` mengimpor paket ini, tetapi sebelumnya paket tersebut hanya
+  tercantum di `backend/requirements.txt`, sehingga function Vercel dapat gagal saat
+  mengimpor entrypoint.
+
 ## Perubahan halaman login
 
 - Menghapus tombol "Absen dengan Kode (6 Digit)", "Daftar Baru (Scan QR)", dan
