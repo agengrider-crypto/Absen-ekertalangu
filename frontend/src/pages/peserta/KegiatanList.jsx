@@ -10,11 +10,13 @@ import {
 const STATUS_STYLE = {
   hadir: { label: "Hadir", cls: "bg-[#F1F1EE] text-[#111114]" },
   izin: { label: "Izin", cls: "bg-[#FEF3C7] text-[#92400E]" },
-  alpha: { label: "Belum hadir", cls: "bg-[#F3F4F6] text-[#6B7280]" },
+  sakit: { label: "Sakit", cls: "bg-[#DBEAFE] text-[#1D4ED8]" },
+  alpha: { label: "Alpha", cls: "bg-[#FEE2E2] text-[#991B1B]" },
+  belum_diabsen: { label: "Belum diabsen", cls: "bg-[#F3F4F6] text-[#6B7280]" },
 };
 
 function DetailModal({ k, onClose }) {
-  const st = STATUS_STYLE[k.my_status] || STATUS_STYLE.alpha;
+  const st = STATUS_STYLE[k.my_status] || STATUS_STYLE.belum_diabsen;
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -96,7 +98,7 @@ export default function KegiatanList() {
               </div>
               <div className="space-y-2">
                 {g.items.map((k) => {
-                  const st = STATUS_STYLE[k.my_status] || STATUS_STYLE.alpha;
+                  const st = STATUS_STYLE[k.my_status] || STATUS_STYLE.belum_diabsen;
                   return (
                     <button key={k.id} data-testid={`peserta-keg-${k.id}`} onClick={() => setDetail(k)} className="w-full text-left bg-white rounded-2xl border border-[#E8E8E4] p-4 hover:border-[#111114] transition-colors">
                       <div className="flex items-center justify-between gap-2 flex-wrap">

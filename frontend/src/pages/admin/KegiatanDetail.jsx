@@ -34,6 +34,7 @@ import {
 const STATUS_BTN = {
   hadir: { label: "H", full: "Hadir", on: "bg-[#111114] text-white", off: "text-[#111114]" },
   izin: { label: "I", full: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#92400E]" },
+  sakit: { label: "S", full: "Sakit", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
   alpha: { label: "A", full: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
 };
 
@@ -69,6 +70,11 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
 
   const k = data?.kegiatan;
   const publik = (k?.audience || "reguler") === "publik";
+  const mapLabel = k?.location || k?.maps_query;
+  const alphaAllowed = Boolean(k && (
+    k.status !== "open"
+    || Date.now() >= Date.parse(`${k.date}T${k.end_time}:00+08:00`)
+  ));
 
   const TABS = useMemo(() => ([
     { key: "manual", label: "Absen Manual", icon: ListChecks },
@@ -81,7 +87,9 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
     return (
       <div>
         <BackBar onBack={onBack} title="Detail Kegiatan" />
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
+        <div className="p-5 flex items-center justify-center gap-2 text-sm text-[#4B5563]">
+          <Loader2 className="animate-spin text-[#111114]" size={20} /> Memuat kegiatan…
+        </div>
         {err && <p className="text-center text-sm text-[#DC2626]">{err}</p>}
       </div>
     );
@@ -134,9 +142,12 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
         </div>
         <h2 className="font-heading text-xl font-bold text-[#111827] mt-2">{k.name}</h2>
         <div className="text-sm text-[#6B7280] mt-2 flex flex-wrap gap-x-5 gap-y-1">
-          <span className="inline-flex items-center gap-1.5"><CalendarDays size={15} /> {tanggalPanjang(k.date)}</span>
+          <span className="inline-flex items-center gap-1.5"><CalendarDays size={15} /> Tanggal {String(k.date || "").split("-")[2] || "—"}</span>
           <span className="inline-flex items-center gap-1.5"><Clock size={15} /> {k.start_time}–{k.end_time} WITA</span>
-          {k.location && <span className="inline-flex items-center gap-1.5"><MapPin size={15} /> {k.location}</span>}
+          {mapLabel && <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k.maps_query || k.location)}`}
+            target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[#111114] underline">
+            <MapPin size={15} /> {mapLabel}
+          </a>}
           {k.teacher && <span className="inline-flex items-center gap-1.5"><User size={15} /> {k.teacher}</span>}
           {k.material && <span className="inline-flex items-center gap-1.5"><BookOpen size={15} /> {k.material}</span>}
         </div>
@@ -155,8 +166,12 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
         )}
       </div>
 
-      {/* NAVIGASI BAR HORIZONTAL */}
-      <div className="sticky top-0 z-20 -mx-4 px-4 py-2 mt-3 bg-[#FAFAF8]/95 backdrop-blur border-b border-[#E8E8E4]">
+      <nav aria-label="Breadcrumb" className="my-3 flex items-center gap-2 text-sm text-[#6B7280]" data-testid={ACTIVITIES.breadcrumb}>
+        <button type="button" onClick={onBack} className="font-semibold text-[#111114] underline">Kegiatan</button>
+        <span aria-hidden="true">/</span><span className="truncate" aria-current="page">{k.name}</span>
+      </nav>
+
+      <div className="sticky top-2 z-20 mx-auto mt-3 w-fit max-w-full rounded-2xl border border-[#E8E8E4] bg-white/95 p-2 shadow-lg backdrop-blur">
         <div className="flex gap-2 overflow-x-auto no-scrollbar" data-testid="kegiatan-detail-tabs">
           {TABS.map((t) => {
             const Icon = t.icon;
@@ -179,7 +194,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
 
       <div className="mt-4 space-y-4">
         {tab === "manual" && (
-          <AbsenManual kegiatanId={kegiatanId} rows={data.rows || []} closed={k.status !== "open"}
+          <AbsenManual kegiatanId={kegiatanId} rows={data.rows || []} closed={k.status !== "open"} alphaAllowed={alphaAllowed}
             onReload={() => { load(true); if (onChanged) onChanged(); }} />
         )}
         {tab === "tamu" && (
@@ -314,7 +329,7 @@ function BarcodePublikPanel({ kegiatanId }) {
 }
 
 /* ------------------------- Absen manual (dengan mode offline) ------------------------- */
-function AbsenManual({ kegiatanId, rows, closed, onReload }) {
+function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(null);
 
@@ -405,16 +420,16 @@ function AbsenManual({ kegiatanId, rows, closed, onReload }) {
               <div className="flex items-center gap-1 shrink-0">
                 {r.attended_other ? (
                   <span className="text-[11px] font-semibold text-[#9CA3AF]" data-testid={`detail-locked-${r.user_id}`}>tidak perlu diabsen lagi</span>
-                ) : ["hadir", "izin", "alpha"].map((s) => {
+                ) : ["hadir", "izin", "sakit", "alpha"].map((s) => {
                   const on = r.status === s;
                   const cfg = STATUS_BTN[s];
                   return (
                     <button
                       key={s}
                       data-testid={`detail-btn-${s}-${r.user_id}`}
-                      disabled={busy === r.user_id + s}
+                      disabled={busy === r.user_id + s || (s === "alpha" && !alphaAllowed)}
                       onClick={() => mark(r.user_id, s)}
-                      title={cfg.full}
+                      title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.full}
                       aria-label={cfg.full}
                       className={`h-8 w-9 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
                     >

@@ -30,10 +30,13 @@ export function ratioChipCls(ratio) {
 }
 
 /** Keterangan hitungan: H/I/A dalam kali + persen masing-masing yang totalnya 100%. */
-export function keteranganHitungan({ hadir = 0, izin = 0, alpha = 0, total = 0, satuan = "pertemuan" }) {
+export function keteranganHitungan({
+  hadir = 0, izin = 0, sakit = 0, alpha = 0, belum_diabsen = 0,
+  total = 0, satuan = "pertemuan",
+}) {
   if (!total) return `Belum ada ${satuan} yang wajib diikuti`;
   const pct = (n) => `${Math.round((n / total) * 1000) / 10}%`;
-  return `Hadir ${hadir}× (${pct(hadir)}) + Izin ${izin}× (${pct(izin)}) + Alpha ${alpha}× (${pct(alpha)}) = 100% dari ${total} ${satuan}`;
+  return `Hadir ${hadir}× (${pct(hadir)}) + Izin ${izin}× (${pct(izin)}) + Sakit ${sakit}× (${pct(sakit)}) + Alpha ${alpha}× (${pct(alpha)}) + Belum diabsen ${belum_diabsen}× (${pct(belum_diabsen)}) = 100% dari ${total} ${satuan}`;
 }
 
 /** Chip persen ringkas (dipakai menggantikan bar batangan di daftar peserta). */

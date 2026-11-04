@@ -377,7 +377,7 @@ function FilterBadges({ k }) {
 
 function KegiatanCard({ k, selected, onSelect, onOpen, onSalin }) {
   const c = k.counts || {};
-  const [, month, day] = String(k.date || "").split("-");
+  const [, , day] = String(k.date || "").split("-");
   return (
     <div className="bg-white rounded-2xl border border-[#E8E8E4] p-3 sm:p-4 hover:border-[#111114] transition-colors" data-testid={`kegiatan-card-${k.id}`}>
       <div className="grid grid-cols-[auto_58px_minmax(0,1fr)] items-stretch gap-2 sm:gap-3">
@@ -386,8 +386,8 @@ function KegiatanCard({ k, selected, onSelect, onOpen, onSalin }) {
             data-testid={`${ACTIVITIES.checkboxPrefix}-${k.id}`} className="h-5 w-5 accent-[#111114]" />
         </label>
         <div className="flex flex-col items-center justify-center self-start rounded-xl bg-[#F4F4F1] px-1 py-2 text-center" data-testid={`${ACTIVITIES.datePrefix}-${k.id}`}>
-          <span className="text-xl font-bold leading-none text-[#111114]">{Number(day) || "—"}</span>
-          <span className="mt-1 text-[10px] font-bold uppercase text-[#6B7280]">{MONTH_SHORT[(Number(month) || 1) - 1]}</span>
+          <span className="text-2xl font-bold leading-none text-[#111114]">{Number(day) || "—"}</span>
+          <span className="mt-1 text-[10px] font-semibold text-[#6B7280]">Tgl</span>
           <span className="mt-1 text-[10px] font-medium text-[#6B7280]">{k.start_time}</span>
         </div>
         <div className="min-w-0">
@@ -440,14 +440,13 @@ function KegiatanCard({ k, selected, onSelect, onOpen, onSalin }) {
  */
 function SessionGroupCard({ group, selectedIds, onToggle, onOpen, onRekapGabungan, onSalin }) {
   const first = group.items[0];
-  const [, month, day] = String(first.date || "").split("-");
+  const [, , day] = String(first.date || "").split("-");
   return (
     <div className="bg-white rounded-2xl border border-[#E8E8E4] p-3 sm:p-4" data-testid={`kegiatan-sesi-group-${first.session_group_id}`}>
       <div className="grid grid-cols-[58px_minmax(0,1fr)] gap-3">
       <div className="flex h-fit flex-col items-center justify-center rounded-xl bg-[#F4F4F1] px-1 py-2 text-center">
-        <span className="text-xl font-bold leading-none text-[#111114]">{Number(day) || "—"}</span>
-        <span className="mt-1 text-[10px] font-bold uppercase text-[#6B7280]">{MONTH_SHORT[(Number(month) || 1) - 1]}</span>
-        <span className="mt-1 text-[10px] font-medium text-[#6B7280]">{first.date}</span>
+        <span className="text-2xl font-bold leading-none text-[#111114]">{Number(day) || "—"}</span>
+        <span className="mt-1 text-[10px] font-semibold text-[#6B7280]">Tgl</span>
       </div>
       <div className="min-w-0">
       <div className="flex items-center gap-2 flex-wrap">
@@ -574,6 +573,7 @@ function ModalShell({ title, children, onClose, testid, wide }) {
 const STATUS_BTN = {
   hadir: { label: "Hadir", on: "bg-[#111114] text-white", off: "text-[#111114]" },
   izin: { label: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#92400E]" },
+  sakit: { label: "Sakit", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
   alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
 };
 
@@ -612,6 +612,10 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
 
   const k = data?.kegiatan;
   const c = data?.counts || {};
+  const alphaAllowed = Boolean(k && (
+    k.status !== "open"
+    || Date.now() >= Date.parse(`${k.date}T${k.end_time}:00+08:00`)
+  ));
 
   return (
     <ModalShell title={k ? k.name : "Absensi"} onClose={onClose} testid="modal-absensi" wide>
@@ -619,10 +623,11 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
         <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             <div className="rounded-xl bg-[#F4F4F1] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{c.total}</div><div className="text-xs text-[#6B7280]">Total</div></div>
             <div className="rounded-xl bg-[#F1F1EE] p-3 text-center"><div className="text-xl font-bold text-[#111114]">{c.hadir}</div><div className="text-xs text-[#6B7280]">Hadir</div></div>
             <div className="rounded-xl bg-[#FEF3C7] p-3 text-center"><div className="text-xl font-bold text-[#92400E]">{c.izin}</div><div className="text-xs text-[#6B7280]">Izin</div></div>
+            <div className="rounded-xl bg-[#DBEAFE] p-3 text-center"><div className="text-xl font-bold text-[#1D4ED8]">{c.sakit || 0}</div><div className="text-xs text-[#6B7280]">Sakit</div></div>
             <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{c.alpha}</div><div className="text-xs text-[#6B7280]">Alpha</div></div>
           </div>
 
@@ -637,7 +642,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
                 <span className="h-9 w-9 rounded-xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center"><CheckCircle2 size={18} /></span>
                 <span>
                   <span className="block font-bold text-[#111827] text-[15px]">Absen Manual</span>
-                  <span className="block text-xs text-[#6B7280]">Tandai Hadir / Izin / Alpha per peserta</span>
+                  <span className="block text-xs text-[#6B7280]">Tandai Hadir / Izin / Sakit / Alpha per peserta</span>
                 </span>
               </span>
               <ChevronDown size={20} className={`text-[#6B7280] transition-transform ${openManual ? "rotate-180" : ""}`} />
@@ -671,15 +676,16 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
                         {r.status === "hadir" && r.arrival_time ? hhmm(r.arrival_time) : "—"}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        {["hadir", "izin", "alpha"].map((s) => {
+                        {["hadir", "izin", "sakit", "alpha"].map((s) => {
                           const active = r.status === s;
                           const cfg = STATUS_BTN[s];
                           return (
                             <button
                               key={s}
                               data-testid={`btn-${s}-${r.user_id}`}
-                              disabled={busy === r.user_id + s}
+                              disabled={busy === r.user_id + s || (s === "alpha" && !alphaAllowed)}
                               onClick={() => mark(r.user_id, s)}
+                              title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.label}
                               className={`h-8 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors ${active ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
                             >
                               {cfg.label}

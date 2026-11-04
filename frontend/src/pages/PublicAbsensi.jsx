@@ -27,6 +27,7 @@ import { TYPE_LABEL, tanggalPanjang, hhmm, AUDIENCE_LABEL, GENDER_FILTER_LABEL }
 const STATUS_BTN = {
   hadir: { label: "Hadir", on: "bg-[#111114] text-white", off: "text-[#111114]" },
   izin: { label: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#9CA3AF]" },
+  sakit: { label: "Sakit", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
   alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#DC2626]" },
 };
 
@@ -261,6 +262,7 @@ export default function PublicAbsensi() {
   const k = data.kegiatan || {};
   const c = data.counts || {};
   const closed = k.status !== "open";
+  const alphaAllowed = closed || Date.now() >= Date.parse(`${k.date}T${k.end_time}:00+08:00`);
   const publik = (k.audience || "reguler") === "publik";
   const guests = data.guests || [];
 
@@ -364,15 +366,16 @@ export default function PublicAbsensi() {
                 <div className="flex items-center gap-1 shrink-0">
                   {r.attended_other ? (
                     <span className="text-[11px] font-semibold text-[#9CA3AF]" data-testid={`absensi-locked-${r.user_id}`}>tidak perlu diabsen lagi</span>
-                  ) : ["hadir", "izin", "alpha"].map((s) => {
+                  ) : ["hadir", "izin", "sakit", "alpha"].map((s) => {
                     const on = r.status === s;
                     const cfg = STATUS_BTN[s];
                     return (
                       <button
                         key={s}
                         data-testid={`absensi-btn-${s}-${r.user_id}`}
-                        disabled={closed || busy === r.user_id + s}
+                        disabled={closed || busy === r.user_id + s || (s === "alpha" && !alphaAllowed)}
                         onClick={() => mark(r.user_id, s)}
+                        title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.label}
                         className={`h-8 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
                       >
                         {cfg.label}

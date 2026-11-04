@@ -68,8 +68,14 @@ mendapat akhiran angka agar tetap unik.
   start_time: "19:00",           // HH:MM 24 jam (WITA)
   end_time: "20:30",
   teacher: null, material: null, location: null,
+  maps_query: "Masjid Kertalangu, Denpasar" | null,
   recurring: false,
-  group_id: "<uuid>" | null,     // penanda satu seri (4 minggu)
+  recurring_group_id: "<uuid>" | null,
+  participant_ids: ["<ObjectId string>"], // penyaringan peserta kegiatan
+  session_participant_ids: ["<ObjectId string>"] | null, // peserta wajib; lainnya tetap tampil tanpa Alpha
+  session_group_id: "<uuid>" | null,
+  session_label: "Pagi" | null,
+  session_required: true,
   status: "open" | "closed",
   closed_at: "..." | null,
   auto_closed: false,            // true bila ditutup oleh auto-close
@@ -94,8 +100,8 @@ mendapat akhiran angka agar tetap unik.
   _id: ObjectId,
   kegiatan_id: "<uuid>",
   user_id: "<ObjectId string>",
-  status: "hadir" | "izin",
-  arrival_time: "19:12",              // HH:MM WITA
+  status: "hadir" | "izin" | "sakit" | "alpha",
+  arrival_time: "2026-09-14T19:12:00+08:00" | null,
   marked_by: "Pak Pengurus" | "Delegasi: <nama>" | "Mandiri",
   marked_by_id: "<user id>",
   updated_at: "..."
@@ -107,8 +113,8 @@ mendapat akhiran angka agar tetap unik.
 > Index unik itulah yang membuat tiga jalur absensi (manual, scan QR pribadi, absen
 > mandiri) bisa memakai `upsert` tanpa menghasilkan duplikat.
 >
-> **`alpha` tidak pernah disimpan.** Dihitung `total_peserta − hadir − izin`.
-> Konsekuensinya: menambah peserta baru mengubah angka alpha kegiatan lampau.
+> Alpha adalah status yang dicatat secara eksplisit setelah kegiatan berakhir; status
+> kosong tidak disimpan sebagai Alpha dan ditampilkan sebagai `belum_diabsen`.
 
 ---
 

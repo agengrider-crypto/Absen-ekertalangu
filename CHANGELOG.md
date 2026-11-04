@@ -4,6 +4,20 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Penyempurnaan jadwal dan rekap kegiatan
+
+- Formulir jadwal mendukung durasi 30 menit, 1 jam, 1,5 jam, 2 jam, atau jam selesai
+  manual; jadwal rutin dapat dibuat bulanan untuk 1, 2, 3, 6, atau 12 bulan.
+- Lokasi dapat ditautkan ke Google Maps dari detail kegiatan tanpa menyimpan URL Maps
+  di database. Detail menampilkan breadcrumb dan navigasi mengambang; tanggal diringkas
+  menjadi angka hari.
+- Peserta wajib dapat dipilih untuk kegiatan tunggal maupun tiap sesi. Peserta lain tetap
+  tampak di daftar dan tidak otomatis menjadi Alpha.
+- Absensi mendukung Hadir, Izin, Sakit, dan Alpha. Alpha baru dapat dicatat setelah
+  waktu kegiatan berakhir atau kegiatan ditutup; status kosong tetap Belum diabsen.
+- Rekap kegiatan dan gabungan sesi menampilkan status yang konsisten, termasuk peserta
+  yang belum diabsen, serta grafik batang beranimasi.
+
 ## Penyederhanaan masuk dan QR presensi
 
 - Peran terakhir yang dipilih disimpan di browser agar akun yang masih masuk langsung

@@ -51,8 +51,15 @@ function DelegasiFill({ deleg, onClose }) {
   };
 
   const rows = (data?.peserta || []).filter((p) => p.name?.toLowerCase().includes(q.toLowerCase()));
+  const activity = data?.kegiatan;
+  const alphaAllowed = Boolean(activity && (
+    activity.status !== "open"
+    || Date.now() >= Date.parse(`${activity.date}T${activity.end_time}:00+08:00`)
+  ));
   const btn = (uid, st, label, cls) => (
-    <button data-testid={`deleg-mark-${st}-${uid}`} onClick={() => mark(uid, st)} disabled={busy === uid + st}
+    <button data-testid={`deleg-mark-${st}-${uid}`} onClick={() => mark(uid, st)}
+      disabled={busy === uid + st || (st === "alpha" && !alphaAllowed)}
+      title={st === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : label}
       className={`h-8 px-2.5 rounded-lg text-xs font-semibold border ${cls}`}>{label}</button>
   );
 
@@ -85,6 +92,7 @@ function DelegasiFill({ deleg, onClose }) {
                   <div className="flex gap-1.5 shrink-0">
                     {btn(p.id, "hadir", "H", p.status === "hadir" ? "bg-[#111114] text-white border-[#111114]" : "bg-white text-[#111114] border-[#111114]")}
                     {btn(p.id, "izin", "I", p.status === "izin" ? "bg-[#9CA3AF] text-white border-[#9CA3AF]" : "bg-white text-[#9CA3AF] border-[#F59E0B]")}
+                    {btn(p.id, "sakit", "S", p.status === "sakit" ? "bg-[#2563EB] text-white border-[#2563EB]" : "bg-white text-[#2563EB] border-[#BFDBFE]")}
                     {btn(p.id, "alpha", "A", p.status === "alpha" ? "bg-[#DC2626] text-white border-[#DC2626]" : "bg-white text-[#DC2626] border-[#FCA5A5]")}
                   </div>
                 </div>
@@ -238,7 +246,7 @@ export default function Beranda({ user, onGoto }) {
           <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={22} /></div>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="grid grid-cols-2 gap-2 mb-4 sm:grid-cols-4">
               <div className="rounded-xl bg-[#DCFCE7] px-3 py-2 text-center">
                 <div className="text-lg font-bold text-[#166534]" data-testid="riwayat-hadir">{history.current?.hadir ?? 0}</div>
                 <div className="text-[11px] text-[#4B5563]">Hadir (bln ini)</div>
@@ -246,6 +254,10 @@ export default function Beranda({ user, onGoto }) {
               <div className="rounded-xl bg-[#FEF3C7] px-3 py-2 text-center">
                 <div className="text-lg font-bold text-[#92400E]">{history.current?.izin ?? 0}</div>
                 <div className="text-[11px] text-[#4B5563]">Izin</div>
+              </div>
+              <div className="rounded-xl bg-[#DBEAFE] px-3 py-2 text-center">
+                <div className="text-lg font-bold text-[#1D4ED8]">{history.current?.sakit ?? 0}</div>
+                <div className="text-[11px] text-[#4B5563]">Sakit</div>
               </div>
               <div className="rounded-xl bg-[#FEE2E2] px-3 py-2 text-center">
                 <div className="text-lg font-bold text-[#991B1B]">{history.current?.alpha ?? 0}</div>
@@ -257,10 +269,12 @@ export default function Beranda({ user, onGoto }) {
               {keteranganHitungan({
                 hadir: history.current?.hadir ?? 0,
                 izin: history.current?.izin ?? 0,
+                sakit: history.current?.sakit ?? 0,
                 alpha: history.current?.alpha ?? 0,
-                total: (history.current?.hadir ?? 0) + (history.current?.izin ?? 0) + (history.current?.alpha ?? 0),
+                belum_diabsen: history.current?.belum_diabsen ?? 0,
+                total: history.current?.total ?? 0,
               })}
-              <div className="mt-1">Persen kehadiran = Hadir ÷ jumlah pertemuan × 100. Hadir + Izin + Alpha = 100%.</div>
+              <div className="mt-1">Peserta yang belum memiliki status tetap tercatat sebagai belum diabsen, bukan Alpha.</div>
             </div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={history.months || []} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>

@@ -123,11 +123,13 @@ export default function LaporanView() {
         <div className="p-10 text-center text-[#6B7280]">Gagal memuat laporan.</div>
       ) : (
         <div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-5">
             <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#111114]">{s.ratio}%</div><div className="text-sm text-[#6B7280] mt-1">Kehadiran</div></div>
             <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#111114]">{s.hadir}</div><div className="text-sm text-[#6B7280] mt-1">Total Hadir</div></div>
             <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#92400E]">{s.izin}</div><div className="text-sm text-[#6B7280] mt-1">Total Izin</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#1D4ED8]">{s.sakit}</div><div className="text-sm text-[#6B7280] mt-1">Total Sakit</div></div>
             <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#991B1B]">{s.alpha}</div><div className="text-sm text-[#6B7280] mt-1">Total Alpha</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#6B7280]">{s.belum_diabsen}</div><div className="text-sm text-[#6B7280] mt-1">Belum Diabsen</div></div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 mb-5">
@@ -156,7 +158,9 @@ export default function LaporanView() {
                       <th className="px-4 py-3 font-semibold">Kegiatan</th>
                       <th className="px-4 py-3 font-semibold text-center">Hadir</th>
                       <th className="px-4 py-3 font-semibold text-center">Izin</th>
+                      <th className="px-4 py-3 font-semibold text-center">Sakit</th>
                       <th className="px-4 py-3 font-semibold text-center">Alpha</th>
+                      <th className="px-4 py-3 font-semibold text-center">Belum diabsen</th>
                       <th className="px-4 py-3 font-semibold text-center">%</th>
                     </tr>
                   </thead>
@@ -170,7 +174,9 @@ export default function LaporanView() {
                         </td>
                         <td className="px-4 py-3 text-center text-[#111114] font-semibold">{r.hadir}</td>
                         <td className="px-4 py-3 text-center text-[#92400E]">{r.izin}</td>
+                        <td className="px-4 py-3 text-center text-[#1D4ED8]">{r.sakit}</td>
                         <td className="px-4 py-3 text-center text-[#991B1B]">{r.alpha}</td>
+                        <td className="px-4 py-3 text-center text-[#6B7280]">{r.belum_diabsen}</td>
                         <td className="px-4 py-3 text-center font-bold text-[#111114]">{r.ratio}%</td>
                       </tr>
                     ))}
@@ -266,7 +272,9 @@ function PesertaLaporanList({ rows }) {
                 <th className="px-4 py-2.5 font-bold">Nama</th>
                 <th className="px-4 py-2.5 font-bold text-center w-20">Hadir</th>
                 <th className="px-4 py-2.5 font-bold text-center w-20">Izin</th>
+                <th className="px-4 py-2.5 font-bold text-center w-20">Sakit</th>
                 <th className="px-4 py-2.5 font-bold text-center w-20">Alpha</th>
+                <th className="px-4 py-2.5 font-bold text-center w-24">Belum diabsen</th>
                 <th className="px-4 py-2.5 font-bold text-right w-20">%</th>
               </tr>
             </thead>
@@ -283,12 +291,14 @@ function PesertaLaporanList({ rows }) {
                   </td>
                   <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#111114] font-semibold">{p.hadir}</td>
                   <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#92400E]">{p.izin}</td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#1D4ED8]">{p.sakit}</td>
                   <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#991B1B]">{p.alpha}</td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#6B7280]">{p.belum_diabsen}</td>
                   <td className="px-4 py-2.5 text-right font-bold text-[#111114]">{p.ratio}%</td>
                 </tr>
               ))}
               {list.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Tidak ada peserta pada kategori ini.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Tidak ada peserta pada kategori ini.</td></tr>
               )}
             </tbody>
           </table>
@@ -353,4 +363,3 @@ function LaporanLinkModal({ data, onClose }) {
     </div>
   );
 }
-

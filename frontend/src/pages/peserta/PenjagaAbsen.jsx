@@ -11,6 +11,7 @@ import { TYPE_LABEL, TYPE_COLOR, tanggalSingkat, hhmm } from "@/pages/admin/kegi
 const STATUS_BTN = {
   hadir: { label: "Hadir", on: "bg-[#111114] text-white", off: "text-[#111114]" },
   izin: { label: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#92400E]" },
+  sakit: { label: "Sakit", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
   alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
 };
 
@@ -150,10 +151,18 @@ function PenjagaKegiatan({ deleg, onBack }) {
     const t = q.trim().toLowerCase();
     return t ? data.peserta.filter((p) => (p.name || "").toLowerCase().includes(t)) : data.peserta;
   }, [data, q]);
+  const activity = data?.kegiatan;
+  const alphaAllowed = Boolean(activity && (
+    activity.status !== "open"
+    || Date.now() >= Date.parse(`${activity.date}T${activity.end_time}:00+08:00`)
+  ));
 
   const counts = useMemo(() => {
-    const c = { total: 0, hadir: 0, izin: 0, alpha: 0 };
-    (data?.peserta || []).forEach((p) => { c.total += 1; c[p.status || "alpha"] += 1; });
+    const c = { total: 0, hadir: 0, izin: 0, sakit: 0, alpha: 0, belum_diabsen: 0 };
+    (data?.peserta || []).forEach((p) => {
+      c.total += 1;
+      c[p.status || "belum_diabsen"] += 1;
+    });
     return c;
   }, [data]);
 
@@ -177,11 +186,13 @@ function PenjagaKegiatan({ deleg, onBack }) {
             <span className="inline-flex items-center gap-1.5"><Clock size={14} /> {k.start_time}–{k.end_time} WITA</span>
           </div>
         )}
-        <div className="grid grid-cols-4 gap-2 mt-3">
+        <div className="grid grid-cols-2 gap-2 mt-3 sm:grid-cols-3">
           <div className="rounded-xl bg-[#F4F4F1] p-2.5 text-center"><div className="text-lg font-bold text-[#111827]">{counts.total}</div><div className="text-[11px] text-[#6B7280]">Total</div></div>
           <div className="rounded-xl bg-[#F1F1EE] p-2.5 text-center"><div className="text-lg font-bold text-[#111114]">{counts.hadir}</div><div className="text-[11px] text-[#6B7280]">Hadir</div></div>
           <div className="rounded-xl bg-[#FEF3C7] p-2.5 text-center"><div className="text-lg font-bold text-[#92400E]">{counts.izin}</div><div className="text-[11px] text-[#6B7280]">Izin</div></div>
+          <div className="rounded-xl bg-[#DBEAFE] p-2.5 text-center"><div className="text-lg font-bold text-[#1D4ED8]">{counts.sakit}</div><div className="text-[11px] text-[#6B7280]">Sakit</div></div>
           <div className="rounded-xl bg-[#FEE2E2] p-2.5 text-center"><div className="text-lg font-bold text-[#991B1B]">{counts.alpha}</div><div className="text-[11px] text-[#6B7280]">Alpha</div></div>
+          <div className="rounded-xl bg-[#F3F4F6] p-2.5 text-center"><div className="text-lg font-bold text-[#4B5563]">{counts.belum_diabsen}</div><div className="text-[11px] text-[#6B7280]">Belum diabsen</div></div>
         </div>
       </div>
 
@@ -260,15 +271,16 @@ function PenjagaKegiatan({ deleg, onBack }) {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {["hadir", "izin", "alpha"].map((s) => {
+                    {["hadir", "izin", "sakit", "alpha"].map((s) => {
                       const on = p.status === s;
                       const cfg = STATUS_BTN[s];
                       return (
                         <button
                           key={s}
                           data-testid={`penjaga-btn-${s}-${p.id}`}
-                          disabled={busy === p.id + s}
+                          disabled={busy === p.id + s || (s === "alpha" && !alphaAllowed)}
                           onClick={() => mark(p.id, s)}
+                          title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.label}
                           className={`h-9 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${
                             on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`
                           }`}

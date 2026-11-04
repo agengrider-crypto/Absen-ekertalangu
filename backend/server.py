@@ -1513,7 +1513,7 @@ import asyncio
 
 WITA = timezone(timedelta(hours=8))
 KEGIATAN_TYPES = ["rutin", "khusus", "asad"]
-ABSEN_STATUS = ["hadir", "izin", "alpha"]
+ABSEN_STATUS = ["hadir", "izin", "sakit", "alpha"]
 # Daftar peserta untuk absensi & rekap.
 # Termasuk peserta hasil import Excel yang BELUM aktivasi (status "pending") supaya
 # pengurus/penjaga absen tetap bisa mengabsen mereka secara MANUAL, dan mereka juga
@@ -1561,6 +1561,12 @@ def kegiatan_end_dt(date_str: str, end_time: str):
         return datetime.strptime(f"{date_str} {end_time}", "%Y-%m-%d %H:%M").replace(tzinfo=WITA)
     except Exception:
         return None
+
+
+def valid_kegiatan_schedule(date_str: str, start_time: str, end_time: str) -> bool:
+    start = kegiatan_end_dt(date_str, start_time)
+    end = kegiatan_end_dt(date_str, end_time)
+    return bool(start and end and end > start)
 
 
 def gen_access_code() -> str:
@@ -1636,6 +1642,7 @@ class SessionInput(BaseModel):
     material: Optional[str] = None
     location: Optional[str] = None
     required: bool = True   # FASE 13 — sesi WAJIB dihadiri (False = opsional/tambahan)
+    participant_ids: Optional[List[str]] = None
 
 
 class KegiatanInput(BaseModel):
@@ -1648,6 +1655,8 @@ class KegiatanInput(BaseModel):
     material: Optional[str] = None
     location: Optional[str] = None
     recurring: bool = False
+    recurring_months: Optional[int] = None
+    maps_query: Optional[str] = None
     # FASE 8
     audience: str = "reguler"          # reguler | publik
     gender_filter: str = "semua"       # semua | L | P
@@ -1656,6 +1665,7 @@ class KegiatanInput(BaseModel):
     age_filter: List[str] = []         # [] = semua usia
     # FASE 18 — daftar peserta tertentu (mode ceklis). [] = ikut penyaringan di atas.
     participant_ids: List[str] = []
+    attendance_participant_ids: Optional[List[str]] = None
     # FASE 9 — beberapa waktu/sesi dalam 1 hari (pagi/sore/malam)
     sessions: List[SessionInput] = []
 
@@ -1669,11 +1679,13 @@ class KegiatanUpdate(BaseModel):
     teacher: Optional[str] = None
     material: Optional[str] = None
     location: Optional[str] = None
+    maps_query: Optional[str] = None
     audience: Optional[str] = None
     gender_filter: Optional[str] = None
     marital_filter: Optional[str] = None
     age_filter: Optional[List[str]] = None
     participant_ids: Optional[List[str]] = None
+    attendance_participant_ids: Optional[List[str]] = None
     session_label: Optional[str] = None
 
 
@@ -1723,6 +1735,7 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
         "teacher": k.get("teacher"),
         "material": k.get("material"),
         "location": k.get("location"),
+        "maps_query": k.get("maps_query"),
         "recurring": bool(k.get("recurring")),
         "status": k.get("status", "open"),
         "closed_at": k.get("closed_at"),
@@ -1747,6 +1760,7 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
         "session_index": k.get("session_index"),
         "session_total": k.get("session_total") or 1,
         "session_required": bool(k.get("session_required", True)),
+        "session_participant_ids": list(k.get("session_participant_ids") or []),
         "phase": kegiatan_phase(k),
         "created_at": k.get("created_at"),
     }
@@ -1897,12 +1911,35 @@ def filter_peserta_for_kegiatan(k: dict, all_users: list) -> list:
     return out
 
 
+def session_requires_participant(k: dict, user_id: str) -> bool:
+    participant_ids = k.get("session_participant_ids")
+    if participant_ids is not None:
+        return user_id in set(participant_ids)
+    return bool(k.get("session_required", True))
+
+
+def alpha_allowed(k: dict) -> bool:
+    if k.get("status", "open") != "open":
+        return True
+    end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
+    return bool(end and now_wita() >= end)
+
+
+def validate_absen_status(k: dict, status: str) -> None:
+    if status not in ABSEN_STATUS:
+        raise HTTPException(status_code=400, detail="Status absensi tidak valid")
+    if status == "alpha" and not alpha_allowed(k):
+        raise HTTPException(
+            status_code=400,
+            detail="Status Alpha baru bisa dipilih setelah waktu kegiatan berakhir")
+
+
 async def count_peserta_total() -> int:
     return await db.users.count_documents(PESERTA_QUERY)
 
 
 def compute_counts(peserta: list, absens: list, guests: int = 0,
-                   skip_ids: Optional[set] = None) -> dict:
+                   skip_ids: Optional[set] = None, kegiatan: Optional[dict] = None) -> dict:
     """Angka rekap 1 kegiatan.
 
     `skip_ids` = peserta yang SUDAH hadir di sesi lain pada hari yang sama
@@ -1910,21 +1947,29 @@ def compute_counts(peserta: list, absens: list, guests: int = 0,
     """
     amap = {a["user_id"]: a.get("status") for a in absens}
     skip = skip_ids or set()
-    all_ids = {str(p["_id"]) for p in peserta}
-    ids = {pid for pid in all_ids if pid not in skip}
-    hadir = guests
-    izin = 0
+    if kegiatan:
+        skip = {
+            pid for pid in skip
+            if not session_requires_participant(kegiatan, pid)
+        }
+    ids = {
+        str(p["_id"]) for p in peserta
+        if str(p["_id"]) not in skip
+        and (session_requires_participant(kegiatan, str(p["_id"]))
+             or str(p["_id"]) in amap)
+    }
+    counts = {"hadir": guests, "izin": 0, "sakit": 0, "alpha": 0, "belum_diabsen": 0}
     for pid in ids:
-        st = amap.get(pid)
-        if st == "hadir":
-            hadir += 1
-        elif st == "izin":
-            izin += 1
+        status = amap.get(pid)
+        if status in ("hadir", "izin", "sakit", "alpha"):
+            counts[status] += 1
+        else:
+            counts["belum_diabsen"] += 1
     total = len(ids) + guests
-    alpha = max(total - hadir - izin, 0)
+    hadir = counts["hadir"]
     ratio = round((hadir / total) * 100, 1) if total else 0.0
-    return {"total": total, "hadir": hadir, "izin": izin, "alpha": alpha, "ratio": ratio,
-            "sudah_sesi_lain": len(all_ids) - len(ids)}
+    return {"total": total, **counts, "ratio": ratio,
+            "sudah_sesi_lain": len(skip)}
 
 
 async def attended_other_sessions(k: dict) -> dict:
@@ -1957,7 +2002,7 @@ async def attended_other_sessions(k: dict) -> dict:
 
 async def assert_not_attended_other_session(k: dict, user_id: str, name: str = "Peserta") -> None:
     info = (await attended_other_sessions(k)).get(user_id)
-    if info:
+    if info and not session_requires_participant(k, user_id):
         raise HTTPException(
             status_code=400,
             detail=f"{name} sudah tercatat hadir pada sesi {info['label']} di hari yang sama, "
@@ -1973,7 +2018,7 @@ async def kegiatan_counts(kegiatan, total: Optional[int] = None) -> dict:
     absens = await db.absensis.find({"kegiatan_id": k["_id"]}).to_list(10000)
     guests = await db.guest_absens.count_documents({"kegiatan_id": k["_id"]})
     skip = set(await attended_other_sessions(k))
-    return compute_counts(peserta, absens, guests, skip)
+    return compute_counts(peserta, absens, guests, skip, k)
 
 
 async def auto_close_kegiatan():
@@ -2041,8 +2086,8 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
         base_date = datetime.strptime(body.date, "%Y-%m-%d")
     except Exception:
         raise HTTPException(status_code=400, detail="Format tanggal harus YYYY-MM-DD")
-    if kegiatan_end_dt(body.date, body.start_time) is None or kegiatan_end_dt(body.date, body.end_time) is None:
-        raise HTTPException(status_code=400, detail="Format waktu harus HH:MM")
+    if not valid_kegiatan_schedule(body.date, body.start_time, body.end_time):
+        raise HTTPException(status_code=400, detail="Jam selesai harus setelah jam mulai pada hari yang sama.")
 
     audience = (body.audience or "reguler").strip()
     if audience not in KEGIATAN_AUDIENCES:
@@ -2070,13 +2115,20 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
         label = (s.label or "").strip()
         if not label:
             raise HTTPException(status_code=400, detail="Nama waktu/sesi kegiatan wajib diisi")
-        if kegiatan_end_dt(body.date, s.start_time) is None or kegiatan_end_dt(body.date, s.end_time) is None:
-            raise HTTPException(status_code=400, detail="Format waktu sesi harus HH:MM")
+        if not valid_kegiatan_schedule(body.date, s.start_time, s.end_time):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Jam selesai sesi {label} harus setelah jam mulai pada hari yang sama.")
+        session_participant_ids = list(dict.fromkeys(
+            str(pid).strip() for pid in (s.participant_ids or []) if str(pid).strip()))
+        if s.participant_ids is not None and not session_participant_ids:
+            raise HTTPException(status_code=400, detail=f"Pilih minimal satu peserta untuk sesi {label}")
         sessions.append({"label": label, "start_time": s.start_time, "end_time": s.end_time,
                          "teacher": (s.teacher or "").strip() or None,
                          "material": (s.material or "").strip() or None,
                          "location": (s.location or "").strip() or None,
-                         "required": bool(s.required)})
+                         "required": bool(s.required),
+                         "participant_ids": session_participant_ids if s.participant_ids is not None else None})
     if len(sessions) > 6:
         raise HTTPException(status_code=400, detail="Maksimal 6 waktu/sesi dalam 1 hari")
     multi = len(sessions) > 1
@@ -2084,13 +2136,46 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
         sessions = [{"label": None, "start_time": body.start_time, "end_time": body.end_time,
                      "teacher": None, "material": None, "location": None, "required": True}]
 
-    occurrences = 4 if body.recurring else 1
-    group_id = str(uuid.uuid4()) if body.recurring else None
+    if body.recurring_months is not None and body.recurring_months not in (1, 2, 3, 6, 12):
+        raise HTTPException(status_code=400, detail="Durasi jadwal rutin tidak valid")
+    monthly_recurring = body.recurring_months is not None and body.recurring_months > 1
+    legacy_weekly = body.recurring and body.recurring_months is None
+    occurrences = body.recurring_months or (4 if legacy_weekly else 1)
+    is_recurring = monthly_recurring or legacy_weekly
+    group_id = str(uuid.uuid4()) if is_recurring else None
     now_iso = datetime.now(timezone.utc).isoformat()
     base_name = body.name.strip()
+    maps_query = (body.maps_query or "").strip() or None
+
+    selected_session_ids = {
+        pid for session in sessions for pid in (session.get("participant_ids") or [])
+    }
+    if not multi:
+        selected_session_ids.update(
+            str(pid).strip() for pid in (body.attendance_participant_ids or []) if str(pid).strip())
+    if selected_session_ids:
+        filter_input = {
+            "audience": audience, "gender_filter": gender_filter,
+            "marital_filter": marital_filter, "age_filter": age_filter,
+            "participant_ids": participant_ids,
+        }
+        eligible = await db.users.find(peserta_query_for(filter_input)).to_list(10000)
+        eligible_ids = {str(u["_id"]) for u in eligible if match_gender_filter(filter_input, u)}
+        if not selected_session_ids.issubset(eligible_ids):
+            raise HTTPException(
+                status_code=400,
+                detail="Peserta sesi harus termasuk dalam filter peserta kegiatan.")
+
     docs = []
     for i in range(occurrences):
-        d = base_date + timedelta(weeks=i)
+        if monthly_recurring:
+            month_index = base_date.month - 1 + i
+            year = base_date.year + month_index // 12
+            month = month_index % 12 + 1
+            month_end = (datetime(year, month, 1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+            d = base_date.replace(year=year, month=month, day=min(base_date.day, month_end.day))
+        else:
+            d = base_date + timedelta(weeks=i)
         session_group_id = str(uuid.uuid4()) if multi else None
         for idx, s in enumerate(sessions):
             docs.append({
@@ -2106,16 +2191,24 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
                 "date": d.strftime("%Y-%m-%d"),
                 "start_time": s["start_time"],
                 "end_time": s["end_time"],
-                "teacher": s.get("teacher") or (body.teacher or "").strip() or None,
-                "material": s.get("material") or (body.material or "").strip() or None,
+                "teacher": (body.teacher or "").strip() or None,
+                "material": (body.material or "").strip() or None,
                 "location": s.get("location") or (body.location or "").strip() or None,
-                "recurring": body.recurring,
+                "maps_query": maps_query,
+                "recurring": is_recurring,
                 "recurring_group_id": group_id,
                 "audience": audience,
                 "gender_filter": gender_filter,
                 "marital_filter": marital_filter,
                 "age_filter": age_filter,
                 "participant_ids": participant_ids,
+                "session_participant_ids": (
+                    s.get("participant_ids") if multi
+                    else list(dict.fromkeys(
+                        str(pid).strip() for pid in (body.attendance_participant_ids or [])
+                        if str(pid).strip()))
+                    or None
+                ),
                 "status": "open",
                 "closed_at": None,
                 "auto_closed": False,
@@ -2135,7 +2228,9 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
     extra = []
     if multi:
         extra.append(f"{len(sessions)} waktu/sesi: " + ", ".join(s["label"] for s in sessions))
-    if body.recurring:
+    if monthly_recurring:
+        extra.append(f"rutin bulanan selama {occurrences} bulan")
+    elif legacy_weekly:
         extra.append(f"berulang {occurrences}x")
     await log_activity(admin, "buat_kegiatan",
                        f"Membuat kegiatan '{base_name}'" + (f" ({'; '.join(extra)})" if extra else ""))
@@ -2175,7 +2270,8 @@ async def list_kegiatan(admin: dict = Depends(require_staff),
     out = []
     for k in kegiatans:
         peserta = filter_peserta_for_kegiatan(k, all_users)
-        counts = compute_counts(peserta, abs_by_keg.get(k["_id"], []), guest_by_keg.get(k["_id"], 0))
+        counts = compute_counts(
+            peserta, abs_by_keg.get(k["_id"], []), guest_by_keg.get(k["_id"], 0), kegiatan=k)
         out.append(serialize_kegiatan(k, counts))
     return out
 
@@ -2196,7 +2292,7 @@ async def update_kegiatan(kegiatan_id: str, body: KegiatanUpdate, admin: dict = 
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
     updates = {}
     for field in ["name", "type", "date", "start_time", "end_time", "teacher",
-                  "material", "location", "audience", "gender_filter",
+                  "material", "location", "maps_query", "audience", "gender_filter",
                   "marital_filter", "session_label"]:
         val = getattr(body, field)
         if val is not None:
@@ -2218,6 +2314,30 @@ async def update_kegiatan(kegiatan_id: str, body: KegiatanUpdate, admin: dict = 
             if pid and pid not in seen:
                 seen.append(pid)
         updates["participant_ids"] = seen
+    if body.attendance_participant_ids is not None:
+        attendance_ids = list(dict.fromkeys(
+            str(pid).strip() for pid in body.attendance_participant_ids if str(pid).strip()))
+        if attendance_ids:
+            activity_filter = {
+                **k, "participant_ids": updates.get("participant_ids", k.get("participant_ids", [])),
+                "audience": updates.get("audience", k.get("audience", "reguler")),
+                "gender_filter": updates.get("gender_filter", k.get("gender_filter", "semua")),
+                "marital_filter": updates.get("marital_filter", k.get("marital_filter", "semua")),
+                "age_filter": updates.get("age_filter", k.get("age_filter", [])),
+            }
+            eligible = await db.users.find(peserta_query_for(activity_filter)).to_list(10000)
+            eligible_ids = {
+                str(user["_id"]) for user in eligible
+                if match_gender_filter(activity_filter, user)
+            }
+            if not set(attendance_ids).issubset(eligible_ids):
+                raise HTTPException(status_code=400, detail="Peserta wajib absen harus termasuk dalam filter kegiatan.")
+        updates["session_participant_ids"] = attendance_ids or None
+    schedule_date = updates.get("date", k.get("date"))
+    schedule_start = updates.get("start_time", k.get("start_time"))
+    schedule_end = updates.get("end_time", k.get("end_time"))
+    if not valid_kegiatan_schedule(schedule_date, schedule_start, schedule_end):
+        raise HTTPException(status_code=400, detail="Jadwal tidak valid. Jam selesai harus setelah jam mulai.")
     if "name" in updates and not k.get("session_label"):
         updates["base_name"] = updates["name"]
     if updates:
@@ -2271,8 +2391,7 @@ async def mark_absen(kegiatan_id: str, body: AbsenInput, admin: dict = Depends(r
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
-    if body.status not in ABSEN_STATUS:
-        raise HTTPException(status_code=400, detail="Status absensi tidak valid")
+    validate_absen_status(k, body.status)
     u = await db.users.find_one({"_id": ObjectId(body.user_id)}) if ObjectId.is_valid(body.user_id) else None
     if not u:
         raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
@@ -2306,6 +2425,9 @@ async def mark_absen_batch(kegiatan_id: str, body: AbsenBatchInput,
         if item.status not in ABSEN_STATUS or not ObjectId.is_valid(item.user_id):
             failed.append(item.user_id)
             continue
+        if item.status == "alpha" and not alpha_allowed(k):
+            failed.append(item.user_id)
+            continue
         u = await db.users.find_one({"_id": ObjectId(item.user_id)})
         if not u:
             failed.append(item.user_id)
@@ -2337,52 +2459,56 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
     guests = await db.guest_absens.find({"kegiatan_id": kegiatan_id}).sort("created_at", 1).to_list(2000)
     amap = {a["user_id"]: a for a in absens}
     other = await attended_other_sessions(k)
-    rows, hadir, izin, alpha = [], 0, 0, 0
-    gender = {"L": {"hadir": 0, "total": 0}, "P": {"hadir": 0, "total": 0}}
+    rows = []
+    gender_status = {
+        gender_key: {"hadir": 0, "izin": 0, "sakit": 0, "alpha": 0, "belum_diabsen": 0}
+        for gender_key in ("L", "P")
+    }
     skipped = 0
     for p in peserta:
         pid = str(p["_id"])
         a = amap.get(pid)
-        status = a["status"] if a else "alpha"
+        status = a.get("status") if a else None
+        required = session_requires_participant(k, pid)
         ot = other.get(pid)
-        if ot:
+        if ot and not required:
             skipped += 1
             rows.append({
                 "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
                 "status": status, "account_status": p.get("status", "active"),
                 "arrival_time": a.get("arrival_time") if a else ot.get("arrival_time"),
                 "marked_by": a.get("marked_by") if a else None,
+                "required_for_session": required,
                 "attended_other": True, "attended_other_label": ot.get("label"),
             })
             continue
-        g = _derive_gender(p) or "L"
-        if g not in gender:
-            g = "L"
-        gender[g]["total"] += 1
-        if status == "hadir":
-            hadir += 1
-            gender[g]["hadir"] += 1
-        elif status == "izin":
-            izin += 1
-        else:
-            alpha += 1
+        if required or status in ABSEN_STATUS:
+            g = _derive_gender(p)
+            if g in gender_status:
+                status_key = status if status in ABSEN_STATUS else "belum_diabsen"
+                gender_status[g][status_key] += 1
         rows.append({
             "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
             "status": status,
             "account_status": p.get("status", "active"),
             "arrival_time": a.get("arrival_time") if a else None,
             "marked_by": a.get("marked_by") if a else None,
+            "required_for_session": required,
             "attended_other": False, "attended_other_label": None,
         })
-    total = len(peserta) - skipped + len(guests)
-    hadir += len(guests)
+    counts = compute_counts(peserta, absens, len(guests), set(other), k)
+    gender = {
+        gender_key: {
+            "total": sum(statuses.values()),
+            "hadir": statuses["hadir"],
+        }
+        for gender_key, statuses in gender_status.items()
+    }
     return {
         "kegiatan": serialize_kegiatan(k),
-        "counts": {"total": total, "hadir": hadir, "izin": izin,
-                   "alpha": max(total - hadir - izin, 0),
-                   "sudah_sesi_lain": skipped,
-                   "ratio": round((hadir / total) * 100, 1) if total else 0.0},
+        "counts": counts,
         "gender": gender,
+        "gender_status": gender_status,
         "rows": rows,
         "guests": [serialize_guest(g) for g in guests],
     }
@@ -2437,8 +2563,9 @@ async def build_rekap_gabungan(docs: list) -> dict:
         for o in docs:
             if o["_id"] != d["_id"]:
                 skip |= hadir_by_keg.get(o["_id"], set())
-        counts = compute_counts(peserta, list(abs_by_keg.get(d["_id"], {}).values()),
-                                guest_by_keg.get(d["_id"], 0), skip)
+        counts = compute_counts(
+            peserta, list(abs_by_keg.get(d["_id"], {}).values()),
+            guest_by_keg.get(d["_id"], 0), skip, d)
         sessions_out.append({
             "id": d["_id"],
             "label": d.get("session_label") or d.get("name"),
@@ -2453,54 +2580,79 @@ async def build_rekap_gabungan(docs: list) -> dict:
         })
 
     rows = []
+    status_summary = {
+        "hadir": 0, "izin": 0, "sakit": 0, "alpha": 0, "belum_diabsen": 0,
+    }
     hadir_min_1 = hadir_semua = izin_saja = tidak_hadir = 0
     for pid, p in sorted(peserta_union.items(), key=lambda x: (x[1].get("name") or "").lower()):
         per = []
-        n_hadir = n_izin = n_eligible = 0
+        n_hadir = n_izin = n_sakit = n_eligible = 0
+        n_alpha = n_pending = 0
         req_labels = []
         done = False   # sudah hadir di sesi sebelumnya pada hari yang sama
         for d in docs:
             if pid not in eligible_by_keg[d["_id"]]:
                 per.append(None)   # tidak termasuk daftar sesi ini
                 continue
-            is_req = bool(d.get("session_required", True))
+            is_req = session_requires_participant(d, pid)
             if is_req:
                 req_labels.append(d.get("session_label") or d.get("name"))
             a = abs_by_keg.get(d["_id"], {}).get(pid)
-            st = a["status"] if a else ("alpha" if is_req else "optional")
-            if done and st in ("alpha", "optional"):
-                # REVISI — sudah hadir sesi sebelumnya: dikosongkan, bukan Alpha
-                per.append({"status": "exempt", "arrival_time": None})
+            st = a.get("status") if a else None
+            if not is_req and not st:
+                attended_elsewhere = any(
+                    pid in hadir_by_keg.get(other["_id"], set()) and other["_id"] != d["_id"]
+                    for other in docs
+                )
+                per.append({
+                    "status": "exempt" if attended_elsewhere else "optional",
+                    "arrival_time": None,
+                })
                 continue
-            if st == "optional":
-                # FASE 13 — sesi opsional & tidak diabsen: tidak dihitung Alpha
-                per.append({"status": "optional", "arrival_time": None})
-                continue
+            if not st:
+                st = "belum_diabsen"
             n_eligible += 1
             per.append({"status": st, "arrival_time": a.get("arrival_time") if a else None})
             if st == "hadir":
                 n_hadir += 1
-                done = True
             elif st == "izin":
                 n_izin += 1
+            elif st == "sakit":
+                n_sakit += 1
+            elif st == "alpha":
+                n_alpha += 1
+            elif st == "belum_diabsen":
+                n_pending += 1
         if n_hadir >= 1:
             hadir_min_1 += 1
-        if n_eligible and n_hadir == n_eligible:
+        if req_labels and n_hadir == len(req_labels):
             hadir_semua += 1
         if n_hadir == 0 and n_izin > 0:
             izin_saja += 1
-        if n_hadir == 0 and n_izin == 0:
+        if n_hadir == 0 and n_izin == 0 and n_sakit == 0 and n_alpha > 0:
             tidak_hadir += 1
+        if n_eligible:
+            if n_hadir:
+                status_summary["hadir"] += 1
+            elif n_sakit:
+                status_summary["sakit"] += 1
+            elif n_izin:
+                status_summary["izin"] += 1
+            elif n_alpha:
+                status_summary["alpha"] += 1
+            else:
+                status_summary["belum_diabsen"] += 1
         rows.append({
             "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
             "account_status": p.get("status", "active"),
             "sessions": per, "hadir": n_hadir, "izin": n_izin, "eligible": n_eligible,
+            "sakit": n_sakit, "alpha": n_alpha, "belum_diabsen": n_pending,
             "required_sessions": len(req_labels),
             "required_labels": req_labels,
             "multi_sesi": len(req_labels) > 1,
         })
 
-    total = len(rows)
+    total = sum(1 for row in rows if row["eligible"] > 0)
     total_guests = sum(guest_by_keg.values())
     first = docs[0]
     return {
@@ -2514,9 +2666,14 @@ async def build_rekap_gabungan(docs: list) -> dict:
         "sessions": sessions_out,
         "summary": {
             "total": total,
+            "hadir": status_summary["hadir"],
+            "izin": status_summary["izin"],
             "hadir_min_1": hadir_min_1,
             "hadir_semua": hadir_semua,
             "izin_saja": izin_saja,
+            "sakit": status_summary["sakit"],
+            "alpha": status_summary["alpha"],
+            "belum_diabsen": status_summary["belum_diabsen"],
             "tidak_hadir": tidak_hadir,
             "tamu": total_guests,
             "ratio_min_1": round((hadir_min_1 / total) * 100, 1) if total else 0.0,
@@ -2625,6 +2782,10 @@ async def salin_jadwal_kegiatan(kegiatan_id: str, body: SalinJadwalInput,
                 "teacher": d.get("teacher"),
                 "material": d.get("material"),
                 "location": d.get("location"),
+                "maps_query": d.get("maps_query"),
+                "participant_ids": list(d.get("participant_ids") or []),
+                "session_participant_ids": list(d.get("session_participant_ids") or [])
+                if d.get("session_participant_ids") is not None else None,
                 "recurring": False,
                 "recurring_group_id": None,
                 "audience": d.get("audience", "reguler"),
@@ -2653,7 +2814,10 @@ async def salin_jadwal_kegiatan(kegiatan_id: str, body: SalinJadwalInput,
         "message": f"Jadwal '{base_name}' disalin ke {len(dates)} tanggal ({len(new_docs)} jadwal baru).",
         "created": len(new_docs),
         "dates": dates,
-        "items": [serialize_kegiatan(d, {"total": 0, "hadir": 0, "izin": 0, "alpha": 0, "ratio": 0.0}) for d in new_docs],
+        "items": [serialize_kegiatan(d, {
+            "total": 0, "hadir": 0, "izin": 0, "sakit": 0, "alpha": 0,
+            "belum_diabsen": 0, "ratio": 0.0,
+        }) for d in new_docs],
     }
 
 
@@ -2738,7 +2902,7 @@ async def tindak_lanjut_list(kegiatan_id: str, staff: dict = Depends(require_sta
     tally = {"akan_hadir": 0, "tidak_bisa": 0, "belum_dihubungi": 0, "sudah_dihubungi": 0}
     for p in peserta:
         pid = str(p["_id"])
-        prev_status = amap.get(pid) or "alpha"
+        prev_status = amap.get(pid)
         if prev_status == "hadir":
             continue
         fu = serialize_followup(fmap.get(pid))
@@ -2849,37 +3013,30 @@ async def public_rekap(token: str):
     guests = await db.guest_absens.find({"kegiatan_id": k["_id"]}).sort("created_at", 1).to_list(2000)
     amap = {a["user_id"]: a for a in absens}
     other = await attended_other_sessions(k)
-    rows, hadir, izin, alpha, skipped = [], 0, 0, 0, 0
+    rows = []
     gender = {"L": 0, "P": 0}
     for p in peserta:
-        if str(p["_id"]) in other:
-            skipped += 1
+        if str(p["_id"]) in other and not session_requires_participant(k, str(p["_id"])):
             continue
         a = amap.get(str(p["_id"]))
-        status = a["status"] if a else "alpha"
+        status = a.get("status") if a else None
         if status == "hadir":
-            hadir += 1
             g = _derive_gender(p)
             if g in gender:
                 gender[g] += 1
-        elif status == "izin":
-            izin += 1
-        else:
-            alpha += 1
         rows.append({"name": p.get("name"), "status": status,
                      "account_status": p.get("status", "active"),
+                     "required_for_session": session_requires_participant(k, str(p["_id"])),
                      "arrival_time": a.get("arrival_time") if a else None})
     for g in guests:
-        hadir += 1
         rows.append({"name": f"{g.get('name')} (tamu)", "status": "hadir",
                      "account_status": "tamu", "arrival_time": g.get("arrival_time")})
-    total = len(peserta) - skipped + len(guests)
+    counts = compute_counts(peserta, absens, len(guests), set(other), k)
     return {
         "name": k.get("name"), "type": k.get("type"), "location": k.get("location"),
         "date": k.get("date"), "start_time": k.get("start_time"), "end_time": k.get("end_time"),
         "teacher": k.get("teacher"), "material": k.get("material"),
-        "counts": {"total": total, "hadir": hadir, "izin": izin, "alpha": alpha,
-                   "ratio": round((hadir / total) * 100, 1) if total else 0.0},
+        "counts": counts,
         "gender": gender,
         "rows": rows,
     }
@@ -2969,7 +3126,7 @@ async def public_absen_info(token: str):
         rows.append({
             "id": pid, "name": p.get("name"),
             "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
-            "status": a["status"] if a else "alpha",
+            "status": a.get("status") if a else None,
             "account_status": p.get("status", "active"),
             "arrival_time": a.get("arrival_time") if a else None,
         })
@@ -3243,20 +3400,13 @@ async def build_absensi_rows(kegiatan) -> dict:
     amap = {a["user_id"]: a for a in absens}
     guests = await db.guest_absens.find({"kegiatan_id": kegiatan_id}).sort("created_at", 1).to_list(2000)
     other = await attended_other_sessions(k)
-    rows, hadir, izin, alpha, skipped = [], 0, 0, 0, 0
+    rows = []
     for p in peserta:
         pid = str(p["_id"])
         a = amap.get(pid)
-        status = a["status"] if a else "alpha"
+        status = a.get("status") if a else None
+        required = session_requires_participant(k, pid)
         ot = other.get(pid)
-        if ot:
-            skipped += 1
-        elif status == "hadir":
-            hadir += 1
-        elif status == "izin":
-            izin += 1
-        else:
-            alpha += 1
         rows.append({
             "user_id": pid,
             "name": p.get("name"),
@@ -3264,19 +3414,17 @@ async def build_absensi_rows(kegiatan) -> dict:
             "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
             "account_status": p.get("status", "active"),
             "status": status,
-            "arrival_time": a.get("arrival_time") if a else (ot or {}).get("arrival_time"),
+            "required_for_session": required,
+            "arrival_time": a.get("arrival_time") if a else (
+                (ot or {}).get("arrival_time") if ot and not required else None),
             "marked_by": a.get("marked_by") if a else None,
             "is_guest": False,
-            "attended_other": bool(ot),
-            "attended_other_label": (ot or {}).get("label"),
+            "attended_other": bool(ot and not required),
+            "attended_other_label": (ot or {}).get("label") if not required else None,
         })
-    total = len(peserta) - skipped + len(guests)
-    hadir += len(guests)
+    counts = compute_counts(peserta, absens, len(guests), set(other), k)
     return {
-        "counts": {"total": total, "hadir": hadir, "izin": izin,
-                   "alpha": max(total - hadir - izin, 0),
-                   "sudah_sesi_lain": skipped,
-                   "ratio": round((hadir / total) * 100, 1) if total else 0.0},
+        "counts": counts,
         "rows": rows,
         "guests": [serialize_guest(g) for g in guests],
     }
@@ -3395,8 +3543,7 @@ async def mark_absensi_by_code(token: str, body: AbsensiMarkInput):
     k = await kegiatan_by_akses_token(token)
     verify_absensi_access(body.access, k["_id"], token)
     assert_kegiatan_open(k)
-    if body.status not in ABSEN_STATUS:
-        raise HTTPException(status_code=400, detail="Status absensi tidak valid")
+    validate_absen_status(k, body.status)
     u = await db.users.find_one({"_id": ObjectId(body.user_id)}) if ObjectId.is_valid(body.user_id) else None
     if not u or "peserta" not in (u.get("roles") or []) or u.get("is_system"):
         raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
@@ -3429,6 +3576,9 @@ async def mark_absensi_batch_by_code(token: str, body: AbsensiBatchInput):
     applied, failed = 0, []
     for item in body.items[:500]:
         if item.status not in ABSEN_STATUS or not ObjectId.is_valid(item.user_id):
+            failed.append(item.user_id)
+            continue
+        if item.status == "alpha" and not alpha_allowed(k):
             failed.append(item.user_id)
             continue
         u = await db.users.find_one({"_id": ObjectId(item.user_id)})
@@ -4116,7 +4266,7 @@ async def delegate_kegiatan_info(kegiatan_id: str, user: dict = Depends(get_curr
         a = amap.get(pid)
         rows.append({"id": pid, "name": p.get("name"),
                      "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
-                     "status": a["status"] if a else "alpha",
+                     "status": a.get("status") if a else None,
                      "account_status": p.get("status", "active"),
                      "arrival_time": a.get("arrival_time") if a else None})
     return {"kegiatan": serialize_kegiatan(k), "peserta": rows,
@@ -4133,8 +4283,7 @@ async def delegate_mark_absen(kegiatan_id: str, body: AbsenInput, user: dict = D
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
     if k.get("status", "open") != "open":
         raise HTTPException(status_code=403, detail="Kegiatan sudah ditutup")
-    if body.status not in ABSEN_STATUS:
-        raise HTTPException(status_code=400, detail="Status absensi tidak valid")
+    validate_absen_status(k, body.status)
     u = await db.users.find_one({"_id": ObjectId(body.user_id)}) if ObjectId.is_valid(body.user_id) else None
     if not u:
         raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
@@ -4310,21 +4459,25 @@ async def my_attendance_history(months: int = 6, user: dict = Depends(get_curren
     id_label = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
     today = now.strftime("%Y-%m-%d")
     result = []
-    cur = {"hadir": 0, "izin": 0, "alpha": 0, "total": 0}
+    cur = {"hadir": 0, "izin": 0, "sakit": 0, "alpha": 0, "belum_diabsen": 0, "total": 0}
     for ym in ym_list:
         kids = await db.kegiatans.find({"date": {"$regex": f"^{ym}", "$lte": today}}).to_list(5000)
         kid_set = [k["_id"] for k in kids]
         total = len(kid_set)
-        hadir = izin = 0
+        hadir = izin = sakit = alpha = 0
         if kid_set:
             hadir = await db.absensis.count_documents({"user_id": uid, "status": "hadir", "kegiatan_id": {"$in": kid_set}})
             izin = await db.absensis.count_documents({"user_id": uid, "status": "izin", "kegiatan_id": {"$in": kid_set}})
-        alpha = max(total - hadir - izin, 0)
+            sakit = await db.absensis.count_documents({"user_id": uid, "status": "sakit", "kegiatan_id": {"$in": kid_set}})
+            alpha = await db.absensis.count_documents({"user_id": uid, "status": "alpha", "kegiatan_id": {"$in": kid_set}})
+        pending = max(total - hadir - izin - sakit - alpha, 0)
         mi = int(ym[5:7]) - 1
-        row = {"month": ym, "label": id_label[mi], "hadir": hadir, "izin": izin, "alpha": alpha, "total": total}
+        row = {"month": ym, "label": id_label[mi], "hadir": hadir, "izin": izin,
+               "sakit": sakit, "alpha": alpha, "belum_diabsen": pending, "total": total}
         result.append(row)
         if ym == ym_list[-1]:
-            cur = {"hadir": hadir, "izin": izin, "alpha": alpha, "total": total}
+            cur = {"hadir": hadir, "izin": izin, "sakit": sakit, "alpha": alpha,
+                   "belum_diabsen": pending, "total": total}
     return {"months": result, "current": cur}
 
 
@@ -4360,7 +4513,7 @@ async def peserta_kegiatan(month: str = "", user: dict = Depends(get_current_use
     for k in docs:
         item = serialize_kegiatan(k)
         a = amap.get(k["_id"])
-        item["my_status"] = a["status"] if a else "alpha"
+        item["my_status"] = a.get("status") if a else None
         item["my_arrival"] = a.get("arrival_time") if a else None
         result.append(item)
     return result
@@ -4374,7 +4527,7 @@ async def peserta_kegiatan_detail(kegiatan_id: str, user: dict = Depends(get_cur
     uid = str(user["_id"])
     a = await db.absensis.find_one({"kegiatan_id": kegiatan_id, "user_id": uid})
     item = serialize_kegiatan(k)
-    item["my_status"] = a["status"] if a else "alpha"
+    item["my_status"] = a.get("status") if a else None
     item["my_arrival"] = a.get("arrival_time") if a else None
     return item
 
@@ -4526,7 +4679,7 @@ async def admin_dashboard(admin: dict = Depends(require_staff)):
             counts_cache[kid] = compute_counts(
                 filter_peserta_for_kegiatan(k, peserta),
                 abs_by_keg.get(kid, []),
-                guest_by_keg.get(kid, 0))
+                guest_by_keg.get(kid, 0), kegiatan=k)
         return counts_cache[kid]
 
     by_month: dict = {m: [] for m in months}
@@ -4584,7 +4737,8 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
 
     if not docs:
         return {"date": d, "total_sesi": 0, "sesi": [], "rows": [],
-                "summary": {"peserta": 0, "hadir": 0, "izin": 0, "alpha": 0, "ratio": 0.0},
+                "summary": {"peserta": 0, "hadir": 0, "izin": 0, "sakit": 0,
+                            "alpha": 0, "belum_diabsen": 0, "ratio": 0.0},
                 "gender": {}, "kegiatan": []}
 
     absens = await db.absensis.find(
@@ -4595,8 +4749,12 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
     sesi_out = []
     for k in sorted(docs, key=lambda x: (x.get("start_time") or "", x.get("session_index") or 0)):
         ids = elig[k["_id"]]
-        h = sum(1 for pid in ids if status_by.get((k["_id"], pid)) == "hadir")
-        i = sum(1 for pid in ids if status_by.get((k["_id"], pid)) == "izin")
+        session_absens = [
+            {"user_id": pid, "status": status_by[(k["_id"], pid)]}
+            for pid in ids if (k["_id"], pid) in status_by
+        ]
+        counts = compute_counts(
+            [p for p in peserta if str(p["_id"]) in ids], session_absens, kegiatan=k)
         sesi_out.append({
             "id": k["_id"], "label": k.get("session_label") or "Sesi tunggal",
             "name": k.get("base_name") or k.get("name"),
@@ -4604,46 +4762,59 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
             "teacher": k.get("teacher"), "material": k.get("material"),
             "location": k.get("location"), "status": k.get("status", "open"),
             "required": bool(k.get("session_required", True)),
-            "peserta": len(ids), "hadir": h, "izin": i, "alpha": max(len(ids) - h - i, 0),
-            "ratio": round((h / len(ids)) * 100, 1) if ids else 0.0,
+            "peserta": counts["total"], "hadir": counts["hadir"], "izin": counts["izin"],
+            "sakit": counts["sakit"], "alpha": counts["alpha"],
+            "belum_diabsen": counts["belum_diabsen"], "ratio": counts["ratio"],
         })
 
     rows = []
     for p in peserta:
         pid = str(p["_id"])
-        mine = [s for s in sesi_out if pid in elig[s["id"]]]
+        mine = [
+            k for k in docs
+            if pid in elig[k["_id"]] and (
+                session_requires_participant(k, pid)
+                or status_by.get((k["_id"], pid)) in ABSEN_STATUS
+            )
+        ]
         if not mine:
             continue
-        detail, n_h, n_i, n_a = [], 0, 0, 0
-        for s in mine:
-            st = status_by.get((s["id"], pid)) or "alpha"
-            if st == "hadir":
-                n_h += 1
-            elif st == "izin":
-                n_i += 1
-            else:
-                st = "alpha"
-                n_a += 1
-            detail.append({"label": s["label"], "start_time": s["start_time"],
-                           "end_time": s["end_time"], "required": s["required"], "status": st})
+        detail = []
+        status_counts = {"hadir": 0, "izin": 0, "sakit": 0, "alpha": 0, "belum_diabsen": 0}
+        for k in mine:
+            st = status_by.get((k["_id"], pid)) or "belum_diabsen"
+            if st not in status_counts:
+                st = "belum_diabsen"
+            status_counts[st] += 1
+            required = session_requires_participant(k, pid)
+            detail.append({
+                "label": k.get("session_label") or "Sesi tunggal",
+                "start_time": k.get("start_time"), "end_time": k.get("end_time"),
+                "required": required, "status": st,
+            })
         total = len(mine)
-        wajib = [x for x in detail if x["required"]] or detail
-        hadir_wajib = any(x["status"] == "hadir" for x in wajib)
-        izin_wajib = any(x["status"] == "izin" for x in wajib)
+        hari_status = (
+            "hadir" if status_counts["hadir"] else
+            "izin" if status_counts["izin"] else
+            "sakit" if status_counts["sakit"] else
+            "alpha" if status_counts["alpha"] else
+            "belum_diabsen"
+        )
         rows.append({
             "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
             "kelompok_name": kmap.get(p.get("kelompok_id")),
-            "sesi_total": total, "hadir": n_h, "izin": n_i, "alpha": n_a,
-            "ratio": round((n_h / total) * 100, 1) if total else 0.0,
-            "izin_ratio": round((n_i / total) * 100, 1) if total else 0.0,
-            "alpha_ratio": round((n_a / total) * 100, 1) if total else 0.0,
-            "status_hari": "hadir" if hadir_wajib else ("izin" if izin_wajib else "alpha"),
+            "sesi_total": total, **status_counts,
+            "ratio": round((status_counts["hadir"] / total) * 100, 1) if total else 0.0,
+            "izin_ratio": round((status_counts["izin"] / total) * 100, 1) if total else 0.0,
+            "alpha_ratio": round((status_counts["alpha"] / total) * 100, 1) if total else 0.0,
+            "status_hari": hari_status,
+            "sesi_wajib": sum(1 for row in detail if row["required"]),
             "detail": detail,
         })
     rows.sort(key=lambda x: (x["ratio"], (x["name"] or "").lower()))
 
-    slot = sum(r["sesi_total"] for r in rows)
-    hadir = sum(r["hadir"] for r in rows)
+    slot = sum(s["peserta"] for s in sesi_out)
+    hadir = sum(s["hadir"] for s in sesi_out)
     gender_out = {}
     for g in ("L", "P"):
         grp = [r for r in rows if r["gender"] == g]
@@ -4652,6 +4823,8 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
         gender_out[g] = {
             "peserta": len(grp), "hadir": ghadir, "slot": gslot,
             "izin": sum(r["izin"] for r in grp), "alpha": sum(r["alpha"] for r in grp),
+            "sakit": sum(r["sakit"] for r in grp),
+            "belum_diabsen": sum(r["belum_diabsen"] for r in grp),
             "ratio": round((ghadir / gslot) * 100, 1) if gslot else 0.0,
         }
 
@@ -4664,11 +4837,16 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
         "rows": rows,
         "summary": {
             "peserta": len(rows), "slot": slot, "hadir": hadir,
-            "izin": sum(r["izin"] for r in rows), "alpha": sum(r["alpha"] for r in rows),
+            "izin": sum(s["izin"] for s in sesi_out),
+            "sakit": sum(s["sakit"] for s in sesi_out),
+            "alpha": sum(s["alpha"] for s in sesi_out),
+            "belum_diabsen": sum(s["belum_diabsen"] for s in sesi_out),
             "ratio": round((hadir / slot) * 100, 1) if slot else 0.0,
             "hadir_hari": sum(1 for r in rows if r["status_hari"] == "hadir"),
             "izin_hari": sum(1 for r in rows if r["status_hari"] == "izin"),
+            "sakit_hari": sum(1 for r in rows if r["status_hari"] == "sakit"),
             "alpha_hari": sum(1 for r in rows if r["status_hari"] == "alpha"),
+            "belum_diabsen_hari": sum(1 for r in rows if r["status_hari"] == "belum_diabsen"),
         },
         "gender": gender_out,
     }
@@ -4719,20 +4897,26 @@ async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
                              "gender": _derive_gender(p),
                              "kelompok_name": kmap.get(p.get("kelompok_id")),
                              "account_status": p.get("status", "active"),
-                             "pertemuan": 0, "hadir": 0, "izin": 0, "alpha": 0,
+                             "pertemuan": 0, "hadir": 0, "izin": 0, "sakit": 0,
+                             "alpha": 0, "belum_diabsen": 0,
                              "last_date": None} for p in peserta}
 
     meeting_rows = []
     sesi_summary: dict = {}   # label sesi -> ringkasan sebulan
     for mt in sorted(meetings.values(), key=lambda x: x["date"] or ""):
-        req_docs = [d for d in mt["docs"] if d.get("session_required", True)] or mt["docs"]
-        n_h = n_i = n_a = 0
+        n_h = n_i = n_s = n_a = n_pending = 0
         for pid, t in tally.items():
-            docs_p = [d for d in req_docs if pid in elig_by_doc[d["_id"]]]
+            docs_p = [
+                d for d in mt["docs"]
+                if pid in elig_by_doc[d["_id"]] and (
+                    session_requires_participant(d, pid)
+                    or status_by.get((d["_id"], pid)) in ABSEN_STATUS
+                )
+            ]
             if not docs_p:
                 continue
             t["pertemuan"] += 1
-            sts = [status_by.get((d["_id"], pid), "alpha") for d in docs_p]
+            sts = [status_by.get((d["_id"], pid), "belum_diabsen") for d in docs_p]
             if "hadir" in sts:
                 t["hadir"] += 1
                 t["last_date"] = mt["date"]
@@ -4740,38 +4924,56 @@ async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
             elif "izin" in sts:
                 t["izin"] += 1
                 n_i += 1
-            else:
+            elif "sakit" in sts:
+                t["sakit"] += 1
+                n_s += 1
+            elif "alpha" in sts:
                 t["alpha"] += 1
                 n_a += 1
-        total_p = n_h + n_i + n_a
+            else:
+                t["belum_diabsen"] += 1
+                n_pending += 1
+        total_p = n_h + n_i + n_s + n_a + n_pending
 
         # Rincian tiap sesi pada pertemuan ini (mis. Pagi / Sore / Malam)
         sesi_rows = []
         for d in sorted(mt["docs"], key=lambda x: (x.get("session_index") or 0, x.get("start_time") or "")):
             eids = elig_by_doc[d["_id"]]
-            sh = sum(1 for pid in eids if status_by.get((d["_id"], pid)) == "hadir")
-            si = sum(1 for pid in eids if status_by.get((d["_id"], pid)) == "izin")
+            counted_ids = {
+                pid for pid in eids
+                if session_requires_participant(d, pid)
+                or status_by.get((d["_id"], pid)) in ABSEN_STATUS
+            }
+            sh = sum(1 for pid in counted_ids if status_by.get((d["_id"], pid)) == "hadir")
+            si = sum(1 for pid in counted_ids if status_by.get((d["_id"], pid)) == "izin")
+            ss = sum(1 for pid in counted_ids if status_by.get((d["_id"], pid)) == "sakit")
+            sa = sum(1 for pid in counted_ids if status_by.get((d["_id"], pid)) == "alpha")
+            sp = len(counted_ids) - sh - si - ss - sa
             label = d.get("session_label") or "Sesi tunggal"
             sesi_rows.append({
                 "label": label, "start_time": d.get("start_time"), "end_time": d.get("end_time"),
                 "required": bool(d.get("session_required", True)),
                 "teacher": d.get("teacher"), "material": d.get("material"),
-                "peserta": len(eids), "hadir": sh, "izin": si,
-                "alpha": max(len(eids) - sh - si, 0),
-                "ratio": round((sh / len(eids)) * 100, 1) if eids else 0.0,
+                "peserta": len(counted_ids), "hadir": sh, "izin": si, "sakit": ss,
+                "alpha": sa, "belum_diabsen": sp,
+                "ratio": round((sh / len(counted_ids)) * 100, 1) if counted_ids else 0.0,
             })
             agg = sesi_summary.setdefault(label, {"label": label, "pertemuan": 0, "hadir": 0,
-                                                  "peserta": 0, "izin": 0, "alpha": 0,
+                                                  "peserta": 0, "izin": 0, "sakit": 0, "alpha": 0,
+                                                  "belum_diabsen": 0,
                                                   "required": bool(d.get("session_required", True))})
             agg["pertemuan"] += 1
             agg["hadir"] += sh
             agg["izin"] += si
-            agg["alpha"] += max(len(eids) - sh - si, 0)
-            agg["peserta"] += len(eids)
+            agg["sakit"] += ss
+            agg["alpha"] += sa
+            agg["belum_diabsen"] += sp
+            agg["peserta"] += len(counted_ids)
 
         meeting_rows.append({"date": mt["date"], "name": mt["name"], "type": mt["type"],
                              "sessions": len(mt["docs"]), "peserta": total_p,
-                             "hadir": n_h, "izin": n_i, "alpha": n_a,
+                             "hadir": n_h, "izin": n_i, "sakit": n_s,
+                             "alpha": n_a, "belum_diabsen": n_pending,
                              "ratio": round((n_h / total_p) * 100, 1) if total_p else 0.0,
                              "sesi": sesi_rows})
 
@@ -4802,7 +5004,9 @@ async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
             "peserta": len([r for r in rows if r["gender"] == g]),
             "hadir": hadir, "pertemuan": slot,
             "izin": sum(r["izin"] for r in grp),
+            "sakit": sum(r["sakit"] for r in grp),
             "alpha": sum(r["alpha"] for r in grp),
+            "belum_diabsen": sum(r["belum_diabsen"] for r in grp),
             "rajin": sum(1 for r in grp if r["ratio"] >= 80),
             "jarang": sum(1 for r in grp if r["ratio"] < 50),
             "ratio": round((hadir / slot) * 100, 1) if slot else 0.0,
@@ -4818,6 +5022,11 @@ async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
         "summary": {
             "rata_rata": round(sum(r["ratio"] for r in aktif) / len(aktif), 1) if aktif else 0.0,
             "rajin": rajin, "cukup": cukup, "jarang": jarang, "belum_pernah": belum,
+            "hadir": sum(r["hadir"] for r in aktif),
+            "izin": sum(r["izin"] for r in aktif),
+            "sakit": sum(r["sakit"] for r in aktif),
+            "alpha": sum(r["alpha"] for r in aktif),
+            "belum_diabsen": sum(r["belum_diabsen"] for r in aktif),
         },
         "gender": gender_out,
         "per_sesi": per_sesi,
@@ -4925,12 +5134,13 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
     # per-user tally (FASE 8: hanya dihitung untuk kegiatan yang relevan bagi peserta)
     tally = {str(p["_id"]): {"name": p.get("name"), "gender": _derive_gender(p),
                              "account_status": p.get("status", "active"),
-                             "hadir": 0, "izin": 0, "alpha": 0, "kegiatan": 0} for p in peserta}
+                             "hadir": 0, "izin": 0, "sakit": 0, "alpha": 0,
+                             "belum_diabsen": 0, "kegiatan": 0} for p in peserta}
     per_keg_status = {}  # kegiatan_id -> {uid: status}
     for a in absens:
         per_keg_status.setdefault(a["kegiatan_id"], {})[a["user_id"]] = a["status"]
 
-    total_hadir = total_izin = total_alpha = 0
+    total_hadir = total_izin = total_sakit = total_alpha = total_pending = 0
     total_slot = 0
     gender_hadir = {"L": 0, "P": 0}
     rows = []
@@ -4939,23 +5149,33 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
         eligible = filter_peserta_for_kegiatan(k, peserta)
         eligible_ids = {str(p["_id"]) for p in eligible}
         tamu = guest_by_keg.get(k["_id"], 0)
-        n_slot = len(eligible_ids) + tamu
-        h = sum(1 for uid, st in statuses.items() if st == "hadir" and uid in eligible_ids) + tamu
-        iz = sum(1 for uid, st in statuses.items() if st == "izin" and uid in eligible_ids)
-        al = max(n_slot - h - iz, 0)
+        event_absens = [
+            {"user_id": uid, "status": status}
+            for uid, status in statuses.items() if uid in eligible_ids
+        ]
+        counts = compute_counts(eligible, event_absens, tamu, kegiatan=k)
+        n_slot = counts["total"]
+        h, iz, si = counts["hadir"], counts["izin"], counts["sakit"]
+        al, pending = counts["alpha"], counts["belum_diabsen"]
         total_hadir += h
         total_izin += iz
+        total_sakit += si
         total_alpha += al
+        total_pending += pending
         total_slot += n_slot
         rows.append({"id": k["_id"], "name": k.get("name"), "date": k.get("date"),
                      "type": k.get("type"), "audience": k.get("audience", "reguler"),
                      "gender_filter": k.get("gender_filter", "semua"),
                      "guests": tamu, "peserta": n_slot,
-                     "hadir": h, "izin": iz, "alpha": al,
+                     "hadir": h, "izin": iz, "sakit": si, "alpha": al,
+                     "belum_diabsen": pending,
                      "ratio": round((h / n_slot) * 100, 1) if n_slot else 0.0})
         for p in eligible:
             uid = str(p["_id"])
-            st = statuses.get(uid, "alpha")
+            st = statuses.get(uid)
+            if not session_requires_participant(k, uid) and st not in ABSEN_STATUS:
+                continue
+            st = st if st in ABSEN_STATUS else "belum_diabsen"
             tally[uid][st] += 1
             tally[uid]["kegiatan"] += 1
             if st == "hadir":
@@ -4983,7 +5203,8 @@ async def build_laporan(date_from: str, date_to: str) -> dict:
         "date_from": date_from, "date_to": date_to,
         "total_kegiatan": n_keg, "total_peserta": total_peserta,
         "summary": {
-            "hadir": total_hadir, "izin": total_izin, "alpha": total_alpha,
+            "hadir": total_hadir, "izin": total_izin, "sakit": total_sakit,
+            "alpha": total_alpha, "belum_diabsen": total_pending,
             "ratio": round((total_hadir / total_slot) * 100, 1) if total_slot else 0.0,
         },
         "gender_hadir": gender_hadir,
@@ -5099,9 +5320,10 @@ async def admin_laporan_export(admin: dict = Depends(require_staff),
                  Paragraph(f"Total Kegiatan: {data['total_kegiatan']} · Total Peserta: {data['total_peserta']} · "
                            f"Kehadiran: {data['summary']['ratio']}%", styles["Normal"]),
                  Spacer(1, 12)]
-        tdata = [["Tanggal", "Kegiatan", "Hadir", "Izin", "Alpha", "%"]]
+        tdata = [["Tanggal", "Kegiatan", "Hadir", "Izin", "Sakit", "Alpha", "%"]]
         for r in data["per_kegiatan"]:
-            tdata.append([r["date"], r["name"], r["hadir"], r["izin"], r["alpha"], f"{r['ratio']}%"])
+            tdata.append([r["date"], r["name"], r["hadir"], r["izin"], r["sakit"],
+                          r["alpha"], f"{r['ratio']}%"])
         t = Table(tdata, repeatRows=1)
         t.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#111114")),
@@ -5144,16 +5366,19 @@ async def admin_laporan_export(admin: dict = Depends(require_staff),
     wb = Workbook()
     ws = wb.active
     ws.title = "Per Kegiatan"
-    ws.append(["Tanggal", "Kegiatan", "Jenis", "Hadir", "Izin", "Alpha", "Kehadiran %"])
+    ws.append(["Tanggal", "Kegiatan", "Jenis", "Hadir", "Izin", "Sakit", "Alpha", "Belum Diabsen", "Kehadiran %"])
     for r in data["per_kegiatan"]:
-        ws.append([r["date"], r["name"], r["type"], r["hadir"], r["izin"], r["alpha"], r["ratio"]])
+        ws.append([r["date"], r["name"], r["type"], r["hadir"], r["izin"], r["sakit"],
+                   r["alpha"], r["belum_diabsen"], r["ratio"]])
     ws2 = wb.create_sheet("Ringkasan")
     ws2.append(["Periode", f"{data['date_from']} s/d {data['date_to']}"])
     ws2.append(["Total Kegiatan", data["total_kegiatan"]])
     ws2.append(["Total Peserta", data["total_peserta"]])
     ws2.append(["Hadir", data["summary"]["hadir"]])
     ws2.append(["Izin", data["summary"]["izin"]])
+    ws2.append(["Sakit", data["summary"]["sakit"]])
     ws2.append(["Alpha", data["summary"]["alpha"]])
+    ws2.append(["Belum Diabsen", data["summary"]["belum_diabsen"]])
     ws2.append(["Kehadiran %", data["summary"]["ratio"]])
     ws2.append(["Hadir L", data["gender_hadir"]["L"]])
     ws2.append(["Hadir P", data["gender_hadir"]["P"]])

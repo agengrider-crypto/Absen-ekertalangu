@@ -150,7 +150,9 @@ export default function RekapHarianView() {
               { k: "peserta", label: "Peserta terdaftar", value: sum.peserta, sub: `${sum.slot} slot sesi`, color: REKAP.main, icon: Users },
               { k: "hadir", label: "Hadir", value: sum.hadir, sub: `${sum.hadir_hari} peserta hadir hari ini`, color: REKAP.hadir, icon: CalendarCheck },
               { k: "izin", label: "Izin", value: sum.izin, sub: `${sum.izin_hari} peserta berizin`, color: REKAP.izin, icon: Info },
+              { k: "sakit", label: "Sakit", value: sum.sakit, sub: `${sum.sakit_hari} peserta sakit`, color: REKAP.lk, icon: Info },
               { k: "alpha", label: "Alpha", value: sum.alpha, sub: `${sum.alpha_hari} peserta tanpa keterangan`, color: REKAP.alpha, icon: Info },
+              { k: "belum_diabsen", label: "Belum diabsen", value: sum.belum_diabsen, sub: `${sum.belum_diabsen_hari} peserta menunggu`, color: "#6B7280", icon: Info },
             ].map((s) => {
               const Icon = s.icon;
               return (
@@ -181,7 +183,8 @@ export default function RekapHarianView() {
                   {s.material && <span className="inline-flex items-center gap-1"><Clock size={12} /> {s.material}</span>}
                 </div>
                 <div className="mt-2 text-[11px] font-semibold text-[#4B5563]">
-                  {keteranganHitungan({ hadir: s.hadir, izin: s.izin, alpha: s.alpha, total: s.peserta, satuan: "peserta" })}
+                  {keteranganHitungan({ hadir: s.hadir, izin: s.izin, sakit: s.sakit, alpha: s.alpha,
+                    belum_diabsen: s.belum_diabsen, total: s.peserta, satuan: "peserta" })}
                 </div>
               </div>
             ))}
@@ -240,7 +243,8 @@ export default function RekapHarianView() {
                     </button>
 
                     <div className="mt-1.5 text-[11px] font-semibold text-[#4B5563]" data-testid={`harian-keterangan-${r.user_id}`}>
-                      {keteranganHitungan({ hadir: r.hadir, izin: r.izin, alpha: r.alpha, total: r.sesi_total, satuan: "sesi" })}
+                      {keteranganHitungan({ hadir: r.hadir, izin: r.izin, sakit: r.sakit,
+                        alpha: r.alpha, belum_diabsen: r.belum_diabsen, total: r.sesi_total, satuan: "sesi" })}
                     </div>
 
                     {expanded && (

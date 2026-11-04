@@ -22,4 +22,13 @@ export const ACTIVITIES = {
   wizardNext: "kegiatan-form-next",
   wizardPrevious: "kegiatan-form-previous",
   wizardReview: "form-section-review",
+  duration: "keg-duration",
+  mapsQuery: "keg-maps-query",
+  recurringMonths: "keg-recurring-months",
+  attendanceParticipants: "keg-attendance-participants",
+  participantPicker: "keg-peserta-picker",
+  attendanceParticipantPicker: "keg-attendance-participants-picker",
+  sessionParticipantPickerPrefix: "keg-session-participants-",
+  recapGraph: "detail-rekap-grafik",
+  breadcrumb: "kegiatan-breadcrumb",
 };

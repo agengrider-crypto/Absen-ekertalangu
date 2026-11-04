@@ -115,7 +115,7 @@ curl -b ck.txt https://<domain>/api/auth/me
 | Method | Path | Guard | Keterangan |
 |---|---|---|---|
 | GET | `/api/admin/kegiatan` | `require_staff` | Query: `?month=YYYY-MM` atau `?date_from=&date_to=`. Tiap item punya `counts` |
-| POST | `/api/admin/kegiatan` | `require_staff` | `KegiatanInput`. `recurring: true` → membuat **4 kegiatan** mingguan |
+| POST | `/api/admin/kegiatan` | `require_staff` | `KegiatanInput`. `recurring_months` 1/2/3/6/12 membuat jadwal bulanan sebanyak pilihan; `recurring: true` lama tetap membuat 4 jadwal mingguan |
 | GET | `/api/admin/kegiatan/{kegiatan_id}` | `require_staff` | Detail |
 | PATCH | `/api/admin/kegiatan/{kegiatan_id}` | `require_staff` | `KegiatanUpdate` |
 | DELETE | `/api/admin/kegiatan/{kegiatan_id}` | `require_staff` | Hapus |
@@ -134,9 +134,27 @@ curl -b ck.txt https://<domain>/api/auth/me
   "teacher": null,
   "material": null,
   "location": null,
-  "recurring": false
+  "maps_query": "Masjid Kertalangu, Denpasar",
+  "recurring": false,
+  "recurring_months": 3,
+  "attendance_participant_ids": ["user-id-1"],
+  "sessions": [
+    {
+      "label": "Pagi",
+      "start_time": "08:00",
+      "end_time": "09:30",
+      "participant_ids": ["user-id-1"]
+    }
+  ]
 }
 ```
+
+`recurring_months` menerima `1`, `2`, `3`, `6`, atau `12`; satu berarti satu jadwal pada
+bulan yang dipilih. Jam selesai harus lebih akhir daripada jam mulai di tanggal yang sama.
+`maps_query` menyimpan alamat/kata kunci (bukan URL Maps); tautan Maps dibentuk di UI saat
+ditampilkan. `attendance_participant_ids` menentukan peserta wajib pada kegiatan tunggal.
+Pada jadwal bersesi, tiap sesi dapat memiliki `participant_ids` sendiri. Peserta di luar
+pilihan tetap terlihat, tetapi tidak otomatis dihitung Alpha.
 
 ---
 
@@ -144,8 +162,8 @@ curl -b ck.txt https://<domain>/api/auth/me
 
 | Method | Path | Guard | Keterangan |
 |---|---|---|---|
-| POST | `/api/admin/kegiatan/{kegiatan_id}/absen` | `require_staff` | `{user_id, status}` — `hadir`\|`izin`. Upsert |
-| GET | `/api/admin/kegiatan/{kegiatan_id}/rekap` | `require_staff` | `counts` + gender + baris peserta (default `alpha`) |
+| POST | `/api/admin/kegiatan/{kegiatan_id}/absen` | `require_staff` | `{user_id, status}` — `hadir`\|`izin`\|`sakit`\|`alpha`. Upsert; Alpha ditolak sebelum waktu selesai atau kegiatan ditutup |
+| GET | `/api/admin/kegiatan/{kegiatan_id}/rekap` | `require_staff` | `counts` + hitungan gender/status + baris peserta. Status kosong tetap belum diabsen |
 | GET | `/api/admin/kegiatan/{kegiatan_id}/qr` | `require_staff` | QR menuju halaman rekap |
 | POST | `/api/admin/kegiatan/{kegiatan_id}/share` | `require_staff` | Tautan rekap publik, berlaku 7 hari |
 | POST | `/api/admin/kegiatan/{kegiatan_id}/absen-qr` | `require_staff` | QR absen mandiri → `{token, link, image}` |
@@ -156,10 +174,14 @@ curl -b ck.txt https://<domain>/api/auth/me
 `counts` selalu berbentuk:
 
 ```json
-{ "total": 120, "hadir": 87, "izin": 5, "alpha": 28, "ratio": 72.5 }
+{
+  "total": 120, "hadir": 87, "izin": 5, "sakit": 2, "alpha": 10,
+  "belum_diabsen": 16, "ratio": 72.5
+}
 ```
 
-`alpha` **dihitung** (`total − hadir − izin`), tidak disimpan.
+`alpha` hanya berisi status Alpha yang dicatat; status kosong tidak otomatis menjadi Alpha.
+Sisa peserta dihitung sebagai `belum_diabsen`. `ratio` adalah hadir dibagi total.
 
 ---
 

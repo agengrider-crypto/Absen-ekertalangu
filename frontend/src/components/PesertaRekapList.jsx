@@ -5,9 +5,15 @@ import { hhmm } from "@/pages/admin/kegiatanUtils";
 const STATUS_META = {
   hadir: { label: "Hadir", cls: "bg-[#F1F1EE] text-[#111114] border-[#D5D5CE]" },
   izin: { label: "Izin", cls: "bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]" },
+  sakit: { label: "Sakit", cls: "bg-[#DBEAFE] text-[#1D4ED8] border-[#BFDBFE]" },
   alpha: { label: "Alpha", cls: "bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]" },
+  belum_diabsen: { label: "Belum diabsen", cls: "bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB]" },
+  optional: { label: "Tidak wajib", cls: "bg-[#EEF2FF] text-[#6366F1] border-[#C7D2FE]" },
 };
 
+function statusOf(row) {
+  return row.status || (row.required_for_session === false ? "optional" : "belum_diabsen");
+}
 /**
  * Daftar peserta rekap absen dalam bentuk DROPDOWN (accordion) yang bisa
  * dibuka/tutup, dengan baris berkolom berjarak:
@@ -31,15 +37,15 @@ export default function PesertaRekapList({
 
   const filtered = useMemo(() => {
     let list = rows;
-    if (filter !== "all") list = list.filter((r) => (r.status || "alpha") === filter);
+    if (filter !== "all") list = list.filter((r) => statusOf(r) === filter);
     const t = q.trim().toLowerCase();
     if (t) list = list.filter((r) => (r.name || "").toLowerCase().includes(t));
     return list;
   }, [rows, q, filter]);
 
   const tally = useMemo(() => {
-    const c = { hadir: 0, izin: 0, alpha: 0 };
-    rows.forEach((r) => { c[r.status || "alpha"] = (c[r.status || "alpha"] || 0) + 1; });
+    const c = { hadir: 0, izin: 0, sakit: 0, alpha: 0, belum_diabsen: 0, optional: 0 };
+    rows.forEach((r) => { const status = statusOf(r); c[status] = (c[status] || 0) + 1; });
     return c;
   }, [rows]);
 
@@ -61,7 +67,8 @@ export default function PesertaRekapList({
           <span className="min-w-0">
             <span className="block font-bold text-[#111827] text-[15px]">{title}</span>
             <span className="block text-xs text-[#6B7280]">
-              {shown.total} peserta · Hadir {shown.hadir} · Izin {shown.izin} · Alpha {shown.alpha}
+              {shown.total} peserta · Hadir {shown.hadir} · Izin {shown.izin} · Sakit {shown.sakit || 0}
+              {" · "}Alpha {shown.alpha} · Belum diabsen {shown.belum_diabsen || 0}
             </span>
           </span>
         </span>
@@ -89,7 +96,9 @@ export default function PesertaRekapList({
                 ["all", `Semua (${rows.length})`],
                 ["hadir", `Hadir (${tally.hadir})`],
                 ["izin", `Izin (${tally.izin})`],
+                ["sakit", `Sakit (${tally.sakit})`],
                 ["alpha", `Alpha (${tally.alpha})`],
+                ["belum_diabsen", `Belum diabsen (${tally.belum_diabsen})`],
               ].map(([k, label]) => (
                 <button
                   key={k}
@@ -118,7 +127,8 @@ export default function PesertaRekapList({
             {filtered.length === 0 ? (
               <li className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Tidak ada peserta yang cocok.</li>
             ) : filtered.map((r, i) => {
-              const st = STATUS_META[r.status || "alpha"] || STATUS_META.alpha;
+              const status = statusOf(r);
+              const st = STATUS_META[status] || STATUS_META.belum_diabsen;
               const pending = r.account_status === "pending";
               return (
                 <li

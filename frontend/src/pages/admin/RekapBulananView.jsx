@@ -247,7 +247,8 @@ export default function RekapBulananView() {
                         <td className="px-3 py-2.5">
                           <PersenRingkas value={r.ratio} testid={`persen-bulanan-${r.user_id}`} />
                           <div className="text-[11px] font-semibold text-[#4B5563] mt-1" data-testid={`keterangan-bulanan-${r.user_id}`}>
-                            {keteranganHitungan({ hadir: r.hadir, izin: r.izin, alpha: r.alpha, total: r.pertemuan })}
+                            {keteranganHitungan({ hadir: r.hadir, izin: r.izin, sakit: r.sakit,
+                              alpha: r.alpha, belum_diabsen: r.belum_diabsen, total: r.pertemuan })}
                           </div>
                         </td>
                         <td className="px-3 py-2.5 text-center tabular-nums text-[#D97706] font-semibold">{r.izin}</td>

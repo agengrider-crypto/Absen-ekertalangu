@@ -15,12 +15,29 @@ import {
 } from "./kegiatanUtils";
 
 const TIMES = timeOptions();
+const DURATIONS = [
+  { value: 30, label: "30 menit" },
+  { value: 60, label: "1 jam" },
+  { value: 90, label: "1,5 jam" },
+  { value: 120, label: "2 jam" },
+];
 const fld = "w-full h-12 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-[15px] outline-none focus:border-[#111114] bg-white transition-colors";
 const lbl = "block text-[13px] font-semibold text-[#111827] mb-1.5";
 
 function todayYmd() {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
+}
+
+function addMinutes(time, minutes) {
+  const [hours, mins] = time.split(":").map(Number);
+  const total = hours * 60 + mins + minutes;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+function timeMinutes(time) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
 }
 
 function Section({ icon: Icon, title, desc, children, testid }) {
@@ -69,7 +86,9 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
     name: initial?.name || "", type: initial?.type || "rutin",
     date: initial?.date || todayYmd(), start_time: initial?.start_time || "20:00",
     end_time: initial?.end_time || "21:30", teacher: initial?.teacher || "",
-    material: initial?.material || "", location: initial?.location || "", recurring: false,
+    material: initial?.material || "", location: initial?.location || "",
+    maps_query: initial?.maps_query || initial?.location || "",
+    recurring_months: 0,
     audience: initial?.audience || "reguler",
     gender_filter: initial?.gender_filter || "semua",
     marital_filter: initial?.marital_filter || "semua",
@@ -78,6 +97,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
   // FASE 18 — mode ceklis peserta tertentu
   const [pickMode, setPickMode] = useState((initial?.participant_ids || []).length > 0);
   const [participants, setParticipants] = useState(initial?.participant_ids || []);
+  const [requiredParticipants, setRequiredParticipants] = useState(initial?.session_participant_ids || []);
   const [multi, setMulti] = useState(false);
   const [sessions, setSessions] = useState([
     { label: "Pagi", start_time: "08:00", end_time: "10:00", teacher: "", material: "", location: "", required: true },
@@ -85,6 +105,12 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
   ]);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState(0);
+  const [duration, setDuration] = useState(() => {
+    const [startHour, startMinute] = (initial?.start_time || "20:00").split(":").map(Number);
+    const [endHour, endMinute] = (initial?.end_time || "21:30").split(":").map(Number);
+    const minutes = (endHour * 60 + endMinute - startHour * 60 - startMinute + 1440) % 1440;
+    return DURATIONS.some((option) => option.value === minutes) ? minutes : "custom";
+  });
 
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
   const toggleAge = (val) => setF((p) => {
@@ -139,16 +165,28 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
     try {
       const participant_ids = pickMode ? participants : [];
       if (editing) {
-        const { recurring, ...rest } = f;
-        await api.patch(`/admin/kegiatan/${initial.id}`, { ...rest, participant_ids });
+        const { recurring_months, ...rest } = f;
+        await api.patch(`/admin/kegiatan/${initial.id}`, {
+          ...rest,
+          participant_ids,
+          attendance_participant_ids: requiredParticipants,
+        });
         toast.success("Kegiatan diperbarui.");
       } else {
         const { data } = await api.post("/admin/kegiatan", {
-          ...f, participant_ids, sessions: multi ? sessions : [],
+          ...f,
+          recurring: false,
+          recurring_months: Number(f.recurring_months) || null,
+          participant_ids,
+          attendance_participant_ids: multi ? null : requiredParticipants,
+          sessions: multi ? sessions.map(({ participant_ids: sessionParticipants, ...session }) => ({
+            ...session,
+            ...(sessionParticipants?.length ? { participant_ids: sessionParticipants } : {}),
+          })) : [],
         });
         const parts = [];
         if (multi) parts.push(`${sessions.length} waktu/sesi`);
-        if (f.recurring) parts.push("berulang 4 minggu");
+        if (Number(f.recurring_months) > 1) parts.push(`rutin bulanan ${f.recurring_months} kali`);
         if (participant_ids.length) parts.push(`${participant_ids.length} peserta terpilih`);
         toast.success(`Kegiatan dibuat${parts.length ? ` (${parts.join(", ")}, total ${data.length} jadwal)` : ""}.`);
       }
@@ -229,6 +267,12 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                 <input data-testid="keg-location" value={f.location} onChange={(e) => set("location", e.target.value)}
                   placeholder="cth: Masjid Kertalangu" className={fld} />
               </div>
+              <div className="sm:col-span-2">
+                <label className={lbl}>Alamat atau kata kunci Google Maps</label>
+                <input data-testid={ACTIVITIES.mapsQuery} value={f.maps_query}
+                  onChange={(e) => set("maps_query", e.target.value)}
+                  placeholder="cth: Masjid Kertalangu, Denpasar" className={fld} />
+              </div>
             </div>
           </Section>}
 
@@ -248,16 +292,41 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                 <>
                   <div>
                     <label className={lbl}>Mulai (WITA)</label>
-                    <select data-testid="keg-start" value={f.start_time} onChange={(e) => set("start_time", e.target.value)} className={fld}>
-                      {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    <select data-testid="keg-start" value={f.start_time} onChange={(e) => {
+                      set("start_time", e.target.value);
+                      if (duration !== "custom") set("end_time", addMinutes(e.target.value, duration));
+                      else if (timeMinutes(f.end_time) <= timeMinutes(e.target.value)) {
+                        const nextEnd = TIMES.find((time) => timeMinutes(time) > timeMinutes(e.target.value));
+                        if (nextEnd) set("end_time", nextEnd);
+                      }
+                    }} className={fld}>
+                      {TIMES.filter((time) => timeMinutes(time) + (duration === "custom" ? 30 : duration) <= 1410)
+                        .map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className={lbl}>Selesai (WITA)</label>
-                    <select data-testid="keg-end" value={f.end_time} onChange={(e) => set("end_time", e.target.value)} className={fld}>
-                      {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    <label className={lbl}>Durasi</label>
+                    <select data-testid={ACTIVITIES.duration} value={duration} onChange={(e) => {
+                      const value = e.target.value === "custom" ? "custom" : Number(e.target.value);
+                      setDuration(value);
+                      if (value !== "custom") set("end_time", addMinutes(f.start_time, value));
+                    }} className={fld}>
+                      {DURATIONS.map((option) => (
+                        <option key={option.value} value={option.value}
+                          disabled={timeMinutes(f.start_time) + option.value > 1410}>
+                          {option.label}
+                        </option>
+                      ))}
+                      <option value="custom">Atur manual</option>
                     </select>
                   </div>
+                  {duration === "custom" && <div>
+                    <label className={lbl}>Jam selesai (WITA)</label>
+                    <select data-testid="keg-end" value={f.end_time} onChange={(e) => set("end_time", e.target.value)} className={fld}>
+                      {TIMES.filter((time) => timeMinutes(time) > timeMinutes(f.start_time))
+                        .map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>}
                 </>
               )}
             </div>
@@ -313,26 +382,24 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                           </button>
                         </div>
                         <div className="grid sm:grid-cols-3 gap-2">
-                          <input data-testid={`keg-session-teacher-${i}`} value={s.teacher || ""}
-                            onChange={(e) => setSession(i, "teacher", e.target.value)} placeholder="Pengajar sesi ini"
-                            className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
-                          <input data-testid={`keg-session-material-${i}`} value={s.material || ""}
-                            onChange={(e) => setSession(i, "material", e.target.value)} placeholder="Materi sesi ini"
-                            className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
                           <input data-testid={`keg-session-location-${i}`} value={s.location || ""}
                             onChange={(e) => setSession(i, "location", e.target.value)} placeholder="Lokasi sesi ini"
                             className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
                         </div>
-                        <label className="flex items-start gap-2.5 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2.5 cursor-pointer hover:border-[#111114]">
-                          <input type="checkbox" data-testid={`keg-session-required-${i}`} checked={s.required !== false}
-                            onChange={(e) => setSession(i, "required", e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#111114]" />
-                          <span className="leading-snug">
-                            <span className="block text-xs font-bold text-[#111827]">Sesi ini WAJIB dihadiri</span>
-                            <span className="block text-[11px] text-[#6B7280]">
-                              Dilepas = sesi opsional/tambahan, tidak dihitung Alpha.
-                            </span>
-                          </span>
-                        </label>
+                        <div className="rounded-xl border border-[#E8E8E4] bg-white p-3">
+                          <label className="mb-2 block text-xs font-bold text-[#111827]">
+                            Peserta wajib sesi ini
+                          </label>
+                          <PesertaPicker
+                            value={s.participant_ids || []}
+                            onChange={(ids) => setSession(i, "participant_ids", ids)}
+                            testid={`${ACTIVITIES.sessionParticipantPickerPrefix}${i}`}
+                          />
+                          <p className="mt-2 text-[11px] text-[#6B7280]">
+                            Peserta lain tetap terlihat di daftar, tetapi tidak otomatis dihitung Alpha.
+                            Jika tidak memilih siapa pun, peserta sesuai filter kegiatan menjadi wajib.
+                          </p>
+                        </div>
                       </div>
                     ))}
                     <datalist id="session-presets">
@@ -345,11 +412,16 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                   </div>
                 )}
 
-                <label className="mt-3 flex items-center gap-2.5 px-3.5 h-12 rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] cursor-pointer hover:border-[#111114]">
-                  <input data-testid="keg-recurring" type="checkbox" className="accent-[#111114] w-4 h-4"
-                    checked={f.recurring} onChange={(e) => set("recurring", e.target.checked)} />
-                  <span className="text-sm font-semibold text-[#111827]">Kegiatan berulang (4 minggu, mingguan)</span>
-                </label>
+                <div className="mt-3">
+                  <label className={lbl}>Jadwal rutin bulanan</label>
+                  <select data-testid={ACTIVITIES.recurringMonths} value={f.recurring_months}
+                    onChange={(e) => set("recurring_months", Number(e.target.value))} className={fld}>
+                    <option value={0}>Tidak berulang</option>
+                    {[1, 2, 3, 6, 12].map((months) => (
+                      <option key={months} value={months}>{months} {months === 1 ? "bulan" : "bulan"} ({months} jadwal bulanan)</option>
+                    ))}
+                  </select>
+                </div>
               </>
             )}
           </Section>}
@@ -395,10 +467,27 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                 </label>
                 {pickMode && (
                   <div className="mt-3">
-                    <PesertaPicker value={participants} onChange={setParticipants} testid="keg-peserta-picker" />
+                    <PesertaPicker value={participants} onChange={setParticipants} testid={ACTIVITIES.participantPicker} />
                   </div>
                 )}
               </div>
+
+              {(!multi || editing) && (
+                <div className="rounded-2xl border-2 border-[#111114] bg-white p-3.5" data-testid={ACTIVITIES.attendanceParticipants}>
+                  <label className="mb-1 block text-sm font-bold text-[#111827]">
+                    Peserta wajib diabsen
+                  </label>
+                  <p className="mb-3 text-xs leading-relaxed text-[#6B7280]">
+                    Peserta lain tetap muncul di daftar, tetapi tidak otomatis dihitung Alpha.
+                    Jika tidak ada pilihan, semua peserta sesuai filter kegiatan menjadi wajib.
+                  </p>
+                  <PesertaPicker
+                    value={requiredParticipants}
+                    onChange={setRequiredParticipants}
+                    testid={ACTIVITIES.attendanceParticipantPicker}
+                  />
+                </div>
+              )}
 
               <div className="rounded-2xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-3.5" data-testid="keg-advanced-group">
                 <div className="flex items-center gap-2 text-sm font-bold text-[#111114]">
@@ -462,7 +551,8 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                 <ReviewItem label="Pengajar" value={f.teacher || "Belum ditentukan"} />
                 <ReviewItem label="Lokasi" value={f.location || "Belum ditentukan"} />
                 <ReviewItem label="Peserta" value={pickMode ? `${participants.length} peserta dipilih` : AUDIENCE_OPTIONS.find((option) => option.value === f.audience)?.short || "Reguler"} />
-                <ReviewItem label="Pengulangan" value={!editing && f.recurring ? "Mingguan selama 4 minggu" : "Tidak berulang"} />
+                <ReviewItem label="Pengulangan" value={!editing && Number(f.recurring_months)
+                  ? `Bulanan, ${f.recurring_months} jadwal` : "Tidak berulang"} />
               </dl>
               <p className="mt-4 rounded-xl bg-[#F0FDF4] p-3 text-sm text-[#14532D]">
                 {editing ? "Perubahan akan diterapkan pada kegiatan ini." : "Jadwal akan dibuat setelah Anda memilih Simpan Kegiatan."}

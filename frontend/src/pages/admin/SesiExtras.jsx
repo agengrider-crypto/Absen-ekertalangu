@@ -28,7 +28,9 @@ function Shell({ title, subtitle, children, onClose, testid, wide }) {
 const ST = {
   hadir: { t: "H", cls: "bg-[#111114] text-white", title: "Hadir" },
   izin: { t: "I", cls: "bg-[#9CA3AF] text-white", title: "Izin" },
+  sakit: { t: "S", cls: "bg-[#DBEAFE] text-[#1D4ED8]", title: "Sakit" },
   alpha: { t: "A", cls: "bg-[#FEE2E2] text-[#991B1B]", title: "Alpha" },
+  belum_diabsen: { t: "—", cls: "bg-[#FEF3C7] text-[#92400E]", title: "Belum diabsen" },
   exempt: { t: "✓", cls: "bg-[#F3F4F6] text-[#9CA3AF]", title: "Sudah hadir di sesi sebelumnya — tidak dihitung" },
   optional: { t: "·", cls: "bg-[#EEF2FF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
 };
@@ -103,10 +105,8 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
       ...data.sessions.map((x) => `• ${x.label} (${x.start_time}–${x.end_time}): Hadir ${x.counts.hadir} / ${x.counts.total} (${x.counts.ratio}%)`),
       "",
       `Total peserta: ${s.total}`,
-      `Hadir minimal 1 sesi: ${s.hadir_min_1} (${s.ratio_min_1}%)`,
-      `Hadir semua sesi: ${s.hadir_semua} (${s.ratio_semua}%)`,
-      `Izin (tidak hadir sama sekali): ${s.izin_saja}`,
-      `Tidak hadir sama sekali: ${s.tidak_hadir}`,
+      `Hadir: ${s.hadir} · Izin: ${s.izin} · Sakit: ${s.sakit} · Alpha: ${s.alpha}`,
+      `Belum diabsen: ${s.belum_diabsen}`,
       ...(s.tamu ? [`Tamu: ${s.tamu}`] : []),
     ];
     try {
@@ -128,19 +128,19 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
         <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : (
         <div className="space-y-4">
-          <div className="grid gap-2 sm:grid-cols-3" data-testid="rekap-gabungan-summary">
-            <div className="rounded-xl bg-[#F1F1EE] p-3">
-              <div className="text-lg font-bold text-[#111114]">{s.hadir_min_1} <span className="text-sm">({s.ratio_min_1}%)</span></div>
-              <div className="text-xs text-[#6B7280]">Hadir minimal satu sesi · dari {s.total}</div>
-            </div>
-            <div className="rounded-xl bg-[#E8F5EE] p-3">
-              <div className="text-lg font-bold text-[#14532D]">{s.hadir_semua} <span className="text-sm">({s.ratio_semua}%)</span></div>
-              <div className="text-xs text-[#6B7280]">Hadir semua sesi</div>
-            </div>
-            <div className="rounded-xl bg-[#F4F4F1] p-3">
-              <div className="text-lg font-bold text-[#111827]">{s.tidak_hadir}</div>
-              <div className="text-xs text-[#6B7280]">Tidak hadir sama sekali</div>
-            </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5" data-testid="rekap-gabungan-summary">
+            {[
+              ["total", "Peserta terhitung", "bg-[#F4F4F1]", "text-[#111827]"],
+              ["hadir_min_1", "Hadir", "bg-[#E8F5EE]", "text-[#14532D]"],
+              ["izin", "Izin", "bg-[#FEF3C7]", "text-[#92400E]"],
+              ["sakit", "Sakit", "bg-[#DBEAFE]", "text-[#1D4ED8]"],
+              ["alpha", "Alpha", "bg-[#FEE2E2]", "text-[#991B1B]"],
+            ].map(([key, label, bg, fg]) => (
+              <div key={key} className={`rounded-xl ${bg} p-3`}>
+                <div className={`text-lg font-bold ${fg}`}>{key === "hadir_min_1" ? s.hadir_min_1 : s[key] || 0}</div>
+                <div className="text-xs text-[#6B7280]">{label}{key === "hadir_min_1" ? ` · ${s.ratio_min_1}%` : ""}</div>
+              </div>
+            ))}
           </div>
 
           <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="rekap-gabungan-per-sesi">
@@ -155,11 +155,14 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                     </div>
                     <div className="shrink-0 text-right">
                       <div className="text-xl font-bold text-[#111114]">{session.counts.ratio}%</div>
-                      <div className="text-xs text-[#6B7280]">{session.counts.hadir}/{session.counts.total} hadir</div>
+                      <div className="text-xs text-[#6B7280]">
+                        H {session.counts.hadir} · I {session.counts.izin} · S {session.counts.sakit || 0} · A {session.counts.alpha}
+                      </div>
                     </div>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-[#E8E8E4]">
-                    <div className="h-full rounded-full bg-[#0D5C3A]" style={{ width: `${Math.min(Math.max(session.counts.ratio || 0, 0), 100)}%` }} />
+                    <div className="h-full rounded-full bg-[#0D5C3A] transition-all duration-700 ease-out"
+                      style={{ width: `${Math.min(Math.max(session.counts.ratio || 0, 0), 100)}%` }} />
                   </div>
                 </div>
               ))}
@@ -245,7 +248,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                             <span className="text-[#D1D5DB]" title="Tidak termasuk daftar sesi ini">—</span>
                           ) : (
                             <span title={ST[c.status]?.title} className={`inline-flex flex-col items-center justify-center min-w-[30px] h-7 px-1.5 rounded-lg text-[11px] font-bold ${ST[c.status]?.cls || ""}`}>
-                              {ST[c.status]?.t}
+                              {ST[c.status]?.t || ""}
                               {c.status === "hadir" && c.arrival_time && <span className="text-[9px] font-medium leading-none">{hhmm(c.arrival_time)}</span>}
                             </span>
                           )}
@@ -259,7 +262,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
             </div>
               </div>
               <p className="text-[11px] text-[#9CA3AF] leading-relaxed">
-                <b>H</b> hadir · <b>I</b> izin · <b>A</b> alpha · <b>—</b> tidak termasuk daftar sesi tersebut.
+                <b>H</b> hadir · <b>I</b> izin · <b>S</b> sakit · <b>A</b> alpha · <b>—</b> belum diabsen atau tidak termasuk sesi.
                 Angka per sesi tetap tercatat terpisah; ringkasan ini hanya menggabungkannya untuk 1 hari.
               </p>
             </div>

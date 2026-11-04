@@ -1,5 +1,17 @@
 # E-KERTALANGU — PRD
 
+## Penyempurnaan jadwal dan rekap kegiatan
+- Formulir kegiatan menerima durasi 30/60/90/120 menit atau jam selesai manual dan
+  pengulangan bulanan 1/2/3/6/12 jadwal.
+- Alamat/kata kunci Maps disimpan sebagai teks; detail kegiatan membentuk tautan Google
+  Maps saat ditampilkan. Detail juga memiliki breadcrumb dan navigasi mengambang.
+- Peserta wajib dapat ditentukan pada kegiatan tunggal atau tiap sesi. Peserta lain tetap
+  terlihat tanpa otomatis dihitung Alpha.
+- Absensi mencatat Hadir/Izin/Sakit/Alpha; Alpha diblokir sebelum waktu selesai atau
+  kegiatan ditutup, dan status yang belum dicatat tetap kosong/Belum diabsen.
+- Rekap kegiatan, harian, bulanan, dan ekspor menampilkan Sakit serta Belum diabsen
+  terpisah dari Alpha.
+
 ## Penyederhanaan masuk dan QR presensi
 - Peran yang terakhir dipilih disimpan di browser. Saat sesi login masih aktif dan situs
   dibuka kembali, pengguna multi-peran langsung diarahkan ke area terakhir; pilihan peran

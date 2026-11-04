@@ -86,7 +86,9 @@ export default function PublicRekapHarian() {
                 { k: "peserta", label: "Peserta", value: s.peserta, sub: `${s.slot} slot sesi`, color: REKAP.main, icon: Users },
                 { k: "hadir", label: "Hadir", value: s.hadir, sub: `${s.hadir_hari} orang hadir`, color: REKAP.hadir, icon: CalendarCheck },
                 { k: "izin", label: "Izin", value: s.izin, sub: `${s.izin_hari} orang berizin`, color: REKAP.izin, icon: Info },
+                { k: "sakit", label: "Sakit", value: s.sakit, sub: `${s.sakit_hari} orang sakit`, color: REKAP.lk, icon: Info },
                 { k: "alpha", label: "Alpha", value: s.alpha, sub: `${s.alpha_hari} tanpa keterangan`, color: REKAP.alpha, icon: Info },
+                { k: "belum_diabsen", label: "Belum diabsen", value: s.belum_diabsen, sub: `${s.belum_diabsen_hari} menunggu`, color: "#6B7280", icon: Info },
               ].map((c) => {
                 const Icon = c.icon;
                 return (
@@ -117,7 +119,8 @@ export default function PublicRekapHarian() {
                     {x.material && <span className="inline-flex items-center gap-1"><Clock size={12} /> {x.material}</span>}
                   </div>
                   <div className="mt-2 text-[11px] font-semibold text-[#4B5563]">
-                    {keteranganHitungan({ hadir: x.hadir, izin: x.izin, alpha: x.alpha, total: x.peserta, satuan: "peserta" })}
+                    {keteranganHitungan({ hadir: x.hadir, izin: x.izin, sakit: x.sakit, alpha: x.alpha,
+                      belum_diabsen: x.belum_diabsen, total: x.peserta, satuan: "peserta" })}
                   </div>
                 </div>
               ))}
@@ -166,7 +169,8 @@ export default function PublicRekapHarian() {
                         </span>
                       </button>
                       <div className="mt-1.5 text-[11px] font-semibold text-[#4B5563]">
-                        {keteranganHitungan({ hadir: r.hadir, izin: r.izin, alpha: r.alpha, total: r.sesi_total, satuan: "sesi" })}
+                        {keteranganHitungan({ hadir: r.hadir, izin: r.izin, sakit: r.sakit,
+                          alpha: r.alpha, belum_diabsen: r.belum_diabsen, total: r.sesi_total, satuan: "sesi" })}
                       </div>
                       {expanded && (
                         <div className="mt-2 flex flex-wrap gap-1.5">

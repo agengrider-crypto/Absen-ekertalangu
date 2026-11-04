@@ -148,7 +148,9 @@ export default function KalenderView() {
                     <div className="text-xs text-[#4B5563] mt-1.5">
                       Hadir <b className="text-[#047857]">{k.counts?.hadir ?? 0}</b> ·
                       Izin <b className="text-[#92400E]"> {k.counts?.izin ?? 0}</b> ·
+                      Sakit <b className="text-[#1D4ED8]"> {k.counts?.sakit ?? 0}</b> ·
                       Alpha <b className="text-[#991B1B]"> {k.counts?.alpha ?? 0}</b> ·
+                      Belum diabsen <b className="text-[#6B7280]"> {k.counts?.belum_diabsen ?? 0}</b> ·
                       <b className="text-[#111114]"> {k.counts?.ratio ?? 0}%</b>
                     </div>
                   </div>

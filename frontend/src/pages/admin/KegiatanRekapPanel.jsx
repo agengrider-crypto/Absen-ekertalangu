@@ -40,9 +40,15 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
 
   const { link, rekap } = data;
   const hadirRows = (rekap.rows || []).filter((row) => row.status === "hadir" && !row.attended_other);
-  const maleCount = hadirRows.filter((row) => row.gender === "L").length;
-  const femaleCount = hadirRows.filter((row) => row.gender === "P").length;
   const guestCount = (rekap.guests || []).length;
+  const counts = rekap.counts || {};
+  const genderStatus = rekap.gender_status || {};
+  const statuses = [
+    { key: "hadir", label: "Hadir", color: "bg-[#0D5C3A]", text: "text-[#14532D]", bg: "bg-[#E8F5EE]" },
+    { key: "izin", label: "Izin", color: "bg-[#D97706]", text: "text-[#92400E]", bg: "bg-[#FEF3C7]" },
+    { key: "sakit", label: "Sakit", color: "bg-[#2563EB]", text: "text-[#1D4ED8]", bg: "bg-[#DBEAFE]" },
+    { key: "alpha", label: "Alpha", color: "bg-[#DC2626]", text: "text-[#991B1B]", bg: "bg-[#FEE2E2]" },
+  ];
 
   const copyLink = async () => {
     try {
@@ -61,22 +67,35 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
   return (
     <div className="space-y-4" data-testid="detail-rekap-panel">
       <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5">
-        <h3 className="mb-3 inline-flex items-center gap-2 font-bold text-[#111827]">
+        <h3 className="mb-1 inline-flex items-center gap-2 font-bold text-[#111827]">
           <FileBarChart2 size={18} /> Rekap Kehadiran
         </h3>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl bg-[#F1F1EE] p-3 text-center">
-            <div className="text-xl font-bold text-[#111114]">{maleCount}</div>
-            <div className="text-sm text-[#4B5563]">Laki-laki hadir</div>
-          </div>
-          <div className="rounded-xl bg-[#E8F5EE] p-3 text-center">
-            <div className="text-xl font-bold text-[#14532D]">{femaleCount}</div>
-            <div className="text-sm text-[#4B5563]">Perempuan hadir</div>
-          </div>
-          <div className="rounded-xl bg-[#F4F4F1] p-3 text-center">
-            <div className="text-xl font-bold text-[#111827]">{rekap.counts?.hadir || 0}</div>
-            <div className="text-sm text-[#4B5563]">Total hadir{guestCount ? ` · tamu ${guestCount}` : ""}</div>
-          </div>
+        <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="text-2xl font-bold text-[#111114]">{counts.total || 0}</span>
+          <span className="text-sm text-[#4B5563]">peserta dan tamu</span>
+          <span className="ml-auto text-lg font-bold text-[#0D5C3A]">{counts.ratio || 0}% hadir</span>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2" data-testid={ACTIVITIES.recapGraph}>
+          {statuses.map((status) => {
+            const value = Number(counts[status.key]) || 0;
+            const percent = counts.total ? Math.min((value / counts.total) * 100, 100) : 0;
+            return (
+              <div key={status.key} className={`rounded-xl ${status.bg} p-3`} data-testid={`detail-rekap-status-${status.key}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`text-sm font-bold ${status.text}`}>{status.label}</span>
+                  <span className={`text-lg font-bold ${status.text}`}>{value}</span>
+                </div>
+                <div className="mt-1 text-xs text-[#4B5563]">
+                  Laki-laki {genderStatus.L?.[status.key] || 0} · Perempuan {genderStatus.P?.[status.key] || 0}
+                  {status.key === "hadir" && guestCount ? ` · Tamu ${guestCount}` : ""}
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/80">
+                  <div className={`h-full rounded-full ${status.color} transition-all duration-700 ease-out`}
+                    style={{ width: `${percent}%` }} />
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
