@@ -15,9 +15,11 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 - Saat kegiatan ditutup manual atau otomatis, peserta wajib yang belum memiliki status
   otomatis dicatat Alpha; peserta di luar daftar wajib tetap tidak diubah.
 - Rekap kegiatan menampilkan daftar khusus peserta Izin, Sakit, dan Alpha.
-- Mengaktifkan Laporan per Peserta dengan pilihan bulanan/pekanan, pencarian nama/nomor
-  HP/email, kotak pilihan peserta, detail enam bulan dan daftar kegiatan, serta berbagi lewat
-  WhatsApp/tautan internal untuk pengurus.
+- Menyempurnakan Laporan per Peserta: pencarian nama saja, urutan kehadiran tertinggi/
+  terendah, pilihan periode bulan sebelumnya, dan tampilan tanpa nomor HP/email.
+- Tautan laporan peserta kini publik dengan masa berlaku 30 hari; halaman publik
+  menampilkan ringkasan dan kegiatan, sementara pesan WhatsApp hanya berisi nama,
+  periode laporan, dan tautan.
 
 ---
 

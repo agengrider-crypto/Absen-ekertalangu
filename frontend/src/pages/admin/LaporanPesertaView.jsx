@@ -82,6 +82,8 @@ function StatusSummary({ summary, testid }) {
 function ParticipantDetail({ participantId, month, week, onBack }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [shareLink, setShareLink] = useState("");
+  const [shareExpiresAt, setShareExpiresAt] = useState("");
 
   const load = useCallback(async () => {
     setData(null);
@@ -99,31 +101,48 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const copyLink = async () => {
-    const query = new URLSearchParams({ bulan: month, pekan: week });
-    const link = `${window.location.origin}/laporan-peserta/${encodeURIComponent(participantId)}?${query}`;
+  const createShareLink = async () => {
     try {
-      await navigator.clipboard.writeText(link);
-      toast.success("Tautan laporan peserta disalin.");
-    } catch {
-      toast.error("Tautan gagal disalin. Coba bagikan melalui WhatsApp.");
+      const { data: result } = await api.post(
+        `/admin/laporan/peserta/${encodeURIComponent(participantId)}/share`,
+        {},
+        { params: { month, week } },
+      );
+      setShareLink(result.link);
+      setShareExpiresAt(result.expires_at);
+      return result;
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+      return null;
     }
   };
 
-  const shareWhatsApp = () => {
+  const copyLink = async () => {
+    const result = await createShareLink();
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.link);
+      toast.success("Tautan laporan peserta disalin.");
+    } catch {
+      toast.error("Tautan gagal disalin.");
+    }
+  };
+
+  const shareWhatsApp = async () => {
     if (!data) return;
-    const query = new URLSearchParams({ bulan: month, pekan: week });
-    const link = `${window.location.origin}/laporan-peserta/${encodeURIComponent(participantId)}?${query}`;
-    const summary = data.six_months.summary;
-    const text = [
-      `Assalamu'alaikum, berikut laporan kehadiran ${data.participant.name}.`,
-      `Periode ${monthLabel(month)}${week !== "bulanan" ? `, ${weekLabel(Number(week))}` : ""}.`,
-      `Hadir ${summary.hadir}/${summary.total_pertemuan} pertemuan (${summary.ratio}%).`,
-      `Hadir ${summary.hadir} · Izin ${summary.izin} · Sakit ${summary.sakit} · Alpha ${summary.alpha}.`,
-      "Tautan ini hanya dapat dibuka oleh pengurus yang sudah masuk ke aplikasi:",
-      link,
-    ].join("\n");
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    const shareWindow = window.open("", "_blank");
+    const result = await createShareLink();
+    if (!result) {
+      shareWindow?.close();
+      return;
+    }
+    const periodLabel = week === "bulanan"
+      ? monthLabel(month)
+      : `${dateLabel(result.date_from)}–${dateLabel(result.date_to)}`;
+    const text = `Laporan ${result.name} ${periodLabel}\n${result.link}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    if (shareWindow) shareWindow.location.href = whatsappUrl;
+    else toast.error("WhatsApp tidak dapat dibuka. Salin tautan laporan untuk membagikannya.");
   };
 
   if (!data) {
@@ -149,9 +168,6 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
             <ArrowLeft size={17} /> Daftar peserta
           </button>
           <h1 className="truncate font-heading text-2xl font-bold text-[#111827]">{data.participant.name}</h1>
-          <p className="mt-1 text-base text-[#6B7280]">
-              {[data.participant.phone, data.participant.email].filter(Boolean).join(" · ") || "Kontak belum diisi"} · {data.participant.account_status === "pending" ? "Belum aktivasi" : "Akun aktif"}
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" data-testid={PARTICIPANT_REPORT.copyLink} onClick={copyLink}
@@ -164,6 +180,12 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
           </button>
         </div>
       </header>
+      {shareLink && (
+        <p className="break-all rounded-xl bg-[#F4F4F1] p-3 text-base text-[#4B5563]" data-testid={PARTICIPANT_REPORT.shareLink}>
+          {shareLink}
+          <span className="mt-1 block text-sm">Tautan berlaku sampai {new Date(shareExpiresAt).toLocaleDateString("id-ID")}.</span>
+        </p>
+      )}
 
       <section className="grid gap-3 sm:grid-cols-2" data-testid={PARTICIPANT_REPORT.periodSummary}>
         <SummaryCard label={`Kehadiran · ${monthLabel(month)}${week !== "bulanan" ? ` · Pekan ${week}` : ""}`} value={`${data.summary.ratio}%`} color="text-[#0D5C3A]" />
@@ -232,6 +254,7 @@ export default function LaporanPesertaView() {
   const [rows, setRows] = useState(null);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState("tertinggi");
   const [selected, setSelected] = useState(() => new Set());
   const [selectedOnly, setSelectedOnly] = useState(false);
   const [participantId, setParticipantId] = useState(() => searchParams.get("laporanPesertaId"));
@@ -256,12 +279,13 @@ export default function LaporanPesertaView() {
     const term = search.trim().toLocaleLowerCase("id");
     return (rows || []).filter((row) => {
       if (selectedOnly && !selected.has(row.user_id)) return false;
-      return !term
-        || (row.name || "").toLocaleLowerCase("id").includes(term)
-        || String(row.phone || "").toLocaleLowerCase("id").includes(term)
-        || String(row.email || "").toLocaleLowerCase("id").includes(term);
+      return !term || (row.name || "").toLocaleLowerCase("id").includes(term);
+    }).sort((a, b) => {
+      const ratioDifference = Number(b.ratio || 0) - Number(a.ratio || 0);
+      return (sortOrder === "tertinggi" ? ratioDifference : -ratioDifference)
+        || a.name.localeCompare(b.name, "id");
     });
-  }, [rows, search, selected, selectedOnly]);
+  }, [rows, search, selected, selectedOnly, sortOrder]);
 
   const allVisibleSelected = filteredRows.length > 0
     && filteredRows.every((row) => selected.has(row.user_id));
@@ -345,11 +369,10 @@ export default function LaporanPesertaView() {
       </section>
 
       <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4">
-        <label htmlFor="laporan-peserta-search" className="mb-1.5 block text-base font-semibold text-[#374151]">Cari nama, nomor HP, atau email</label>
         <div className="relative">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
           <input id="laporan-peserta-search" data-testid={PARTICIPANT_REPORT.search} value={search} onChange={(e) => setSearch(e.target.value)}
-            placeholder="Ketik nama, nomor HP, atau email" className="h-12 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-3 text-base outline-none focus:border-[#111114]" />
+            aria-label="Nama peserta" placeholder="Nama peserta" className="h-12 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-3 text-base outline-none focus:border-[#111114]" />
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <label className="inline-flex min-h-11 items-center gap-2 text-base font-semibold text-[#374151]">
@@ -358,6 +381,13 @@ export default function LaporanPesertaView() {
             Pilih semua yang tampil
           </label>
           <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="laporan-peserta-sort" className="text-base font-semibold text-[#374151]">Urutkan</label>
+            <select id="laporan-peserta-sort" data-testid={PARTICIPANT_REPORT.sort} value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="min-h-11 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-base">
+              <option value="tertinggi">Tertinggi</option>
+              <option value="terendah">Terendah</option>
+            </select>
             <button type="button" data-testid={PARTICIPANT_REPORT.selectedOnly} aria-pressed={selectedOnly}
               onClick={() => setSelectedOnly((value) => !value)}
               className={`min-h-11 rounded-xl border px-3 text-base font-semibold ${selectedOnly ? "border-[#0D5C3A] bg-[#E8F5EE] text-[#14532D]" : "border-[#E8E8E4] text-[#4B5563]"}`}>
@@ -401,7 +431,6 @@ export default function LaporanPesertaView() {
                   <button type="button" data-testid={`${PARTICIPANT_REPORT.namePrefix}-${row.user_id}`}
                     onClick={() => setParticipantId(row.user_id)} className="min-w-0 flex-1 text-left">
                     <span className="block truncate font-semibold text-[#111827]">{row.name}</span>
-                    <span className="mt-0.5 block text-base text-[#6B7280]">{[row.phone, row.email].filter(Boolean).join(" · ") || "Kontak belum diisi"}</span>
                   </button>
                   <div className="shrink-0 text-right">
                     <div className="font-bold text-[#0D5C3A]">{row.ratio}%</div>

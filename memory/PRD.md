@@ -9,9 +9,10 @@
   absensi dicatat otomatis sebagai Alpha. Peserta di luar daftar wajib tetap tidak dihitung.
 - Rekap kegiatan menampilkan daftar peserta Izin, Sakit, dan Alpha serta grafik batang
   beranimasi.
-- Menu Laporan per Peserta menyediakan daftar bulanan/pekanan, pencarian nama, nomor
-  HP, atau email, kotak pilihan peserta, detail kehadiran enam bulan dan daftar kegiatan, serta
-  berbagi tautan internal yang hanya dapat dibuka admin/pengurus.
+- Menu Laporan per Peserta menyediakan daftar bulanan/pekanan, pencarian dan tampilan
+  nama saja, pengurutan kehadiran tertinggi/terendah, kotak pilihan peserta, detail enam
+  bulan dan kegiatan, serta tautan publik bertoken yang berlaku 30 hari. Pesan WhatsApp
+  berisi nama peserta, periode laporan, dan tautan saja.
 
 ## Penyempurnaan jadwal dan rekap kegiatan
 - Penyimpanan formulir kegiatan mensyaratkan langkah Tinjau dan konfirmasi eksplisit;

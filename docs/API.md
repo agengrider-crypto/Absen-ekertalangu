@@ -195,12 +195,16 @@ tidak ada hitungan gabungan seperti hadir minimal satu sesi atau hadir semua ses
 
 | Method | Path | Guard | Keterangan |
 |---|---|---|---|
-| GET | `/api/admin/laporan/peserta?month=YYYY-MM&week=bulanan\|1..5&q=` | `require_staff` | Daftar peserta dan hitungan Hadir/Izin/Sakit/Alpha/Belum diabsen untuk satu bulan atau pekan |
+| GET | `/api/admin/laporan/peserta?month=YYYY-MM&week=bulanan\|1..5&q=` | `require_staff` | Daftar peserta (pencarian hanya nama), hitungan Hadir/Izin/Sakit/Alpha/Belum diabsen untuk satu bulan atau pekan |
 | GET | `/api/admin/laporan/peserta/{user_id}?month=YYYY-MM&week=bulanan\|1..5` | `require_staff` | Detail peserta, ringkasan periode terpilih, kegiatan, serta ringkasan bulanan enam bulan terakhir |
+| POST | `/api/admin/laporan/peserta/{user_id}/share?month=YYYY-MM&week=bulanan\|1..5` | `require_staff` | Membuat tautan publik laporan peserta yang berlaku 30 hari |
+| GET | `/api/laporan-peserta/{token}` | — | Membaca laporan melalui token publik; **410** bila kedaluwarsa, **404** bila tidak ditemukan |
 
 Pekan dibagi per tanggal dalam bulan: pekan 1 tanggal 1–7, pekan 2 tanggal 8–14,
-dan seterusnya. Tanggal di masa depan tidak ikut dihitung. Tautan berbagi dari detail
-peserta mengarah ke halaman internal; penerima wajib masuk sebagai admin atau pengurus.
+dan seterusnya. Tanggal di masa depan tidak ikut dihitung. Daftar dan laporan hanya
+menampilkan nama peserta, tanpa nomor HP atau email. Tautan berbagi memakai token acak
+dan berlaku 30 hari; halaman publik menampilkan nama, periode, ringkasan kehadiran, dan
+kegiatan tanpa menampilkan data kontak.
 
 ---
 

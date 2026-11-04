@@ -175,10 +175,12 @@ Isi laporan: rasio kehadiran, total hadir/izin/alpha, kehadiran per jenis kelami
 **Paling Rajin** (5 teratas), **Paling Sering Alpha** (5 teratas), rincian per kegiatan.
 
 Menu **Laporan per Peserta** menyediakan daftar bulanan atau mingguan (pekan tanggal 1–7,
-8–14, dan seterusnya), pencarian nama/nomor HP/email, serta pilihan peserta melalui kotak centang.
-Nama peserta membuka detail dengan persentase dan jumlah pertemuan pada periode terpilih,
-ringkasan status, grafik enam bulan terakhir, serta daftar kegiatan dan status kehadiran.
-Detail dapat dibagikan lewat WhatsApp atau tautan internal yang memerlukan login pengurus.
+8–14, dan seterusnya), pencarian berdasarkan nama saja, pengurutan kehadiran tertinggi atau
+terendah, serta pilihan peserta melalui kotak centang. Nama peserta membuka detail dengan
+persentase dan jumlah pertemuan pada periode terpilih, ringkasan status, grafik enam bulan
+terakhir, serta daftar kegiatan dan status kehadiran. Periode bulan sebelumnya dapat dipilih
+melalui kontrol bulan. Detail dapat dibagikan melalui WhatsApp atau tautan publik bertoken
+yang berlaku 30 hari; pesan WhatsApp berisi nama peserta, periode, dan tautan saja.
 
 Rincian **per peserta** tersedia dalam bentuk dropdown "Rekap per Peserta"
 (nama, hadir, izin, alpha, persentase).

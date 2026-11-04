@@ -4749,8 +4749,6 @@ async def build_peserta_attendance_rows(date_from: str, date_to: str,
     rows = {
         str(p["_id"]): {
             "user_id": str(p["_id"]), "name": p.get("name") or "Peserta",
-            "phone": p.get("phone"), "email": p.get("email"),
-            "account_status": p.get("status", "active"),
             "hadir": 0, "izin": 0, "sakit": 0, "alpha": 0,
             "belum_diabsen": 0, "total_pertemuan": 0, "ratio": 0.0,
             **({"by_month": {}} if group_by_month else {}),
@@ -4790,7 +4788,7 @@ async def build_peserta_attendance_rows(date_from: str, date_to: str,
                 month_row["total_pertemuan"] += 1
             if detail_user_id == user_id:
                 activities.append({
-                    "id": k["_id"], "name": k.get("base_name") or k.get("name") or "Kegiatan",
+                    "id": str(k["_id"]), "name": k.get("base_name") or k.get("name") or "Kegiatan",
                     "date": k.get("date"), "start_time": k.get("start_time"),
                     "end_time": k.get("end_time"), "session_label": k.get("session_label"),
                     "status": status, "type": k.get("type"),
@@ -4815,12 +4813,7 @@ async def admin_laporan_peserta(admin: dict = Depends(require_staff),
     term = q.strip().casefold()
     result = list(rows.values())
     if term:
-        result = [
-            row for row in result
-            if term in row["name"].casefold()
-            or term in str(row.get("phone") or "").casefold()
-            or term in str(row.get("email") or "").casefold()
-        ]
+        result = [row for row in result if term in row["name"].casefold()]
     return {
         "month": selected_month, "week": selected_week,
         "date_from": date_from, "date_to": date_to,
@@ -4834,6 +4827,10 @@ async def admin_laporan_peserta(admin: dict = Depends(require_staff),
 @api_router.get("/admin/laporan/peserta/{user_id}")
 async def admin_laporan_peserta_detail(user_id: str, admin: dict = Depends(require_staff),
                                        month: str = "", week: str = "bulanan"):
+    return await build_peserta_report_detail(user_id, month, week)
+
+
+async def build_peserta_report_detail(user_id: str, month: str, week: str) -> dict:
     if not ObjectId.is_valid(user_id):
         raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
     participant = await db.users.find_one({"_id": ObjectId(user_id), **PESERTA_QUERY})
@@ -4882,14 +4879,79 @@ async def admin_laporan_peserta_detail(user_id: str, admin: dict = Depends(requi
     return {
         "participant": {
             "id": user_id, "name": participant.get("name") or "Peserta",
-            "phone": participant.get("phone"), "email": participant.get("email"),
-            "account_status": participant.get("status", "active"),
         },
         "month": selected_month, "week": week_value,
         "date_from": date_from, "date_to": date_to,
         "summary": selected,
         "six_months": {"summary": total_six_months, "months": monthly_history},
         "activities": activities,
+    }
+
+
+@api_router.post("/admin/laporan/peserta/{user_id}/share")
+async def share_peserta_report(user_id: str, request: Request,
+                               month: str = "", week: str = "bulanan",
+                               staff: dict = Depends(require_staff)):
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+    participant = await db.users.find_one({"_id": ObjectId(user_id), **PESERTA_QUERY})
+    if not participant:
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+    selected_month = month.strip() or now_wita().strftime("%Y-%m")
+    week_value = week.strip() or "bulanan"
+    date_from, date_to = peserta_report_range(selected_month, week_value)
+    token = secrets.token_urlsafe(24)
+    created_at = datetime.now(timezone.utc)
+    expires_at = (created_at + timedelta(days=30)).isoformat()
+    await db.peserta_report_links.insert_one({
+        "_id": token,
+        "user_id": user_id,
+        "month": selected_month,
+        "week": week_value,
+        "created_by": str(staff["_id"]),
+        "created_at": created_at.isoformat(),
+        "expires_at": expires_at,
+    })
+    await log_activity(
+        staff, "bagikan_laporan_peserta",
+        f"Membagikan laporan peserta {participant.get('name') or 'Peserta'} untuk {selected_month}",
+    )
+    return {
+        "link": f"{resolve_base_url(request)}/laporan-peserta/{token}",
+        "expires_at": expires_at,
+        "name": participant.get("name") or "Peserta",
+        "month": selected_month,
+        "week": week_value,
+        "date_from": date_from,
+        "date_to": date_to,
+    }
+
+
+@api_router.get("/laporan-peserta/{token}")
+async def public_peserta_report(token: str):
+    share = await db.peserta_report_links.find_one({"_id": token})
+    if not share:
+        raise HTTPException(status_code=404, detail="Tautan laporan peserta tidak ditemukan")
+    if is_expired_iso(share.get("expires_at")):
+        raise HTTPException(status_code=410, detail="Tautan laporan peserta sudah kedaluwarsa")
+    report = await build_peserta_report_detail(
+        share["user_id"], share["month"], share["week"])
+    return {
+        "participant": {"name": report["participant"]["name"]},
+        "month": report["month"],
+        "week": report["week"],
+        "date_from": report["date_from"],
+        "date_to": report["date_to"],
+        "summary": {
+            key: value for key, value in report["summary"].items()
+            if key not in ("user_id", "name")
+        },
+        "six_months": report["six_months"],
+        "activities": [
+            {key: value for key, value in activity.items() if key != "id"}
+            for activity in report["activities"]
+        ],
+        "expires_at": share["expires_at"],
     }
 
 
