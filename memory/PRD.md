@@ -1,5 +1,23 @@
 # E-KERTALANGU — PRD
 
+## Penyederhanaan masuk dan QR presensi
+- Peran yang terakhir dipilih disimpan di browser. Saat sesi login masih aktif dan situs
+  dibuka kembali, pengguna multi-peran langsung diarahkan ke area terakhir; pilihan peran
+  dihapus saat keluar akun dan dapat diperbarui lewat Ganti Peran.
+- Halaman Kode Akses hanya menampilkan tindakan Bagikan ke WhatsApp dan Perbarui Kode.
+- QR pada halaman Scan Presensi dapat diketuk untuk pratinjau besar; salin tautan dan
+  unduh QR tidak disediakan di halaman tersebut.
+
+## Pembaruan daftar kegiatan
+- Daftar kegiatan mendukung pencarian, filter jenis, filter Hari Ini/Akan Datang/Selesai,
+  pilihan kegiatan/sesi, dan penghapusan massal. Filter status mencakup data lintas bulan;
+  tampilan Semua mengikuti bulan yang dipilih.
+- Formulir kegiatan memakai empat langkah: Kegiatan, Jadwal, Peserta, dan Tinjau.
+- Detail kegiatan menyediakan scan barcode di dekat Aksi Kegiatan serta rekap peserta
+  hadir, pemisahan jumlah laki-laki/perempuan, dan berbagi tautan melalui WhatsApp.
+- Kartu Nama peserta tersedia sebagai halaman khusus pada sidebar, terpisah dari halaman
+  pengelolaan peserta.
+
 ## Original Problem Statement
 Web app absensi pengajian. Fase 1: fondasi autentikasi — Login fleksibel (HP/Email/Username), Pendaftaran & Aktivasi via QR, Role/Dashboard page. Gaya: modern minimalis, putih bersih, aksen hijau tua (#0D5C3A), ramah lansia, mobile-first. Stack: React + FastAPI + MongoDB, JWT auth.
 

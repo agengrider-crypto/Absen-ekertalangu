@@ -19,6 +19,7 @@ import KalenderView from "./KalenderView";
 import { roleLabel } from "@/lib/roles";
 import DashboardView from "./DashboardView";
 import Peserta from "./Peserta";
+import KartuNamaView from "./KartuNamaView";
 import PesertaBulkView from "./PesertaBulkView";
 import PesertaDuplikat from "./PesertaDuplikat";
 import KegiatanView from "./KegiatanView";
@@ -340,15 +341,14 @@ export default function AdminLayout({ user, role = "admin" }) {
               }}
             />
           )}
-          {(active === "peserta" || active === "kartu-nama") && (
+          {active === "peserta" && (
             <Peserta
               role={role}
-              openNameTags={active === "kartu-nama"}
               addRequest={addPesertaRequest}
               onAddRequestHandled={() => setAddPesertaRequest(0)}
-              onNameTagsClose={() => go("peserta")}
             />
           )}
+          {active === "kartu-nama" && <KartuNamaView />}
           {active === "peserta-bulk" && <PesertaBulkView />}
           {active === "peserta-duplikat" && <PesertaDuplikat />}
           {active === "kegiatan" && (

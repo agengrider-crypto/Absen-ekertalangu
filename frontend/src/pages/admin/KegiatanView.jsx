@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import { ACTIVITIES } from "@/constants/testIds";
 import {
   KEGIATAN_TYPES, TYPE_LABEL, TYPE_COLOR, timeOptions,
   tanggalPanjang, tanggalSingkat, hhmm, MONTH_SHORT,
@@ -43,10 +44,12 @@ export default function KegiatanView({
   const [items, setItems] = useState(null);
   const [view, setView] = useState("list");
   const [dayFilter, setDayFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [phaseFilter, setPhaseFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const [showAdd, setShowAdd] = useState(false);
   const [detailId, setDetailId] = useState(null);
-  const [qrModal, setQrModal] = useState(null);
-  const [absenQr, setAbsenQr] = useState(null);
   const [editItem, setEditItem] = useState(null);
   const [reminderItem, setReminderItem] = useState(null);
   const [detailKey, setDetailKey] = useState(0);
@@ -56,10 +59,10 @@ export default function KegiatanView({
 
   const load = useCallback(() => {
     setItems(null);
-    api.get(`/admin/kegiatan?month=${month}`)
+    api.get("/admin/kegiatan")
       .then(({ data }) => setItems(data))
-      .catch((e) => { setItems([]); toast.error(formatApiErrorDetail(e.response?.data?.detail)); });
-  }, [month]);
+      .catch((e) => { setItems(false); toast.error(formatApiErrorDetail(e.response?.data?.detail)); });
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -86,13 +89,27 @@ export default function KegiatanView({
     while (nm > 12) { nm -= 12; ny += 1; }
     while (nm < 1) { nm += 12; ny -= 1; }
     setDayFilter("");
+    setSelectedIds(new Set());
     setMonth(`${ny}-${String(nm).padStart(2, "0")}`);
   };
 
   const filtered = useMemo(() => {
     if (!items) return [];
-    return dayFilter ? items.filter((k) => k.date === dayFilter) : items;
-  }, [items, dayFilter]);
+    const term = search.trim().toLocaleLowerCase("id");
+    const today = todayYmd();
+    return items.filter((k) => {
+      if (dayFilter && k.date !== dayFilter) return false;
+      if (phaseFilter === "all" && !String(k.date || "").startsWith(month)) return false;
+      if (typeFilter !== "all" && k.type !== typeFilter) return false;
+      const phase = phaseOf(k);
+      if (phaseFilter === "today" && (k.date !== today || phase === "selesai")) return false;
+      if (phaseFilter === "upcoming" && phase !== "akan_datang") return false;
+      if (phaseFilter === "completed" && phase !== "selesai") return false;
+      if (!term) return true;
+      return [k.name, k.teacher, k.location, TYPE_LABEL[k.type]]
+        .some((value) => String(value || "").toLocaleLowerCase("id").includes(term));
+    });
+  }, [items, dayFilter, month, typeFilter, phaseFilter, search]);
 
   const daysWithEvent = useMemo(() => {
     const s = {};
@@ -101,20 +118,7 @@ export default function KegiatanView({
   }, [items]);
 
   const groups = useMemo(() => groupKegiatan(filtered), [filtered]);
-
-  const openShareRekap = async (k) => {
-    try {
-      const { data } = await api.get(`/admin/kegiatan/${k.id}/qr`);
-      setQrModal({ ...data, name: k.name });
-    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-  };
-
-  const openAbsenQr = async (k) => {
-    try {
-      const { data } = await api.post(`/admin/kegiatan/${k.id}/absen-qr`);
-      setAbsenQr({ ...data, name: k.name });
-    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-  };
+  const selectedVisibleCount = filtered.filter((k) => selectedIds.has(k.id)).length;
 
   const toggleStatus = async (k) => {
     try {
@@ -135,6 +139,49 @@ export default function KegiatanView({
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
   };
 
+  const visibleIds = filtered.map((k) => k.id);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  const toggleVisibleSelection = () => {
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      if (allVisibleSelected) visibleIds.forEach((id) => next.delete(id));
+      else visibleIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+  const toggleSelection = (id) => setSelectedIds((previous) => {
+    const next = new Set(previous);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+  const deleteSelected = async () => {
+    const targets = filtered.filter((k) => selectedIds.has(k.id));
+    if (!targets.length) return;
+    if (!window.confirm(`Hapus ${targets.length} kegiatan terpilih? Tindakan ini tidak bisa dibatalkan.`)) return;
+    const deleted = [];
+    const failed = [];
+    for (const kegiatan of targets) {
+      try {
+        await api.delete(`/admin/kegiatan/${kegiatan.id}`);
+        deleted.push(kegiatan);
+      } catch (e) {
+        failed.push({ kegiatan, detail: formatApiErrorDetail(e.response?.data?.detail) });
+      }
+    }
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      deleted.forEach((k) => next.delete(k.id));
+      return next;
+    });
+    if (deleted.length) toast.success(`${deleted.length} kegiatan dihapus.`);
+    if (failed.length) {
+      const failures = failed.map(({ kegiatan, detail }) => `${kegiatan.name}: ${detail}`).join("; ");
+      toast.error(`${failed.length} kegiatan gagal dihapus. ${failures}`);
+    }
+    load();
+  };
+
   // Semua fitur kegiatan berada DI DALAM halaman detail (klik kegiatan di daftar)
   if (detailId) {
     return (
@@ -145,8 +192,6 @@ export default function KegiatanView({
           onBack={() => { setDetailId(null); load(); }}
           onChanged={load}
           onEdit={(k) => setEditItem(k)}
-          onShareRekap={openShareRekap}
-          onAbsenQr={openAbsenQr}
           onReminder={(k) => setReminderItem(k)}
           onToggleStatus={toggleStatus}
           onDelete={removeKegiatan}
@@ -164,8 +209,6 @@ export default function KegiatanView({
             onDone={() => { setEditItem(null); load(); setDetailKey((v) => v + 1); }}
           />
         )}
-        {qrModal && <QrModal data={qrModal} onClose={() => setQrModal(null)} />}
-        {absenQr && <AbsenQrModal data={absenQr} onClose={() => setAbsenQr(null)} />}
         {reminderItem && <ReminderModal kegiatan={reminderItem} onClose={() => setReminderItem(null)} />}
         {gabunganId && <RekapGabunganModal kegiatanId={gabunganId} onClose={() => setGabunganId(null)} />}
         {salinGroup && (
@@ -188,6 +231,42 @@ export default function KegiatanView({
         </button>
       </div>
 
+      <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <label className="relative">
+          <span className="sr-only">Cari kegiatan</span>
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama, pengajar, atau lokasi kegiatan"
+            data-testid={ACTIVITIES.search}
+            className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-4 text-base outline-none focus:border-[#111114]" />
+        </label>
+        <div className="flex items-center gap-2">
+          <label htmlFor="kegiatan-type-filter" className="sr-only">Filter jenis kegiatan</label>
+          <select id="kegiatan-type-filter" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}
+            data-testid={ACTIVITIES.typeFilter}
+            className="h-11 min-w-36 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-sm font-semibold text-[#374151]">
+            <option value="all">Semua jenis</option>
+            {KEGIATAN_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Status kegiatan" data-testid={ACTIVITIES.phaseFilter}>
+        {[
+          { key: "all", label: "Semua", count: (items || []).filter((k) => String(k.date || "").startsWith(month)).length },
+          { key: "today", label: "Hari ini", count: (items || []).filter((k) => k.date === todayYmd() && phaseOf(k) !== "selesai").length },
+          { key: "upcoming", label: "Akan datang", count: (items || []).filter((k) => phaseOf(k) === "akan_datang").length },
+          { key: "completed", label: "Selesai", count: (items || []).filter((k) => phaseOf(k) === "selesai").length },
+        ].map((filter) => (
+          <button key={filter.key} type="button" role="tab" aria-selected={phaseFilter === filter.key}
+            data-testid={`${ACTIVITIES.phasePrefix}-${filter.key}`} onClick={() => setPhaseFilter(filter.key)}
+            className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border-2 px-3.5 text-sm font-semibold ${
+              phaseFilter === filter.key ? "border-[#111114] bg-[#111114] text-white" : "border-[#E8E8E4] bg-white text-[#4B5563]"
+            }`}>
+            {filter.label}<span className={`rounded-full px-1.5 py-0.5 text-xs ${phaseFilter === filter.key ? "bg-white/20" : "bg-[#F3F4F6]"}`}>{filter.count}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Month nav + view toggle */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2">
@@ -196,7 +275,7 @@ export default function KegiatanView({
           <button data-testid="button-next-month" onClick={() => shiftMonth(1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#111114]"><ChevronRight size={18} /></button>
         </div>
         <div className="flex items-center gap-1 bg-white border border-[#E8E8E4] rounded-xl p-1">
-          <button data-testid="view-list" onClick={() => setView("list")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "list" ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}><List size={16} /> List</button>
+          <button data-testid="view-list" onClick={() => setView("list")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "list" ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}><List size={16} /> Daftar</button>
           <button data-testid="view-calendar" onClick={() => setView("calendar")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "calendar" ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}><Grid3x3 size={16} /> Kalender</button>
         </div>
       </div>
@@ -216,28 +295,57 @@ export default function KegiatanView({
       {/* List */}
       {items === null ? (
         <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center text-[#6B7280]">Belum ada kegiatan pada periode ini.</div>
-      ) : (
-        <div className="space-y-6">
-          {groups.filter((g) => g.items.length > 0).map((g) => (
-            <section key={g.key} data-testid={`kegiatan-group-${g.key}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${g.cls}`}>{g.label}</span>
-                <span className="text-xs text-[#9CA3AF]">{g.items.length} kegiatan</span>
-              </div>
-              <div className="grid gap-3">
-                {groupSessions(g.items).map((grp) => (
-                  grp.single
-                    ? <KegiatanCard key={grp.key} k={grp.k} onOpen={() => setDetailId(grp.k.id)} onSalin={() => setSalinGroup({ items: [grp.k] })} />
-                    : <SessionGroupCard key={grp.key} group={grp} onOpen={setDetailId}
-                        onRekapGabungan={() => setGabunganId(grp.items[0].id)}
-                        onSalin={() => setSalinGroup(grp)} />
-                ))}
-              </div>
-            </section>
-          ))}
+      ) : items === false ? (
+        <div className="rounded-2xl border border-[#FECACA] bg-white p-8 text-center">
+          <p className="text-sm text-[#6B7280]">Daftar kegiatan gagal dimuat.</p>
+          <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#111114] px-4 font-semibold text-white">Coba lagi</button>
         </div>
+      ) : (
+        <>
+          {filtered.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E8E8E4] bg-white px-3 py-2.5">
+              <label className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#374151]">
+                <input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleSelection}
+                  data-testid={ACTIVITIES.selectAll} className="h-5 w-5 accent-[#111114]" />
+                Pilih semua yang tampil ({filtered.length})
+              </label>
+              {selectedVisibleCount > 0 && (
+                <button type="button" onClick={deleteSelected} data-testid={ACTIVITIES.deleteSelected}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#DC2626] px-4 text-sm font-semibold text-white hover:bg-[#B91C1C]">
+                  <Trash2 size={16} /> Hapus terpilih ({selectedVisibleCount})
+                </button>
+              )}
+            </div>
+          )}
+          {filtered.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center text-[#6B7280]">
+              {search || typeFilter !== "all" || phaseFilter !== "all" || dayFilter
+                ? "Tidak ada kegiatan yang cocok dengan pencarian atau filter."
+                : "Belum ada kegiatan pada periode ini."}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {groups.filter((g) => g.items.length > 0).map((g) => (
+                <section key={g.key} data-testid={`kegiatan-group-${g.key}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${g.cls}`}>{g.label}</span>
+                    <span className="text-xs text-[#9CA3AF]">{g.items.length} kegiatan</span>
+                  </div>
+                  <div className="grid gap-3">
+                    {groupSessions(g.items).map((grp) => (
+                      grp.single
+                        ? <KegiatanCard key={grp.key} k={grp.k} selected={selectedIds.has(grp.k.id)} onSelect={() => toggleSelection(grp.k.id)}
+                            onOpen={() => setDetailId(grp.k.id)} onSalin={() => setSalinGroup({ items: [grp.k] })} />
+                        : <SessionGroupCard key={grp.key} group={grp} selectedIds={selectedIds} onToggle={toggleSelection} onOpen={setDetailId}
+                            onRekapGabungan={() => setGabunganId(grp.items[0].id)}
+                            onSalin={() => setSalinGroup(grp)} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {showAdd && <KegiatanFormModal onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
@@ -267,16 +375,25 @@ function FilterBadges({ k }) {
   );
 }
 
-function KegiatanCard({ k, onOpen, onSalin }) {
+function KegiatanCard({ k, selected, onSelect, onOpen, onSalin }) {
   const c = k.counts || {};
+  const [, month, day] = String(k.date || "").split("-");
   return (
-    <div
-      className="w-full text-left bg-white rounded-2xl border border-[#E8E8E4] p-4 hover:border-[#111114] hover:bg-[#FAFCFA] transition-colors"
-      data-testid={`kegiatan-card-${k.id}`}
-    >
-      <button type="button" onClick={onOpen} className="w-full text-left" data-testid={`kegiatan-card-open-${k.id}`}>
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="min-w-0">
+    <div className="bg-white rounded-2xl border border-[#E8E8E4] p-3 sm:p-4 hover:border-[#111114] transition-colors" data-testid={`kegiatan-card-${k.id}`}>
+      <div className="grid grid-cols-[auto_58px_minmax(0,1fr)] items-stretch gap-2 sm:gap-3">
+        <label className="flex items-start pt-2" title={`Pilih kegiatan ${k.name}`}>
+          <input type="checkbox" checked={selected} onChange={onSelect} aria-label={`Pilih kegiatan ${k.name}`}
+            data-testid={`${ACTIVITIES.checkboxPrefix}-${k.id}`} className="h-5 w-5 accent-[#111114]" />
+        </label>
+        <div className="flex flex-col items-center justify-center self-start rounded-xl bg-[#F4F4F1] px-1 py-2 text-center" data-testid={`${ACTIVITIES.datePrefix}-${k.id}`}>
+          <span className="text-xl font-bold leading-none text-[#111114]">{Number(day) || "—"}</span>
+          <span className="mt-1 text-[10px] font-bold uppercase text-[#6B7280]">{MONTH_SHORT[(Number(month) || 1) - 1]}</span>
+          <span className="mt-1 text-[10px] font-medium text-[#6B7280]">{k.start_time}</span>
+        </div>
+        <div className="min-w-0">
+          <button type="button" onClick={onOpen} className="w-full text-left" data-testid={`kegiatan-card-open-${k.id}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${PHASE_META[phaseOf(k)].cls}`}>{PHASE_META[phaseOf(k)].badge}</span>
@@ -286,7 +403,6 @@ function KegiatanCard({ k, onOpen, onSalin }) {
             </div>
             <h3 className="font-heading font-bold text-[#111827] mt-1.5 truncate">{k.name}</h3>
             <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
-              <span className="inline-flex items-center gap-1"><CalendarDays size={14} /> {tanggalSingkat(k.date)}</span>
               <span className="inline-flex items-center gap-1"><Clock size={14} /> {k.start_time}–{k.end_time} WITA</span>
               {k.location && <span className="inline-flex items-center gap-1"><MapPin size={14} /> {k.location}</span>}
               {k.teacher && <span className="inline-flex items-center gap-1"><User size={14} /> {k.teacher}</span>}
@@ -294,11 +410,11 @@ function KegiatanCard({ k, onOpen, onSalin }) {
           </div>
           <div className="text-right shrink-0">
             <div className="text-2xl font-bold text-[#111114] leading-none">{c.ratio ?? 0}%</div>
-            <div className="text-xs text-[#6B7280] mt-1">H {c.hadir ?? 0} · I {c.izin ?? 0} · A {c.alpha ?? 0}</div>
+            <div className="text-[11px] text-[#6B7280] mt-1">Hadir</div>
           </div>
         </div>
-      </button>
-      <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
+          </button>
+          <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
         <button type="button" onClick={onOpen} className="text-sm font-semibold text-[#111114] inline-flex items-center gap-1.5 hover:underline">
           Buka kegiatan ini <ChevronRight size={16} />
         </button>
@@ -308,6 +424,8 @@ function KegiatanCard({ k, onOpen, onSalin }) {
             <Copy size={13} /> Salin ke tanggal lain
           </button>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -320,12 +438,18 @@ function KegiatanCard({ k, onOpen, onSalin }) {
  * peserta yang hadir sesi pagi tidak otomatis terhitung hadir di sesi lain.
  * FASE 10 — tombol Rekap Gabungan 1 Hari & Salin Jadwal ke tanggal lain.
  */
-function SessionGroupCard({ group, onOpen, onRekapGabungan, onSalin }) {
+function SessionGroupCard({ group, selectedIds, onToggle, onOpen, onRekapGabungan, onSalin }) {
   const first = group.items[0];
-  // Ringkasan cepat: hadir per sesi
-  const totalHadir = group.items.reduce((n, k) => n + (k.counts?.hadir || 0), 0);
+  const [, month, day] = String(first.date || "").split("-");
   return (
-    <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid={`kegiatan-sesi-group-${first.session_group_id}`}>
+    <div className="bg-white rounded-2xl border border-[#E8E8E4] p-3 sm:p-4" data-testid={`kegiatan-sesi-group-${first.session_group_id}`}>
+      <div className="grid grid-cols-[58px_minmax(0,1fr)] gap-3">
+      <div className="flex h-fit flex-col items-center justify-center rounded-xl bg-[#F4F4F1] px-1 py-2 text-center">
+        <span className="text-xl font-bold leading-none text-[#111114]">{Number(day) || "—"}</span>
+        <span className="mt-1 text-[10px] font-bold uppercase text-[#6B7280]">{MONTH_SHORT[(Number(month) || 1) - 1]}</span>
+        <span className="mt-1 text-[10px] font-medium text-[#6B7280]">{first.date}</span>
+      </div>
+      <div className="min-w-0">
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[first.type]}1a`, color: TYPE_COLOR[first.type] }}>{TYPE_LABEL[first.type]}</span>
         <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] inline-flex items-center gap-1">
@@ -336,9 +460,10 @@ function SessionGroupCard({ group, onOpen, onRekapGabungan, onSalin }) {
       </div>
       <h3 className="font-heading font-bold text-[#111827] mt-1.5">{first.base_name || first.name}</h3>
       <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
-        <span className="inline-flex items-center gap-1"><CalendarDays size={14} /> {tanggalSingkat(first.date)}</span>
         {first.location && <span className="inline-flex items-center gap-1"><MapPin size={14} /> {first.location}</span>}
         {first.teacher && <span className="inline-flex items-center gap-1"><User size={14} /> {first.teacher}</span>}
+      </div>
+      </div>
       </div>
 
       <div className="mt-3 grid gap-2">
@@ -346,15 +471,13 @@ function SessionGroupCard({ group, onOpen, onRekapGabungan, onSalin }) {
           const c = k.counts || {};
           const meta = PHASE_META[phaseOf(k)];
           return (
-            <button
-              key={k.id}
-              type="button"
-              onClick={() => onOpen(k.id)}
-              data-testid={`kegiatan-card-${k.id}`}
-              className="w-full text-left rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] px-3.5 py-3 hover:border-[#111114] hover:bg-[#FAFAF8] transition-colors"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
+            <div key={k.id} className="grid grid-cols-[auto_minmax(0,1fr)_52px_auto] items-center gap-2 rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] px-2.5 py-2.5" data-testid={`kegiatan-card-${k.id}`}>
+              <label title={`Pilih sesi ${k.session_label || ""}`} className="flex items-center">
+                <input type="checkbox" checked={selectedIds.has(k.id)} onChange={() => onToggle(k.id)}
+                  aria-label={`Pilih sesi ${k.session_label || ""}`} data-testid={`${ACTIVITIES.checkboxPrefix}-${k.id}`}
+                  className="h-5 w-5 accent-[#111114]" />
+              </label>
+              <button type="button" onClick={() => onOpen(k.id)} data-testid={`kegiatan-card-open-${k.id}`} className="min-w-0 text-left">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-bold text-[#111114]">{k.session_label || "Sesi"}</span>
                     <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${meta.cls}`}>{meta.badge}</span>
@@ -363,33 +486,27 @@ function SessionGroupCard({ group, onOpen, onRekapGabungan, onSalin }) {
                     <Clock size={12} /> {k.start_time}–{k.end_time} WITA
                   </div>
                   {(k.teacher || k.material || k.location) && (
-                    <div className="text-[11px] text-[#9CA3AF] mt-0.5 flex flex-wrap gap-x-2.5">
+                    <div className="text-[11px] text-[#9CA3AF] mt-0.5 hidden sm:flex flex-wrap gap-x-2.5">
                       {k.teacher && <span className="inline-flex items-center gap-1"><User size={11} /> {k.teacher}</span>}
                       {k.location && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {k.location}</span>}
                       {k.material && <span className="truncate max-w-[160px]">{k.material}</span>}
                     </div>
                   )}
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="text-lg font-bold text-[#111114] leading-none">{c.ratio ?? 0}%</div>
-                  <div className="text-[11px] text-[#6B7280] mt-0.5">H {c.hadir ?? 0} · I {c.izin ?? 0} · A {c.alpha ?? 0}</div>
-                </div>
-                <ChevronRight size={16} className="text-[#111114] shrink-0" />
+              </button>
+              <div className="text-right">
+                <div className="text-lg font-bold leading-none text-[#111114]">{c.ratio ?? 0}%</div>
+                <div className="mt-1 text-[10px] text-[#6B7280]">{c.hadir ?? 0} hadir</div>
               </div>
-            </button>
+              <ChevronRight size={16} className="text-[#111114]" />
+            </div>
           );
         })}
       </div>
-      <p className="text-[11px] text-[#9CA3AF] mt-2 leading-relaxed">
-        Absensi, rekap, kode akses &amp; barcode <b>terpisah untuk setiap waktu/sesi</b>.
-        Hadir di sesi pagi tidak dihitung sebagai hadir di sesi sore/malam.
-      </p>
       {/* FASE 10 — aksi grup sesi */}
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button type="button" data-testid={`sesi-rekap-gabungan-${first.session_group_id}`} onClick={onRekapGabungan}
           className="h-11 rounded-xl bg-[#111114] text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#000000]">
           <FileBarChart2 size={15} /> Rekap Gabungan 1 Hari
-          <span className="hidden sm:inline text-[11px] font-medium text-white/80">· {totalHadir} hadir</span>
         </button>
         <button type="button" data-testid={`sesi-salin-jadwal-${first.session_group_id}`} onClick={onSalin}
           className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#F1F1EE]">
@@ -614,66 +731,6 @@ function FeedbackModal({ kegiatan, onClose }) {
           ))}
         </div>
       )}
-    </ModalShell>
-  );
-}
-
-function QrModal({ data, onClose }) {
-  const download = () => {
-    const a = document.createElement("a");
-    a.href = data.image;
-    a.download = `qr_${(data.name || "kegiatan").replace(/\s+/g, "_")}.png`;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
-  const copy = () => { navigator.clipboard.writeText(data.link); toast.success("Link disalin"); };
-  const shareWa = () => {
-    const text = data.wa_text || `Assalamu'alaikum warahmatullahi wabarakatuh\n\nBerikut laporan ${data.name || "kegiatan"}\n${data.link}\n\nAlhamdulillah, jazakumullahu khoiro.`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-  };
-  return (
-    <ModalShell title="QR Rekap Kegiatan" onClose={onClose} testid="modal-qr">
-      <div className="text-center">
-        <img src={data.image} alt="QR Kegiatan" className="mx-auto w-56 h-56 rounded-xl border border-[#E8E8E4] p-2" data-testid="qr-image" />
-        <p className="text-sm text-[#6B7280] mt-3 break-all px-2">{data.link}</p>
-        <p className="text-xs text-[#9CA3AF] mt-1">Tautan rekap berlaku 7 hari.</p>
-        <div className="flex gap-2 mt-4">
-          <button onClick={copy} className="flex-1 h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={16} /> Salin Link</button>
-          <button onClick={download} className="flex-1 h-11 rounded-xl bg-[#111114] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#000000]"><Download size={16} /> Unduh QR</button>
-        </div>
-        <button data-testid="qr-share-wa" onClick={shareWa} className="mt-2 w-full h-11 rounded-xl bg-[#25D366] text-white font-semibold flex items-center justify-center gap-2 hover:brightness-95"><Send size={16} /> Bagikan lewat WhatsApp</button>
-      </div>
-    </ModalShell>
-  );
-}
-
-function AbsenQrModal({ data, onClose }) {
-  const download = () => {
-    const a = document.createElement("a");
-    a.href = data.image;
-    a.download = `absen_${(data.name || "kegiatan").replace(/\s+/g, "_")}.png`;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
-  const copy = () => { navigator.clipboard.writeText(data.link); toast.success("Link absen disalin"); };
-  return (
-    <ModalShell title="QR Absen Mandiri" onClose={onClose} testid="modal-absen-qr">
-      <div className="text-center">
-        <img src={data.image} alt="QR Absen" className="mx-auto w-56 h-56 rounded-xl border border-[#E8E8E4] p-2" data-testid="absen-qr-image" />
-        <div className="mt-3 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl p-3 text-left">
-          <p className="text-sm font-semibold text-[#111114] flex items-center gap-1.5"><ScanLine size={15} /> Cara absen mandiri</p>
-          <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
-            Peserta scan QR ini dengan kamera HP lalu <b>masuk dengan akunnya sendiri</b>.
-            Halaman absen hanya menampilkan <b>nama peserta itu sendiri</b> dengan tombol
-            <b> Saya Hadir</b> — sehingga tidak bisa menitipkan absen orang lain.
-            QR kegiatan ini <b>berlaku 1 hari</b>{data.expires_at ? <> (hanya untuk tanggal {tanggalSingkat(String(data.expires_at).slice(0, 10))})</> : null}
-            {data.sessions > 1 ? <>, dan <b>1 QR dipakai semua sesi</b> hari itu — halaman absen otomatis mengarah ke sesi yang sedang berjalan.</> : "."}
-          </p>
-        </div>
-        <p className="text-xs text-[#9CA3AF] mt-2 break-all px-2">{data.link}</p>
-        <div className="flex gap-2 mt-4">
-          <button onClick={copy} className="flex-1 h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={16} /> Salin Link</button>
-          <button onClick={download} className="flex-1 h-11 rounded-xl bg-[#111114] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#000000]"><Download size={16} /> Unduh QR</button>
-        </div>
-      </div>
     </ModalShell>
   );
 }

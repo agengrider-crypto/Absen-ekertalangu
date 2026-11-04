@@ -4,6 +4,32 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Penyederhanaan masuk dan QR presensi
+
+- Peran terakhir yang dipilih disimpan di browser agar akun yang masih masuk langsung
+  membuka area tersebut saat situs dibuka kembali. Pemilihan peran tetap tersedia saat
+  masuk pertama kali dan peran tersimpan diperbarui saat berpindah area; keluar akun
+  menghapus pilihan tersebut.
+- Halaman Kode Akses hanya menyediakan Bagikan ke WhatsApp dan Perbarui Kode sebagai
+  tindakan; tombol salin tautan, salin kode, dan tampilan QR dihapus.
+- QR pada halaman Scan Presensi dapat diketuk untuk membuka pratinjau besar. Aksi salin
+  tautan dan unduh QR dihapus.
+
+## Pembaruan daftar dan detail kegiatan
+
+- Daftar kegiatan mendukung pencarian, filter jenis, status Hari Ini/Akan Datang/Selesai,
+  pemilihan kegiatan atau sesi, dan hapus massal dengan laporan bila sebagian gagal.
+- Tanggal dan waktu tampil di sisi kiri kartu; beberapa sesi diringkas dalam baris yang
+  lebih padat. Tab status memuat kegiatan sesuai status, sementara tampilan Semua mengikuti
+  bulan yang dipilih.
+- Formulir kegiatan dibagi menjadi langkah Kegiatan, Jadwal, Peserta, dan Tinjau dengan
+  navigasi tetap terlihat.
+- Scan barcode tersedia di samping Aksi Kegiatan. Tab undangan dan QR Absen Mandiri tidak
+  ditampilkan pada detail.
+- Rekap menampilkan jumlah hadir laki-laki/perempuan, daftar peserta, serta tautan yang
+  dapat disalin atau dibagikan lewat WhatsApp; QR rekap tidak ditampilkan.
+- Kartu Nama dipindahkan ke halaman khusus sidebar dengan pratinjau cetak.
+
 ## Pembaruan pengelolaan peserta
 
 - Daftar akun kini memiliki tab Semua, Peserta, Pengurus, Admin, dan Guru, serta filter

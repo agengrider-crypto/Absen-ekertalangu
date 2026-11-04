@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
+import { clearActiveRole } from "@/lib/roles";
 
 const AuthContext = createContext(null);
 
@@ -35,6 +36,7 @@ export function AuthProvider({ children }) {
     } catch {
       /* ignore */
     }
+    clearActiveRole();
     setUser(false);
   }, []);
 

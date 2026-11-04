@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { ArrowLeft, Shield, Users, UserCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -5,6 +6,7 @@ import ProfileMenu from "@/components/ProfileMenu";
 import AdminLayout from "@/pages/admin/AdminLayout";
 import GuruArea from "@/pages/GuruArea";
 import PesertaArea from "@/pages/PesertaArea";
+import { setActiveRole } from "@/lib/roles";
 
 const META = {
   admin: { icon: Shield, title: "Area Adminator", color: "#9CA3AF" },
@@ -16,6 +18,10 @@ export default function RoleArea() {
   const { role } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (user?.roles?.includes(role)) setActiveRole(role);
+  }, [role, user]);
 
   if (!user) return null;
   if (!user.roles?.includes(role)) {

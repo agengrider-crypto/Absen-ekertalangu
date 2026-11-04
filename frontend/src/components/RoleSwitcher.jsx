@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Shield, Users, UserCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import ActionModal from "@/components/ActionModal";
+import { setActiveRole } from "@/lib/roles";
 
 const META = {
   admin: { icon: Shield, label: "Area Adminator", desc: "Kelola peserta, kegiatan & laporan" },
@@ -28,7 +29,10 @@ export default function RoleSwitcher({ current, onClose }) {
         desc: r === current ? "Sedang dibuka" : META[r].desc,
         icon: META[r].icon,
         disabled: r === current,
-        onClick: () => navigate(`/area/${r}`),
+        onClick: () => {
+          setActiveRole(r);
+          navigate(`/area/${r}`);
+        },
       }))}
     />
   );

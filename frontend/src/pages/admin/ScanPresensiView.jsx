@@ -1,10 +1,11 @@
 // FASE 15 — Halaman "Scan Presensi": daftar kegiatan per tanggal + QR kegiatan & kamera scan QR peserta.
 import { useCallback, useEffect, useState } from "react";
 import {
-  ScanLine, Loader2, Copy, Download, Clock, MapPin, User, QrCode, Camera,
+  ScanLine, Loader2, Clock, MapPin, User, QrCode, Camera, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import { ACTIVITIES } from "@/constants/testIds";
 import { tanggalSingkat } from "./kegiatanUtils";
 import { ScanPesertaModal } from "./KegiatanExtras";
 
@@ -16,6 +17,7 @@ export default function ScanPresensiView() {
   const [date, setDate] = useState(todayYmd);
   const [data, setData] = useState(null);
   const [scanKegiatan, setScanKegiatan] = useState(null);
+  const [qrPreview, setQrPreview] = useState(null);
 
   const load = useCallback(() => {
     setData(null);
@@ -25,13 +27,6 @@ export default function ScanPresensiView() {
   }, [date]);
 
   useEffect(() => { load(); }, [load]);
-
-  const download = (row) => {
-    const a = document.createElement("a");
-    a.href = row.image;
-    a.download = `qr-kegiatan-${(row.base_name || "kegiatan").replace(/\s+/g, "_")}-${row.date}.png`;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
 
   return (
     <div>
@@ -83,20 +78,17 @@ export default function ScanPresensiView() {
               </div>
 
               <div className="mt-3 flex items-center gap-3">
-                <img src={r.image} alt={`QR ${r.base_name}`} className="w-28 h-28 rounded-xl border border-[#E8E8E4] p-1.5 shrink-0" data-testid={`scan-qr-${r.id}`} />
+                <button type="button" onClick={() => setQrPreview(r)} aria-label={`Perbesar QR ${r.base_name}`}
+                  data-testid={`${ACTIVITIES.scanQrOpenPrefix}-${r.id}`}
+                  className="shrink-0 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111114]">
+                  <img src={r.image} alt={`QR ${r.base_name}`} className="w-28 h-28 rounded-xl border border-[#E8E8E4] p-1.5" data-testid={`scan-qr-${r.id}`} />
+                </button>
                 <div className="min-w-0 text-xs text-[#6B7280] space-y-2">
                   <p className="leading-relaxed">
                     <QrCode size={13} className="inline mr-1 text-[#111114]" />
                     QR ini berlaku <b>satu hari</b>{r.sessions > 1 ? " dan dipakai semua sesi hari itu" : ""}.
                   </p>
-                  <button data-testid={`scan-copy-${r.id}`} onClick={() => { navigator.clipboard.writeText(r.link); toast.success("Tautan absen disalin"); }}
-                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#4B5563] font-semibold hover:border-[#111114] hover:text-[#111114]">
-                    <Copy size={14} /> Salin Tautan
-                  </button>
-                  <button data-testid={`scan-download-${r.id}`} onClick={() => download(r)}
-                    className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#4B5563] font-semibold hover:border-[#111114] hover:text-[#111114]">
-                    <Download size={14} /> Unduh QR
-                  </button>
+                  <p className="font-semibold text-[#111114]">Ketuk QR untuk memperbesar.</p>
                 </div>
               </div>
 
@@ -114,6 +106,24 @@ export default function ScanPresensiView() {
 
       {scanKegiatan && (
         <ScanPesertaModal kegiatan={scanKegiatan} onClose={() => setScanKegiatan(null)} onChanged={load} />
+      )}
+      {qrPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          data-testid={ACTIVITIES.scanQrModal}
+          onClick={() => setQrPreview(null)}>
+          <div role="dialog" aria-modal="true" aria-label={`QR presensi ${qrPreview.base_name}`}
+            className="relative flex max-h-[92vh] w-full max-w-xl flex-col items-center rounded-2xl bg-white p-4 shadow-2xl sm:p-6"
+            onClick={(event) => event.stopPropagation()}>
+            <button type="button" onClick={() => setQrPreview(null)} aria-label="Tutup QR"
+              className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-xl text-[#4B5563] hover:bg-[#F3F4F6]">
+              <X size={22} />
+            </button>
+            <h2 className="mb-3 max-w-[80%] text-center text-lg font-bold text-[#111827]">{qrPreview.base_name}</h2>
+            <img src={qrPreview.image} alt={`QR presensi ${qrPreview.base_name}`}
+              className="max-h-[76vh] max-w-full rounded-xl object-contain" />
+            <p className="mt-3 text-center text-sm font-medium text-[#4B5563]">Ketuk di luar QR atau tombol tutup untuk kembali.</p>
+          </div>
+        </div>
       )}
     </div>
   );

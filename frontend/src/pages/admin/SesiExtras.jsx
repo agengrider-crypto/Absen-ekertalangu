@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
-import { PercentBar } from "@/pages/PublicRekapGabungan";
+import { ACTIVITIES } from "@/constants/testIds";
 import { tanggalPanjang, tanggalSingkat, hhmm, TYPE_LABEL, TYPE_COLOR } from "./kegiatanUtils";
 
 function Shell({ title, subtitle, children, onClose, testid, wide }) {
@@ -43,6 +43,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [mode, setMode] = useState("semua"); // semua | hadir | tidak
+  const [showRows, setShowRows] = useState(false);
   const [share, setShare] = useState(null);
   const [sharing, setSharing] = useState(false);
 
@@ -127,47 +128,43 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
         <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
       ) : (
         <div className="space-y-4">
-          {/* Ringkasan gabungan */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-testid="rekap-gabungan-summary">
-            <div className="rounded-xl bg-[#F4F4F1] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{s.total}</div><div className="text-xs text-[#6B7280]">Total Peserta</div></div>
-            <div className="rounded-xl bg-[#F1F1EE] p-3 text-center"><div className="text-xl font-bold text-[#111114]">{s.hadir_min_1} <span className="text-xs font-semibold">({s.ratio_min_1}%)</span></div><div className="text-xs text-[#6B7280]">Hadir ≥ 1 Sesi</div></div>
-            <div className="rounded-xl bg-[#DCFCE7] p-3 text-center"><div className="text-xl font-bold text-[#14532D]">{s.hadir_semua} <span className="text-xs font-semibold">({s.ratio_semua}%)</span></div><div className="text-xs text-[#6B7280]">Hadir Semua Sesi</div></div>
-            <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{s.tidak_hadir}</div><div className="text-xs text-[#6B7280]">Tidak Hadir Sama Sekali</div></div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-[#6B7280]">
-            <span className="px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] font-semibold">Izin saja: {s.izin_saja}</span>
-            {s.tamu > 0 && <span className="px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#111114] font-semibold">Tamu: {s.tamu}</span>}
-            {(data.filter_labels || []).map((l) => <span key={l} className="px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D] font-semibold">{l}</span>)}
-            <span className="inline-flex items-center gap-1"><Layers size={12} /> {data.sessions.length} sesi</span>
-          </div>
-
-          {/* Bar persen ringkasan gabungan */}
-          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4 space-y-3.5" data-testid="rekap-gabungan-bars">
-            <PercentBar label="Hadir minimal 1 sesi" value={s.ratio_min_1} sub={`${s.hadir_min_1}/${s.total}`} testid="gab-bar-min1" />
-            <PercentBar label="Hadir semua sesi" value={s.ratio_semua} sub={`${s.hadir_semua}/${s.total}`} color="#14532D" testid="gab-bar-semua" />
-            <p className="text-[11px] text-[#9CA3AF] leading-relaxed pt-0.5">
-              Peserta yang sudah hadir di sesi sebelumnya <b>tidak dihitung Alpha</b> pada sesi berikutnya
-              (kolomnya dikosongkan ✓). Tanda <b>“Wajib Pagi + Sore”</b> berarti peserta tersebut wajib hadir
-              di beberapa sesi hari ini; sesi <b>opsional</b> ditandai titik dan tidak dihitung Alpha.
-            </p>
+          <div className="grid gap-2 sm:grid-cols-3" data-testid="rekap-gabungan-summary">
+            <div className="rounded-xl bg-[#F1F1EE] p-3">
+              <div className="text-lg font-bold text-[#111114]">{s.hadir_min_1} <span className="text-sm">({s.ratio_min_1}%)</span></div>
+              <div className="text-xs text-[#6B7280]">Hadir minimal satu sesi · dari {s.total}</div>
+            </div>
+            <div className="rounded-xl bg-[#E8F5EE] p-3">
+              <div className="text-lg font-bold text-[#14532D]">{s.hadir_semua} <span className="text-sm">({s.ratio_semua}%)</span></div>
+              <div className="text-xs text-[#6B7280]">Hadir semua sesi</div>
+            </div>
+            <div className="rounded-xl bg-[#F4F4F1] p-3">
+              <div className="text-lg font-bold text-[#111827]">{s.tidak_hadir}</div>
+              <div className="text-xs text-[#6B7280]">Tidak hadir sama sekali</div>
+            </div>
           </div>
 
-          {/* Per sesi + bar persen */}
-          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4 space-y-3.5" data-testid="rekap-gabungan-per-sesi">
-            <div className="text-sm font-semibold text-[#111827]">Kehadiran per Sesi</div>
-            {data.sessions.map((x) => (
-              <div key={x.id}>
-                <PercentBar label={`${x.label} · ${x.start_time}–${x.end_time} WITA${x.required === false ? " · Opsional" : ""}`} value={x.counts.ratio}
-                  sub={`${x.counts.hadir}/${x.counts.total}`} testid={`gab-bar-sesi-${x.id}`} />
-                <div className="text-[11px] text-[#9CA3AF] mt-1 flex flex-wrap gap-x-3">
-                  <span>H {x.counts.hadir}</span><span>I {x.counts.izin}</span><span>A {x.counts.alpha}</span>
-                  {x.counts.sudah_sesi_lain > 0 && <span>Sudah hadir sesi lain {x.counts.sudah_sesi_lain}</span>}
-                  {x.teacher && <span className="inline-flex items-center gap-1"><User size={11} /> {x.teacher}</span>}
-                  {x.location && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {x.location}</span>}
+          <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="rekap-gabungan-per-sesi">
+            <h3 className="mb-3 font-bold text-[#111827]">Kehadiran tiap waktu</h3>
+            <div className="space-y-3">
+              {data.sessions.map((session) => (
+                <div key={session.id} className="rounded-xl bg-[#FAFAF8] p-3" data-testid={`gab-bar-sesi-${session.id}`}>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-bold text-[#111827]">{session.label}</div>
+                      <div className="text-xs text-[#6B7280]">{session.start_time}–{session.end_time} WITA{session.required === false ? " · Opsional" : ""}</div>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-xl font-bold text-[#111114]">{session.counts.ratio}%</div>
+                      <div className="text-xs text-[#6B7280]">{session.counts.hadir}/{session.counts.total} hadir</div>
+                    </div>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-[#E8E8E4]">
+                    <div className="h-full rounded-full bg-[#0D5C3A]" style={{ width: `${Math.min(Math.max(session.counts.ratio || 0, 0), 100)}%` }} />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </section>
 
           {/* Bagikan sebagai LINK (seperti rekap kegiatan biasa) */}
           <div className="rounded-2xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-4 space-y-2.5" data-testid="rekap-gabungan-share">
@@ -195,8 +192,12 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
             <ClipboardCopy size={16} /> Salin Ringkasan (teks WhatsApp)
           </button>
 
-          {/* Tabel peserta × sesi */}
-          <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
+          <button type="button" onClick={() => setShowRows((visible) => !visible)} aria-expanded={showRows}
+            data-testid={ACTIVITIES.recapRowsToggle}
+            className="w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-4 py-3 text-left text-sm font-bold text-[#111827] hover:border-[#111114]">
+            {showRows ? "Sembunyikan rincian peserta" : `Lihat rincian peserta (${data.rows.length})`}
+          </button>
+          {showRows && <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
             <div className="p-3 bg-[#FAFAF8] flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />

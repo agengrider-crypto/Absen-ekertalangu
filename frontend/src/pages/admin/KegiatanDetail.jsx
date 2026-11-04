@@ -3,12 +3,12 @@ import {
   ArrowLeft, CalendarDays, Clock, MapPin, User, BookOpen, Loader2, Search,
   ListChecks, ScanLine, KeyRound, MessageSquareText, UserPlus, PhoneCall,
   Copy, RefreshCw, Download, Send, Trash2, CheckCircle2, AlertTriangle,
-  Users, PhoneOff, ClipboardList, QrCode, MoreHorizontal, Pencil,
-  Share2, RotateCcw, Layers, FileBarChart2, MailWarning,
+  Users, PhoneOff, ClipboardList, MoreHorizontal, Pencil,
+  Share2, RotateCcw, Layers, FileBarChart2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ACTIVITIES } from "@/constants/testIds";
 import ActionModal from "@/components/ActionModal";
-import UndanganPenting from "./UndanganPenting";
 import KegiatanRekapPanel from "./KegiatanRekapPanel";
 import { api, formatApiErrorDetail, isOfflineError } from "@/lib/api";
 import { useOfflineQueue } from "@/lib/offline";
@@ -44,11 +44,12 @@ const FOLLOWUP_META = {
   tidak_bisa: { label: "Tidak bisa hadir", cls: "bg-[#FEE2E2] text-[#991B1B]" },
 };
 
-export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, onShareRekap,
-                                        onAbsenQr, onReminder, onToggleStatus, onDelete,
+export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
+                                        onReminder, onToggleStatus, onDelete,
                                         onRekapGabungan, onSalinJadwal }) {
   const [tab, setTab] = useState("manual");
   const [showActions, setShowActions] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
 
@@ -71,11 +72,9 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
 
   const TABS = useMemo(() => ([
     { key: "manual", label: "Absen Manual", icon: ListChecks },
-    { key: "scan", label: "Scan Barcode", icon: ScanLine },
     ...(publik ? [{ key: "tamu", label: "Tamu", icon: UserPlus }] : []),
     { key: "rekap", label: "Rekap / Laporan", icon: FileBarChart2 },
     { key: "pesan", label: "Pesan / Kesan", icon: MessageSquareText },
-    { key: "undangan", label: "Undangan Penting", icon: MailWarning },
   ]), [publik]);
 
   if (!data) {
@@ -95,14 +94,25 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
     <div data-testid="kegiatan-detail-view">
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <BackBar onBack={onBack} title={k.name} />
+        <button type="button" data-testid={ACTIVITIES.scanToggle} aria-expanded={scanOpen}
+          onClick={() => setScanOpen((open) => !open)}
+          className="ml-auto h-10 px-3.5 rounded-xl border-2 border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm inline-flex items-center gap-2 hover:border-[#111114] hover:text-[#111114]">
+          <ScanLine size={17} /> {scanOpen ? "Tutup Scan" : "Scan Barcode"}
+        </button>
         <button
           data-testid="kegiatan-detail-actions-button"
           onClick={() => setShowActions(true)}
-          className="ml-auto h-10 px-3.5 rounded-xl border-2 border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm inline-flex items-center gap-2 hover:border-[#111114] hover:text-[#111114]"
+          className="h-10 px-3.5 rounded-xl border-2 border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm inline-flex items-center gap-2 hover:border-[#111114] hover:text-[#111114]"
         >
           <MoreHorizontal size={17} /> Aksi Kegiatan
         </button>
       </div>
+      {scanOpen && (
+        <div className="mb-4">
+          <ScanTabPanel kegiatanId={kegiatanId} closed={k.status !== "open"}
+            onReload={() => { load(true); if (onChanged) onChanged(); }} />
+        </div>
+      )}
 
       {/* Kartu info kegiatan */}
       <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 sm:p-5">
@@ -172,17 +182,12 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
           <AbsenManual kegiatanId={kegiatanId} rows={data.rows || []} closed={k.status !== "open"}
             onReload={() => { load(true); if (onChanged) onChanged(); }} />
         )}
-        {tab === "scan" && (
-          <ScanTabPanel kegiatanId={kegiatanId} closed={k.status !== "open"}
-            onReload={() => { load(true); if (onChanged) onChanged(); }} />
-        )}
         {tab === "tamu" && (
           <TamuPanel kegiatanId={kegiatanId} guests={data.guests || []}
             onReload={() => { load(true); if (onChanged) onChanged(); }} />
         )}
         {tab === "publik" && <BarcodePublikPanel kegiatanId={kegiatanId} />}
         {tab === "rekap" && <KegiatanRekapPanel kegiatanId={kegiatanId} />}
-        {tab === "undangan" && <UndanganPenting kegiatanId={kegiatanId} />}
         {tab === "tindak" && <TindakLanjut kegiatanId={kegiatanId} />}
         {tab === "kode" && <KodeAksesPanel kegiatanId={kegiatanId} />}
         {tab === "pesan" && <PesanPanel kegiatanId={kegiatanId} />}
@@ -202,11 +207,6 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit, 
               desc: k.status === "open" ? "Tutup absensi kegiatan ini" : "Aktifkan kembali absensi",
               icon: k.status === "open" ? CheckCircle2 : RotateCcw,
               onClick: () => onToggleStatus && onToggleStatus(k),
-            },
-            {
-              key: "absen-qr", testid: "detail-opsi-absen-qr", label: "QR Absen Mandiri",
-              desc: "Peserta absen sendiri lewat akunnya", icon: QrCode,
-              onClick: () => onAbsenQr && onAbsenQr(k),
             },
             ...((k.session_total || 1) > 1 ? [{
               key: "gabungan", testid: "detail-opsi-gabungan", label: "Rekap Gabungan 1 Hari",
@@ -440,7 +440,7 @@ function AbsenManual({ kegiatanId, rows, closed, onReload }) {
 
 /* ------------------------- Scan barcode peserta ------------------------- */
 function ScanTabPanel({ kegiatanId, closed, onReload }) {
-  const [last, setLast] = useState(null);
+  const [recent, setRecent] = useState([]);
   const lock = useRef(false);
 
   const onDetected = async (text) => {
@@ -452,7 +452,10 @@ function ScanTabPanel({ kegiatanId, closed, onReload }) {
     lock.current = true;
     try {
       const { data } = await api.post(`/staff/kegiatan/${kegiatanId}/scan-personal`, { content: text });
-      setLast(data);
+      setRecent((previous) => [
+        { ...data, id: `${data.user_id || data.name}-${Date.now()}` },
+        ...previous,
+      ].slice(0, 10));
       if (data.already) toast.info(data.message); else toast.success(data.message);
       onReload();
     } catch (e) {
@@ -469,17 +472,36 @@ function ScanTabPanel({ kegiatanId, closed, onReload }) {
         Arahkan kamera ke <b>QR pribadi peserta</b> (menu &quot;QR Saya&quot;) untuk mencatat kehadiran.
         Mode ini memerlukan internet.
       </p>
-      {closed ? (
-        <div className="rounded-xl bg-[#FEE2E2] border border-[#FECACA] p-4 text-sm text-[#991B1B]">
-          Kegiatan sudah ditutup sehingga scan barcode dinonaktifkan.
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
+        <div className="min-w-0">
+          {closed ? (
+            <div className="rounded-xl border border-[#FECACA] bg-[#FEE2E2] p-4 text-sm text-[#991B1B]">
+              Kegiatan sudah ditutup sehingga scan barcode dinonaktifkan.
+            </div>
+          ) : <QrScanner onDetected={onDetected} />}
         </div>
-      ) : <QrScanner onDetected={onDetected} />}
-      {last && (
-        <div className="mt-3 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl p-3 flex items-center gap-2 text-sm text-[#111114]" data-testid="detail-scan-result">
-          <CheckCircle2 size={18} /> <b>{last.name}</b> — {last.already ? "sudah tercatat hadir" : "tercatat hadir"}
-          {last.arrival_time ? ` (${hhmm(last.arrival_time)})` : ""}
-        </div>
-      )}
+        <section className="min-h-48 overflow-hidden rounded-xl border border-[#E8E8E4] bg-[#FAFAF8]" data-testid={ACTIVITIES.scanResults}>
+          <div className="flex items-center justify-between border-b border-[#E8E8E4] bg-white px-3.5 py-3">
+            <h3 className="font-bold text-[#111827]">Peserta berhasil dipindai</h3>
+            <span className="rounded-full bg-[#E8F5EE] px-2 py-0.5 text-xs font-bold text-[#0D5C3A]">{recent.length}</span>
+          </div>
+          {recent.length ? (
+            <div className="max-h-64 divide-y divide-[#E8E8E4] overflow-y-auto">
+              {recent.map((result) => (
+                <div key={result.id} className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm" data-testid={`${ACTIVITIES.scanResultPrefix}-${result.id}`}>
+                  <CheckCircle2 size={18} className="shrink-0 text-[#0D5C3A]" />
+                  <span className="min-w-0 flex-1 truncate font-semibold text-[#111827]">{result.name}</span>
+                  <span className="shrink-0 text-xs text-[#6B7280]">
+                    {result.already ? "Sudah hadir" : "Hadir"}{result.arrival_time ? ` · ${hhmm(result.arrival_time)}` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="p-6 text-center text-sm text-[#9CA3AF]">Nama peserta yang berhasil dipindai akan tampil di sini.</p>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

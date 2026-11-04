@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
-import { rolesLabel } from "@/lib/roles";
+import { getActiveRole, rolesLabel, setActiveRole } from "@/lib/roles";
 
 const ROLE_META = {
   admin: {
@@ -67,6 +67,8 @@ export default function RoleDashboard() {
 
   // FASE 16 — akun dengan satu peran (mis. peserta) langsung masuk areanya.
   if (roles.length === 1) return <Navigate to={`/area/${roles[0]}`} replace />;
+  const activeRole = getActiveRole(roles);
+  if (activeRole) return <Navigate to={`/area/${activeRole}`} replace />;
   const incomplete = (user.missing_fields || []).length > 0;
 
   const handleLogout = async () => {
@@ -143,7 +145,10 @@ export default function RoleDashboard() {
                 <p className="text-[#4B5563] text-base leading-relaxed flex-1">{meta.description}</p>
                 <button
                   data-testid={`button-select-role-${rid}`}
-                  onClick={() => navigate(`/area/${rid}`)}
+                  onClick={() => {
+                    setActiveRole(rid);
+                    navigate(`/area/${rid}`);
+                  }}
                   className="mt-5 w-full h-[52px] rounded-xl text-white text-base font-bold flex items-center justify-center gap-2 transition-colors"
                   style={{ backgroundColor: meta.color }}
                 >

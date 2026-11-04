@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import { ACTIVITIES } from "@/constants/testIds";
 import PesertaPicker from "@/components/PesertaPicker";
 import {
   KEGIATAN_TYPES, timeOptions, AUDIENCE_OPTIONS, GENDER_FILTER_OPTIONS,
@@ -36,6 +37,15 @@ function Section({ icon: Icon, title, desc, children, testid }) {
       </div>
       {children}
     </section>
+  );
+}
+
+function ReviewItem({ label, value }) {
+  return (
+    <div className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] px-3.5 py-3">
+      <dt className="text-xs font-semibold text-[#6B7280]">{label}</dt>
+      <dd className="mt-1 break-words text-sm font-bold text-[#111827]">{value}</dd>
+    </div>
   );
 }
 
@@ -74,6 +84,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
     { label: "Sore", start_time: "16:00", end_time: "17:30", teacher: "", material: "", location: "", required: true },
   ]);
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState(0);
 
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
   const toggleAge = (val) => setF((p) => {
@@ -90,15 +101,39 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
   });
   const removeSession = (i) => setSessions((p) => p.filter((_, idx) => idx !== i));
 
+  const validateStep = (currentStep) => {
+    if (currentStep === 0 && !f.name.trim()) {
+      toast.error("Nama kegiatan wajib diisi.");
+      return false;
+    }
+    if (currentStep === 1) {
+      if (!f.date) {
+        toast.error("Tanggal kegiatan wajib dipilih.");
+        return false;
+      }
+      if (!editing && multi && (sessions.length < 2 || sessions.some((s) => !String(s.label).trim()))) {
+        toast.error("Isi minimal dua nama sesi untuk jadwal beberapa waktu.");
+        return false;
+      }
+    }
+    if (currentStep === 2 && pickMode && participants.length === 0) {
+      toast.error("Pilih minimal satu peserta atau nonaktifkan mode pilih peserta.");
+      return false;
+    }
+    return true;
+  };
+
+  const nextStep = () => {
+    if (validateStep(step)) setStep((current) => Math.min(current + 1, 3));
+  };
+
   const submit = async (e) => {
     e.preventDefault();
-    if (!f.name.trim()) { toast.error("Nama kegiatan wajib diisi"); return; }
-    if (!editing && multi) {
-      if (sessions.length < 2) { toast.error("Minimal 2 waktu/sesi bila memakai beberapa waktu"); return; }
-      if (sessions.some((s) => !String(s.label).trim())) { toast.error("Nama setiap waktu/sesi wajib diisi"); return; }
-    }
-    if (pickMode && participants.length === 0) {
-      toast.error("Mode ceklis aktif — mohon centang minimal 1 peserta."); return;
+    for (let currentStep = 0; currentStep <= 2; currentStep += 1) {
+      if (!validateStep(currentStep)) {
+        setStep(currentStep);
+        return;
+      }
     }
     setSaving(true);
     try {
@@ -150,9 +185,22 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
           </button>
         </div>
 
+        <div className="grid grid-cols-4 gap-1 border-b border-[#ECECE8] bg-white px-4 pb-3 sm:px-5">
+          {["Kegiatan", "Jadwal", "Peserta", "Tinjau"].map((label, index) => (
+            <button key={label} type="button" onClick={() => index <= step && setStep(index)}
+              aria-current={step === index ? "step" : undefined}
+              data-testid={`${ACTIVITIES.wizardStepPrefix}-${index + 1}`}
+              className={`min-h-10 rounded-lg px-1 text-xs font-semibold sm:text-sm ${
+                step === index ? "bg-[#111114] text-white" : step > index ? "bg-[#E8F5EE] text-[#0D5C3A]" : "bg-[#F7F7F5] text-[#9CA3AF]"
+              }`}>
+              <span className="mr-1">{index + 1}.</span>{label}
+            </button>
+          ))}
+        </div>
+
         {/* Body */}
-        <form id="kegiatan-form" onSubmit={submit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
-          <Section icon={Info} title="Informasi Kegiatan" testid="form-section-info"
+        <form id="kegiatan-form" noValidate onSubmit={submit} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5">
+          {step === 0 && <Section icon={Info} title="Informasi Kegiatan" testid="form-section-info"
             desc="Nama, jenis, pengajar, materi, dan lokasi kegiatan.">
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
@@ -182,9 +230,9 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                   placeholder="cth: Masjid Kertalangu" className={fld} />
               </div>
             </div>
-          </Section>
+          </Section>}
 
-          <Section icon={CalendarDays} title="Tanggal & Waktu" testid="form-section-waktu"
+          {step === 1 && <Section icon={CalendarDays} title="Jadwal Kegiatan" testid="form-section-waktu"
             desc="Pilih tanggal; aktifkan beberapa waktu bila sehari ada pagi/sore/malam.">
             <div className="grid sm:grid-cols-3 gap-3">
               <div>
@@ -304,9 +352,9 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                 </label>
               </>
             )}
-          </Section>
+          </Section>}
 
-          <Section icon={Users} title="Peserta Kegiatan" testid="form-section-peserta"
+          {step === 2 && <Section icon={Users} title="Peserta Kegiatan" testid="form-section-peserta"
             desc="Tentukan tipe peserta, lalu saring menurut kelompok atau pilih orangnya langsung.">
             <div className="space-y-3">
               <div>
@@ -399,20 +447,49 @@ export default function KegiatanFormModal({ onClose, onDone, initial }) {
                 </div>
               </div>
             </div>
-          </Section>
+          </Section>}
+
+          {step === 3 && (
+            <Section icon={ListChecks} title="Tinjau Kegiatan" testid={ACTIVITIES.wizardReview}
+              desc="Pastikan informasi dan pilihan kegiatan sudah benar sebelum disimpan.">
+              <dl className="grid gap-2 sm:grid-cols-2">
+                <ReviewItem label="Nama kegiatan" value={f.name || "Belum diisi"} />
+                <ReviewItem label="Jenis" value={KEGIATAN_TYPES.find((type) => type.value === f.type)?.label || f.type} />
+                <ReviewItem label="Tanggal" value={f.date} />
+                <ReviewItem label="Waktu" value={!editing && multi
+                  ? sessions.map((session) => `${session.label} ${session.start_time}–${session.end_time}`).join(", ")
+                  : `${f.start_time}–${f.end_time} WITA`} />
+                <ReviewItem label="Pengajar" value={f.teacher || "Belum ditentukan"} />
+                <ReviewItem label="Lokasi" value={f.location || "Belum ditentukan"} />
+                <ReviewItem label="Peserta" value={pickMode ? `${participants.length} peserta dipilih` : AUDIENCE_OPTIONS.find((option) => option.value === f.audience)?.short || "Reguler"} />
+                <ReviewItem label="Pengulangan" value={!editing && f.recurring ? "Mingguan selama 4 minggu" : "Tidak berulang"} />
+              </dl>
+              <p className="mt-4 rounded-xl bg-[#F0FDF4] p-3 text-sm text-[#14532D]">
+                {editing ? "Perubahan akan diterapkan pada kegiatan ini." : "Jadwal akan dibuat setelah Anda memilih Simpan Kegiatan."}
+              </p>
+            </Section>
+          )}
         </form>
 
-        {/* Footer tetap terlihat */}
+        {/* Navigasi langkah dan aksi utama selalu terlihat */}
         <div className="bg-white border-t border-[#ECECE8] px-4 sm:px-5 py-3 flex gap-2">
-          <button type="button" onClick={onClose} data-testid="kegiatan-form-cancel"
+          <button type="button" onClick={step === 0 ? onClose : () => setStep((current) => Math.max(current - 1, 0))}
+            data-testid={step === 0 ? "kegiatan-form-cancel" : ACTIVITIES.wizardPrevious}
             className="h-12 px-4 rounded-xl bg-[#F4F4F1] text-[#4B5563] font-semibold hover:bg-[#E9EDE9]">
-            Batal
+            {step === 0 ? "Batal" : "Kembali"}
           </button>
+          {step < 3 ? (
+            <button type="button" onClick={nextStep} data-testid={ACTIVITIES.wizardNext}
+              className="flex-1 h-12 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-black">
+              Lanjut
+            </button>
+          ) : (
           <button form="kegiatan-form" type="submit" data-testid="button-submit-kegiatan" disabled={saving}
             className="flex-1 h-12 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-black disabled:opacity-60">
             {saving ? <Loader2 className="animate-spin" size={18} /> : editing ? <Save size={18} /> : <Plus size={18} />}
             {editing ? "Simpan Perubahan" : "Simpan Kegiatan"}
           </button>
+          )}
         </div>
       </div>
     </div>

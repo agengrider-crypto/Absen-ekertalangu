@@ -69,7 +69,7 @@ function PesertaAvatar({ user }) {
   );
 }
 
-export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHandled, openNameTags = false, onNameTagsClose }) {
+export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHandled }) {
   const isAdmin = role === "admin";
   const handledAddRequest = useRef(0);
   const [users, setUsers] = useState(null);
@@ -80,11 +80,6 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
   const [selected, setSelected] = useState(new Set());
   const [detailId, setDetailId] = useState(null);
   const [modal, setModal] = useState(null); // "add" | "bulk" | null
-  const [showNameTags, setShowNameTags] = useState(false);
-
-  useEffect(() => {
-    if (openNameTags) setShowNameTags(true);
-  }, [openNameTags]);
 
   const load = () =>
     api.get("/admin/users")
@@ -217,14 +212,6 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
           {users && <span className="text-sm font-medium text-[#6B7280]">({users.length})</span>}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            data-testid={PARTICIPANTS.openNameTags}
-            onClick={() => setShowNameTags(true)}
-            disabled={!users?.some((u) => u.roles?.includes("peserta"))}
-            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] bg-white text-[#111114] font-semibold text-sm hover:border-[#111114] disabled:opacity-50"
-          >
-            <QrCode size={16} /> Kartu Nama / QR
-          </button>
           <button data-testid={PARTICIPANTS.openAdd} onClick={() => setModal("add")}
             className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]">
             <UserPlus size={16} /> Tambah Peserta
@@ -476,19 +463,6 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         />
       )}
       {modal === "add" && <AddModal kelompok={kelompok} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
-      {showNameTags && (
-        <NameTagModal
-          users={(users || []).filter((u) => u.roles?.includes("peserta"))}
-          kelompok={kelompok}
-          loading={users === null}
-          loadError={users === false}
-          onRetry={load}
-          onClose={() => {
-            setShowNameTags(false);
-            onNameTagsClose?.();
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -618,7 +592,7 @@ function AddModal({ kelompok, onClose, onDone }) {
   );
 }
 
-function NameTagModal({ users, kelompok, loading, loadError, onRetry, onClose }) {
+export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -658,7 +632,15 @@ function NameTagModal({ users, kelompok, loading, loadError, onRetry, onClose })
   };
 
   return (
-    <ModalShell title="Kartu Nama Peserta" onClose={onClose} testid={PARTICIPANTS.nameTagModal} wide>
+    <div className="space-y-5" data-testid={PARTICIPANTS.nameTagPage}>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="inline-flex items-center gap-2 text-xl font-bold text-[#111827]">
+            <QrCode size={22} /> Kartu Nama Peserta
+          </h1>
+          <p className="mt-1 text-sm text-[#6B7280]">Pilih peserta, tinjau kartu, lalu cetak name tag.</p>
+        </div>
+      </header>
       <div className="name-tag-screen-only space-y-4">
         <div className="rounded-2xl border border-[#D1E7DD] bg-[#F0FDF4] p-4 text-sm leading-relaxed text-[#14532D]">
           Barcode QR ini permanen untuk identifikasi nama tag. QR presensi peserta tetap memakai barcode berputar dari menu peserta.
@@ -803,7 +785,7 @@ function NameTagModal({ users, kelompok, loading, loadError, onRetry, onClose })
           ))}
         </div>
       </div>
-    </ModalShell>
+    </div>
   );
 }
 

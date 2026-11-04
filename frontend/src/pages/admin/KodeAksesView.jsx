@@ -1,10 +1,11 @@
 // FASE 15 — Halaman "Kode Akses": tiap kegiatan otomatis punya kode 6 digit + tautan/QR absensi.
 import { useCallback, useEffect, useState } from "react";
 import {
-  KeyRound, Loader2, Copy, RefreshCw, ChevronLeft, ChevronRight, Send, QrCode, X, Download,
+  KeyRound, Loader2, RefreshCw, ChevronLeft, ChevronRight, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import { ACTIVITIES } from "@/constants/testIds";
 import { tanggalSingkat } from "./kegiatanUtils";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
@@ -14,7 +15,6 @@ export default function KodeAksesView() {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [data, setData] = useState(null);
   const [busyId, setBusyId] = useState(null);
-  const [qr, setQr] = useState(null);
 
   const load = useCallback(() => {
     setData(null);
@@ -44,16 +44,6 @@ export default function KodeAksesView() {
     setBusyId(null);
   };
 
-  const copy = (text, label) => { navigator.clipboard.writeText(text); toast.success(`${label} disalin`); };
-
-  const downloadQr = () => {
-    if (!qr?.image) return;
-    const a = document.createElement("a");
-    a.href = qr.image;
-    a.download = `qr-absensi-${(qr.name || "kegiatan").replace(/\s+/g, "_")}.png`;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
-
   return (
     <div>
       <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
@@ -62,7 +52,7 @@ export default function KodeAksesView() {
             <KeyRound size={22} className="text-[#111114]" /> Kode Akses Kegiatan
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
-            Setiap kegiatan otomatis punya kode akses 6 digit + tautan absensi. Bagikan ke petugas/penjaga absen.
+            Bagikan kode akses melalui WhatsApp atau perbarui kode jika diperlukan.
           </p>
         </div>
         <div className="flex items-center gap-1 bg-white rounded-xl border border-[#E8E8E4] p-1">
@@ -102,23 +92,11 @@ export default function KodeAksesView() {
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
-                <button data-testid={`kode-copy-${r.id}`} onClick={() => copy(r.code, "Kode akses")}
-                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE]">
-                  <Copy size={15} /> Salin Kode
-                </button>
-                <button data-testid={`kode-copy-link-${r.id}`} onClick={() => copy(r.link, "Tautan absensi")}
-                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#E8E8E4] text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114]">
-                  <Copy size={15} /> Salin Tautan
-                </button>
-                <a data-testid={`kode-wa-${r.id}`} href={`https://wa.me/?text=${encodeURIComponent(r.wa_text)}`} target="_blank" rel="noreferrer"
+                <a data-testid={`${ACTIVITIES.accessSharePrefix}-${r.id}`} href={`https://wa.me/?text=${encodeURIComponent(r.wa_text)}`} target="_blank" rel="noreferrer"
                   className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-[#16A34A] text-white font-semibold text-sm hover:bg-[#15803D]">
                   <Send size={15} /> Bagikan ke WhatsApp
                 </a>
-                <button data-testid={`kode-qr-${r.id}`} onClick={() => setQr({ image: r.image, name: r.base_name, link: r.link, code: r.code })}
-                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#E8E8E4] text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114]">
-                  <QrCode size={15} /> Lihat QR
-                </button>
-                <button data-testid={`kode-regen-${r.id}`} onClick={() => regenerate(r)} disabled={busyId === r.id}
+                <button data-testid={`${ACTIVITIES.accessRegeneratePrefix}-${r.id}`} onClick={() => regenerate(r)} disabled={busyId === r.id}
                   className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#FCD34D] text-[#92400E] font-semibold text-sm hover:bg-[#FFFBEB] disabled:opacity-60">
                   {busyId === r.id ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />} Perbarui Kode
                 </button>
@@ -128,24 +106,6 @@ export default function KodeAksesView() {
         </div>
       )}
 
-      {qr && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="modal-kode-qr">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setQr(null)} />
-          <div className="relative bg-white w-full max-w-sm rounded-3xl shadow-2xl">
-            <div className="px-5 py-4 flex items-center justify-between border-b border-[#E8E8E4]">
-              <h3 className="font-heading font-bold text-[#111827]">QR Absensi Kegiatan</h3>
-              <button onClick={() => setQr(null)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
-            </div>
-            <div className="p-5 text-center">
-              <img src={qr.image} alt="QR Absensi" className="mx-auto w-52 h-52 rounded-xl border border-[#E8E8E4] p-2" />
-              <div className="mt-2 font-semibold text-[#111827]">{qr.name}</div>
-              <div className="font-mono text-2xl font-bold text-[#111114] tracking-[0.25em] mt-1">{qr.code}</div>
-              <p className="text-sm text-[#4B5563] mt-2">Penerima memindai QR / membuka tautan, lalu memasukkan kode akses ini untuk mengisi absensi.</p>
-              <button onClick={downloadQr} className="mt-4 w-full h-11 rounded-xl bg-[#111114] text-white font-semibold inline-flex items-center justify-center gap-2"><Download size={16} /> Unduh QR</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

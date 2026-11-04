@@ -14,6 +14,21 @@ export function rolesLabel(roles = []) {
   return roles.map(roleLabel).join(" · ");
 }
 
+const ACTIVE_ROLE_KEY = "e-kertalangu-active-role";
+
+export function getActiveRole(roles = []) {
+  const activeRole = localStorage.getItem(ACTIVE_ROLE_KEY);
+  return roles.includes(activeRole) ? activeRole : null;
+}
+
+export function setActiveRole(role) {
+  localStorage.setItem(ACTIVE_ROLE_KEY, role);
+}
+
+export function clearActiveRole() {
+  localStorage.removeItem(ACTIVE_ROLE_KEY);
+}
+
 // Kelengkapan profil jamaah (dipakai kartu "Lengkapi Profil Kamu").
 const PROFILE_FIELDS = [
   ["name", "Nama lengkap"],
