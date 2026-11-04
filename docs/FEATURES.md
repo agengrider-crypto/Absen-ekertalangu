@@ -21,8 +21,9 @@ Menu pojok kanan (`ProfileMenu.jsx`) tersedia di semua area: **Profil**,
 ## 2. Area Admin & Pengurus
 
 Sidebar desktop dapat diciutkan menjadi ikon; pada ponsel menu dibuka melalui tombol
-hamburger dan ditampilkan sebagai kisi tombol ikon berlabel per kategori. Tampilan
-ponsel dimulai pada skala 100% dan tetap mendukung zoom:
+hamburger dan muncul sebagai bottom sheet "Semua Menu" berisi kisi empat kolom
+tombol ikon berlabel per kategori. Tampilan ponsel dimulai pada skala 100% dan tetap
+mendukung zoom:
 
 | Menu | File | Isi |
 |---|---|---|
