@@ -197,7 +197,9 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
             className="w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-4 py-3 text-left text-sm font-bold text-[#111827] hover:border-[#111114]">
             {showRows ? "Sembunyikan rincian peserta" : `Lihat rincian peserta (${data.rows.length})`}
           </button>
-          {showRows && <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
+          {showRows && (
+            <div className="space-y-2">
+              <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
             <div className="p-3 bg-[#FAFAF8] flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
@@ -255,11 +257,13 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                 </tbody>
               </table>
             </div>
-          </div>
-          <p className="text-[11px] text-[#9CA3AF] leading-relaxed">
-            <b>H</b> hadir · <b>I</b> izin · <b>A</b> alpha · <b>—</b> tidak termasuk daftar sesi tersebut.
-            Angka per sesi tetap tercatat terpisah; ringkasan ini hanya menggabungkannya untuk 1 hari.
-          </p>
+              </div>
+              <p className="text-[11px] text-[#9CA3AF] leading-relaxed">
+                <b>H</b> hadir · <b>I</b> izin · <b>A</b> alpha · <b>—</b> tidak termasuk daftar sesi tersebut.
+                Angka per sesi tetap tercatat terpisah; ringkasan ini hanya menggabungkannya untuk 1 hari.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </Shell>
