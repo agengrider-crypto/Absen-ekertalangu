@@ -36,8 +36,8 @@
 - Halaman Kegiatan menyediakan animasi panduan pembuatan kegiatan dengan narasi
   suara Bahasa Indonesia yang memprioritaskan suara laki-laki yang tersedia di perangkat,
   teks tersinkron, kontrol putar/jeda, dan navigasi langkah. Bila suara Indonesia tidak
-  tersedia, narasi mencoba suara bawaan perangkat; panel dapat ditutup melalui tombol X
-  atau tombol Escape.
+  tersedia, narasi mencoba suara bawaan perangkat. Bila TTS gagal di ponsel, animasi tetap
+  berjalan otomatis tanpa suara; panel dapat ditutup melalui tombol X atau tombol Escape.
 - Detail kegiatan menyediakan scan barcode di dekat Aksi Kegiatan serta rekap peserta
   hadir, pemisahan jumlah laki-laki/perempuan, dan berbagi tautan melalui WhatsApp.
 - Kartu Nama peserta tersedia sebagai halaman khusus pada sidebar, terpisah dari halaman

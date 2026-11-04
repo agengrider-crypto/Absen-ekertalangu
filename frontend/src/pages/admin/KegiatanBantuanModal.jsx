@@ -167,7 +167,9 @@ export default function KegiatanBantuanModal({ onClose }) {
   const [voiceStatus, setVoiceStatus] = useState("Memeriksa suara pada perangkat...");
   const playbackRef = useRef("stopped");
   const voiceRef = useRef(null);
+  const animationOnlyRef = useRef(false);
   const playbackTimerRef = useRef(null);
+  const speechWatchdogRef = useRef(null);
   const speakStepRef = useRef(null);
 
   const updatePlayback = useCallback((status) => {
@@ -175,12 +177,38 @@ export default function KegiatanBantuanModal({ onClose }) {
     setPlayback(status);
   }, []);
 
+  const stopSpeechWatchdog = useCallback(() => {
+    window.clearInterval(speechWatchdogRef.current);
+    speechWatchdogRef.current = null;
+  }, []);
+
+  const scheduleAnimationStep = useCallback((stepIndex) => {
+    window.clearTimeout(playbackTimerRef.current);
+    stopSpeechWatchdog();
+    window.speechSynthesis?.cancel();
+    animationOnlyRef.current = true;
+    setVoiceStatus("Suara perangkat tidak tersedia; animasi tetap berjalan tanpa narasi suara.");
+    playbackTimerRef.current = window.setTimeout(() => {
+      if (playbackRef.current !== "playing") return;
+      if (stepIndex === STEPS.length - 1) {
+        updatePlayback("stopped");
+        return;
+      }
+      const nextStep = stepIndex + 1;
+      setStep(nextStep);
+      speakStepRef.current?.(nextStep);
+    }, 7000);
+  }, [stopSpeechWatchdog, updatePlayback]);
+
   const speakStep = (stepIndex) => {
     if (playbackRef.current !== "playing") return;
+    if (animationOnlyRef.current) {
+      scheduleAnimationStep(stepIndex);
+      return;
+    }
     const speech = window.speechSynthesis;
     if (!speech || typeof SpeechSynthesisUtterance === "undefined") {
-      setVoiceStatus("Peramban ini tidak mendukung suara narasi. Perbarui peramban untuk mendengarkan panduan.");
-      updatePlayback("stopped");
+      scheduleAnimationStep(stepIndex);
       return;
     }
 
@@ -193,50 +221,68 @@ export default function KegiatanBantuanModal({ onClose }) {
     else if (voice) setVoiceStatus("Suara Bahasa Indonesia tidak ditemukan; narasi memakai suara bawaan perangkat.");
     else setVoiceStatus("Meminta suara narasi dari perangkat. Pastikan volume media ponsel tidak senyap.");
 
-    speech.cancel();
-    const utterance = new SpeechSynthesisUtterance(STEPS[stepIndex].narration);
-    utterance.lang = "id-ID";
-    utterance.rate = 0.92;
-    utterance.pitch = 0.96;
-    utterance.volume = 1;
-    if (voice) utterance.voice = voice;
-    utterance.onstart = () => {
-      if (!indonesianVoices.length && !maleVoice) {
-        setVoiceStatus("Narasi sedang dibacakan dengan suara bawaan perangkat.");
-      }
-    };
-    utterance.onend = () => {
-      if (playbackRef.current !== "playing") return;
-      if (stepIndex === STEPS.length - 1) {
-        updatePlayback("stopped");
-        return;
-      }
-      const nextStep = stepIndex + 1;
-      setStep(nextStep);
-      speakStepRef.current?.(nextStep);
-    };
-    utterance.onerror = (event) => {
-      if (event.error === "interrupted" || event.error === "canceled") return;
-      setVoiceStatus("Suara tidak berhasil diputar. Aktifkan suara media dan coba putar kembali.");
-      updatePlayback("stopped");
-    };
-    speech.resume();
-    speech.speak(utterance);
+    try {
+      let utteranceStarted = false;
+      const utterance = new SpeechSynthesisUtterance(STEPS[stepIndex].narration);
+      utterance.lang = "id-ID";
+      utterance.rate = 0.92;
+      utterance.pitch = 0.96;
+      utterance.volume = 1;
+      if (voice) utterance.voice = voice;
+      utterance.onstart = () => {
+        utteranceStarted = true;
+        window.clearTimeout(playbackTimerRef.current);
+        if (!indonesianVoices.length && !maleVoice) {
+          setVoiceStatus("Narasi sedang dibacakan dengan suara bawaan perangkat.");
+        }
+        stopSpeechWatchdog();
+        speechWatchdogRef.current = window.setInterval(() => {
+          if (playbackRef.current === "playing" && !speech.paused) speech.resume();
+        }, 10000);
+      };
+      utterance.onend = () => {
+        stopSpeechWatchdog();
+        if (playbackRef.current !== "playing") return;
+        if (stepIndex === STEPS.length - 1) {
+          updatePlayback("stopped");
+          return;
+        }
+        const nextStep = stepIndex + 1;
+        setStep(nextStep);
+        speakStepRef.current?.(nextStep);
+      };
+      utterance.onerror = (event) => {
+        stopSpeechWatchdog();
+        if (event.error === "interrupted" || event.error === "canceled") return;
+        scheduleAnimationStep(stepIndex);
+      };
+      speech.resume();
+      speech.speak(utterance);
+      playbackTimerRef.current = window.setTimeout(() => {
+        if (playbackRef.current === "playing" && !utteranceStarted) scheduleAnimationStep(stepIndex);
+      }, 6000);
+    } catch {
+      scheduleAnimationStep(stepIndex);
+    }
   };
   speakStepRef.current = speakStep;
 
   const moveToStep = useCallback((nextStep) => {
     window.speechSynthesis?.cancel();
     window.clearTimeout(playbackTimerRef.current);
+    stopSpeechWatchdog();
     updatePlayback("stopped");
     setStep(Math.max(0, Math.min(nextStep, STEPS.length - 1)));
-  }, [updatePlayback]);
+  }, [stopSpeechWatchdog, updatePlayback]);
 
   useEffect(() => {
     const speech = window.speechSynthesis;
     if (!speech) {
       setVoiceStatus("Peramban ini tidak mendukung suara narasi.");
-      return undefined;
+      return () => {
+        window.clearTimeout(playbackTimerRef.current);
+        stopSpeechWatchdog();
+      };
     }
 
     const updateVoices = () => {
@@ -256,8 +302,9 @@ export default function KegiatanBantuanModal({ onClose }) {
       speech.removeEventListener("voiceschanged", updateVoices);
       speech.cancel();
       window.clearTimeout(playbackTimerRef.current);
+      stopSpeechWatchdog();
     };
-  }, []);
+  }, [stopSpeechWatchdog]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -273,16 +320,25 @@ export default function KegiatanBantuanModal({ onClose }) {
     if (playback === "playing") {
       window.speechSynthesis?.pause();
       window.clearTimeout(playbackTimerRef.current);
+      stopSpeechWatchdog();
       updatePlayback("paused");
       return;
     }
     if (playback === "paused") {
       updatePlayback("playing");
-      window.speechSynthesis?.resume();
+      if (animationOnlyRef.current) scheduleAnimationStep(step);
+      else {
+        const speech = window.speechSynthesis;
+        speech?.resume();
+        playbackTimerRef.current = window.setTimeout(() => {
+          if (playbackRef.current === "playing" && !speech?.speaking) scheduleAnimationStep(step);
+        }, 6000);
+      }
       return;
     }
     const firstStep = step === STEPS.length - 1 ? 0 : step;
     setStep(firstStep);
+    animationOnlyRef.current = false;
     updatePlayback("playing");
     speakStep(firstStep);
   };
@@ -333,7 +389,7 @@ export default function KegiatanBantuanModal({ onClose }) {
                 aria-label={playback === "playing" ? "Jeda animasi" : playback === "paused" ? "Lanjutkan narasi" : step === STEPS.length - 1 ? "Putar ulang animasi dengan narasi" : "Putar animasi dengan narasi"}
                 data-testid={ACTIVITIES.helpPlay}
                 onClick={togglePlayback}
-                className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#111114] px-4 text-base font-semibold text-white hover:bg-black"
+                className="inline-flex min-h-11 shrink-0 touch-manipulation items-center justify-center gap-2 rounded-xl bg-[#111114] px-4 text-base font-semibold text-white hover:bg-black"
               >
                 {playback === "playing" ? <Pause size={17} /> : step === STEPS.length - 1 ? <RotateCcw size={17} /> : <Play size={17} />}
                 {playback === "playing" ? "Jeda" : playback === "paused" ? "Lanjutkan" : step === STEPS.length - 1 ? "Putar lagi" : "Putar"}

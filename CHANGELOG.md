@@ -41,8 +41,8 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 - Halaman Kegiatan menyediakan animasi panduan pembuatan kegiatan dengan narasi
   suara Bahasa Indonesia (memprioritaskan suara laki-laki yang tersedia di perangkat),
   teks tersinkron, kontrol putar/jeda, dan navigasi langkah. Jika suara Indonesia tidak
-  tersedia, narasi mencoba suara bawaan perangkat; panel dapat ditutup dengan tombol X
-  atau Escape.
+  tersedia, narasi mencoba suara bawaan perangkat; bila TTS gagal di ponsel, animasi tetap
+  berjalan otomatis tanpa suara. Panel dapat ditutup dengan tombol X atau Escape.
 - Daftar kegiatan mendukung pencarian, filter jenis, status Hari Ini/Akan Datang/Selesai,
   pemilihan kegiatan atau sesi, dan hapus massal dengan laporan bila sebagian gagal.
 - Tanggal dan waktu tampil di sisi kiri kartu; beberapa sesi diringkas dalam baris yang
