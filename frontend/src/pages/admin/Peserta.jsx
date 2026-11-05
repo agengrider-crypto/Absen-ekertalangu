@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Users, Search, Loader2, UserPlus, Trash2, X, Eye, AlertTriangle,
-  ClipboardList, CalendarDays, Heart, Printer, QrCode, CheckCircle2,
+  ClipboardList, CalendarDays, Heart, Printer, QrCode, CheckCircle2, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -484,11 +484,33 @@ function ModalShell({ title, children, onClose, testid, wide = false }) {
 function AddModal({ kelompok, onClose, onDone }) {
   const [f, setF] = useState({ name: "", gender: "", marital: "", birthplace: "", dob: "", phone: "", whatsapp: "", email: "", address: "", kelompok_id: "" });
   const [saving, setSaving] = useState(false);
-  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
+  const [step, setStep] = useState(0);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const set = (k, v) => {
+    setReviewConfirmed(false);
+    setF((p) => ({ ...p, [k]: v }));
+  };
+
+  const nextStep = () => {
+    if (step === 0 && !f.name.trim()) {
+      toast.error("Nama wajib diisi.");
+      return;
+    }
+    setReviewConfirmed(false);
+    setStep((current) => Math.min(current + 1, 2));
+  };
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!f.name.trim()) { toast.error("Nama wajib diisi"); return; }
+    if (step !== 2) {
+      toast.info("Tinjau data peserta terlebih dahulu sebelum menyimpan.");
+      return;
+    }
+    if (!f.name.trim()) { setStep(0); toast.error("Nama wajib diisi"); return; }
+    if (!reviewConfirmed) {
+      toast.error("Centang konfirmasi setelah memastikan data peserta sudah benar.");
+      return;
+    }
     setSaving(true);
     try {
       await api.post("/admin/users", {
@@ -508,6 +530,20 @@ function AddModal({ kelompok, onClose, onDone }) {
   return (
     <ModalShell title="Tambah Peserta" onClose={onClose} testid={PARTICIPANTS.addModal} wide>
       <form onSubmit={submit} className="space-y-4" data-testid={PARTICIPANTS.addForm}>
+        <div className="grid grid-cols-3 gap-1">
+          {["Data Utama", "Kontak", "Tinjau"].map((label, index) => (
+            <button key={label} type="button" onClick={() => index <= step && setStep(index)}
+              aria-current={step === index ? "step" : undefined}
+              data-testid={`${PARTICIPANTS.addWizardStepPrefix}-${index + 1}`}
+              className={`min-h-10 rounded-lg px-1 text-xs font-semibold sm:text-sm ${
+                step === index ? "bg-[#111114] text-white" : step > index ? "bg-[#E8F5EE] text-[#0D5C3A]" : "bg-[#F7F7F5] text-[#9CA3AF]"
+              }`}>
+              <span className="mr-1">{index + 1}.</span>{label}
+            </button>
+          ))}
+        </div>
+
+        {step === 0 && <>
         <div className="flex items-start gap-3 rounded-2xl border border-[#B7E4CA] bg-[#E8F5EE] p-4">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#0D5C3A]"><UserPlus size={21} /></span>
           <div>
@@ -522,8 +558,8 @@ function AddModal({ kelompok, onClose, onDone }) {
           <div className="mb-4 flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#111114] text-sm font-bold text-white">1</span>
             <div>
-              <h3 className="font-bold text-[#111827]">Data utama</h3>
-              <p className="text-sm text-[#6B7280]">Informasi dasar peserta</p>
+              <h3 className="font-bold text-[#111827]">Data utama peserta</h3>
+              <p className="text-sm text-[#6B7280]">Isi nama terlebih dahulu. Data lainnya bisa dilengkapi nanti.</p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -557,8 +593,9 @@ function AddModal({ kelompok, onClose, onDone }) {
             </label>
           </div>
         </section>
+        </>}
 
-        <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addContactSection}>
+        {step === 1 && <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addContactSection}>
           <div className="mb-4 flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F1F1EE] text-sm font-bold text-[#111114]">2</span>
             <div>
@@ -592,15 +629,55 @@ function AddModal({ kelompok, onClose, onDone }) {
             </label>
           </div>
         </section>
+        }
+
+        {step === 2 && <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addWizardReview}>
+          <h3 className="mb-3 font-bold text-[#111827]">Tinjau data peserta</h3>
+          <dl className="grid gap-2 sm:grid-cols-2">
+            {[
+              ["Nama lengkap", f.name],
+              ["Jenis kelamin", f.gender === "L" ? "Laki-laki" : f.gender === "P" ? "Perempuan" : "Belum diisi"],
+              ["Status pernikahan", MARITAL_OPTIONS.find((option) => option.value === f.marital)?.label || "Belum diisi"],
+              ["Tempat, tanggal lahir", [f.birthplace, f.dob].filter(Boolean).join(", ") || "Belum diisi"],
+              ["Nomor HP", f.phone || "Belum diisi"],
+              ["WhatsApp", f.whatsapp || "Belum diisi"],
+              ["Email", f.email || "Belum diisi"],
+              ["Kelompok", kelompok.find((item) => item.id === f.kelompok_id)?.name || "Tanpa kelompok"],
+              ["Alamat", f.address || "Belum diisi"],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl bg-[#FAFAF8] p-3">
+                <dt className="text-xs font-semibold text-[#6B7280]">{label}</dt>
+                <dd className="mt-1 break-words text-sm font-medium text-[#111827]">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 rounded-xl bg-[#E8F5EE] p-3 text-sm text-[#14532D]">
+            Akun peserta akan menunggu aktivasi. Pastikan tanggal lahir benar agar peserta dapat mengaktifkan akunnya.
+          </p>
+          <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2 text-sm font-semibold text-[#111827]">
+            <input type="checkbox" data-testid={PARTICIPANTS.addWizardConfirm} checked={reviewConfirmed}
+              onChange={(event) => setReviewConfirmed(event.target.checked)} className="h-5 w-5 accent-[#111114]" />
+            Saya sudah memeriksa data peserta.
+          </label>
+        </section>}
 
         <div className="sticky bottom-0 -mx-5 -mb-5 flex gap-2 border-t border-[#E8E8E4] bg-[#FAFAF8]/95 p-4 backdrop-blur">
-          <button data-testid={PARTICIPANTS.addCancel} type="button" onClick={onClose} className="min-h-12 flex-1 rounded-xl border-2 border-[#E8E8E4] bg-white text-base font-semibold text-[#374151] hover:bg-[#F4F4F1]">
-            Batal
+          <button data-testid={step === 0 ? PARTICIPANTS.addCancel : PARTICIPANTS.addWizardPrevious} type="button"
+            onClick={() => step === 0 ? onClose() : setStep((current) => Math.max(current - 1, 0))}
+            className="min-h-12 flex-1 rounded-xl border-2 border-[#E8E8E4] bg-white text-base font-semibold text-[#374151] hover:bg-[#F4F4F1]">
+            {step === 0 ? "Batal" : <><ChevronLeft size={17} className="mr-1 inline" /> Kembali</>}
           </button>
-          <button data-testid={PARTICIPANTS.addSubmit} type="submit" disabled={saving}
-            className="min-h-12 flex-[2] rounded-xl bg-[#0D5C3A] text-base font-bold text-white inline-flex items-center justify-center gap-2 hover:bg-[#09492E] disabled:opacity-60">
-            {saving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Simpan Peserta
-          </button>
+          {step < 2 ? (
+            <button data-testid={PARTICIPANTS.addWizardNext} type="button" onClick={nextStep}
+              className="min-h-12 flex-[2] rounded-xl bg-[#111114] text-base font-bold text-white hover:bg-black">
+              Lanjut <ChevronRight size={17} className="ml-1 inline" />
+            </button>
+          ) : (
+            <button data-testid={PARTICIPANTS.addSubmit} type="submit" disabled={saving || !reviewConfirmed}
+              className="min-h-12 flex-[2] rounded-xl bg-[#0D5C3A] text-base font-bold text-white inline-flex items-center justify-center gap-2 hover:bg-[#09492E] disabled:opacity-60">
+              {saving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Simpan Peserta
+            </button>
+          )}
         </div>
       </form>
     </ModalShell>

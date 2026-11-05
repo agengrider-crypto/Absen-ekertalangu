@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   FileBarChart2, Loader2, FileSpreadsheet, FileText, TrendingUp, Award, AlertTriangle,
-  Link as LinkIcon, Copy, Download, X, ExternalLink, Send, Users,
+  Link as LinkIcon, Copy, X, ExternalLink, Send, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -311,12 +311,6 @@ function PesertaLaporanList({ rows }) {
 
 function LaporanLinkModal({ data, onClose }) {
   const copy = () => { navigator.clipboard.writeText(data.link); toast.success("Tautan laporan disalin"); };
-  const download = () => {
-    const a = document.createElement("a");
-    a.href = data.image;
-    a.download = `qr_laporan_${data.date_from}_${data.date_to}.png`;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
   const shareWa = () => {
     // Fase 7: template WhatsApp BAKU dikirim dari backend (wa_text).
     const judul = (data.title || "Laporan Kehadiran").replace(/^laporan\s+/i, "").toLowerCase();
@@ -333,8 +327,7 @@ function LaporanLinkModal({ data, onClose }) {
           <h3 className="font-heading font-bold text-[#111827]">Tautan Laporan Publik</h3>
           <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"><X size={20} /></button>
         </div>
-        <div className="p-5 text-center">
-          <img src={data.image} alt="QR Laporan" className="mx-auto w-52 h-52 rounded-xl border border-[#E8E8E4] p-2" data-testid="laporan-qr-image" />
+        <div className="p-5">
           <div className="mt-3 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl p-3 text-left">
             <p className="text-sm font-semibold text-[#111114]">{data.title}</p>
             <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
@@ -352,12 +345,11 @@ function LaporanLinkModal({ data, onClose }) {
             <ExternalLink size={14} className="shrink-0" /> {data.link}
           </a>
           <div className="grid grid-cols-2 gap-2 mt-4">
-            <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={16} /> Salin Link</button>
-            <button data-testid="laporan-link-qr" onClick={download} className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Download size={16} /> Unduh QR</button>
+            <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={16} /> Salin Tautan</button>
+            <button data-testid="laporan-link-wa" onClick={shareWa} className="h-11 rounded-xl bg-[#25D366] text-white font-bold flex items-center justify-center gap-2 hover:brightness-95">
+              <Send size={18} /> Bagikan Tautan via WhatsApp
+            </button>
           </div>
-          <button data-testid="laporan-link-wa" onClick={shareWa} className="mt-2 w-full h-12 rounded-xl bg-[#25D366] text-white font-bold flex items-center justify-center gap-2 hover:brightness-95">
-            <Send size={18} /> Bagikan Link via WhatsApp
-          </button>
         </div>
       </div>
     </div>

@@ -3316,11 +3316,8 @@ async def ensure_kegiatan_access(kegiatan_id: str, request: Optional[Request] = 
         "kegiatan_status": k.get("status", "open"),
         "valid_until": end.isoformat() if end else None,
         "wa_text": (
-            "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
-            f"Berikut tautan absensi kegiatan {k.get('name')}\n"
-            f"{link}\n"
-            f"Kode akses: {code}\n\n"
-            "Alhamdulillah, jazakumullahu khoiro."
+            f"Tautan absensi {k.get('name')}: {link}\n"
+            f"Kode akses: {code}"
         ),
     }
 
@@ -5087,10 +5084,10 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
 
 @api_router.get("/staff/rekap-bulanan")
 async def rekap_bulanan(month: Optional[str] = None, staff: dict = Depends(require_staff)):
-    return await build_rekap_bulanan(month)
+    return await build_rekap_bulanan(month, include_participants=True)
 
 
-async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
+async def build_rekap_bulanan(month: Optional[str] = None, include_participants: bool = False) -> dict:
     """FASE 13 — Rekap absen BULANAN per peserta.
 
     1 pertemuan = 1 hari kegiatan (semua sesi hari itu dihitung SEKALI); hadir di
@@ -5118,12 +5115,33 @@ async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
     elig_by_doc = {k["_id"]: {str(p["_id"]) for p in filter_peserta_for_kegiatan(k, peserta)}
                    for k in kegiatans}
 
+    recurring_group_ids = list({k.get("recurring_group_id") for k in kegiatans
+                                 if k.get("recurring_group_id")})
+    previously_attended: dict[str, set[str]] = {}
+    if recurring_group_ids:
+        earlier_kegiatans = await db.kegiatans.find({
+            "recurring_group_id": {"$in": recurring_group_ids},
+            "date": {"$lt": date_from},
+        }).to_list(3000)
+        earlier_by_id = {k["_id"]: k.get("recurring_group_id") for k in earlier_kegiatans}
+        earlier_ids = list(earlier_by_id)
+        earlier_absens = await db.absensis.find({
+            "kegiatan_id": {"$in": earlier_ids},
+            "status": "hadir",
+        }).to_list(200000) if earlier_ids else []
+        for attendance in earlier_absens:
+            group_id = earlier_by_id.get(attendance.get("kegiatan_id"))
+            if group_id:
+                previously_attended.setdefault(group_id, set()).add(attendance.get("user_id"))
+
     meetings: dict = {}
     for k in kegiatans:
         key = k.get("session_group_id") or k["_id"]
         mt = meetings.setdefault(key, {"date": k.get("date"),
                                        "name": k.get("base_name") or k.get("name"),
-                                       "type": k.get("type", "rutin"), "docs": []})
+                                       "type": k.get("type", "rutin"),
+                                       "recurring_group_id": k.get("recurring_group_id"),
+                                       "docs": []})
         mt["docs"].append(k)
 
     tally = {str(p["_id"]): {"user_id": str(p["_id"]), "name": p.get("name"),
@@ -5137,8 +5155,13 @@ async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
     meeting_rows = []
     sesi_summary: dict = {}   # label sesi -> ringkasan sebulan
     for mt in sorted(meetings.values(), key=lambda x: x["date"] or ""):
+        recurring_group_id = mt.get("recurring_group_id")
+        recurrence_skip = set(previously_attended.get(recurring_group_id, set()))
         n_h = n_i = n_s = n_a = n_pending = 0
+        meeting_participants = []
         for pid, t in tally.items():
+            if pid in recurrence_skip:
+                continue
             docs_p = [
                 d for d in mt["docs"]
                 if pid in elig_by_doc[d["_id"]] and (
@@ -5151,27 +5174,38 @@ async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
             t["pertemuan"] += 1
             sts = [status_by.get((d["_id"], pid), "belum_diabsen") for d in docs_p]
             if "hadir" in sts:
+                attendance_status = "hadir"
                 t["hadir"] += 1
                 t["last_date"] = mt["date"]
                 n_h += 1
+                if recurring_group_id:
+                    previously_attended.setdefault(recurring_group_id, set()).add(pid)
             elif "izin" in sts:
+                attendance_status = "izin"
                 t["izin"] += 1
                 n_i += 1
             elif "sakit" in sts:
+                attendance_status = "sakit"
                 t["sakit"] += 1
                 n_s += 1
             elif "alpha" in sts:
+                attendance_status = "alpha"
                 t["alpha"] += 1
                 n_a += 1
             else:
+                attendance_status = "belum_diabsen"
                 t["belum_diabsen"] += 1
                 n_pending += 1
+            meeting_participants.append({
+                "name": t["name"],
+                "status": attendance_status,
+            })
         total_p = n_h + n_i + n_s + n_a + n_pending
 
         # Rincian tiap sesi pada pertemuan ini (mis. Pagi / Sore / Malam)
         sesi_rows = []
         for d in sorted(mt["docs"], key=lambda x: (x.get("session_index") or 0, x.get("start_time") or "")):
-            eids = elig_by_doc[d["_id"]]
+            eids = elig_by_doc[d["_id"]] - recurrence_skip
             counted_ids = {
                 pid for pid in eids
                 if session_requires_participant(d, pid)
@@ -5203,12 +5237,15 @@ async def build_rekap_bulanan(month: Optional[str] = None) -> dict:
             agg["belum_diabsen"] += sp
             agg["peserta"] += len(counted_ids)
 
-        meeting_rows.append({"date": mt["date"], "name": mt["name"], "type": mt["type"],
-                             "sessions": len(mt["docs"]), "peserta": total_p,
-                             "hadir": n_h, "izin": n_i, "sakit": n_s,
-                             "alpha": n_a, "belum_diabsen": n_pending,
-                             "ratio": round((n_h / total_p) * 100, 1) if total_p else 0.0,
-                             "sesi": sesi_rows})
+        meeting_row = {"date": mt["date"], "name": mt["name"], "type": mt["type"],
+                       "sessions": len(mt["docs"]), "peserta": total_p,
+                       "hadir": n_h, "izin": n_i, "sakit": n_s,
+                       "alpha": n_a, "belum_diabsen": n_pending,
+                       "ratio": round((n_h / total_p) * 100, 1) if total_p else 0.0,
+                       "sesi": sesi_rows}
+        if include_participants:
+            meeting_row["peserta_rows"] = meeting_participants
+        meeting_rows.append(meeting_row)
 
     per_sesi = sorted(
         [{**v, "ratio": round((v["hadir"] / v["peserta"]) * 100, 1) if v["peserta"] else 0.0}
@@ -5497,8 +5534,7 @@ async def share_laporan(body: LaporanShareInput, request: Request,
                            f"Membuat tautan laporan publik ({mode}) {date_from} s/d {date_to}")
     link = f"{resolve_base_url(request)}/laporan/{token}"
     title = _laporan_title(mode, date_from, date_to)
-    return {"token": token, "link": link, "mode": mode, "image": make_qr_data_url(link),
-            "title": title,
+    return {"token": token, "link": link, "mode": mode, "title": title,
             # Fase 7 — template WhatsApp BAKU
             "wa_text": wa_template_laporan(title.lower(), link),
             "date_from": date_from, "date_to": date_to}

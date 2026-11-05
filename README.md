@@ -223,7 +223,7 @@ Absen-ekertalangu/
 │           │   ├── PenjagaAbsenView.jsx # Kelola delegasi terpusat
 │           │   ├── MusyawarahView.jsx
 │           │   ├── PengumumanView.jsx
-│           │   ├── LaporanView.jsx      # Harian/bulanan/rentang + Excel/PDF/Share WA
+│           │   ├── LaporanView.jsx      # Tampilan lama (tidak ada di navigasi admin)
 │           │   ├── LogAktivitas.jsx
 │           │   ├── HakAkses.jsx         # Editor peran pengguna
 │           │   ├── ComingSoon.jsx

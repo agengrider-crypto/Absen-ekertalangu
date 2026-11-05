@@ -30,7 +30,7 @@ lainnya. Tampilan ponsel dimulai pada skala 100% dan tetap mendukung zoom:
 | Dashboard | `DashboardView.jsx` | Sapaan nama, pintasan tambah peserta/kegiatan dan laporan, total peserta, tren kehadiran horizontal, serta tabel kegiatan mendatang yang membuka detail |
 | Peserta | `Peserta.jsx`, `PesertaBulkView.jsx`, `PesertaDuplikat.jsx` | Kelola akun lewat tab kategori peran dan filter status, aktivasi massal peserta pending, kartu nama QR permanen siap cetak, bulk data, cek duplikat, dan kelompok |
 | Kegiatan | `KegiatanView.jsx`, `KalenderView.jsx`, `KodeAksesView.jsx`, `ScanPresensiView.jsx` | Daftar, kalender, kode akses, scan presensi, pengumuman |
-| Laporan | `LaporanView.jsx`, `LaporanPesertaView.jsx`, `RekapBulananView.jsx`, `RekapHarianView.jsx`, `MusyawarahView.jsx`, `RuangTeduhView.jsx` | Rekap, laporan per peserta, musyawarah, dan laporan masuk dari jamaah |
+| Rekap & laporan | `LaporanPesertaView.jsx`, `RekapBulananView.jsx`, `RekapHarianView.jsx`, `MusyawarahView.jsx`, `RuangTeduhView.jsx` | Rekap kehadiran, laporan per peserta, musyawarah, dan laporan masuk |
 | Pengaturan (admin) | `BantuanView.jsx`, `PantauLoginView.jsx`, `LogAktivitas.jsx`, `HakAkses.jsx` | Bantuan, aktivitas login, log, dan hak akses |
 
 Program Pembelajaran tersedia pada area Guru. Menu Bantuan tetap tersedia mandiri untuk
@@ -167,12 +167,12 @@ tetap `"Delegasi: <nama>"`). Semua aksi tercatat di `activity_logs`.
 
 ---
 
-## 6. Laporan
+## 6. Rekap dan laporan
 
-Tiga mode: **Harian**, **Bulanan**, **Rentang**.
-
-Isi laporan: rasio kehadiran, total hadir/izin/alpha, kehadiran per jenis kelamin,
-**Paling Rajin** (5 teratas), **Paling Sering Alpha** (5 teratas), rincian per kegiatan.
+Laporan Kehadiran rentang tanggal sudah dihapus dari menu admin karena rekap kehadiran
+tersedia lewat **Rekap Harian** dan **Rekap Bulanan**. Endpoint dan tautan publik lama
+tetap dipertahankan agar tautan yang sudah dibagikan tidak rusak. Pembuatan tautan laporan
+lama hanya menyediakan salin tautan dan berbagi WhatsApp, tanpa QR.
 
 Menu **Laporan per Peserta** menyediakan daftar bulanan atau mingguan (pekan tanggal 1–7,
 8–14, dan seterusnya), pencarian berdasarkan nama saja, pengurutan kehadiran tertinggi atau
@@ -182,18 +182,21 @@ terakhir, serta daftar kegiatan dan status kehadiran. Periode bulan sebelumnya d
 melalui kontrol bulan. Detail dapat dibagikan melalui WhatsApp atau tautan publik bertoken
 yang berlaku 30 hari; pesan WhatsApp berisi nama peserta, periode, dan tautan saja.
 
-Rincian **per peserta** tersedia dalam bentuk dropdown "Rekap per Peserta"
-(nama, hadir, izin, alpha, persentase).
+### Rekap Absen Bulanan
 
-| Tombol | Hasil |
-|---|---|
-| **Buat Link Laporan** | Tautan publik **permanen** + QR (`/laporan/{token}`). Siapa pun yang membukanya **langsung melihat laporan tanpa login**. Tersedia Salin Link, Unduh QR, dan Bagikan Link via WhatsApp |
-| **Excel** | `.xlsx` — sheet "Per Kegiatan" + "Ringkasan" |
-| **PDF** | `.pdf` — tabel berformat |
+Rekap Bulanan menampilkan persentase kehadiran Laki-laki/Perempuan, ringkasan sesi
+dalam kartu mendatar, dan daftar peserta yang dapat dicari serta difilter. Daftar
+pertemuan menampilkan jumlah hadir; persentasenya terlihat melalui tooltip. Tiap
+pertemuan dapat dibuka untuk melihat nama peserta dan status absensinya. Rincian sesi
+hanya menampilkan nama dan jam, tanpa mengulang angka kehadiran. Tautan rekap publik
+menampilkan ringkasan kehadiran tanpa daftar status per nama dan tidak meminta login.
+Pada kegiatan berulang yang sama, peserta yang sudah hadir tidak dihitung lagi pada
+pertemuan berikutnya di rangkaian tersebut.
 
-> Sejak Fase 6, tombol **Share WA** yang menyusun teks template panjang **diganti**
-> tombol **Buat Link Laporan**. Yang dibagikan ke WhatsApp sekarang cukup **satu tautan**,
-> dan angka di dalamnya selalu dihitung ulang saat dibuka (mengikuti koreksi absen terbaru).
+Persentase peserta dihitung dari pertemuan berstatus Hadir dibagi pertemuan wajib.
+Hadir pada salah satu sesi wajib dihitung sebagai hadir pada pertemuan tersebut; sesi
+opsional tidak menambah kewajiban. Izin, sakit, alpha, dan belum diabsen dicatat
+sebagai status terpisah.
 
 ---
 

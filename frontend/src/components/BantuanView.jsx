@@ -29,7 +29,7 @@ const GUIDES = {
       { icon: ListChecks, title: "Catat kehadiran manual", desc: "Buka kegiatan → tab Absen Manual untuk menandai hadir/izin satu per satu.", img: "pengurus-3-absen-manual" },
       { icon: ScanLine, title: "Scan barcode peserta", desc: "Tab Scan Barcode memindai QR peserta; kehadiran langsung tercatat pada sesi yang dibuka.", img: "pengurus-4-scan" },
       { icon: MailWarning, title: "Undangan penting", desc: "Tab Undangan Penting → centang peserta + tulis pesan. Undangan langsung tampil di lonceng dan beranda peserta.", img: "pengurus-5-undangan" },
-      { icon: FileBarChart2, title: "Bagikan rekap", desc: "Tab Rekap / Laporan menyediakan tautan publik, QR, dan tombol bagikan WhatsApp. Penerima melihat rekap tanpa perlu login.", img: "pengurus-6-rekap" },
+      { icon: FileBarChart2, title: "Bagikan rekap", desc: "Rekap harian dan bulanan menyediakan tautan untuk dibagikan lewat WhatsApp.", img: "pengurus-6-rekap" },
     ],
   },
   admin: {
@@ -38,7 +38,7 @@ const GUIDES = {
     steps: [
       { icon: UserPlus, title: "Kelola peserta", desc: "Menu User untuk menambah/mengubah data. Lengkapi tanggal lahir, jenis kelamin, dan status agar penyaringan kegiatan akurat.", img: "admin-1-peserta" },
       { icon: KeyRound, title: "Atur hak akses", desc: "Menu Hak Akses untuk memberi peran Pengurus atau Guru/Pengajar, serta mengatur ulang kata sandi.", img: "admin-2-hak-akses" },
-      { icon: FileBarChart2, title: "Pantau laporan", desc: "Menu Laporan: pilih rentang tanggal, lalu pakai filter keaktifan (Rajin ≥80%, Cukup 50–79%, Jarang <50%, Belum pernah hadir).", img: "admin-3-laporan" },
+      { icon: FileBarChart2, title: "Pantau kehadiran", desc: "Menu Rekap Bulanan dan Rekap Harian menampilkan persentase serta status kehadiran peserta.", img: "admin-3-laporan" },
       { icon: CalendarDays, title: "Kalender kegiatan", desc: "Menu Kalender menampilkan seluruh jadwal satu bulan; tap tanggal untuk melihat rincian tiap sesi.", img: "admin-4-kalender" },
       { icon: BookOpen, title: "Program pembelajaran", desc: "Menu Program Pembelajaran: atur kurikulum, materi beserta media, dan jadwal untuk PAUD, Cabe Rawit 1–6, dan Muda-Mudi.", img: "admin-5-program" },
       { icon: HeartHandshake, title: "Pantau notifikasi", desc: "Lonceng memuat pesan Ruang Teduh, kegiatan baru, pengumuman, musyawarah, dan undangan penting dalam satu daftar.", img: "admin-6-notifikasi" },

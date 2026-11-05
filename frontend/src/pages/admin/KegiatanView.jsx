@@ -49,6 +49,8 @@ export default function KegiatanView({
   const [phaseFilter, setPhaseFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingSelected, setDeletingSelected] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [detailId, setDetailId] = useState(null);
@@ -120,7 +122,8 @@ export default function KegiatanView({
   }, [items]);
 
   const groups = useMemo(() => groupKegiatan(filtered), [filtered]);
-  const selectedVisibleCount = filtered.filter((k) => selectedIds.has(k.id)).length;
+  const selectedTargets = filtered.filter((k) => selectedIds.has(k.id));
+  const selectedVisibleCount = selectedTargets.length;
 
   const toggleStatus = async (k) => {
     try {
@@ -158,9 +161,9 @@ export default function KegiatanView({
     return next;
   });
   const deleteSelected = async () => {
-    const targets = filtered.filter((k) => selectedIds.has(k.id));
+    const targets = selectedTargets;
     if (!targets.length) return;
-    if (!window.confirm(`Hapus ${targets.length} kegiatan terpilih? Tindakan ini tidak bisa dibatalkan.`)) return;
+    setDeletingSelected(true);
     const deleted = [];
     const failed = [];
     for (const kegiatan of targets) {
@@ -181,6 +184,8 @@ export default function KegiatanView({
       const failures = failed.map(({ kegiatan, detail }) => `${kegiatan.name}: ${detail}`).join("; ");
       toast.error(`${failed.length} kegiatan gagal dihapus. ${failures}`);
     }
+    setDeletingSelected(false);
+    setShowDeleteConfirm(false);
     load();
   };
 
@@ -319,7 +324,7 @@ export default function KegiatanView({
                 Pilih semua yang tampil ({filtered.length})
               </label>
               {selectedVisibleCount > 0 && (
-                <button type="button" onClick={deleteSelected} data-testid={ACTIVITIES.deleteSelected}
+                <button type="button" onClick={() => setShowDeleteConfirm(true)} data-testid={ACTIVITIES.deleteSelected}
                   className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#DC2626] px-4 text-sm font-semibold text-white hover:bg-[#B91C1C]">
                   <Trash2 size={16} /> Hapus terpilih ({selectedVisibleCount})
                 </button>
@@ -359,6 +364,34 @@ export default function KegiatanView({
 
       {showAdd && <KegiatanFormModal suggestions={Array.isArray(items) ? items : []}
         onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
+      {showDeleteConfirm && (
+        <ActionModal
+          title="Hapus kegiatan terpilih?"
+          subtitle={`${selectedTargets.length} kegiatan`}
+          onClose={() => setShowDeleteConfirm(false)}
+          testid={ACTIVITIES.deleteConfirmModal}
+          actions={[{
+            key: "confirm-delete",
+            label: deletingSelected ? "Menghapus kegiatan…" : `Hapus ${selectedTargets.length} kegiatan`,
+            desc: "Tindakan ini tidak dapat dibatalkan.",
+            icon: Trash2,
+            danger: true,
+            disabled: deletingSelected,
+            onClick: deleteSelected,
+          }]}
+        >
+          <p className="px-3 py-2 text-sm text-[#4B5563]">
+            Pastikan pilihan kegiatan sudah benar. Kegiatan yang gagal dihapus akan tetap muncul di daftar.
+          </p>
+          <ul className="mx-3 mb-2 max-h-40 divide-y divide-[#E8E8E4] overflow-y-auto rounded-xl border border-[#E8E8E4]">
+            {selectedTargets.map((kegiatan) => (
+              <li key={kegiatan.id} className="px-3 py-2 text-sm text-[#111827]">
+                {kegiatan.date} · {kegiatan.name}
+              </li>
+            ))}
+          </ul>
+        </ActionModal>
+      )}
       {showHelp && <KegiatanBantuanModal onClose={() => setShowHelp(false)} />}
       {gabunganId && <RekapGabunganModal kegiatanId={gabunganId} onClose={() => setGabunganId(null)} />}
       {salinGroup && (
@@ -809,9 +842,7 @@ function ShareAbsensiModal({ data, onClose }) {
 
         <div className="mt-3 bg-white border border-[#E8E8E4] rounded-xl p-3 text-left">
           <p className="text-xs text-[#4B5563] leading-relaxed">
-            Penerima tautan memasukkan kode akses ini, lalu langsung melihat <b>daftar peserta</b> —
-            termasuk peserta yang <b>belum aktivasi</b> — untuk diabsen <b>manual</b> atau lewat
-            <b> scan barcode</b> QR pribadi peserta.
+            Buka tautan, masukkan kode akses, lalu pilih status peserta.
           </p>
         </div>
 

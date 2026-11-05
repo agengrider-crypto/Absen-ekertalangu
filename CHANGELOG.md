@@ -6,12 +6,24 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ## Pembaruan 5 November 2026
 
+- Merapikan Rekap Bulanan: ringkasan gender hanya menampilkan persen, sesi diringkas
+  dalam kartu mendatar, dan rincian sesi per pertemuan hanya menampilkan nama serta jam.
+  Baris pertemuan kini punya tooltip persentase dan dropdown nama/status peserta, diikuti
+  keterangan hitungan yang lebih singkat. Tampilan tautan publik diselaraskan.
 - Menghapus layar pembuka "Memuat aplikasi" dan indikator loading global; pemuatan data
   tetap memiliki indikator pada halaman yang membutuhkannya.
 - Memperbarui formulir Tambah Peserta dengan bagian Data Utama dan Kontak/Kelompok,
   keterangan aktivasi, serta tombol aksi yang mudah dijangkau di ponsel.
 - Rekap beberapa sesi ditampilkan mendatar dengan persentase kehadiran dan grafik
   batang beranimasi.
+- Peserta yang sudah hadir pada kegiatan dalam rangkaian berulang tidak dihitung lagi
+  pada tanggal berikutnya dalam rekap bulanan, termasuk lintas bulan.
+- Laporan Kehadiran dihapus dari navigasi; pintasan menuju Rekap Bulanan, dan navigasi
+  ponsel menyediakan tombol Rekap. Tautan lama tetap berfungsi tanpa QR.
+- Hapus kegiatan terpilih kini meminta konfirmasi lewat modal berisi nama kegiatan.
+  Tambah Peserta disusun sebagai langkah Data Utama, Kontak, dan Tinjau.
+- Petunjuk sandi sementara dipindahkan ke Aktivasi Akun dan teks berbagi kode akses
+  disederhanakan.
 - Saat kegiatan ditutup manual atau otomatis, peserta wajib yang belum memiliki status
   otomatis dicatat Alpha; peserta di luar daftar wajib tetap tidak diubah.
 - Rekap kegiatan menampilkan daftar khusus peserta Izin, Sakit, dan Alpha.

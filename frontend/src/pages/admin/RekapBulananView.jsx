@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarRange, Loader2, Search, Users, TrendingUp, TrendingDown, Link2, Send,
-  ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Layers,
+  ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Layers, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import { PercentBar } from "@/pages/PublicRekapGabungan";
 import { SkeletonList } from "@/components/GlobalLoading";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { MONTHLY_RECAP } from "@/constants/testIds";
 import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "./rekapUtils";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
@@ -170,23 +171,34 @@ export default function RekapBulananView() {
           </div>
 
           {/* Pisah Laki-laki / Perempuan */}
-          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 space-y-4" data-testid="rekap-bulanan-gender">
-            <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Users size={16} style={{ color: REKAP.main }} /> Pisah Laki-laki &amp; Perempuan</div>
-            <PercentBar label={`Laki-laki (${data.gender?.L?.peserta || 0} peserta · rajin ${data.gender?.L?.rajin || 0} · jarang ${data.gender?.L?.jarang || 0})`}
-              value={data.gender?.L?.ratio || 0} sub={`${data.gender?.L?.hadir || 0}/${data.gender?.L?.pertemuan || 0}`} color={REKAP.lk} testid="bar-gender-l" />
-            <PercentBar label={`Perempuan (${data.gender?.P?.peserta || 0} peserta · rajin ${data.gender?.P?.rajin || 0} · jarang ${data.gender?.P?.jarang || 0})`}
-              value={data.gender?.P?.ratio || 0} sub={`${data.gender?.P?.hadir || 0}/${data.gender?.P?.pertemuan || 0}`} color={REKAP.pr} testid="bar-gender-p" />
+          <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="rekap-bulanan-gender">
+            <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2 mb-3"><Users size={16} style={{ color: REKAP.main }} /> Pisah Laki-laki &amp; Perempuan</div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-[#F0FDF4] p-3" data-testid={MONTHLY_RECAP.maleSummary}>
+                <div className="text-xs font-semibold text-[#166534]">Laki-laki</div>
+                <div className="mt-1 text-2xl font-bold tabular-nums text-[#166534]">{data.gender?.L?.ratio || 0}%</div>
+              </div>
+              <div className="rounded-xl bg-[#F5F3FF] p-3" data-testid={MONTHLY_RECAP.femaleSummary}>
+                <div className="text-xs font-semibold text-[#6D28D9]">Perempuan</div>
+                <div className="mt-1 text-2xl font-bold tabular-nums text-[#6D28D9]">{data.gender?.P?.ratio || 0}%</div>
+              </div>
+            </div>
           </div>
 
           {/* Ringkasan sesi sebulan */}
           {data.per_sesi?.length > 0 && (
-            <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 space-y-3.5" data-testid="rekap-bulanan-sesi">
-              <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2"><Layers size={16} style={{ color: REKAP.main }} /> Ringkasan Sesi Selama Sebulan</div>
-              {data.per_sesi.map((x) => (
-                <PercentBar key={x.label}
-                  label={`${x.label}${x.required === false ? " · opsional" : ""} — ${x.pertemuan}x kegiatan`}
-                  value={x.ratio} sub={`${x.hadir}/${x.peserta}`} color={ratioColor(x.ratio)} testid={`bar-sesi-bulanan-${x.label}`} />
-              ))}
+            <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="rekap-bulanan-sesi">
+              <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2 mb-3"><Layers size={16} style={{ color: REKAP.main }} /> Ringkasan Sesi Selama Sebulan</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {data.per_sesi.map((x, i) => (
+                  <div key={x.label} data-testid={`${MONTHLY_RECAP.sessionCardPrefix}-${i}`}
+                    className="min-w-0 rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-3">
+                    <div className="truncate text-sm font-bold text-[#111827]" title={x.label}>{x.label}</div>
+                    <div className="mt-1 text-[11px] text-[#6B7280]">{x.pertemuan}× kegiatan{x.required === false ? " · opsional" : ""}</div>
+                    <div className="mt-1 text-xl font-bold tabular-nums" style={{ color: ratioColor(x.ratio) }}>{x.ratio}%</div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -267,32 +279,60 @@ export default function RekapBulananView() {
             {data.per_pertemuan.length === 0 ? (
               <div className="text-sm text-[#6B7280] inline-flex items-center gap-2"><AlertTriangle size={15} /> Belum ada kegiatan pada bulan ini.</div>
             ) : (
+              <TooltipProvider>
               <div className="space-y-3" data-testid="rekap-bulanan-pertemuan">
                 {data.per_pertemuan.map((p, i) => (
-                  <div key={i} className="rounded-xl border border-[#EEF1EE] p-3.5">
-                    <PercentBar label={`${p.date} · ${p.name}${p.sessions > 1 ? ` (${p.sessions} sesi)` : ""}`}
-                      value={p.ratio} sub={`${p.hadir}/${p.peserta}`} color={ratioColor(p.ratio)} testid={`bar-pertemuan-${i}`} />
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {(p.sesi || []).map((x, j) => (
-                        <span key={j} title={[x.teacher, x.material].filter(Boolean).join(" · ")}
-                          className={`text-[11px] font-semibold px-2 py-1 rounded-lg ${x.required ? "bg-[#CCFBF1] text-[#115E59]" : "bg-[#E0F2FE] text-[#075985]"}`}>
-                          {x.label} {x.start_time}–{x.end_time} · {x.hadir}/{x.peserta} ({x.ratio}%)
-                        </span>
-                      ))}
+                  <div key={i} className="rounded-xl border border-[#EEF1EE] p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="font-semibold text-sm text-[#111827]">{p.date} · {p.name}</div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button type="button" data-testid={`${MONTHLY_RECAP.meetingAttendancePrefix}-${i}`}
+                            aria-label={`Kehadiran ${p.hadir} dari ${p.peserta} peserta`}
+                            className="min-h-11 rounded-lg bg-[#F0FDF4] px-3 text-sm font-bold text-[#166534]">
+                            Hadir {p.hadir}/{p.peserta}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{p.ratio}% hadir</TooltipContent>
+                      </Tooltip>
                     </div>
+                    <details className="mt-1 group">
+                      <summary data-testid={`${MONTHLY_RECAP.meetingTogglePrefix}-${i}`}
+                        className="flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-semibold text-[#0F766E]">
+                        Lihat nama dan absensi <span className="text-[#6B7280]">({p.peserta} peserta)</span>
+                        <ChevronDown size={16} className="ml-auto transition-transform group-open:rotate-180" />
+                      </summary>
+                      <div className="mt-1 divide-y divide-[#EEF1EE] rounded-lg bg-[#FAFAF8] px-3" data-testid={`${MONTHLY_RECAP.meetingParticipantsPrefix}-${i}`}>
+                        {(p.peserta_rows || []).length === 0 ? (
+                          <div className="py-3 text-sm text-[#6B7280]">Belum ada peserta yang wajib diabsen.</div>
+                        ) : (p.peserta_rows || []).map((person, j) => (
+                          <div key={`${person.name}-${j}`} className="flex min-h-10 items-center justify-between gap-3 text-sm">
+                            <span className="truncate text-[#111827]">{person.name}</span>
+                            <span className="shrink-0 text-[#4B5563]">{person.status === "belum_diabsen" ? "Belum diabsen" : person.status[0].toUpperCase() + person.status.slice(1)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                    {(p.sesi || []).length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {p.sesi.map((x, j) => (
+                          <span key={j} className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${x.required ? "bg-[#CCFBF1] text-[#115E59]" : "bg-[#E0F2FE] text-[#075985]"}`}>
+                            {x.label} {x.start_time}–{x.end_time}{x.required ? "" : " · opsional"}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+              </TooltipProvider>
             )}
           </div>
 
-          <div className="rounded-2xl border-2 border-dashed border-[#E8E8E4] bg-white p-4 text-xs text-[#4B5563] space-y-1.5" data-testid="rekap-bulanan-legend">
-            <div className="font-bold text-[#111114] inline-flex items-center gap-1.5"><CheckCircle2 size={14} /> Keterangan hitungan</div>
-            <p>Persen kehadiran = jumlah <b>Hadir</b> ÷ jumlah pertemuan × 100.</p>
-            <p>Hadir + Izin + Alpha selalu sama dengan jumlah pertemuan peserta tersebut, sehingga persennya berjumlah <b>100%</b>.
-              Contoh: Hadir 5× (71,4%) + Izin 1× (14,3%) + Alpha 1× (14,3%) = 100% dari 7 pertemuan.</p>
-            <p>Warna persen: <span className="font-bold text-[#166534]">hijau ≥80%</span>, <span className="font-bold text-[#92400E]">kuning 50–79%</span>, <span className="font-bold text-[#991B1B]">merah &lt;50%</span>.</p>
-            <p>Hadir di salah satu sesi wajib pada hari itu sudah dihitung hadir untuk pertemuan tersebut.</p>
+          <div className="rounded-xl border border-[#E8E8E4] bg-white p-4 text-sm text-[#4B5563] space-y-1" data-testid="rekap-bulanan-legend">
+            <div className="font-bold text-[#111114] inline-flex items-center gap-1.5"><CheckCircle2 size={15} /> Cara menghitung</div>
+            <p>Persen hadir = pertemuan berstatus Hadir ÷ pertemuan wajib × 100.</p>
+            <p>Hadir di salah satu sesi wajib dihitung hadir. Izin, sakit, alpha, dan belum diabsen dicatat terpisah; sesi opsional tidak menambah kewajiban.</p>
           </div>
         </>
       )}

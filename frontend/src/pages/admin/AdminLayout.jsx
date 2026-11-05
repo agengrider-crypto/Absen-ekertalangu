@@ -25,7 +25,6 @@ import PesertaDuplikat from "./PesertaDuplikat";
 import KegiatanView from "./KegiatanView";
 import KodeAksesView from "./KodeAksesView";
 import ScanPresensiView from "./ScanPresensiView";
-import LaporanView from "./LaporanView";
 import LaporanPesertaView from "./LaporanPesertaView";
 import LogAktivitas from "./LogAktivitas";
 import HakAkses from "./HakAkses";
@@ -60,9 +59,8 @@ const MENU = [
     ],
   },
   {
-    group: "grup-laporan", label: "Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"],
+    group: "grup-laporan", label: "Rekap & Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"],
     items: [
-      { key: "laporan", label: "Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"] },
       { key: "laporan-peserta", label: "Laporan per Peserta", icon: Users, roles: ["admin", "pengurus"] },
       { key: "rekap-bulanan", label: "Rekap Bulanan", icon: CalendarRange, roles: ["admin", "pengurus"] },
       { key: "rekap-harian", label: "Rekap Harian", icon: CalendarCheck, roles: ["admin", "pengurus"] },
@@ -215,14 +213,14 @@ function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
     dashboard: ["dashboard"],
     peserta: ["peserta", "kartu-nama", "peserta-bulk", "peserta-duplikat", "kelompok"],
     kegiatan: ["kegiatan", "kalender", "kode-akses", "scan-presensi", "pengumuman"],
-    laporan: ["laporan", "laporan-peserta", "rekap-bulanan", "rekap-harian", "musyawarah", "pengaduan"],
+    rekap: ["laporan-peserta", "rekap-bulanan", "rekap-harian", "musyawarah", "pengaduan"],
   };
   const activeSection = Object.keys(sections).find((key) => sections[key].includes(active));
   const items = [
     { key: "dashboard", label: "Beranda", icon: LayoutDashboard, action: () => onNavigate("dashboard") },
     { key: "peserta", label: "Peserta", icon: Users, action: () => onNavigate("peserta") },
     { key: "kegiatan", label: "Kegiatan", icon: CalendarDays, action: () => onNavigate("kegiatan") },
-    { key: "laporan", label: "Laporan", icon: FileBarChart2, action: () => onNavigate("laporan") },
+    { key: "rekap", label: "Rekap", icon: CalendarRange, action: () => onNavigate("rekap-bulanan") },
     { key: "menu", label: "Menu", icon: Menu, action: onOpenMenu },
   ];
 
@@ -384,7 +382,6 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "musyawarah" && <MusyawarahView />}
           {active === "pengumuman" && <PengumumanView />}
           {active === "pengaduan" && <RuangTeduhView />}
-          {active === "laporan" && <LaporanView />}
           {active === "laporan-peserta" && <LaporanPesertaView />}
           {active === "rekap-bulanan" && <RekapBulananView />}
           {active === "rekap-harian" && <RekapHarianView />}

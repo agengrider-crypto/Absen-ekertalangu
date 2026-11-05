@@ -8,7 +8,7 @@ export const ADMIN_SIDEBAR = {
     dashboard: "admin-mobile-nav-dashboard",
     peserta: "admin-mobile-nav-peserta",
     kegiatan: "admin-mobile-nav-kegiatan",
-    laporan: "admin-mobile-nav-laporan",
+    rekap: "admin-mobile-nav-rekap",
     menu: "admin-mobile-nav-menu",
   },
 };

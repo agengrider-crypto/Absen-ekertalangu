@@ -15,6 +15,7 @@ export const ACTIVITIES = {
   phasePrefix: "kegiatan-phase",
   selectAll: "kegiatan-select-all",
   deleteSelected: "kegiatan-delete-selected",
+  deleteConfirmModal: "kegiatan-delete-confirm-modal",
   checkboxPrefix: "kegiatan-checkbox",
   datePrefix: "kegiatan-date",
   scanToggle: "kegiatan-detail-scan-toggle",

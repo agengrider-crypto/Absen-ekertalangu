@@ -13,6 +13,24 @@
   nama saja, pengurutan kehadiran tertinggi/terendah, kotak pilihan peserta, detail enam
   bulan dan kegiatan, serta tautan publik bertoken yang berlaku 30 hari. Pesan WhatsApp
   berisi nama peserta, periode laporan, dan tautan saja.
+- Rekap Bulanan: ringkasan gender hanya menampilkan persen; ringkasan sesi sebulan memakai
+  kartu mendatar hingga empat kolom. Daftar pertemuan menampilkan hitungan hadir dengan
+  tooltip persentase dan dropdown nama/status peserta; rincian sesi per pertemuan hanya
+  menampilkan nama sesi dan jam.
+- Persentase hadir dihitung dari pertemuan berstatus Hadir dibandingkan pertemuan wajib.
+  Hadir pada sesi wajib mana pun dihitung sebagai hadir pada pertemuan itu; sesi opsional
+  tidak menambah kewajiban. Tautan publik tetap menampilkan ringkasan tanpa daftar status
+  per nama.
+- Laporan Kehadiran rentang tanggal dihapus dari navigasi karena Rekap Harian dan Bulanan
+  telah tersedia. Endpoint dan tautan publik lama dipertahankan agar tidak merusak tautan
+  yang sudah dibagikan; pembuatan tautan tidak lagi menyediakan barcode/QR.
+- Pada kegiatan berulang dalam `recurring_group_id` yang sama, peserta yang sudah hadir
+  tidak dihitung kembali pada tanggal berikutnya, termasuk jika kehadiran pertamanya
+  terjadi sebelum bulan rekap.
+- Hapus kegiatan terpilih memakai modal konfirmasi yang menampilkan daftar target.
+  Form Tambah Peserta menggunakan langkah Data Utama, Kontak, dan Tinjau sebelum disimpan.
+- Petunjuk sandi sementara dipindahkan dari halaman Login ke Aktivasi Akun, teks berbagi
+  kode akses diringkas, dan pintasan Dashboard kini menuju Rekap Bulanan.
 
 ## Penyempurnaan jadwal dan rekap kegiatan
 - Penyimpanan formulir kegiatan mensyaratkan langkah Tinjau dan konfirmasi eksplisit;

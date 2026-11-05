@@ -6,6 +6,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import { DateField } from "@/components/DateField";
+import { ACTIVATION } from "@/constants/testIds";
 
 export default function Activate() {
   const navigate = useNavigate();
@@ -79,6 +80,10 @@ export default function Activate() {
 
         <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(17,17,24,0.14)] border border-[#E8E8E4]">
           <h1 className="font-heading text-2xl font-bold text-[#111827]">Aktivasi Akun</h1>
+          <div className="mt-3 rounded-xl border border-[#FDE68A] bg-[#FFFBEB] p-3 text-sm leading-relaxed text-[#78350F]"
+            data-testid={ACTIVATION.temporaryCredentialsNotice}>
+            Jika akun Anda sudah diaktifkan pengurus, masuk dengan nama pengguna dan tanggal lahir (DDMMYYYY) sebagai sandi awal. Ganti sandi setelah masuk.
+          </div>
 
           {!selected ? (
             <>

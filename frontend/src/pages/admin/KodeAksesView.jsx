@@ -52,7 +52,7 @@ export default function KodeAksesView() {
             <KeyRound size={22} className="text-[#111114]" /> Kode Akses Kegiatan
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
-            Bagikan kode akses melalui WhatsApp atau perbarui kode jika diperlukan.
+            Kirim tautan dan kode akses lewat WhatsApp.
           </p>
         </div>
         <div className="flex items-center gap-1 bg-white rounded-xl border border-[#E8E8E4] p-1">

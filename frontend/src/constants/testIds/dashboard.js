@@ -5,7 +5,7 @@ export const DASHBOARD = {
   shortcuts: {
     addPeserta: "dashboard-shortcut-tambah-peserta",
     addKegiatan: "dashboard-shortcut-tambah-kegiatan",
-    laporan: "dashboard-shortcut-laporan",
+    rekapBulanan: "dashboard-shortcut-rekap-bulanan",
   },
   trendChart: "dashboard-chart-trend",
   activitiesSection: "dashboard-activities",

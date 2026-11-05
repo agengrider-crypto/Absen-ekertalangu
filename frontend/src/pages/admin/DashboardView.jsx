@@ -67,7 +67,7 @@ export default function DashboardView({
           {[
             { key: "tambah-peserta", label: "Tambah Peserta", icon: UserPlus, action: onAddPeserta, testId: DASHBOARD.shortcuts.addPeserta },
             { key: "tambah-kegiatan", label: "Tambah Kegiatan", icon: CalendarPlus, action: onAddKegiatan, testId: DASHBOARD.shortcuts.addKegiatan },
-            { key: "laporan", label: "Laporan", icon: FileBarChart2, action: () => onGoto && onGoto("laporan"), testId: DASHBOARD.shortcuts.laporan },
+            { key: "rekap-bulanan", label: "Rekap Bulanan", icon: FileBarChart2, action: () => onGoto && onGoto("rekap-bulanan"), testId: DASHBOARD.shortcuts.rekapBulanan },
           ].map((s) => {
             const Icon = s.icon;
             return (
