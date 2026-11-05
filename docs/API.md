@@ -291,13 +291,14 @@ Delegasi **otomatis dicabut** saat kegiatan ditutup (manual maupun otomatis).
 | GET | `/api/admin/laporan` | `require_staff` | `?date_from=&date_to=` |
 | GET | `/api/admin/laporan/export` | `require_staff` | `?format=excel\|pdf&date_from=&date_to=` — file biner |
 | POST | `/api/admin/laporan/share` | `require_staff` | `{date_from, date_to, mode}` — buat tautan laporan publik permanen. Balas `{token, link, title, mode}` tanpa QR. **Idempoten**: rentang + mode yang sama memakai token yang sama. Endpoint dan tautan lama tetap tersedia untuk kompatibilitas, tetapi Laporan Kehadiran tidak lagi ditampilkan di menu admin. **400** bila tanggal kosong / `date_from > date_to` |
-| GET | `/api/staff/rekap-bulanan?month=YYYY-MM` | `require_staff` | Rekap pertemuan, peserta, gender, dan sesi untuk bulan terpilih. Setiap `per_pertemuan[]` menyertakan `peserta_rows[]` berupa `{name, status}` untuk dropdown nama dan absensi |
+| GET | `/api/staff/rekap-bulanan?month=YYYY-MM` | `require_staff` | Rekap pertemuan, peserta, gender, dan sesi untuk bulan terpilih. Setiap `per_pertemuan[]` menyertakan `peserta_rows[]` berupa `{name, status, session_labels[]}` untuk dropdown nama dan absensi |
 | POST | `/api/staff/rekap-bulanan/share?month=YYYY-MM` | `require_staff` | Membuat/mengambil tautan publik rekap bulanan; pesan WhatsApp berisi tautan dan ringkasan |
 | GET | `/api/rekap-bulanan/{token}` | — | Rekap bulanan publik; **404** bila token tidak ditemukan |
 
-Rekap staf menyertakan `per_pertemuan[].peserta_rows[]` (`{name, status}`) untuk
-menampilkan daftar nama dan absensi per pertemuan. Data rinci tersebut tidak disertakan
-pada respons publik berbasis token.
+Rekap staf menyertakan `per_pertemuan[].peserta_rows[]` (`{name, status, session_labels}`)
+untuk menampilkan nama, label sesi yang sesuai dengan status rekap, dan absensi per
+pertemuan. `session_labels` kosong untuk kegiatan tanpa label sesi. Data rinci tersebut
+tidak disertakan pada respons publik berbasis token.
 
 **Kunci respons `/api/admin/dashboard`** (nama persis — jangan tertukar):
 

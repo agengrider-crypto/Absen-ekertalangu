@@ -10,6 +10,7 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
   aktif; setiap pilihan membuka Rekap Bulanan dengan filter kategori tersebut.
 - Menghapus rincian hitungan panjang dari setiap baris peserta Rekap Bulanan; daftar nama
   per pertemuan menampilkan warna sesuai status absensi.
+- Menampilkan label sesi di samping nama peserta pada daftar absensi Rekap Bulanan.
 - Merapikan Rekap Bulanan: ringkasan gender hanya menampilkan persen, sesi diringkas
   dalam kartu mendatar, dan rincian sesi per pertemuan hanya menampilkan nama serta jam.
   Baris pertemuan kini punya tooltip persentase dan dropdown nama/status peserta, diikuti

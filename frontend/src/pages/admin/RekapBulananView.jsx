@@ -317,7 +317,10 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                           const status = statusStyle(person.status);
                           return (
                             <div key={`${person.name}-${j}`} className={`flex min-h-10 items-center justify-between gap-3 text-sm ${status.name}`}>
-                              <span className="truncate font-medium">{person.name}</span>
+                              <span className="min-w-0 truncate font-medium">
+                                {person.name}
+                                {person.session_labels?.length > 0 && ` (${person.session_labels.join(", ")})`}
+                              </span>
                               <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${status.badge}`}>{status.label}</span>
                             </div>
                           );

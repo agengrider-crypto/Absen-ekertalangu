@@ -5196,9 +5196,19 @@ async def build_rekap_bulanan(month: Optional[str] = None, include_participants:
                 attendance_status = "belum_diabsen"
                 t["belum_diabsen"] += 1
                 n_pending += 1
+            session_labels = list(dict.fromkeys(
+                d.get("session_label")
+                for d in sorted(
+                    docs_p,
+                    key=lambda x: (x.get("session_index") or 0, x.get("start_time") or ""),
+                )
+                if d.get("session_label")
+                and status_by.get((d["_id"], pid), "belum_diabsen") == attendance_status
+            ))
             meeting_participants.append({
                 "name": t["name"],
                 "status": attendance_status,
+                "session_labels": session_labels,
             })
         total_p = n_h + n_i + n_s + n_a + n_pending
 
