@@ -1,6 +1,11 @@
 # E-KERTALANGU — PRD
 
 ## Pembaruan 2026-11-05
+- Dashboard menampilkan jumlah peserta belum pernah hadir, jarang hadir, dan cukup aktif
+  pada bulan berjalan; tiap jumlah membuka Rekap Bulanan dengan filter terkait.
+- Daftar peserta di Rekap Bulanan hanya menampilkan persentase ringkas tanpa rincian
+  hitungan panjang. Filter Jarang, Belum hadir, dan Cukup aktif dibedakan.
+- Daftar nama peserta per pertemuan mewarnai nama dan label status berdasarkan absensi.
 - Splash "Memuat aplikasi" dan indikator loading global dihapus. Pemeriksaan sesi hanya
   menampilkan status teks sederhana; pemuatan data tetap ditangani pada halaman terkait.
 - Formulir tambah peserta diperbarui menjadi lebih jelas, ringkas, dan ramah ponsel.

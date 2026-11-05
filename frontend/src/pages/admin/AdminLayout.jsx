@@ -272,11 +272,13 @@ export default function AdminLayout({ user, role = "admin" }) {
   const [addPesertaRequest, setAddPesertaRequest] = useState(0);
   const [addKegiatanRequest, setAddKegiatanRequest] = useState(0);
   const [kegiatanIdToOpen, setKegiatanIdToOpen] = useState(null);
+  const [monthlyRecapFilter, setMonthlyRecapFilter] = useState("semua");
 
   const allKeys = menu.flatMap((m) => (m.items ? m.items.map((i) => i.key) : [m.key]));
 
-  const go = (key) => {
+  const go = (key, filter = "semua") => {
     if (!allKeys.includes(key)) return;
+    if (key === "rekap-bulanan") setMonthlyRecapFilter(filter);
     setActive(key);
     setDrawer(false);
   };
@@ -383,7 +385,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "pengumuman" && <PengumumanView />}
           {active === "pengaduan" && <RuangTeduhView />}
           {active === "laporan-peserta" && <LaporanPesertaView />}
-          {active === "rekap-bulanan" && <RekapBulananView />}
+          {active === "rekap-bulanan" && <RekapBulananView initialFilter={monthlyRecapFilter} />}
           {active === "rekap-harian" && <RekapHarianView />}
           {active === "pantau-login" && role === "admin" && <PantauLoginView />}
           {active === "kelompok" && <KelompokView />}

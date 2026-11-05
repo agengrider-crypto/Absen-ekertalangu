@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import { SkeletonList } from "@/components/GlobalLoading";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MONTHLY_RECAP } from "@/constants/testIds";
-import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "./rekapUtils";
+import { REKAP, PersenRingkas, ratioColor } from "./rekapUtils";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
   "Agustus", "September", "Oktober", "November", "Desember"];
@@ -32,12 +32,23 @@ function badgeOf(r) {
   return { t: "Rajin hadir", cls: "bg-[#DCFCE7] text-[#166534]" };
 }
 
-export default function RekapBulananView() {
+function statusStyle(status) {
+  const styles = {
+    hadir: { name: "text-[#166534]", badge: "bg-[#DCFCE7]", label: "Hadir" },
+    izin: { name: "text-[#92400E]", badge: "bg-[#FEF3C7]", label: "Izin" },
+    sakit: { name: "text-[#1D4ED8]", badge: "bg-[#DBEAFE]", label: "Sakit" },
+    alpha: { name: "text-[#991B1B]", badge: "bg-[#FEE2E2]", label: "Alpha" },
+    belum_diabsen: { name: "text-[#6B7280]", badge: "bg-[#F3F4F6]", label: "Belum diabsen" },
+  };
+  return styles[status] || styles.belum_diabsen;
+}
+
+export default function RekapBulananView({ initialFilter = "semua" }) {
   const [month, setMonth] = useState(thisMonth());
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState("semua"); // semua | jarang | rajin | belum
+  const [filter, setFilter] = useState(initialFilter); // semua | jarang | cukup | rajin | belum
   const [gender, setGender] = useState("semua"); // semua | L | P
   const [share, setShare] = useState(null);
   const [sharing, setSharing] = useState(false);
@@ -57,7 +68,8 @@ export default function RekapBulananView() {
     if (gender !== "semua") list = list.filter((r) => r.gender === gender);
     const s = q.trim().toLowerCase();
     if (s) list = list.filter((r) => (r.name || "").toLowerCase().includes(s));
-    if (filter === "jarang") list = list.filter((r) => r.pertemuan > 0 && r.ratio < 50);
+    if (filter === "jarang") list = list.filter((r) => r.pertemuan > 0 && r.hadir > 0 && r.ratio < 50);
+    if (filter === "cukup") list = list.filter((r) => r.pertemuan > 0 && r.ratio >= 50 && r.ratio < 80);
     if (filter === "rajin") list = list.filter((r) => r.ratio >= 80 && r.pertemuan > 0);
     if (filter === "belum") list = list.filter((r) => r.pertemuan > 0 && r.hadir === 0);
     return list;
@@ -217,7 +229,7 @@ export default function RekapBulananView() {
                 ))}
               </div>
               <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1">
-                {[["semua", "Semua"], ["jarang", "Jarang"], ["belum", "Belum hadir"], ["rajin", "Rajin"]].map(([v, l]) => (
+                {[["semua", "Semua"], ["belum", "Belum hadir"], ["jarang", "Jarang"], ["cukup", "Cukup"], ["rajin", "Rajin"]].map(([v, l]) => (
                   <button key={v} data-testid={`rekap-bulanan-filter-${v}`} onClick={() => setFilter(v)}
                     className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#0F766E] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
@@ -230,7 +242,7 @@ export default function RekapBulananView() {
                   <tr>
                     <th className="px-3 py-2 font-semibold">Nama Peserta</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Ikut</th>
-                    <th className="px-3 py-2 font-semibold w-[40%]">Tingkat kehadiran &amp; keterangan</th>
+                    <th className="px-3 py-2 font-semibold whitespace-nowrap">Kehadiran</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Izin</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Alpha</th>
                     <th className="px-3 py-2 font-semibold whitespace-nowrap">Terakhir hadir</th>
@@ -258,10 +270,6 @@ export default function RekapBulananView() {
                         </td>
                         <td className="px-3 py-2.5">
                           <PersenRingkas value={r.ratio} testid={`persen-bulanan-${r.user_id}`} />
-                          <div className="text-[11px] font-semibold text-[#4B5563] mt-1" data-testid={`keterangan-bulanan-${r.user_id}`}>
-                            {keteranganHitungan({ hadir: r.hadir, izin: r.izin, sakit: r.sakit,
-                              alpha: r.alpha, belum_diabsen: r.belum_diabsen, total: r.pertemuan })}
-                          </div>
                         </td>
                         <td className="px-3 py-2.5 text-center tabular-nums text-[#D97706] font-semibold">{r.izin}</td>
                         <td className="px-3 py-2.5 text-center tabular-nums text-[#DC2626] font-semibold">{r.alpha}</td>
@@ -305,12 +313,15 @@ export default function RekapBulananView() {
                       <div className="mt-1 divide-y divide-[#EEF1EE] rounded-lg bg-[#FAFAF8] px-3" data-testid={`${MONTHLY_RECAP.meetingParticipantsPrefix}-${i}`}>
                         {(p.peserta_rows || []).length === 0 ? (
                           <div className="py-3 text-sm text-[#6B7280]">Belum ada peserta yang wajib diabsen.</div>
-                        ) : (p.peserta_rows || []).map((person, j) => (
-                          <div key={`${person.name}-${j}`} className="flex min-h-10 items-center justify-between gap-3 text-sm">
-                            <span className="truncate text-[#111827]">{person.name}</span>
-                            <span className="shrink-0 text-[#4B5563]">{person.status === "belum_diabsen" ? "Belum diabsen" : person.status[0].toUpperCase() + person.status.slice(1)}</span>
-                          </div>
-                        ))}
+                        ) : (p.peserta_rows || []).map((person, j) => {
+                          const status = statusStyle(person.status);
+                          return (
+                            <div key={`${person.name}-${j}`} className={`flex min-h-10 items-center justify-between gap-3 text-sm ${status.name}`}>
+                              <span className="truncate font-medium">{person.name}</span>
+                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${status.badge}`}>{status.label}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </details>
                     {(p.sesi || []).length > 0 && (

@@ -35,9 +35,15 @@ export default function DashboardView({
   role = "admin",
 }) {
   const [d, setD] = useState(null);
+  const [monthlyRecap, setMonthlyRecap] = useState(null);
 
   useEffect(() => {
     api.get("/admin/dashboard").then(({ data }) => setD(data)).catch(() => setD(false));
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    api.get(`/staff/rekap-bulanan?month=${month}`)
+      .then(({ data }) => setMonthlyRecap(data))
+      .catch(() => setMonthlyRecap(false));
   }, [role]);
 
   if (d === null) {
@@ -51,6 +57,12 @@ export default function DashboardView({
     const m = parseInt(t.month.slice(5, 7), 10);
     return { name: MONTH_SHORT[m - 1] || t.month, ratio: t.ratio, kegiatan: t.kegiatan };
   });
+  const actionRows = monthlyRecap?.rows || [];
+  const followUpCounts = {
+    neverAttended: actionRows.filter((r) => r.pertemuan > 0 && r.hadir === 0).length,
+    rarelyAttended: actionRows.filter((r) => r.pertemuan > 0 && r.hadir > 0 && r.ratio < 50).length,
+    sometimesAttended: actionRows.filter((r) => r.pertemuan > 0 && r.ratio >= 50 && r.ratio < 80).length,
+  };
 
   return (
     <div>
@@ -88,6 +100,37 @@ export default function DashboardView({
       <div className="mb-6 max-w-sm">
         <StatCard value={d.total_peserta} />
       </div>
+
+      <section className="mb-6 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-4 sm:p-5" data-testid={DASHBOARD.followUp.container}>
+        <div className="mb-3">
+          <h2 className="font-heading font-bold text-[#78350F]">Perlu Tindakan</h2>
+          <p className="mt-0.5 text-xs text-[#92400E]">Kehadiran peserta bulan ini</p>
+        </div>
+        {monthlyRecap === null ? (
+          <div className="flex items-center gap-2 text-sm text-[#92400E]"><Loader2 size={16} className="animate-spin" /> Memuat jumlah peserta…</div>
+        ) : monthlyRecap === false ? (
+          <p className="text-sm text-[#991B1B]">Gagal memuat jumlah peserta yang perlu ditindaklanjuti.</p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-3">
+            {[
+              { key: "neverAttended", label: "Belum pernah hadir", filter: "belum", testId: DASHBOARD.followUp.neverAttended, color: "border-[#FECACA] bg-white text-[#991B1B]" },
+              { key: "rarelyAttended", label: "Jarang hadir", filter: "jarang", testId: DASHBOARD.followUp.rarelyAttended, color: "border-[#FDE68A] bg-white text-[#92400E]" },
+              { key: "sometimesAttended", label: "Cukup aktif", filter: "cukup", testId: DASHBOARD.followUp.sometimesAttended, color: "border-[#BAE6FD] bg-white text-[#075985]" },
+            ].map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                data-testid={item.testId}
+                onClick={() => onGoto?.("rekap-bulanan", item.filter)}
+                className={`flex min-h-14 items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5 text-left hover:shadow-sm ${item.color}`}
+              >
+                <span className="text-sm font-semibold">{item.label}</span>
+                <span className="text-xl font-bold tabular-nums">{followUpCounts[item.key]}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="mb-6 rounded-2xl border border-[#E8E8E4] bg-white p-5 sm:p-6" data-testid={DASHBOARD.trendChart}>
         <h2 className="mb-3 font-heading font-bold text-[#111827]">Tren Kehadiran (6 bulan)</h2>

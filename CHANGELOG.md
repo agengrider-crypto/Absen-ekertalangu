@@ -6,6 +6,10 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ## Pembaruan 5 November 2026
 
+- Dashboard kini menampilkan jumlah peserta belum pernah hadir, jarang hadir, dan cukup
+  aktif; setiap pilihan membuka Rekap Bulanan dengan filter kategori tersebut.
+- Menghapus rincian hitungan panjang dari setiap baris peserta Rekap Bulanan; daftar nama
+  per pertemuan menampilkan warna sesuai status absensi.
 - Merapikan Rekap Bulanan: ringkasan gender hanya menampilkan persen, sesi diringkas
   dalam kartu mendatar, dan rincian sesi per pertemuan hanya menampilkan nama serta jam.
   Baris pertemuan kini punya tooltip persentase dan dropdown nama/status peserta, diikuti
