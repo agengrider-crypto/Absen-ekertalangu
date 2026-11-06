@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import ProfileModal from "@/components/ProfileModal";
 import ActionModal from "@/components/ActionModal";
 import RoleSwitcher from "@/components/RoleSwitcher";
-import UpdateModal from "@/components/UpdateModal";
+import UpdateModal, { hasUnreadUpdate } from "@/components/UpdateModal";
 import { rolesLabel } from "@/lib/roles";
 
 /**
@@ -21,6 +21,7 @@ export default function ProfileMenu({ subtitle }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [showUpdates, setShowUpdates] = useState(false);
+  const [unreadUpdate, setUnreadUpdate] = useState(() => hasUnreadUpdate());
   const [photo, setPhoto] = useState(null);
 
   const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -52,6 +53,9 @@ export default function ProfileMenu({ subtitle }) {
         {incomplete && (
           <span data-testid="profile-incomplete-dot" className="absolute -top-0.5 right-6 h-3 w-3 rounded-full bg-[#9CA3AF] ring-2 ring-white" />
         )}
+        {unreadUpdate && (
+          <span data-testid="profile-update-dot" className="absolute top-0.5 right-5 h-2.5 w-2.5 rounded-full bg-[#DC2626] ring-2 ring-white" />
+        )}
         <ChevronDown size={16} className="text-[#6B7280]" />
       </button>
 
@@ -82,8 +86,9 @@ export default function ProfileMenu({ subtitle }) {
               key: "update-terbaru",
               testid: "menu-updates",
               label: "Update Terbaru",
-              desc: "Lihat fitur baru & perbaikan aplikasi",
+              desc: unreadUpdate ? "Ada update baru — ketuk untuk melihat" : "Lihat fitur baru & perbaikan aplikasi",
               icon: Sparkles,
+              badge: unreadUpdate,
               onClick: () => setShowUpdates(true),
             },
             {
@@ -116,9 +121,10 @@ export default function ProfileMenu({ subtitle }) {
       {showUpdates && (
         <UpdateModal
           forceOpen
-          onClose={() => setShowUpdates(false)}
+          onClose={() => { setShowUpdates(false); setUnreadUpdate(false); }}
           onNavigate={(key) => {
             setShowUpdates(false);
+            setUnreadUpdate(false);
             if (key) navigate(`/area/admin?tab=${key}`);
           }}
         />

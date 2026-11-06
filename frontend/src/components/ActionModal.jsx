@@ -77,9 +77,16 @@ export default function ActionModal({ title, subtitle, actions = [], onClose, te
                 >
                   {Icon && <Icon size={19} />}
                 </span>
-                <span className="min-w-0">
-                  <span className={`block text-[15px] font-semibold ${a.danger ? "text-[#DC2626]" : "text-[#111827]"}`}>
+                <span className="min-w-0 flex-1">
+                  <span className={`flex items-center gap-1.5 text-[15px] font-semibold ${a.danger ? "text-[#DC2626]" : "text-[#111827]"}`}>
                     {a.label}
+                    {a.badge && (
+                      <span
+                        data-testid={`${a.testid || `action-${a.key}`}-badge`}
+                        className="h-2 w-2 shrink-0 rounded-full bg-[#DC2626]"
+                        aria-label="baru"
+                      />
+                    )}
                   </span>
                   {a.desc && <span className="block text-xs text-[#6B7280] mt-0.5">{a.desc}</span>}
                 </span>
