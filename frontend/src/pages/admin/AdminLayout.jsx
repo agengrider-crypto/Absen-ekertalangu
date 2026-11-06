@@ -13,6 +13,7 @@ import { Logo } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
 import { ADMIN_SIDEBAR } from "@/constants/testIds";
 import NotificationBell from "@/components/NotificationBell";
+import UpdateModal from "@/components/UpdateModal";
 import DemoBanner from "@/components/DemoBanner";
 import BantuanView from "@/components/BantuanView";
 import KalenderView from "./KalenderView";
@@ -290,6 +291,7 @@ export default function AdminLayout({ user, role = "admin" }) {
 
   return (
     <div className="min-h-screen bg-[#F7F7F5]">
+      <UpdateModal onNavigate={go} />
       {/* Sidebar desktop */}
       <aside className={`hidden lg:flex fixed inset-y-0 left-0 ${collapsed ? "w-[76px]" : "w-[264px]"} bg-white border-r border-[#E8E8E4] flex-col z-30 transition-[width] duration-200`}>
         <SidebarInner active={active} onNav={go} onLogout={doLogout} role={role} menu={menu} collapsed={collapsed} onToggleCollapse={() => setCollapsed((value) => !value)} />

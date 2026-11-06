@@ -109,6 +109,22 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
     }
   };
 
+  const setStatusTo = async (next) => {
+    if ((data.status || "active") === next) return;
+    setBusy("status");
+    try {
+      await api.patch(`/admin/users/${userId}`, { status: next });
+      const label = next === "active" ? "Aktif" : next === "nonaktif" ? "Nonaktif" : "Pindah";
+      toast.success(`Status akun diubah menjadi ${label}`);
+      onChanged?.();
+      load();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setBusy("");
+    }
+  };
+
   const doMove = async () => {
     const kid = moveTarget !== undefined ? moveTarget : (form.kelompok_id || "");
     setMoveConfirm(false);
@@ -348,6 +364,37 @@ export default function PesertaDetailModal({ userId, kelompokList, canManageRole
                 className="h-11 rounded-xl bg-[#111114] text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
                 {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Simpan
               </button>
+            </div>
+
+            {/* Status akun: Aktif / Nonaktif / Pindah */}
+            <div className="mt-4 rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-3" data-testid="detail-status-picker">
+              <div className="text-[13px] font-semibold text-[#111827] mb-2">Status Akun</div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { v: "active", label: "Aktif", cls: "bg-[#DCFCE7] text-[#166534] border-[#166534]" },
+                  { v: "nonaktif", label: "Nonaktif", cls: "bg-[#FEE2E2] text-[#991B1B] border-[#991B1B]" },
+                  { v: "pindah", label: "Pindah", cls: "bg-[#E0F2FE] text-[#075985] border-[#075985]" },
+                ].map((opt) => {
+                  const active = (data.status || "active") === opt.v;
+                  return (
+                    <button
+                      key={opt.v}
+                      type="button"
+                      data-testid={`detail-status-${opt.v}`}
+                      disabled={busy === "status"}
+                      onClick={() => setStatusTo(opt.v)}
+                      className={`h-10 rounded-lg border-2 text-xs font-bold transition-colors disabled:opacity-50 ${
+                        active ? opt.cls : "bg-white border-[#E8E8E4] text-[#6B7280] hover:border-current"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-[#9CA3AF] mt-2">
+                Pindah = peserta keluar dari kelompok ini (riwayat absensi tetap tersimpan).
+              </p>
             </div>
           </div>
         )}

@@ -1,7 +1,7 @@
 // FASE 15 — Halaman "Kode Akses": tiap kegiatan otomatis punya kode 6 digit + tautan/QR absensi.
 import { useCallback, useEffect, useState } from "react";
 import {
-  KeyRound, Loader2, RefreshCw, ChevronLeft, ChevronRight, Send,
+  KeyRound, Loader2, RefreshCw, ChevronLeft, ChevronRight, Send, Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -39,6 +39,22 @@ export default function KodeAksesView() {
     try {
       await api.post(`/admin/kegiatan/${row.id}/access/regenerate`);
       toast.success("Kode akses baru dibuat");
+      load();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+    setBusyId(null);
+  };
+
+  const tutupAbsen = async (row) => {
+    const ok = window.confirm(
+      `Tutup absen "${row.base_name}"?\n\n` +
+      "Peserta yang belum diabsen akan OTOMATIS dicatat ALPHA. " +
+      "Absen susulan masih bisa dilakukan setelahnya."
+    );
+    if (!ok) return;
+    setBusyId(row.id);
+    try {
+      const { data: res } = await api.post(`/admin/kegiatan/${row.id}/tutup-absen`);
+      toast.success(res.message || "Absen ditutup.");
       load();
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
     setBusyId(null);
@@ -100,6 +116,12 @@ export default function KodeAksesView() {
                   className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#FCD34D] text-[#92400E] font-semibold text-sm hover:bg-[#FFFBEB] disabled:opacity-60">
                   {busyId === r.id ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />} Perbarui Kode
                 </button>
+                {r.status === "open" && (
+                  <button data-testid={`kode-tutup-absen-${r.id}`} onClick={() => tutupAbsen(r)} disabled={busyId === r.id}
+                    className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-[#DC2626] text-white font-semibold text-sm hover:bg-[#B91C1C] disabled:opacity-60">
+                    {busyId === r.id ? <Loader2 className="animate-spin" size={15} /> : <Lock size={15} />} Tutup Absen
+                  </button>
+                )}
               </div>
             </div>
           ))}

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, User as UserIcon, RefreshCw, LogOut, AlertCircle } from "lucide-react";
+import { ChevronDown, User as UserIcon, RefreshCw, LogOut, AlertCircle, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import ProfileModal from "@/components/ProfileModal";
 import ActionModal from "@/components/ActionModal";
 import RoleSwitcher from "@/components/RoleSwitcher";
+import UpdateModal from "@/components/UpdateModal";
 import { rolesLabel } from "@/lib/roles";
 
 /**
@@ -19,6 +20,7 @@ export default function ProfileMenu({ subtitle }) {
   const [openMenu, setOpenMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
+  const [showUpdates, setShowUpdates] = useState(false);
   const [photo, setPhoto] = useState(null);
 
   const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -77,6 +79,14 @@ export default function ProfileMenu({ subtitle }) {
               onClick: () => setShowSwitcher(true),
             },
             {
+              key: "update-terbaru",
+              testid: "menu-updates",
+              label: "Update Terbaru",
+              desc: "Lihat fitur baru & perbaikan aplikasi",
+              icon: Sparkles,
+              onClick: () => setShowUpdates(true),
+            },
+            {
               key: "keluar",
               testid: "menu-logout",
               label: "Keluar",
@@ -102,6 +112,17 @@ export default function ProfileMenu({ subtitle }) {
       )}
 
       {showSwitcher && <RoleSwitcher onClose={() => setShowSwitcher(false)} />}
+
+      {showUpdates && (
+        <UpdateModal
+          forceOpen
+          onClose={() => setShowUpdates(false)}
+          onNavigate={(key) => {
+            setShowUpdates(false);
+            if (key) navigate(`/area/admin?tab=${key}`);
+          }}
+        />
+      )}
     </>
   );
 }

@@ -52,6 +52,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
   const [gender, setGender] = useState("semua"); // semua | L | P
   const [share, setShare] = useState(null);
   const [sharing, setSharing] = useState(false);
+  const [hideInactive, setHideInactive] = useState(false);
 
   const load = (m) => {
     setLoading(true);
@@ -65,6 +66,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
 
   const rows = useMemo(() => {
     let list = data?.rows || [];
+    if (hideInactive) list = list.filter((r) => r.pertemuan > 0 && r.hadir > 0);
     if (gender !== "semua") list = list.filter((r) => r.gender === gender);
     const s = q.trim().toLowerCase();
     if (s) list = list.filter((r) => (r.name || "").toLowerCase().includes(s));
@@ -73,7 +75,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
     if (filter === "rajin") list = list.filter((r) => r.ratio >= 80 && r.pertemuan > 0);
     if (filter === "belum") list = list.filter((r) => r.pertemuan > 0 && r.hadir === 0);
     return list;
-  }, [data, q, filter, gender]);
+  }, [data, q, filter, gender, hideInactive]);
 
   const getLink = async () => {
     if (share) return share;
@@ -234,6 +236,24 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                     className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#0F766E] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={hideInactive}
+                data-testid="rekap-bulanan-hide-inactive"
+                onClick={() => setHideInactive((v) => !v)}
+                className={`inline-flex items-center gap-2 h-9 pl-2 pr-3 rounded-xl border-2 text-xs font-semibold transition-colors ${
+                  hideInactive
+                    ? "bg-[#0F766E] border-[#0F766E] text-white"
+                    : "bg-white border-[#E8E8E4] text-[#6B7280] hover:border-[#0F766E]"
+                }`}
+                title="Sembunyikan peserta yang tidak pernah hadir dalam 3 bulan terakhir"
+              >
+                <span className={`relative h-5 w-9 rounded-full transition-colors ${hideInactive ? "bg-white/30" : "bg-[#E8E8E4]"}`}>
+                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${hideInactive ? "left-[18px]" : "left-0.5"}`} />
+                </span>
+                Sembunyikan tidak aktif
+              </button>
             </div>
 
             <div className="overflow-x-auto">

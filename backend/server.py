@@ -1315,7 +1315,7 @@ async def admin_update_user(user_id: str, body: PesertaUpdate, admin: dict = Dep
             raise HTTPException(status_code=400, detail="Minimal satu peran valid")
         updates["roles"] = roles
     if body.status is not None:
-        if body.status not in ("active", "nonaktif", "pending"):
+        if body.status not in ("active", "nonaktif", "pending", "pindah"):
             raise HTTPException(status_code=400, detail="Status tidak valid")
         if body.status == "active" and not user.get("password_hash"):
             raise HTTPException(status_code=400, detail="Akun belum punya kata sandi. Tetapkan sandi dulu (reset).")
@@ -1691,13 +1691,17 @@ class KegiatanUpdate(BaseModel):
 
 class AbsenInput(BaseModel):
     user_id: str
-    status: str  # hadir | izin | alpha
+    status: str  # hadir | izin | sakit | alpha
+    reason: Optional[str] = None   # alasan "tidak bisa hadir" (izin/sakit)
+    note: Optional[str] = None     # keterangan tambahan (opsional)
 
 
 class AbsenBatchItem(BaseModel):
     user_id: str
     status: str
     marked_at: Optional[str] = None
+    reason: Optional[str] = None
+    note: Optional[str] = None
 
 
 class AbsenBatchInput(BaseModel):
@@ -2436,11 +2440,14 @@ async def mark_absen(kegiatan_id: str, body: AbsenInput, admin: dict = Depends(r
     assert_gender_eligible(k, u)
     await assert_not_attended_other_session(k, body.user_id, u.get("name") or "Peserta")
     arrival = now_wita().isoformat() if body.status == "hadir" else None
+    reason = (body.reason or "").strip() or None
+    note = (body.note or "").strip() or None
     await db.absensis.update_one(
         {"kegiatan_id": kegiatan_id, "user_id": body.user_id},
         {"$set": {
             "kegiatan_id": kegiatan_id, "user_id": body.user_id, "status": body.status,
-            "arrival_time": arrival, "marked_by": admin.get("name"),
+            "arrival_time": arrival, "reason": reason, "note": note,
+            "marked_by": admin.get("name"),
             "marked_by_id": str(admin["_id"]), "updated_at": now_wita().isoformat()}},
         upsert=True)
     # Fase 7: notifikasi HANYA untuk status "hadir".
@@ -2449,6 +2456,63 @@ async def mark_absen(kegiatan_id: str, body: AbsenInput, admin: dict = Depends(r
                if body.status == "hadir" else None)
     return {"user_id": body.user_id, "status": body.status, "arrival_time": arrival,
             "message": message}
+
+
+@api_router.post("/admin/kegiatan/{kegiatan_id}/hadir-semua")
+async def mark_hadir_semua(kegiatan_id: str, admin: dict = Depends(require_staff)):
+    """Tandai HADIR untuk semua peserta wajib yang belum punya status absensi."""
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    participants = await peserta_for_kegiatan(k)
+    existing = await db.absensis.find({"kegiatan_id": kegiatan_id}).to_list(10000)
+    existing_by_user = {row["user_id"]: row for row in existing}
+    other = await attended_other_sessions(k)
+    timestamp = now_wita().isoformat()
+    applied = 0
+    for participant in participants:
+        user_id = str(participant["_id"])
+        if not session_requires_participant(k, user_id):
+            continue
+        if user_id in other:
+            continue
+        row = existing_by_user.get(user_id)
+        if row and row.get("status") in ABSEN_STATUS:
+            continue
+        await db.absensis.update_one(
+            {"kegiatan_id": kegiatan_id, "user_id": user_id},
+            {"$set": {"kegiatan_id": kegiatan_id, "user_id": user_id,
+                      "status": "hadir", "arrival_time": timestamp,
+                      "reason": None, "note": None,
+                      "marked_by": f"{admin.get('name')} (hadir semua)",
+                      "marked_by_id": str(admin["_id"]), "updated_at": timestamp}},
+            upsert=True)
+        applied += 1
+    await log_activity(admin, "hadir_semua",
+                       f"Menandai hadir semua ({applied} peserta) pada '{k.get('name')}'")
+    return {"applied": applied,
+            "message": f"{applied} peserta ditandai hadir." if applied
+                       else "Semua peserta sudah memiliki status absensi."}
+
+
+@api_router.post("/admin/kegiatan/{kegiatan_id}/tutup-absen")
+async def tutup_absen(kegiatan_id: str, admin: dict = Depends(require_staff)):
+    """Tutup absen kegiatan sekaligus centang otomatis ALPHA untuk yang belum diabsen."""
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    if k.get("status") == "closed":
+        raise HTTPException(status_code=400, detail="Kegiatan sudah ditutup")
+    await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": {
+        "status": "closed", "closed_at": now_wita().isoformat(), "auto_closed": False}})
+    await mark_missing_alpha(k)
+    await revoke_delegations_for_kegiatan(kegiatan_id, "Kegiatan diselesaikan")
+    await log_activity(admin, "tutup_absen",
+                       f"Menutup absen & menandai alpha otomatis pada '{k.get('name')}'")
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    counts = await kegiatan_counts(kegiatan_id)
+    return {"kegiatan": serialize_kegiatan(k, counts), "counts": counts,
+            "message": "Absen ditutup. Peserta yang belum diabsen otomatis tercatat Alpha."}
 
 
 @api_router.post("/admin/kegiatan/{kegiatan_id}/absen-batch")
@@ -2478,6 +2542,8 @@ async def mark_absen_batch(kegiatan_id: str, body: AbsenBatchInput,
             {"kegiatan_id": kegiatan_id, "user_id": item.user_id},
             {"$set": {"kegiatan_id": kegiatan_id, "user_id": item.user_id,
                       "status": item.status, "arrival_time": arrival,
+                      "reason": (item.reason or "").strip() or None,
+                      "note": (item.note or "").strip() or None,
                       "marked_by": f"{admin.get('name')} (sinkron offline)",
                       "marked_by_id": str(admin["_id"]),
                       "updated_at": now_wita().isoformat()}},
@@ -2530,6 +2596,8 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
             "status": status,
             "account_status": p.get("status", "active"),
             "arrival_time": a.get("arrival_time") if a else None,
+            "reason": a.get("reason") if a else None,
+            "note": a.get("note") if a else None,
             "marked_by": a.get("marked_by") if a else None,
             "required_for_session": required,
             "attended_other": False, "attended_other_label": None,

@@ -4,7 +4,7 @@ import {
   ListChecks, ScanLine, KeyRound, MessageSquareText, UserPlus, PhoneCall,
   Copy, RefreshCw, Download, Send, Trash2, CheckCircle2, AlertTriangle,
   Users, PhoneOff, ClipboardList, MoreHorizontal, Pencil,
-  Share2, RotateCcw, Layers, FileBarChart2,
+  Share2, RotateCcw, Layers, FileBarChart2, CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ACTIVITIES } from "@/constants/testIds";
@@ -332,6 +332,10 @@ function BarcodePublikPanel({ kegiatanId }) {
 function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(null);
+  const [busyAll, setBusyAll] = useState(false);
+  const [reasonFor, setReasonFor] = useState(null); // { user_id, name, status }
+  const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
 
   const sender = useCallback(async (items) => {
     await api.post(`/admin/kegiatan/${kegiatanId}/absen-batch`, { items });
@@ -345,20 +349,22 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
   const { pending, statusMap, online, syncing, add, flush } =
     useOfflineQueue(`keg_${kegiatanId}`, sender, onSynced);
 
-  const mark = async (userId, status) => {
+  const mark = async (userId, status, extra = {}) => {
     if (!online) {
-      add({ user_id: userId, status });
+      add({ user_id: userId, status, ...extra });
       toast.info("Tanpa internet — absen disimpan di HP dan dikirim otomatis nanti.");
       return;
     }
     setBusy(userId + status);
     try {
-      const { data: res } = await api.post(`/admin/kegiatan/${kegiatanId}/absen`, { user_id: userId, status });
+      const { data: res } = await api.post(`/admin/kegiatan/${kegiatanId}/absen`, {
+        user_id: userId, status, ...extra,
+      });
       if (res?.message) toast.success(res.message);
       onReload();
     } catch (e) {
       if (isOfflineError(e)) {
-        add({ user_id: userId, status });
+        add({ user_id: userId, status, ...extra });
         toast.info("Koneksi terputus — absen disimpan di HP dan dikirim otomatis nanti.");
       } else {
         toast.error(formatApiErrorDetail(e.response?.data?.detail));
@@ -366,11 +372,41 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
     } finally { setBusy(null); }
   };
 
+  const openReason = (row, status) => {
+    setReasonFor({ user_id: row.user_id, name: row.name, status });
+    setReason("");
+    setNote("");
+  };
+
+  const submitReason = async () => {
+    if (!reason.trim()) {
+      toast.error("Alasan wajib diisi.");
+      return;
+    }
+    const target = reasonFor;
+    setReasonFor(null);
+    await mark(target.user_id, target.status, { reason: reason.trim(), note: note.trim() || null });
+  };
+
+  const hadirSemua = async () => {
+    if (!window.confirm("Tandai HADIR untuk semua peserta yang belum diabsen?")) return;
+    setBusyAll(true);
+    try {
+      const { data: res } = await api.post(`/admin/kegiatan/${kegiatanId}/hadir-semua`);
+      toast.success(res.message || "Selesai.");
+      onReload();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally { setBusyAll(false); }
+  };
+
   const list = useMemo(() => {
     const t = q.trim().toLowerCase();
     const base = t ? rows.filter((r) => (r.name || "").toLowerCase().includes(t)) : rows;
     return base.map((r) => ({ ...r, status: statusMap[r.user_id] || r.status, queued: Boolean(statusMap[r.user_id]) }));
   }, [rows, q, statusMap]);
+
+  const belumDiabsen = list.filter((r) => !r.attended_other && !r.status).length;
 
   return (
     <div className="space-y-3">
@@ -382,7 +418,7 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
         </div>
       )}
       <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="detail-absen-manual">
-        <div className="p-3 bg-[#FAFAF8] border-b border-[#E8E8E4]">
+        <div className="p-3 bg-[#FAFAF8] border-b border-[#E8E8E4] space-y-2">
           <div className="relative">
             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
             <input
@@ -393,13 +429,22 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
               className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#111114] bg-white"
             />
           </div>
+          <button
+            data-testid="detail-hadir-semua"
+            onClick={hadirSemua}
+            disabled={busyAll || belumDiabsen === 0}
+            className="w-full h-11 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {busyAll ? <Loader2 className="animate-spin" size={16} /> : <CheckCheck size={16} />}
+            Hadir Semua {belumDiabsen > 0 ? `(${belumDiabsen} belum diabsen)` : "(tidak ada yang tersisa)"}
+          </button>
         </div>
         <div className="divide-y divide-[#ECECE8] max-h-[60vh] overflow-y-auto">
           {list.length === 0 ? (
             <div className="p-8 text-center text-sm text-[#6B7280]">Tidak ada peserta pada kegiatan ini.</div>
           ) : list.map((r) => (
             <div key={r.user_id} data-testid={`detail-absen-row-${r.user_id}`} className="px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="font-semibold text-[#111827] text-sm truncate">{r.name}</div>
                 <div className="text-xs text-[#9CA3AF] flex items-center gap-1.5 flex-wrap">
                   {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—"}
@@ -416,19 +461,27 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
                   )}
                   {r.queued && <span className="text-[11px] font-semibold text-[#B45309]">menunggu dikirim</span>}
                 </div>
+                {(r.reason || r.note) && (
+                  <div className="mt-1 text-[11px] text-[#6B7280] leading-snug">
+                    {r.reason && <span className="font-semibold text-[#92400E]">Alasan: {r.reason}</span>}
+                    {r.reason && r.note && " · "}
+                    {r.note && <span>Ket: {r.note}</span>}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1 shrink-0 ml-auto">
                 {r.attended_other ? (
                   <span className="text-[11px] font-semibold text-[#9CA3AF]" data-testid={`detail-locked-${r.user_id}`}>tidak perlu diabsen lagi</span>
                 ) : ["hadir", "izin", "sakit", "alpha"].map((s) => {
                   const on = r.status === s;
                   const cfg = STATUS_BTN[s];
+                  const needsReason = s === "izin" || s === "sakit";
                   return (
                     <button
                       key={s}
                       data-testid={`detail-btn-${s}-${r.user_id}`}
                       disabled={busy === r.user_id + s || (s === "alpha" && !alphaAllowed)}
-                      onClick={() => mark(r.user_id, s)}
+                      onClick={() => (needsReason ? openReason(r, s) : mark(r.user_id, s))}
                       title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.full}
                       aria-label={cfg.full}
                       className={`h-8 w-9 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
@@ -449,6 +502,45 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
       >
         <RefreshCw size={16} /> Muat Ulang Data
       </button>
+
+      {reasonFor && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4" onClick={() => setReasonFor(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="reason-modal">
+            <div className="font-heading font-bold text-[#111827] text-lg">
+              Tidak bisa hadir — {STATUS_BTN[reasonFor.status].full}
+            </div>
+            <p className="text-sm text-[#6B7280] mt-0.5">{reasonFor.name}</p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="block text-[13px] font-semibold text-[#111827] mb-1.5">Alasan *</label>
+                <input
+                  data-testid="reason-input"
+                  autoFocus
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="cth: sakit demam, ada acara keluarga"
+                  className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]"
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] font-semibold text-[#111827] mb-1.5">Keterangan (opsional)</label>
+                <textarea
+                  data-testid="note-input"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  placeholder="Tambahan bila perlu"
+                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] resize-none"
+                />
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button onClick={() => setReasonFor(null)} className="h-11 rounded-xl border-2 border-[#E8E8E4] font-semibold text-[#4B5563]">Batal</button>
+              <button data-testid="reason-submit" onClick={submitReason} className="h-11 rounded-xl bg-[#111114] text-white font-semibold">Simpan</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

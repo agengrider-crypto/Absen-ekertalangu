@@ -284,11 +284,29 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                 <input data-testid="keg-name" required value={f.name} onChange={(e) => set("name", e.target.value)}
                   placeholder="cth: Pengajian Rutin Kertalangu" className={fld} />
               </div>
-              <div>
+              <div className="sm:col-span-2">
                 <label className={lbl}>Jenis</label>
-                <select data-testid="keg-type" value={f.type} onChange={(e) => set("type", e.target.value)} className={fld}>
-                  {KEGIATAN_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
+                <div className="flex flex-wrap gap-2" data-testid="keg-type">
+                  {KEGIATAN_TYPES.map((t) => {
+                    const active = f.type === t.value;
+                    return (
+                      <button
+                        key={t.value}
+                        type="button"
+                        data-testid={`keg-type-${t.value}`}
+                        onClick={() => set("type", t.value)}
+                        aria-pressed={active}
+                        className={`h-11 px-4 rounded-xl border-2 text-sm font-semibold transition-colors ${
+                          active
+                            ? "bg-[#111114] text-white border-[#111114]"
+                            : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div>
                 <label className={lbl}>Pengajar</label>
