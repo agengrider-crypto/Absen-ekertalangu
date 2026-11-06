@@ -1,6 +1,7 @@
 // Popup "Update Terbaru": menampilkan daftar perubahan aplikasi beserta tanggal,
 // bisa diklik untuk menuju halaman terkait, dan punya tombol "Coba Sekarang".
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Sparkles, X, ChevronRight, CalendarDays, CheckCircle2 } from "lucide-react";
 
 const STORAGE_KEY = "ekertalangu.updateSeen";
@@ -79,8 +80,8 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose }) 
 
   const current = UPDATES.find((u) => u.id === active) || UPDATES[0];
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4">
+  const content = (
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={close} />
       <div
         className="relative w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[85vh] overflow-hidden"
@@ -162,4 +163,8 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose }) 
       </div>
     </div>
   );
+
+  // Portal ke <body> agar tidak terpotong oleh ancestor ber-overflow (AdminLayout).
+  if (typeof document === "undefined" || !document.body) return content;
+  return createPortal(content, document.body);
 }
