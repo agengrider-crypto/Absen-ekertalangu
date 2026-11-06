@@ -158,11 +158,25 @@ def create_refresh_token(user_id: str, ver: int = 0, demo: bool = False) -> str:
                "exp": datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)}
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
+def _cookie_flags() -> dict:
+    """Cookie aman di HTTPS (produksi), tapi tetap jalan di HTTP lokal.
+
+    SameSite=None wajib disertai Secure; kalau tidak, browser menolak cookie
+    sehingga login gagal di http://localhost.
+    """
+    secure = os.environ.get("COOKIE_SECURE")
+    if secure is None:
+        secure = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+    secure = str(secure).lower() not in ("0", "false", "no")
+    return {"secure": secure, "samesite": "none" if secure else "lax"}
+
+
 def set_auth_cookies(response: Response, user_id: str, ver: int, demo: bool = False):
+    flags = _cookie_flags()
     response.set_cookie("access_token", create_access_token(user_id, ver, demo), httponly=True,
-                        secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
+                        max_age=SESSION_MAX_AGE, path="/", **flags)
     response.set_cookie("refresh_token", create_refresh_token(user_id, ver, demo), httponly=True,
-                        secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
+                        max_age=SESSION_MAX_AGE, path="/", **flags)
 
 # ---------------------------------------------------------------------------
 # Models
@@ -821,7 +835,7 @@ async def refresh(request: Request, response: Response):
         raise HTTPException(status_code=401, detail="Token tidak valid")
     response.set_cookie("access_token",
                         create_access_token(str(user["_id"]), user.get("token_version", 0), is_demo_ctx()),
-                        httponly=True, secure=True, samesite="none", max_age=SESSION_MAX_AGE, path="/")
+                        httponly=True, max_age=SESSION_MAX_AGE, path="/", **_cookie_flags())
     return public_user(user)
 
 @api_router.post("/auth/register")

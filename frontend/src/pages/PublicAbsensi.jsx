@@ -26,10 +26,10 @@ import { TYPE_LABEL, tanggalPanjang, hhmm, AUDIENCE_LABEL, GENDER_FILTER_LABEL }
  */
 
 const STATUS_BTN = {
-  hadir: { label: "Hadir", on: "bg-[#111114] text-white", off: "text-[#111114]" },
-  izin: { label: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#9CA3AF]" },
-  sakit: { label: "Sakit", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
-  alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#DC2626]" },
+  hadir: { label: "H", full: "Hadir", on: "bg-[#111114] text-white", off: "text-[#111114]" },
+  izin: { label: "I", full: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#9CA3AF]" },
+  sakit: { label: "S", full: "Sakit", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
+  alpha: { label: "A", full: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#DC2626]" },
 };
 
 const REPORT_STATUS = {
@@ -446,8 +446,9 @@ export default function PublicAbsensi() {
                         data-testid={`absensi-btn-${s}-${r.user_id}`}
                         disabled={closed || busy === r.user_id + s || (s === "alpha" && !alphaAllowed)}
                         onClick={() => mark(r.user_id, s)}
-                        title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.label}
-                        className={`h-8 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
+                        title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.full}
+                        aria-label={cfg.full}
+                        className={`h-8 w-9 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
                       >
                         {cfg.label}
                       </button>

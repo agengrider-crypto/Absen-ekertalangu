@@ -1,5 +1,5 @@
 // Navigasi Admin/Pengurus: sidebar desktop dan menu bottom-sheet di ponsel.
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
@@ -274,11 +274,23 @@ export default function AdminLayout({ user, role = "admin" }) {
   const [addKegiatanRequest, setAddKegiatanRequest] = useState(0);
   const [kegiatanIdToOpen, setKegiatanIdToOpen] = useState(null);
   const [monthlyRecapFilter, setMonthlyRecapFilter] = useState("semua");
+  const leaveGuard = useRef(null);
 
   const allKeys = menu.flatMap((m) => (m.items ? m.items.map((i) => i.key) : [m.key]));
 
   const go = (key, filter = "semua") => {
     if (!allKeys.includes(key)) return;
+    // Cegah keluar dari Kode Akses tanpa konfirmasi tutup absen.
+    if (active === "kode-akses" && key !== "kode-akses" && leaveGuard.current) {
+      const allowed = leaveGuard.current();
+      if (!allowed) {
+        leaveGuard.current.proceed = () => {
+          leaveGuard.current = null;
+          go(key, filter);
+        };
+        return;
+      }
+    }
     if (key === "rekap-bulanan") setMonthlyRecapFilter(filter);
     setActive(key);
     setDrawer(false);
@@ -381,7 +393,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           )}
           {active === "kalender" && <KalenderView />}
           {active === "bantuan" && <BantuanView />}
-          {active === "kode-akses" && <KodeAksesView />}
+          {active === "kode-akses" && <KodeAksesView onLeave={leaveGuard} />}
           {active === "scan-presensi" && <ScanPresensiView />}
           {active === "musyawarah" && <MusyawarahView />}
           {active === "pengumuman" && <PengumumanView />}

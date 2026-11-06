@@ -63,7 +63,10 @@ export default function ActionModal({ title, subtitle, actions = [], onClose, te
                 key={a.key}
                 data-testid={a.testid || `action-${a.key}`}
                 disabled={a.disabled}
-                onClick={() => { onClose?.(); a.onClick?.(); }}
+                onClick={() => {
+                  const keepOpen = a.onClick?.();
+                  if (keepOpen !== false) onClose?.();
+                }}
                 className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-left transition-colors disabled:opacity-45 disabled:cursor-not-allowed ${
                   a.danger ? "hover:bg-red-50" : "hover:bg-[#FAFAF8]"
                 }`}
@@ -101,7 +104,7 @@ export default function ActionModal({ title, subtitle, actions = [], onClose, te
             onClick={onClose}
             className="w-full h-12 rounded-2xl bg-[#F4F4F1] text-[#4B5563] font-semibold hover:bg-[#E9EDE9]"
           >
-            Tutup
+            {actions.some((a) => a && a.danger) ? "Batalkan" : "Tutup"}
           </button>
         </div>
       </div>

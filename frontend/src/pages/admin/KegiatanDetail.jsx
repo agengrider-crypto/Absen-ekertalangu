@@ -329,11 +329,21 @@ function BarcodePublikPanel({ kegiatanId }) {
 }
 
 /* ------------------------- Absen manual (dengan mode offline) ------------------------- */
+const REASON_OPTIONS = [
+  "Sibuk",
+  "Ada tamu",
+  "Kerja",
+  "Sakit ringan",
+  "Acara keluarga",
+  "Di luar kota",
+  "Lainnya",
+];
+
 function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(null);
   const [busyAll, setBusyAll] = useState(false);
-  const [reasonFor, setReasonFor] = useState(null); // { user_id, name, status }
+  const [reasonFor, setReasonFor] = useState(null); // { user_id, name }
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
 
@@ -372,20 +382,20 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
     } finally { setBusy(null); }
   };
 
-  const openReason = (row, status) => {
-    setReasonFor({ user_id: row.user_id, name: row.name, status });
+  const openReason = (row) => {
+    setReasonFor({ user_id: row.user_id, name: row.name });
     setReason("");
     setNote("");
   };
 
   const submitReason = async () => {
-    if (!reason.trim()) {
-      toast.error("Alasan wajib diisi.");
+    if (!reason) {
+      toast.error("Pilih alasan terlebih dahulu.");
       return;
     }
     const target = reasonFor;
     setReasonFor(null);
-    await mark(target.user_id, target.status, { reason: reason.trim(), note: note.trim() || null });
+    await mark(target.user_id, "izin", { reason, note: note.trim() || null });
   };
 
   const hadirSemua = async () => {
@@ -475,13 +485,12 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
                 ) : ["hadir", "izin", "sakit", "alpha"].map((s) => {
                   const on = r.status === s;
                   const cfg = STATUS_BTN[s];
-                  const needsReason = s === "izin" || s === "sakit";
                   return (
                     <button
                       key={s}
                       data-testid={`detail-btn-${s}-${r.user_id}`}
                       disabled={busy === r.user_id + s || (s === "alpha" && !alphaAllowed)}
-                      onClick={() => (needsReason ? openReason(r, s) : mark(r.user_id, s))}
+                      onClick={() => (s === "izin" ? openReason(r) : mark(r.user_id, s))}
                       title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.full}
                       aria-label={cfg.full}
                       className={`h-8 w-9 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
@@ -506,21 +515,32 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
       {reasonFor && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4" onClick={() => setReasonFor(null)}>
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="reason-modal">
-            <div className="font-heading font-bold text-[#111827] text-lg">
-              Tidak bisa hadir — {STATUS_BTN[reasonFor.status].full}
-            </div>
+            <div className="font-heading font-bold text-[#111827] text-lg">Alasan Izin</div>
             <p className="text-sm text-[#6B7280] mt-0.5">{reasonFor.name}</p>
             <div className="mt-4 space-y-3">
               <div>
-                <label className="block text-[13px] font-semibold text-[#111827] mb-1.5">Alasan *</label>
-                <input
-                  data-testid="reason-input"
-                  autoFocus
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="cth: sakit demam, ada acara keluarga"
-                  className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]"
-                />
+                <label className="block text-[13px] font-semibold text-[#111827] mb-2">Pilih alasan *</label>
+                <div className="flex flex-wrap gap-2" data-testid="reason-options">
+                  {REASON_OPTIONS.map((opt) => {
+                    const active = reason === opt;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        data-testid={`reason-opt-${opt}`}
+                        onClick={() => setReason(opt)}
+                        aria-pressed={active}
+                        className={`h-10 px-3.5 rounded-xl border-2 text-sm font-semibold transition-colors ${
+                          active
+                            ? "bg-[#111114] text-white border-[#111114]"
+                            : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div>
                 <label className="block text-[13px] font-semibold text-[#111827] mb-1.5">Keterangan (opsional)</label>
@@ -535,8 +555,8 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
               </div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <button onClick={() => setReasonFor(null)} className="h-11 rounded-xl border-2 border-[#E8E8E4] font-semibold text-[#4B5563]">Batal</button>
-              <button data-testid="reason-submit" onClick={submitReason} className="h-11 rounded-xl bg-[#111114] text-white font-semibold">Simpan</button>
+              <button onClick={() => setReasonFor(null)} className="h-11 rounded-xl border-2 border-[#E8E8E4] font-semibold text-[#4B5563]">Batalkan</button>
+              <button data-testid="reason-submit" onClick={submitReason} disabled={!reason} className="h-11 rounded-xl bg-[#111114] text-white font-semibold disabled:opacity-40">Simpan</button>
             </div>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { api, API, formatApiErrorDetail } from "@/lib/api";
 import { PARTICIPANTS } from "@/constants/testIds";
 import { DateField } from "@/components/DateField";
 import PesertaDetailModal from "./PesertaDetailModal";
+import PesertaQuickAction from "./PesertaQuickAction";
 import { formatTanggal, genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
@@ -79,6 +80,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
   const [roleFilter, setRoleFilter] = useState("all");
   const [selected, setSelected] = useState(new Set());
   const [detailId, setDetailId] = useState(null);
+  const [quickId, setQuickId] = useState(null);
   const [modal, setModal] = useState(null); // "add" | "bulk" | null
 
   const load = () =>
@@ -438,7 +440,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${b.cls}`}>{b.label}</span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button data-testid={`button-detail-${u.id}`} onClick={() => setDetailId(u.id)}
+                        <button data-testid={`button-detail-${u.id}`} onClick={() => setQuickId(u.id)}
                           className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#111114] font-semibold text-sm hover:border-[#111114] hover:bg-[#F1F1EE]">
                           <Eye size={15} /> Detail
                         </button>
@@ -452,6 +454,15 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         )}
       </div>
 
+      {quickId && (
+        <PesertaQuickAction
+          userId={quickId}
+          canManage={isAdmin}
+          onClose={() => setQuickId(null)}
+          onOpenDetail={(id) => { setQuickId(null); setDetailId(id); }}
+          onChanged={load}
+        />
+      )}
       {detailId && (
         <PesertaDetailModal
           userId={detailId}

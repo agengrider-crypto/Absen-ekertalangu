@@ -1,7 +1,7 @@
 // FASE 15 — Halaman "Kode Akses": tiap kegiatan otomatis punya kode 6 digit + tautan/QR absensi.
 import { useCallback, useEffect, useState } from "react";
 import {
-  KeyRound, Loader2, RefreshCw, ChevronLeft, ChevronRight, Send, Lock,
+  KeyRound, Loader2, RefreshCw, ChevronLeft, ChevronRight, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -11,10 +11,11 @@ import { tanggalSingkat } from "./kegiatanUtils";
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
   "Agustus", "September", "Oktober", "November", "Desember"];
 
-export default function KodeAksesView() {
+export default function KodeAksesView({ onLeave }) {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [data, setData] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const [leavePrompt, setLeavePrompt] = useState(null);
 
   const load = useCallback(() => {
     setData(null);
@@ -45,12 +46,6 @@ export default function KodeAksesView() {
   };
 
   const tutupAbsen = async (row) => {
-    const ok = window.confirm(
-      `Tutup absen "${row.base_name}"?\n\n` +
-      "Peserta yang belum diabsen akan OTOMATIS dicatat ALPHA. " +
-      "Absen susulan masih bisa dilakukan setelahnya."
-    );
-    if (!ok) return;
     setBusyId(row.id);
     try {
       const { data: res } = await api.post(`/admin/kegiatan/${row.id}/tutup-absen`);
@@ -58,6 +53,33 @@ export default function KodeAksesView() {
       load();
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
     setBusyId(null);
+  };
+
+  // Daftarkan handler ke AdminLayout: dipanggil saat pengguna mau keluar
+  // dari halaman Kode Akses. Mengembalikan false = tahan dulu, tampilkan prompt.
+  useEffect(() => {
+    if (!onLeave) return;
+    onLeave.current = () => {
+      const stillOpen = (data?.rows || []).filter((r) => r.status === "open");
+      if (stillOpen.length === 0) return true;
+      setLeavePrompt(stillOpen);
+      return false;
+    };
+    return () => { onLeave.current = null; };
+  }, [data, onLeave]);
+
+  const confirmLeave = async (closeAll) => {
+    const rows = leavePrompt || [];
+    setLeavePrompt(null);
+    if (closeAll) {
+      let ok = 0;
+      for (const r of rows) {
+        try { await api.post(`/admin/kegiatan/${r.id}/tutup-absen`); ok += 1; } catch { /* lanjut */ }
+      }
+      toast.success(`${ok} absen ditutup. Peserta yang belum diabsen tercatat Alpha.`);
+    }
+    if (onLeave) onLeave.current = null;
+    onLeave?.proceed?.();
   };
 
   return (
@@ -116,18 +138,38 @@ export default function KodeAksesView() {
                   className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#FCD34D] text-[#92400E] font-semibold text-sm hover:bg-[#FFFBEB] disabled:opacity-60">
                   {busyId === r.id ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />} Perbarui Kode
                 </button>
-                {r.status === "open" && (
-                  <button data-testid={`kode-tutup-absen-${r.id}`} onClick={() => tutupAbsen(r)} disabled={busyId === r.id}
-                    className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-[#DC2626] text-white font-semibold text-sm hover:bg-[#B91C1C] disabled:opacity-60">
-                    {busyId === r.id ? <Loader2 className="animate-spin" size={15} /> : <Lock size={15} />} Tutup Absen
-                  </button>
-                )}
               </div>
             </div>
           ))}
         </div>
       )}
 
+      {leavePrompt && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4" onClick={() => setLeavePrompt(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="leave-prompt">
+            <div className="font-heading font-bold text-[#111827] text-lg">Tutup absen sebelum keluar?</div>
+            <p className="text-sm text-[#6B7280] mt-1">
+              Masih ada <b>{leavePrompt.length} kegiatan</b> dengan absen terbuka.
+              Peserta yang belum diabsen akan otomatis tercatat <b>Alpha</b>.
+            </p>
+            <ul className="mt-3 max-h-32 space-y-1 overflow-y-auto rounded-xl border border-[#E8E8E4] p-2">
+              {leavePrompt.map((r) => (
+                <li key={r.id} className="text-sm text-[#111827] truncate">{r.base_name}</li>
+              ))}
+            </ul>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button data-testid="leave-keep-open" onClick={() => confirmLeave(false)}
+                className="h-11 rounded-xl border-2 border-[#E8E8E4] font-semibold text-[#4B5563] hover:border-[#111114]">
+                Biarkan terbuka
+              </button>
+              <button data-testid="leave-close-all" onClick={() => confirmLeave(true)}
+                className="h-11 rounded-xl bg-[#DC2626] text-white font-semibold hover:bg-[#B91C1C]">
+                Tutup &amp; Alpha
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -366,14 +366,13 @@ export default function KegiatanView({
         onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
       {showDeleteConfirm && (
         <ActionModal
-          title="Hapus kegiatan terpilih?"
-          subtitle={`${selectedTargets.length} kegiatan`}
+          title="Hapus kegiatan?"
+          subtitle={`${selectedTargets.length} kegiatan dipilih`}
           onClose={() => setShowDeleteConfirm(false)}
           testid={ACTIVITIES.deleteConfirmModal}
           actions={[{
             key: "confirm-delete",
-            label: deletingSelected ? "Menghapus kegiatan…" : `Hapus ${selectedTargets.length} kegiatan`,
-            desc: "Tindakan ini tidak dapat dibatalkan.",
+            label: deletingSelected ? "Menghapus…" : "Hapus",
             icon: Trash2,
             danger: true,
             disabled: deletingSelected,
@@ -381,7 +380,7 @@ export default function KegiatanView({
           }]}
         >
           <p className="px-3 py-2 text-sm text-[#4B5563]">
-            Pastikan pilihan kegiatan sudah benar. Kegiatan yang gagal dihapus akan tetap muncul di daftar.
+            Kegiatan yang dihapus tidak bisa dikembalikan.
           </p>
           <ul className="mx-3 mb-2 max-h-40 divide-y divide-[#E8E8E4] overflow-y-auto rounded-xl border border-[#E8E8E4]">
             {selectedTargets.map((kegiatan) => (
