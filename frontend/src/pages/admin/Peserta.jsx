@@ -2,15 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Users, Search, Loader2, UserPlus, Trash2, X, Eye, AlertTriangle,
   ClipboardList, CalendarDays, Heart, Printer, QrCode, CheckCircle2, ChevronLeft, ChevronRight,
+  MoreHorizontal, User as UserIcon, History,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { api, API, formatApiErrorDetail } from "@/lib/api";
 import { PARTICIPANTS } from "@/constants/testIds";
 import { DateField } from "@/components/DateField";
+import ActionModal from "@/components/ActionModal";
 import PesertaDetailModal from "./PesertaDetailModal";
-import PesertaQuickAction from "./PesertaQuickAction";
-import { formatTanggal, genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
+import { genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
 
@@ -26,6 +27,7 @@ export function dataMissing(u) {
   return m;
 }
 const MISSING_LABEL = { dob: "Tgl lahir", marital: "Status nikah" };
+const ROLE_NAMES = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta", guru: "Guru" };
 
 function normalizeParticipantDob(value) {
   const dob = String(value || "").slice(0, 10);
@@ -48,9 +50,10 @@ function normalizeParticipantDob(value) {
   return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== normalized ? null : normalized;
 }
 
-function PesertaAvatar({ user }) {
+function PesertaAvatar({ user, size = "md" }) {
   const [err, setErr] = useState(false);
   const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+  const box = size === "lg" ? "h-14 w-14 text-base" : "h-10 w-10 text-xs";
   if (user?.has_photo && !err) {
     return (
       <img
@@ -58,13 +61,13 @@ function PesertaAvatar({ user }) {
         alt={user.name}
         loading="lazy"
         onError={() => setErr(true)}
-        className="h-10 w-10 rounded-full object-cover border border-[#E8E8E4]"
+        className={`${box} shrink-0 rounded-full object-cover border border-[#E8E8E4]`}
         data-testid={`peserta-photo-${user.id}`}
       />
     );
   }
   return (
-    <div className="h-10 w-10 rounded-full bg-[#F1F1EE] text-[#111114] flex items-center justify-center font-bold text-xs">
+    <div className={`${box} shrink-0 rounded-full bg-[#F1F1EE] text-[#111114] flex items-center justify-center font-bold`}>
       {initials}
     </div>
   );
@@ -80,8 +83,14 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
   const [roleFilter, setRoleFilter] = useState("all");
   const [selected, setSelected] = useState(new Set());
   const [detailId, setDetailId] = useState(null);
-  const [quickId, setQuickId] = useState(null);
+  const [detailTab, setDetailTab] = useState("profil");
+  const [actionsFor, setActionsFor] = useState(null);
   const [modal, setModal] = useState(null); // "add" | "bulk" | null
+
+  const openDetail = (id, tab = "profil") => {
+    setDetailTab(tab);
+    setDetailId(id);
+  };
 
   const load = () =>
     api.get("/admin/users")
@@ -325,7 +334,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
             </div>
             <p className="text-[11px] text-[#6B7280] mt-1 leading-relaxed">
               Data ini dipakai penyaringan kegiatan khusus (kelompok usia / status pernikahan). Peserta yang datanya
-              kosong <b>tidak masuk</b> daftar absen kegiatan khusus tersebut. Klik <b>Detail</b> untuk melengkapi.
+              kosong <b>tidak masuk</b> daftar absen kegiatan khusus tersebut. Klik <b>nama peserta</b> untuk melengkapi.
             </p>
           </div>
           {statusFilter !== "incomplete" ? (
@@ -343,9 +352,9 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="peserta-table">
+      <div className="overflow-hidden rounded-2xl border border-[#E8E8E4] bg-white" data-testid="peserta-table">
         {users === null ? (
-          <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
+          <div className="flex justify-center p-10"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
         ) : users === false ? (
           <div className="p-10 text-center">
             <p className="text-[#6B7280]">Daftar akun gagal dimuat.</p>
@@ -354,123 +363,150 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         ) : filtered.length === 0 ? (
           <div className="p-10 text-center text-[#6B7280]">{q ? "Tidak ada akun yang cocok." : "Belum ada akun pada kategori ini."}</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[#FAFAF8] text-[#6B7280] text-left">
-                  <th className="px-4 py-3 w-10">
-                    <label className="inline-flex items-center gap-1.5" title="Pilih semua peserta yang memenuhi syarat aktivasi">
-                      <input
-                        aria-label={`Pilih semua peserta yang bisa diaktifkan (${activationEligible.length})`}
-                        type="checkbox"
-                        className="accent-[#0D5C3A] w-4 h-4"
-                        checked={allChecked}
-                        disabled={activationEligible.length === 0}
-                        onChange={toggleAll}
-                        data-testid={PARTICIPANTS.selectAllActivatable}
-                      />
-                      <span className="text-xs font-semibold text-[#4B5563]">{activationEligible.length}</span>
-                    </label>
-                  </th>
-                  <th className="px-4 py-3 font-semibold w-14">Foto</th>
-                  <th className="px-4 py-3 font-semibold">Nama</th>
-                  <th className="px-4 py-3 font-semibold hidden lg:table-cell">Kategori Peran</th>
-                  <th className="px-4 py-3 font-semibold hidden sm:table-cell">Jenis Kelamin</th>
-                  <th className="px-4 py-3 font-semibold hidden md:table-cell">Tempat Lahir</th>
-                  <th className="px-4 py-3 font-semibold hidden md:table-cell">Tgl Lahir</th>
-                  <th className="px-4 py-3 font-semibold hidden lg:table-cell">No HP</th>
-                  <th className="px-4 py-3 font-semibold hidden md:table-cell">Kelengkapan</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E8E8E4]">
-                {filtered.map((u) => {
-                  const b = statusBadge(u.status, u.needs_completion);
-                  const miss = dataMissing(u);
-                  const roleNames = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta", guru: "Guru" };
-                  return (
-                    <tr key={u.id} data-testid={`peserta-row-${u.id}`} className={selected.has(u.id) ? "bg-[#FAFAF8]" : ""}>
-                      <td className="px-4 py-3">
-                        <input aria-label={`Pilih ${u.name}`} type="checkbox" className="accent-[#111114] w-4 h-4" checked={selected.has(u.id)} onChange={() => toggleOne(u.id)} data-testid={`checkbox-${u.id}`} />
-                      </td>
-                      <td className="px-4 py-3">
+          <>
+            <div className="flex items-center justify-between gap-3 border-b border-[#ECECE8] bg-[#FAFAF8] px-4 py-2.5">
+              <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#4B5563]" title="Pilih semua peserta yang memenuhi syarat aktivasi">
+                <input
+                  aria-label={`Pilih semua peserta yang bisa diaktifkan (${activationEligible.length})`}
+                  type="checkbox"
+                  className="h-4 w-4 accent-[#0D5C3A]"
+                  checked={allChecked}
+                  disabled={activationEligible.length === 0}
+                  onChange={toggleAll}
+                  data-testid={PARTICIPANTS.selectAllActivatable}
+                />
+                Pilih yang bisa diaktifkan
+                <span className="rounded-full bg-[#F1F1EE] px-1.5 py-0.5 text-[11px] font-bold text-[#374151]">{activationEligible.length}</span>
+              </label>
+              <span className="text-xs text-[#9CA3AF]">{filtered.length} akun</span>
+            </div>
+
+            <ul className="divide-y divide-[#F1F1EE]">
+              {filtered.map((u) => {
+                const b = statusBadge(u.status, u.needs_completion);
+                const miss = dataMissing(u);
+                const isSelected = selected.has(u.id);
+                return (
+                  <li key={u.id}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openDetail(u.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(u.id); }
+                      }}
+                      aria-label={`Buka detail ${u.name}`}
+                      data-testid={`peserta-row-${u.id}`}
+                      className={`group flex cursor-pointer items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#111114] sm:gap-4 sm:px-4 ${
+                        isSelected ? "bg-[#FAFAF8]" : ""
+                      }`}
+                    >
+                      <label
+                        className="flex h-9 w-6 shrink-0 items-center justify-center"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
+                        <input
+                          aria-label={`Pilih ${u.name}`}
+                          type="checkbox"
+                          className="h-4 w-4 accent-[#111114]"
+                          checked={isSelected}
+                          onChange={() => toggleOne(u.id)}
+                          data-testid={`checkbox-${u.id}`}
+                        />
+                      </label>
+
+                      <span data-testid={`button-avatar-${u.id}`} className="shrink-0">
                         <PesertaAvatar user={u} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-[#111827] flex items-center gap-1.5">
-                          {u.name}
-                          {u.needs_completion && <AlertTriangle size={14} className="text-[#9CA3AF]" title="Perlu dilengkapi" />}
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span data-testid={`button-detail-${u.id}`} className="truncate text-[15px] font-semibold text-[#111827]">
+                            {u.name}
+                          </span>
+                          {u.needs_completion && <AlertTriangle size={13} className="shrink-0 text-[#9CA3AF]" aria-label="Perlu dilengkapi" />}
                         </div>
-                        {u.username && <div className="mt-0.5 text-xs text-[#6B7280]">Nama pengguna: {u.username}</div>}
-                        <div className="text-xs text-[#9CA3AF] sm:hidden">{genderLabel(u.gender)} · {u.phone || "-"}</div>
+                        <div className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-[#6B7280]">
+                          <span className="truncate">{u.username ? `@${u.username}` : genderLabel(u.gender)}</span>
+                          {u.phone && <span className="hidden shrink-0 sm:inline">· {u.phone}</span>}
+                        </div>
                         {miss.length > 0 && (
-                          <div className="text-[11px] text-[#9D174D] font-semibold md:hidden mt-0.5">
-                            {miss.map((m) => MISSING_LABEL[m]).join(" & ")} belum diisi
+                          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#FDF2F8] px-2 py-0.5 text-[11px] font-semibold text-[#9D174D]">
+                            <ClipboardList size={11} /> {miss.map((m) => MISSING_LABEL[m]).join(" & ")} belum diisi
                           </div>
                         )}
-                      </td>
-                      <td className="px-4 py-3 hidden lg:table-cell">
-                        <div className="flex flex-wrap gap-1">
-                          {(u.roles || []).map((r) => (
-                            <span key={r} className="rounded-full bg-[#F1F1EE] px-2 py-0.5 text-xs font-medium text-[#374151]">
-                              {roleNames[r] || r}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 hidden sm:table-cell text-[#4B5563]">{genderLabel(u.gender)}</td>
-                      <td className="px-4 py-3 hidden md:table-cell text-[#4B5563]">{u.birthplace || "-"}</td>
-                      <td className="px-4 py-3 hidden md:table-cell text-[#4B5563]">{formatTanggal(u.dob)}</td>
-                      <td className="px-4 py-3 hidden lg:table-cell text-[#4B5563]">{u.phone || "-"}</td>
-                      <td className="px-4 py-3 hidden md:table-cell" data-testid={`kelengkapan-${u.id}`}>
-                        {miss.length === 0 ? (
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">Lengkap</span>
-                        ) : (
-                          <div className="flex flex-wrap gap-1">
-                            {miss.map((m) => (
-                              <span key={m} className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D] inline-flex items-center gap-1">
-                                {m === "dob" ? <CalendarDays size={11} /> : <Heart size={11} />} {MISSING_LABEL[m]} kosong
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${b.cls}`}>{b.label}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <button data-testid={`button-detail-${u.id}`} onClick={() => setQuickId(u.id)}
-                          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#111114] font-semibold text-sm hover:border-[#111114] hover:bg-[#F1F1EE]">
-                          <Eye size={15} /> Detail
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+
+                      <div className="hidden shrink-0 items-center gap-1 md:flex">
+                        {(u.roles || []).map((r) => (
+                          <span key={r} className="rounded-full bg-[#F1F1EE] px-2 py-0.5 text-[11px] font-medium text-[#374151]">
+                            {ROLE_NAMES[r] || r}
+                          </span>
+                        ))}
+                      </div>
+
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${b.cls}`}>{b.label}</span>
+
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setActionsFor(u); }}
+                        aria-label={`Aksi lain untuk ${u.name}`}
+                        title="Aksi lainnya"
+                        data-testid={`button-more-${u.id}`}
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B7280] transition-colors hover:bg-[#F1F1EE] hover:text-[#111114] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#111114]"
+                      >
+                        <MoreHorizontal size={18} />
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </div>
 
-      {quickId && (
-        <PesertaQuickAction
-          userId={quickId}
-          canManage={isAdmin}
-          onClose={() => setQuickId(null)}
-          onOpenDetail={(id) => { setQuickId(null); setDetailId(id); }}
-          onChanged={load}
-        />
-      )}
       {detailId && (
         <PesertaDetailModal
           userId={detailId}
+          initialTab={detailTab}
           kelompokList={kelompok}
           canManageRoles={isAdmin}
           canResetPassword={detailUser?.roles?.length === 1 && detailUser?.roles?.includes("peserta")}
           onClose={() => setDetailId(null)}
           onChanged={load}
+        />
+      )}
+
+      {actionsFor && (
+        <ActionModal
+          testid="peserta-row-actions"
+          title="Aksi Peserta"
+          subtitle={actionsFor.name}
+          onClose={() => setActionsFor(null)}
+          actions={[
+            {
+              key: "detail", testid: "row-action-detail", label: "Buka Detail",
+              desc: "Profil lengkap peserta", icon: UserIcon,
+              onClick: () => { openDetail(actionsFor.id, "profil"); },
+            },
+            {
+              key: "kehadiran", testid: "row-action-kehadiran", label: "Kehadiran",
+              desc: "Ringkasan & riwayat absensi", icon: ClipboardList,
+              onClick: () => { openDetail(actionsFor.id, "kehadiran"); },
+            },
+            {
+              key: "qr", testid: "row-action-qr", label: "QR Peserta",
+              desc: "Lihat, cetak & unduh QR", icon: QrCode,
+              onClick: () => { openDetail(actionsFor.id, "qr"); },
+            },
+            {
+              key: "riwayat", testid: "row-action-riwayat", label: "Riwayat",
+              desc: "Informasi akun & aktivitas", icon: History,
+              onClick: () => { openDetail(actionsFor.id, "riwayat"); },
+            },
+          ]}
         />
       )}
       {modal === "add" && <AddModal kelompok={kelompok} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}

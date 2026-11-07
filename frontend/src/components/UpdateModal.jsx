@@ -9,6 +9,18 @@ const STORAGE_KEY = "ekertalangu.updateSeen";
 // Daftar update terbaru. Tambahkan entri baru di paling atas setiap rilis.
 export const UPDATES = [
   {
+    id: "2026-11-08-user-redesign",
+    date: "2026-11-08",
+    title: "Halaman User lebih rapi",
+    items: [
+      "Daftar user kini berupa kartu ringkas — cukup nama, kontak, peran, dan status.",
+      "Seluruh baris bisa diketuk untuk membuka detail, bukan hanya nama atau foto.",
+      "Detail user dibagi menjadi tab Profil, Kehadiran, QR, dan Riwayat.",
+      "Semua aksi (ubah data, pindah sambung, reset sandi, nonaktifkan) ada di tombol ⋯.",
+    ],
+    action: { label: "Coba Sekarang", nav: "peserta" },
+  },
+  {
     id: "2026-11-07-absensi",
     date: "2026-11-07",
     title: "Absensi lebih cepat & lengkap",
