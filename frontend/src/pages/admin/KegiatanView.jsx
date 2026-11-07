@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays, Plus, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
   Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
@@ -57,7 +57,7 @@ export default function KegiatanView({
   const [editItem, setEditItem] = useState(null);
   const [reminderItem, setReminderItem] = useState(null);
   const [detailKey, setDetailKey] = useState(0);
-  // FASE 10 â€” rekap per sesi & salin jadwal sesi
+  // FASE 10 — rekap per sesi & salin jadwal sesi
   const [gabunganId, setGabunganId] = useState(null);
   const [salinGroup, setSalinGroup] = useState(null);
 
@@ -370,7 +370,7 @@ export default function KegiatanView({
           testid={ACTIVITIES.deleteConfirmModal}
           actions={[{
             key: "confirm-delete",
-            label: deletingSelected ? "Menghapusâ€¦" : "Hapus",
+            label: deletingSelected ? "Menghapus…" : "Hapus",
             icon: Trash2,
             danger: true,
             disabled: deletingSelected,
@@ -448,7 +448,7 @@ function DateBlock({ k, muted = false }) {
         muted ? "bg-[#F4F4F1] text-[#6B7280]" : "bg-[#F4F4F1] text-[#111114]"
       }`}
     >
-      <span className="text-xl font-bold leading-none tabular-nums">{Number(dd) || "â€”"}</span>
+      <span className="text-xl font-bold leading-none tabular-nums">{Number(dd) || "—"}</span>
       <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide">{month}</span>
     </div>
   );
@@ -498,7 +498,7 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
         </div>
         <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#6B7280]">
           <span className="inline-flex shrink-0 items-center gap-1">
-            <Clock size={12} /> {k.start_time}â€“{k.end_time}
+            <Clock size={12} /> {k.start_time}–{k.end_time}
           </span>
           <span className="hidden shrink-0 text-[#D1D5DB] sm:inline">Â·</span>
           <LocationLink k={k} className="max-w-full" />
@@ -517,7 +517,7 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
 }
 
 /**
- * FASE 9 â€” Kegiatan 1 hari BEBERAPA WAKTU/SESI (pagi/sore/malam).
+ * FASE 9 — Kegiatan 1 hari BEBERAPA WAKTU/SESI (pagi/sore/malam).
  *
  * Setiap sesi punya absensi, rekap, kode akses & barcode SENDIRI, sehingga
  * peserta yang hadir sesi pagi tidak otomatis terhitung hadir di sesi lain.
@@ -527,7 +527,7 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
   const first = group.items[0];
   const [, , day] = String(first.date || "").split("-");
   const times = group.items.map((k) => k.start_time).filter(Boolean);
-  const range = times.length ? `${times[0]}â€“${group.items[group.items.length - 1].end_time}` : "";
+  const range = times.length ? `${times[0]}–${group.items[group.items.length - 1].end_time}` : "";
   return (
     <div
       className="rounded-2xl border border-[#E8E8E4] bg-white p-3 sm:p-4"
@@ -588,7 +588,7 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
                 </label>
                 <span className="w-14 shrink-0 text-sm font-semibold text-[#111114]">{k.session_label || "Sesi"}</span>
                 <span className="min-w-0 flex-1 truncate text-xs text-[#6B7280]">
-                  {k.start_time}â€“{k.end_time}
+                  {k.start_time}–{k.end_time}
                   {k.teacher ? ` Â· ${k.teacher}` : ""}
                 </span>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.cls}`}>{meta.badge}</span>
@@ -717,7 +717,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
             <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{c.alpha}</div><div className="text-xs text-[#6B7280]">Alpha</div></div>
           </div>
 
-          {/* Absen manual â€” bisa dibuka/tutup */}
+          {/* Absen manual — bisa dibuka/tutup */}
           <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="absen-manual-section">
             <button
               data-testid="absen-manual-toggle"
@@ -750,7 +750,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
                       <div className="min-w-0">
                         <div className="font-semibold text-[#111827] text-sm truncate">{r.name}</div>
                         <div className="text-xs text-[#9CA3AF] flex items-center gap-1.5">
-                          {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "â€”"}
+                          {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—"}
                           {r.account_status === "pending" && (
                             <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#92400E]">
                               <AlertTriangle size={11} /> Belum aktivasi
@@ -759,7 +759,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
                         </div>
                       </div>
                       <div className="w-14 text-center font-mono text-[13px] tabular-nums text-[#4B5563]">
-                        {r.status === "hadir" && r.arrival_time ? hhmm(r.arrival_time) : "â€”"}
+                        {r.status === "hadir" && r.arrival_time ? hhmm(r.arrival_time) : "—"}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {["hadir", "izin", "sakit", "alpha"].map((s) => {
@@ -828,7 +828,7 @@ function FeedbackModal({ kegiatan, onClose }) {
 }
 
 /**
- * FASE 7 â€” Bagikan Kegiatan + Kode Akses Absensi (6 digit).
+ * FASE 7 — Bagikan Kegiatan + Kode Akses Absensi (6 digit).
  *
  * Pemegang tautan memasukkan kode akses lalu langsung melihat daftar peserta
  * (aktif maupun belum aktivasi) untuk diabsen manual / scan barcode.
