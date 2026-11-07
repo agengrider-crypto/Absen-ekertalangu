@@ -383,7 +383,7 @@ export default function KegiatanView({
           <ul className="mx-3 mb-2 max-h-40 divide-y divide-[#E8E8E4] overflow-y-auto rounded-xl border border-[#E8E8E4]">
             {selectedTargets.map((kegiatan) => (
               <li key={kegiatan.id} className="px-3 py-2 text-sm text-[#111827]">
-                {kegiatan.date} Â· {kegiatan.name}
+                {kegiatan.date} · {kegiatan.name}
               </li>
             ))}
           </ul>
@@ -458,7 +458,7 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
   const phase = phaseOf(k);
   const meta = PHASE_META[phase];
   const [, , day] = String(k.date || "").split("-");
-  const summary = [k.teacher, k.material].filter(Boolean).join(" Â· ");
+  const summary = [k.teacher, k.material].filter(Boolean).join(" · ");
   return (
     <div
       role="button"
@@ -500,7 +500,7 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
           <span className="inline-flex shrink-0 items-center gap-1">
             <Clock size={12} /> {k.start_time}–{k.end_time}
           </span>
-          <span className="hidden shrink-0 text-[#D1D5DB] sm:inline">Â·</span>
+          <span className="hidden shrink-0 text-[#D1D5DB] sm:inline">·</span>
           <LocationLink k={k} className="max-w-full" />
         </div>
         {summary && <div className="mt-0.5 truncate text-xs text-[#9CA3AF]">{summary}</div>}
@@ -548,7 +548,7 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
                 <Clock size={12} /> {range}
               </span>
             )}
-            <span className="hidden shrink-0 text-[#D1D5DB] sm:inline">Â·</span>
+            <span className="hidden shrink-0 text-[#D1D5DB] sm:inline">·</span>
             <LocationLink k={first} className="max-w-full" />
           </div>
         </div>
@@ -589,7 +589,7 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
                 <span className="w-14 shrink-0 text-sm font-semibold text-[#111114]">{k.session_label || "Sesi"}</span>
                 <span className="min-w-0 flex-1 truncate text-xs text-[#6B7280]">
                   {k.start_time}–{k.end_time}
-                  {k.teacher ? ` Â· ${k.teacher}` : ""}
+                  {k.teacher ? ` · ${k.teacher}` : ""}
                 </span>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.cls}`}>{meta.badge}</span>
                 <ChevronRight size={16} className="shrink-0 text-[#C4C4C0] transition-colors group-hover:text-[#111114]" />
@@ -872,7 +872,7 @@ function ShareAbsensiModal({ data, onClose }) {
           <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#111114]" data-testid="akses-code">{info.code}</div>
           <div className="text-xs text-[#4B5563] mt-1">
             Berlaku sampai kegiatan <b>ditutup/selesai</b>
-            {info.valid_until ? <> Â· jadwal selesai {tanggalSingkat(String(info.valid_until).slice(0, 10))} {String(info.valid_until).slice(11, 16)} WITA</> : null}
+            {info.valid_until ? <> · jadwal selesai {tanggalSingkat(String(info.valid_until).slice(0, 10))} {String(info.valid_until).slice(11, 16)} WITA</> : null}
           </div>
           <div className="flex gap-2 mt-3">
             <button onClick={copyCode} data-testid="akses-copy-code" className="flex-1 h-10 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={15} /> Salin Kode</button>
