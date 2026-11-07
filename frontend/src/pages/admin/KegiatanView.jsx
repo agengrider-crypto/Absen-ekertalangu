@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays, Plus, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
   Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
@@ -57,7 +57,7 @@ export default function KegiatanView({
   const [editItem, setEditItem] = useState(null);
   const [reminderItem, setReminderItem] = useState(null);
   const [detailKey, setDetailKey] = useState(0);
-  // FASE 10 — rekap per sesi & salin jadwal sesi
+  // FASE 10 â€” rekap per sesi & salin jadwal sesi
   const [gabunganId, setGabunganId] = useState(null);
   const [salinGroup, setSalinGroup] = useState(null);
 
@@ -349,10 +349,8 @@ export default function KegiatanView({
                     {groupSessions(g.items).map((grp) => (
                       grp.single
                         ? <KegiatanCard key={grp.key} k={grp.k} selected={selectedIds.has(grp.k.id)} onSelect={() => toggleSelection(grp.k.id)}
-                            onOpen={() => setDetailId(grp.k.id)} onSalin={() => setSalinGroup({ items: [grp.k] })} />
-                        : <SessionGroupCard key={grp.key} group={grp} selectedIds={selectedIds} onToggle={toggleSelection} onOpen={setDetailId}
-                            onRekapGabungan={() => setGabunganId(grp.items[0].id)}
-                            onSalin={() => setSalinGroup(grp)} />
+                            onOpen={() => setDetailId(grp.k.id)} />
+                        : <SessionGroupCard key={grp.key} group={grp} selectedIds={selectedIds} onToggle={toggleSelection} onOpen={setDetailId} />
                     ))}
                   </div>
                 </section>
@@ -372,7 +370,7 @@ export default function KegiatanView({
           testid={ACTIVITIES.deleteConfirmModal}
           actions={[{
             key: "confirm-delete",
-            label: deletingSelected ? "Menghapus…" : "Hapus",
+            label: deletingSelected ? "Menghapusâ€¦" : "Hapus",
             icon: Trash2,
             danger: true,
             disabled: deletingSelected,
@@ -385,7 +383,7 @@ export default function KegiatanView({
           <ul className="mx-3 mb-2 max-h-40 divide-y divide-[#E8E8E4] overflow-y-auto rounded-xl border border-[#E8E8E4]">
             {selectedTargets.map((kegiatan) => (
               <li key={kegiatan.id} className="px-3 py-2 text-sm text-[#111827]">
-                {kegiatan.date} · {kegiatan.name}
+                {kegiatan.date} Â· {kegiatan.name}
               </li>
             ))}
           </ul>
@@ -418,143 +416,188 @@ function FilterBadges({ k }) {
   );
 }
 
-function KegiatanCard({ k, selected, onSelect, onOpen, onSalin }) {
-  const c = k.counts || {};
-  const [, , day] = String(k.date || "").split("-");
+const MAPS_URL = (k) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k.maps_query || k.location)}`;
+
+/** Tautan lokasi terpisah: membuka Google Maps tanpa membuka detail kegiatan. */
+function LocationLink({ k, className = "" }) {
+  if (!k.location && !k.maps_query) return null;
   return (
-    <div className="bg-white rounded-2xl border border-[#E8E8E4] p-3 sm:p-4 hover:border-[#111114] transition-colors" data-testid={`kegiatan-card-${k.id}`}>
-      <div className="grid grid-cols-[auto_58px_minmax(0,1fr)] items-stretch gap-2 sm:gap-3">
-        <label className="flex items-start pt-2" title={`Pilih kegiatan ${k.name}`}>
-          <input type="checkbox" checked={selected} onChange={onSelect} aria-label={`Pilih kegiatan ${k.name}`}
-            data-testid={`${ACTIVITIES.checkboxPrefix}-${k.id}`} className="h-5 w-5 accent-[#111114]" />
-        </label>
-        <div className="flex flex-col items-center justify-center self-start rounded-xl bg-[#F4F4F1] px-1 py-2 text-center" data-testid={`${ACTIVITIES.datePrefix}-${k.id}`}>
-          <span className="text-2xl font-bold leading-none text-[#111114]">{Number(day) || "—"}</span>
-          <span className="mt-1 text-[10px] font-semibold text-[#6B7280]">Tgl</span>
-          <span className="mt-1 text-[10px] font-medium text-[#6B7280]">{k.start_time}</span>
+    <a
+      href={MAPS_URL(k)}
+      target="_blank"
+      rel="noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      data-testid={`kegiatan-lokasi-${k.id}`}
+      title="Buka lokasi di Google Maps"
+      className={`inline-flex min-w-0 items-center gap-1 rounded text-[#4B5563] underline decoration-[#D1D5DB] underline-offset-2 transition-colors hover:text-[#111114] hover:decoration-[#111114] ${className}`}
+    >
+      <MapPin size={13} className="shrink-0" />
+      <span className="truncate">{k.location || k.maps_query}</span>
+    </a>
+  );
+}
+
+function DateBlock({ k, muted = false }) {
+  const [, mm, dd] = String(k.date || "").split("-");
+  const month = MONTH_SHORT[(parseInt(mm, 10) || 1) - 1];
+  return (
+    <div
+      data-testid={`${ACTIVITIES.datePrefix}-${k.id}`}
+      className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl text-center ${
+        muted ? "bg-[#F4F4F1] text-[#6B7280]" : "bg-[#F4F4F1] text-[#111114]"
+      }`}
+    >
+      <span className="text-xl font-bold leading-none tabular-nums">{Number(dd) || "â€”"}</span>
+      <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide">{month}</span>
+    </div>
+  );
+}
+
+function KegiatanCard({ k, selected, onSelect, onOpen }) {
+  const phase = phaseOf(k);
+  const meta = PHASE_META[phase];
+  const [, , day] = String(k.date || "").split("-");
+  const summary = [k.teacher, k.material].filter(Boolean).join(" Â· ");
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); }
+      }}
+      aria-label={`Buka detail kegiatan ${k.name}`}
+      data-testid={`kegiatan-card-${k.id}`}
+      className={`group flex cursor-pointer items-center gap-3 rounded-2xl border bg-white px-3 py-3 outline-none transition-colors hover:border-[#111114] hover:bg-[#FCFCFB] focus-visible:border-[#111114] focus-visible:ring-2 focus-visible:ring-[#111114] focus-visible:ring-offset-1 sm:gap-4 sm:px-4 ${
+        selected ? "border-[#111114] bg-[#FAFAF8]" : "border-[#E8E8E4]"
+      }`}
+    >
+      <label
+        className="flex h-10 w-6 shrink-0 items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        title={`Pilih kegiatan ${k.name}`}
+      >
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onSelect}
+          aria-label={`Pilih kegiatan ${k.name}`}
+          data-testid={`${ACTIVITIES.checkboxPrefix}-${k.id}`}
+          className="h-4 w-4 accent-[#111114]"
+        />
+      </label>
+
+      <DateBlock k={k} muted={phase === "selesai"} />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-[15px] font-semibold text-[#111827]">{k.name}</span>
+          {k.auto_closed && <span className="shrink-0 text-[10px] text-[#9CA3AF]">(auto)</span>}
         </div>
-        <div className="min-w-0">
-          <button type="button" onClick={onOpen} className="w-full text-left" data-testid={`kegiatan-card-open-${k.id}`}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${PHASE_META[phaseOf(k)].cls}`}>{PHASE_META[phaseOf(k)].badge}</span>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#111114]">{AUDIENCE_LABEL[k.audience] || "Reguler"}</span>
-              <FilterBadges k={k} />
-              {k.auto_closed && <span className="text-xs text-[#9CA3AF]">(auto)</span>}
-            </div>
-            <h3 className="font-heading font-bold text-[#111827] mt-1.5 truncate">{k.name}</h3>
-            <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
-              <span className="inline-flex items-center gap-1"><Clock size={14} /> {k.start_time}–{k.end_time} WITA</span>
-              {k.location && <span className="inline-flex items-center gap-1"><MapPin size={14} /> {k.location}</span>}
-              {k.teacher && <span className="inline-flex items-center gap-1"><User size={14} /> {k.teacher}</span>}
-            </div>
-          </div>
-          <div className="text-right shrink-0">
-            <div className="text-2xl font-bold text-[#111114] leading-none">{c.ratio ?? 0}%</div>
-            <div className="text-[11px] text-[#6B7280] mt-1">Hadir</div>
-          </div>
+        <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#6B7280]">
+          <span className="inline-flex shrink-0 items-center gap-1">
+            <Clock size={12} /> {k.start_time}â€“{k.end_time}
+          </span>
+          <span className="hidden shrink-0 text-[#D1D5DB] sm:inline">Â·</span>
+          <LocationLink k={k} className="max-w-full" />
         </div>
-          </button>
-          <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
-        <button type="button" onClick={onOpen} className="text-sm font-semibold text-[#111114] inline-flex items-center gap-1.5 hover:underline">
-          Buka kegiatan ini <ChevronRight size={16} />
-        </button>
-        {onSalin && (
-          <button type="button" data-testid={`kegiatan-salin-${k.id}`} onClick={onSalin}
-            className="h-9 px-3 rounded-lg border border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] inline-flex items-center gap-1.5 hover:border-[#111114] hover:text-[#111114]">
-            <Copy size={13} /> Salin ke tanggal lain
-          </button>
-        )}
-          </div>
-        </div>
+        {summary && <div className="mt-0.5 truncate text-xs text-[#9CA3AF]">{summary}</div>}
       </div>
+
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.cls}`}>{meta.badge}</span>
+        <span className="hidden text-[11px] text-[#9CA3AF] sm:inline">{TYPE_LABEL[k.type]}</span>
+      </div>
+
+      <ChevronRight size={18} className="shrink-0 text-[#C4C4C0] transition-colors group-hover:text-[#111114]" />
     </div>
   );
 }
 
 /**
- * FASE 9 — Kartu kegiatan 1 hari BEBERAPA WAKTU/SESI (pagi/sore/malam).
+ * FASE 9 â€” Kegiatan 1 hari BEBERAPA WAKTU/SESI (pagi/sore/malam).
  *
  * Setiap sesi punya absensi, rekap, kode akses & barcode SENDIRI, sehingga
  * peserta yang hadir sesi pagi tidak otomatis terhitung hadir di sesi lain.
- * FASE 10 — tombol Rekap Kehadiran per Sesi & Salin Jadwal ke tanggal lain.
+ * Daftar hanya menampilkan ringkasan; rekap per sesi & salin jadwal ada di detail.
  */
-function SessionGroupCard({ group, selectedIds, onToggle, onOpen, onRekapGabungan, onSalin }) {
+function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
   const first = group.items[0];
   const [, , day] = String(first.date || "").split("-");
+  const times = group.items.map((k) => k.start_time).filter(Boolean);
+  const range = times.length ? `${times[0]}â€“${group.items[group.items.length - 1].end_time}` : "";
   return (
-    <div className="bg-white rounded-2xl border border-[#E8E8E4] p-3 sm:p-4" data-testid={`kegiatan-sesi-group-${first.session_group_id}`}>
-      <div className="grid grid-cols-[58px_minmax(0,1fr)] gap-3">
-      <div className="flex h-fit flex-col items-center justify-center rounded-xl bg-[#F4F4F1] px-1 py-2 text-center">
-        <span className="text-2xl font-bold leading-none text-[#111114]">{Number(day) || "—"}</span>
-        <span className="mt-1 text-[10px] font-semibold text-[#6B7280]">Tgl</span>
-      </div>
-      <div className="min-w-0">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[first.type]}1a`, color: TYPE_COLOR[first.type] }}>{TYPE_LABEL[first.type]}</span>
-        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] inline-flex items-center gap-1">
-          <Layers size={12} /> {group.items.length} Waktu / Sesi
-        </span>
-        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#111114]">{AUDIENCE_LABEL[first.audience] || "Reguler"}</span>
-        <FilterBadges k={first} />
-      </div>
-      <h3 className="font-heading font-bold text-[#111827] mt-1.5">{first.base_name || first.name}</h3>
-      <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
-        {first.location && <span className="inline-flex items-center gap-1"><MapPin size={14} /> {first.location}</span>}
-        {first.teacher && <span className="inline-flex items-center gap-1"><User size={14} /> {first.teacher}</span>}
-      </div>
-      </div>
+    <div
+      className="rounded-2xl border border-[#E8E8E4] bg-white p-3 sm:p-4"
+      data-testid={`kegiatan-sesi-group-${first.session_group_id}`}
+    >
+      <div className="flex items-center gap-3 sm:gap-4">
+        <DateBlock k={first} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-[15px] font-semibold text-[#111827]">{first.base_name || first.name}</span>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-semibold text-[#92400E]">
+              <Layers size={11} /> {group.items.length} sesi
+            </span>
+          </div>
+          <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#6B7280]">
+            {range && (
+              <span className="inline-flex shrink-0 items-center gap-1">
+                <Clock size={12} /> {range}
+              </span>
+            )}
+            <span className="hidden shrink-0 text-[#D1D5DB] sm:inline">Â·</span>
+            <LocationLink k={first} className="max-w-full" />
+          </div>
+        </div>
+        <span className="hidden shrink-0 text-[11px] text-[#9CA3AF] sm:inline">{TYPE_LABEL[first.type]}</span>
       </div>
 
-      <div className="mt-3 grid gap-2">
+      <ul className="mt-2.5 divide-y divide-[#F1F1EE] border-t border-[#F1F1EE]">
         {group.items.map((k) => {
-          const c = k.counts || {};
           const meta = PHASE_META[phaseOf(k)];
           return (
-            <div key={k.id} className="grid grid-cols-[auto_minmax(0,1fr)_52px_auto] items-center gap-2 rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] px-2.5 py-2.5" data-testid={`kegiatan-card-${k.id}`}>
-              <label title={`Pilih sesi ${k.session_label || ""}`} className="flex items-center">
-                <input type="checkbox" checked={selectedIds.has(k.id)} onChange={() => onToggle(k.id)}
-                  aria-label={`Pilih sesi ${k.session_label || ""}`} data-testid={`${ACTIVITIES.checkboxPrefix}-${k.id}`}
-                  className="h-5 w-5 accent-[#111114]" />
-              </label>
-              <button type="button" onClick={() => onOpen(k.id)} data-testid={`kegiatan-card-open-${k.id}`} className="min-w-0 text-left">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-bold text-[#111114]">{k.session_label || "Sesi"}</span>
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${meta.cls}`}>{meta.badge}</span>
-                  </div>
-                  <div className="text-xs text-[#6B7280] mt-0.5 inline-flex items-center gap-1">
-                    <Clock size={12} /> {k.start_time}–{k.end_time} WITA
-                  </div>
-                  {(k.teacher || k.material || k.location) && (
-                    <div className="text-[11px] text-[#9CA3AF] mt-0.5 hidden sm:flex flex-wrap gap-x-2.5">
-                      {k.teacher && <span className="inline-flex items-center gap-1"><User size={11} /> {k.teacher}</span>}
-                      {k.location && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {k.location}</span>}
-                      {k.material && <span className="truncate max-w-[160px]">{k.material}</span>}
-                    </div>
-                  )}
-              </button>
-              <div className="text-right">
-                <div className="text-lg font-bold leading-none text-[#111114]">{c.ratio ?? 0}%</div>
-                <div className="mt-1 text-[10px] text-[#6B7280]">{c.hadir ?? 0} hadir</div>
+            <li key={k.id}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => onOpen(k.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(k.id); }
+                }}
+                aria-label={`Buka detail sesi ${k.session_label || ""} ${first.base_name || first.name}`}
+                data-testid={`kegiatan-card-${k.id}`}
+                className="group flex cursor-pointer items-center gap-3 rounded-lg px-1 py-2 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#111114]"
+              >
+                <label
+                  className="flex h-8 w-6 shrink-0 items-center justify-center"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  title={`Pilih sesi ${k.session_label || ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(k.id)}
+                    onChange={() => onToggle(k.id)}
+                    aria-label={`Pilih sesi ${k.session_label || ""}`}
+                    data-testid={`${ACTIVITIES.checkboxPrefix}-${k.id}`}
+                    className="h-4 w-4 accent-[#111114]"
+                  />
+                </label>
+                <span className="w-14 shrink-0 text-sm font-semibold text-[#111114]">{k.session_label || "Sesi"}</span>
+                <span className="min-w-0 flex-1 truncate text-xs text-[#6B7280]">
+                  {k.start_time}â€“{k.end_time}
+                  {k.teacher ? ` Â· ${k.teacher}` : ""}
+                </span>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.cls}`}>{meta.badge}</span>
+                <ChevronRight size={16} className="shrink-0 text-[#C4C4C0] transition-colors group-hover:text-[#111114]" />
               </div>
-              <ChevronRight size={16} className="text-[#111114]" />
-            </div>
+            </li>
           );
         })}
-      </div>
-      {/* FASE 10 — aksi grup sesi */}
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <button type="button" data-testid={`sesi-rekap-gabungan-${first.session_group_id}`} onClick={onRekapGabungan}
-          className="h-11 rounded-xl bg-[#111114] text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#000000]">
-          <FileBarChart2 size={15} /> Rekap Kehadiran per Sesi
-        </button>
-        <button type="button" data-testid={`sesi-salin-jadwal-${first.session_group_id}`} onClick={onSalin}
-          className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#F1F1EE]">
-          <Copy size={15} /> Salin ke Tanggal Lain
-        </button>
-      </div>
+      </ul>
     </div>
   );
 }
@@ -674,7 +717,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
             <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{c.alpha}</div><div className="text-xs text-[#6B7280]">Alpha</div></div>
           </div>
 
-          {/* Absen manual — bisa dibuka/tutup */}
+          {/* Absen manual â€” bisa dibuka/tutup */}
           <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="absen-manual-section">
             <button
               data-testid="absen-manual-toggle"
@@ -707,7 +750,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
                       <div className="min-w-0">
                         <div className="font-semibold text-[#111827] text-sm truncate">{r.name}</div>
                         <div className="text-xs text-[#9CA3AF] flex items-center gap-1.5">
-                          {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—"}
+                          {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "â€”"}
                           {r.account_status === "pending" && (
                             <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#92400E]">
                               <AlertTriangle size={11} /> Belum aktivasi
@@ -716,7 +759,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
                         </div>
                       </div>
                       <div className="w-14 text-center font-mono text-[13px] tabular-nums text-[#4B5563]">
-                        {r.status === "hadir" && r.arrival_time ? hhmm(r.arrival_time) : "—"}
+                        {r.status === "hadir" && r.arrival_time ? hhmm(r.arrival_time) : "â€”"}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         {["hadir", "izin", "sakit", "alpha"].map((s) => {
@@ -785,7 +828,7 @@ function FeedbackModal({ kegiatan, onClose }) {
 }
 
 /**
- * FASE 7 — Bagikan Kegiatan + Kode Akses Absensi (6 digit).
+ * FASE 7 â€” Bagikan Kegiatan + Kode Akses Absensi (6 digit).
  *
  * Pemegang tautan memasukkan kode akses lalu langsung melihat daftar peserta
  * (aktif maupun belum aktivasi) untuk diabsen manual / scan barcode.
@@ -829,7 +872,7 @@ function ShareAbsensiModal({ data, onClose }) {
           <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#111114]" data-testid="akses-code">{info.code}</div>
           <div className="text-xs text-[#4B5563] mt-1">
             Berlaku sampai kegiatan <b>ditutup/selesai</b>
-            {info.valid_until ? <> · jadwal selesai {tanggalSingkat(String(info.valid_until).slice(0, 10))} {String(info.valid_until).slice(11, 16)} WITA</> : null}
+            {info.valid_until ? <> Â· jadwal selesai {tanggalSingkat(String(info.valid_until).slice(0, 10))} {String(info.valid_until).slice(11, 16)} WITA</> : null}
           </div>
           <div className="flex gap-2 mt-3">
             <button onClick={copyCode} data-testid="akses-copy-code" className="flex-1 h-10 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={15} /> Salin Kode</button>
