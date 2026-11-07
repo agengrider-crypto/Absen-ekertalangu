@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, User as UserIcon, RefreshCw, LogOut, AlertCircle, Sparkles } from "lucide-react";
+import { ChevronDown, User as UserIcon, RefreshCw, LogOut, AlertCircle, Sparkles, Info } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import ProfileModal from "@/components/ProfileModal";
 import ActionModal from "@/components/ActionModal";
 import RoleSwitcher from "@/components/RoleSwitcher";
-import UpdateModal, { hasUnreadUpdate } from "@/components/UpdateModal";
+import UpdateModal, { hasUnreadUpdate, markUpdatesRead } from "@/components/UpdateModal";
+import AboutApp, { hasUnseenTour } from "@/components/AboutApp";
+import GuidedTour from "@/components/GuidedTour";
 import { rolesLabel } from "@/lib/roles";
 
 /**
@@ -21,12 +23,22 @@ export default function ProfileMenu({ subtitle }) {
   const [showProfile, setShowProfile] = useState(false);
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [showUpdates, setShowUpdates] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const [unreadUpdate, setUnreadUpdate] = useState(() => hasUnreadUpdate());
   const [photo, setPhoto] = useState(null);
 
   const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const multiRole = (user?.roles || []).length > 1;
   const incomplete = (user?.missing_fields || []).length > 0;
+  const isStaff = (user?.roles || []).some((r) => r === "admin" || r === "pengurus");
+
+  // Guided tour muncul sekali setiap ada versi/fitur baru (khusus admin & pengurus).
+  useEffect(() => {
+    if (!isStaff || !hasUnseenTour()) return;
+    const t = setTimeout(() => setTourOpen(true), 900);
+    return () => clearTimeout(t);
+  }, [isStaff]);
 
   useEffect(() => {
     let active = true;
@@ -92,6 +104,15 @@ export default function ProfileMenu({ subtitle }) {
               onClick: () => setShowUpdates(true),
             },
             {
+              key: "tentang",
+              testid: "menu-about",
+              label: "Tentang Aplikasi",
+              desc: isStaff && hasUnseenTour() ? "Versi, pengembang & panduan baru tersedia" : "Versi, pengembang, dan riwayat update",
+              icon: Info,
+              badge: isStaff && hasUnseenTour(),
+              onClick: () => setShowAbout(true),
+            },
+            {
               key: "keluar",
               testid: "menu-logout",
               label: "Keluar",
@@ -127,6 +148,20 @@ export default function ProfileMenu({ subtitle }) {
             setUnreadUpdate(false);
             if (key) navigate(`/area/admin?tab=${key}`);
           }}
+        />
+      )}
+
+      {showAbout && (
+        <AboutApp
+          onClose={() => setShowAbout(false)}
+          onStartTour={() => { setShowAbout(false); setTourOpen(true); }}
+        />
+      )}
+
+      {tourOpen && (
+        <GuidedTour
+          onClose={() => setTourOpen(false)}
+          onFinish={() => { markUpdatesRead(); setUnreadUpdate(false); }}
         />
       )}
     </>

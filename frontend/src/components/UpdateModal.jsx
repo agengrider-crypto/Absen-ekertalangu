@@ -9,6 +9,17 @@ const STORAGE_KEY = "ekertalangu.updateSeen";
 // Daftar update terbaru. Tambahkan entri baru di paling atas setiap rilis.
 export const UPDATES = [
   {
+    id: "2026-11-08-tentang",
+    date: "2026-11-08",
+    title: "Tentang Aplikasi & Tour Panduan",
+    items: [
+      "Menu Tentang Aplikasi di Profil: versi, build, pengembang, dan hak cipta.",
+      "Admin & Pengurus mendapat Riwayat Update di halaman Tentang Aplikasi.",
+      "Tour panduan menandai bagian yang baru diperbarui, bisa diulang kapan saja.",
+    ],
+    action: { label: "Coba Sekarang", nav: "peserta" },
+  },
+  {
     id: "2026-11-08-user-redesign",
     date: "2026-11-08",
     title: "Halaman User lebih rapi",
