@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  QrCode, Maximize2, X, Copy, Printer, Search, Loader2, UserCheck,
+  QrCode, Maximize2, X, Printer, Search, Loader2, UserCheck,
   UserPlus, CheckCircle2, AlertTriangle, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -140,16 +140,6 @@ export default function ActivationQrModal({ onClose }) {
     }, 350);
     return () => clearTimeout(t);
   }, [query]);
-
-  const copyLink = async () => {
-    if (!qr?.url) return;
-    try {
-      await navigator.clipboard.writeText(qr.url);
-      toast.success("Tautan aktivasi disalin.");
-    } catch {
-      toast.info("Salin manual: " + qr.url);
-    }
-  };
 
   const printQr = () => {
     if (!qr?.image) return;
@@ -293,16 +283,7 @@ export default function ActivationQrModal({ onClose }) {
                 <p className="text-center text-xs text-[#6B7280]">
                   Ketuk QR untuk memperbesar. Jamaah memindai lalu mencari namanya.
                 </p>
-                <div className="grid w-full grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    data-testid={ACTIVATION_QR.copyLink}
-                    onClick={copyLink}
-                    disabled={!qr?.url}
-                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl border-2 border-[#E8E8E4] text-sm font-semibold text-[#4B5563] hover:border-[#111114] disabled:opacity-50"
-                  >
-                    <Copy size={15} /> Salin Tautan
-                  </button>
+                <div className="grid w-full grid-cols-1 gap-2">
                   <button
                     type="button"
                     data-testid={ACTIVATION_QR.print}

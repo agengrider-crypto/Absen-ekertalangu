@@ -10,6 +10,7 @@ import { api, API, formatApiErrorDetail } from "@/lib/api";
 import { PARTICIPANTS } from "@/constants/testIds";
 import { DateField } from "@/components/DateField";
 import ActionModal from "@/components/ActionModal";
+import ListFab from "@/components/ListFab";
 import PesertaDetailModal from "./PesertaDetailModal";
 import { genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
 
@@ -86,6 +87,8 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
   const [detailTab, setDetailTab] = useState("profil");
   const [actionsFor, setActionsFor] = useState(null);
   const [modal, setModal] = useState(null); // "add" | "bulk" | null
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const openDetail = (id, tab = "profil") => {
     setDetailTab(tab);
@@ -148,6 +151,12 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
       (u.phone || "").toLowerCase().includes(t) ||
       (u.birthplace || "").toLowerCase().includes(t));
   }, [users, q, statusFilter, roleFilter]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [q, statusFilter, roleFilter]);
 
   const selectedParticipants = (users || []).filter((u) =>
     selected.has(u.id) && u.roles?.includes("peserta"));
@@ -382,7 +391,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
             </div>
 
             <ul className="divide-y divide-[#F1F1EE]">
-              {filtered.map((u) => {
+              {paged.map((u) => {
                 const b = statusBadge(u.status, u.needs_completion);
                 const miss = dataMissing(u);
                 const isSelected = selected.has(u.id);
@@ -466,6 +475,29 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
           </>
         )}
       </div>
+
+      <ListFab
+        search={q}
+        onSearch={setQ}
+        searchPlaceholder="Cari nama, nama pengguna, No HP…"
+        filters={[
+          { key: "all", label: "Semua", count: counts.all },
+          { key: "pending", label: "Belum Aktivasi", count: counts.pending },
+          { key: "active", label: "Sudah Aktif", count: counts.active },
+          { key: "incomplete", label: "Data Belum Lengkap", count: counts.incomplete },
+        ]}
+        filterValue={statusFilter}
+        onFilter={setStatusFilter}
+        filterLabel="Filter status"
+        onAdd={() => setModal("add")}
+        addLabel="Tambah Peserta"
+        page={safePage}
+        pageCount={pageCount}
+        onPrev={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => Math.min(pageCount, p + 1))}
+        total={filtered.length}
+        pageSize={PAGE_SIZE}
+      />
 
       {detailId && (
         <PesertaDetailModal

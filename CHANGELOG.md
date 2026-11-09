@@ -4,6 +4,15 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 9 November 2026 (FAB)
+
+- **Floating Action Button (FAB)** melayang di tengah bawah pada daftar **User** dan **Kegiatan**.
+  Satu tombol membuka panel berisi pencarian, filter status (chip), dan tombol tambah data.
+- Navigasi **halaman sebelumnya/berikutnya** ada di FAB, menampilkan rentang data
+  (mis. `1–12 / 15`). Daftar User dibagi 20 per halaman, Kegiatan 12 per halaman.
+- Pencarian & filter di FAB tersinkron dua arah dengan kontrol yang sudah ada di halaman.
+- Tombol **Salin Tautan** pada QR Aktivasi dihapus karena QR sudah memuat tautannya.
+
 ## Pembaruan 9 November 2026 (lanjutan)
 
 - **QR Aktivasi Akun** kini tersedia di Dashboard: kartu ringkas dengan QR, tombol **Buka**,

@@ -5,7 +5,7 @@
 export const APP_INFO = {
   name: "E-KERTALANGU",
   tagline: "Absensi Pengajian",
-  version: "1.6.0",
+  version: "1.7.0",
   build: "2026.11.09",
   releaseYear: 2026,
   developer: "BrodyCorp",
@@ -18,6 +18,18 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    id: "2026-11-09-fab",
+    date: "2026-11-09",
+    title: "Tombol Melayang di User & Kegiatan",
+    items: [
+      "Floating Action Button (FAB) melayang di tengah bawah pada daftar User dan Kegiatan.",
+      "Satu tombol membuka pencarian, filter status, dan tombol tambah data.",
+      "Navigasi halaman sebelumnya/berikutnya langsung dari FAB, lengkap dengan jumlah data.",
+      "Daftar User dan Kegiatan kini dibagi per halaman agar lebih ringan di ponsel.",
+      "Tombol Salin Tautan pada QR Aktivasi dihapus karena QR sudah memuat tautannya.",
+    ],
+  },
   {
     id: "2026-11-09-aktivasi",
     date: "2026-11-09",

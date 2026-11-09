@@ -23,6 +23,7 @@ import KegiatanBantuanModal from "./KegiatanBantuanModal";
 import { ReminderModal, DelegasiModal, ScanPesertaModal } from "./KegiatanExtras";
 import { RekapGabunganModal, SalinJadwalModal } from "./SesiExtras";
 import ActionModal from "@/components/ActionModal";
+import ListFab from "@/components/ListFab";
 import { Send as SendIcon, ShieldCheck as ShieldIcon, ScanLine as ScanIcon } from "lucide-react";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
@@ -48,6 +49,8 @@ export default function KegiatanView({
   const [typeFilter, setTypeFilter] = useState("all");
   const [phaseFilter, setPhaseFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingSelected, setDeletingSelected] = useState(false);
@@ -115,13 +118,19 @@ export default function KegiatanView({
     });
   }, [items, dayFilter, month, typeFilter, phaseFilter, search]);
 
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [search, typeFilter, phaseFilter, month, dayFilter]);
+
   const daysWithEvent = useMemo(() => {
     const s = {};
     (items || []).forEach((k) => { s[k.date] = (s[k.date] || 0) + 1; });
     return s;
   }, [items]);
 
-  const groups = useMemo(() => groupKegiatan(filtered), [filtered]);
+  const groups = useMemo(() => groupKegiatan(paged), [paged]);
   const selectedTargets = filtered.filter((k) => selectedIds.has(k.id));
   const selectedVisibleCount = selectedTargets.length;
 
@@ -359,6 +368,29 @@ export default function KegiatanView({
           )}
         </>
       )}
+
+      <ListFab
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Cari nama, pengajar, atau lokasi…"
+        filters={[
+          { key: "all", label: "Semua", count: (items || []).filter((k) => String(k.date || "").startsWith(month)).length },
+          { key: "today", label: "Hari ini", count: (items || []).filter((k) => k.date === todayYmd() && phaseOf(k) !== "selesai").length },
+          { key: "upcoming", label: "Akan datang", count: (items || []).filter((k) => phaseOf(k) === "akan_datang").length },
+          { key: "completed", label: "Selesai", count: (items || []).filter((k) => phaseOf(k) === "selesai").length },
+        ]}
+        filterValue={phaseFilter}
+        onFilter={setPhaseFilter}
+        filterLabel="Filter status"
+        onAdd={() => setShowAdd(true)}
+        addLabel="Tambah Kegiatan"
+        page={safePage}
+        pageCount={pageCount}
+        onPrev={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => Math.min(pageCount, p + 1))}
+        total={filtered.length}
+        pageSize={PAGE_SIZE}
+      />
 
       {showAdd && <KegiatanFormModal suggestions={Array.isArray(items) ? items : []}
         onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}

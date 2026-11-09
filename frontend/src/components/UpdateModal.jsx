@@ -11,6 +11,7 @@ const STORAGE_KEY = "ekertalangu.updateSeen";
 // Tujuan tombol "Coba Sekarang" per entri changelog.
 // `nav` = key tab di AdminLayout (dibuka lewat /area/admin?tab=<nav>).
 const ACTION_BY_ID = {
+  "2026-11-09-fab": { label: "Buka Halaman User", nav: "peserta" },
   "2026-11-09-aktivasi": { label: "Buka QR Aktivasi", nav: "dashboard" },
   "2026-11-09-tentang": { label: "Buka Dashboard", nav: "dashboard" },
   "2026-11-08-user": { label: "Buka Halaman User", nav: "peserta" },
