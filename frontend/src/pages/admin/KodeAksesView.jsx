@@ -1,7 +1,7 @@
 // FASE 15 — Halaman "Kode Akses": tiap kegiatan otomatis punya kode 6 digit + tautan/QR absensi.
 import { useCallback, useEffect, useState } from "react";
 import {
-  KeyRound, Loader2, RefreshCw, ChevronLeft, ChevronRight, Send,
+  KeyRound, Loader2, RefreshCw, ChevronLeft, ChevronRight, Send, LockKeyhole,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -46,10 +46,11 @@ export default function KodeAksesView({ onLeave }) {
   };
 
   const tutupAbsen = async (row) => {
+    if (!window.confirm(`Tutup absensi "${row.base_name}"? Peserta wajib yang belum memiliki status akan otomatis ditandai Alpha.`)) return;
     setBusyId(row.id);
     try {
       const { data: res } = await api.post(`/admin/kegiatan/${row.id}/tutup-absen`);
-      toast.success(res.message || "Absen ditutup.");
+      toast.success(res.message || "Absen ditutup. Peserta yang belum diabsen otomatis tercatat Alpha.");
       load();
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
     setBusyId(null);
@@ -138,6 +139,17 @@ export default function KodeAksesView({ onLeave }) {
                   className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#FCD34D] text-[#92400E] font-semibold text-sm hover:bg-[#FFFBEB] disabled:opacity-60">
                   {busyId === r.id ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />} Perbarui Kode
                 </button>
+                {r.status === "open" && (
+                  <button
+                    data-testid={`${ACTIVITIES.accessClosePrefix}-${r.id}`}
+                    onClick={() => tutupAbsen(r)}
+                    disabled={busyId === r.id}
+                    className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#FCA5A5] text-[#991B1B] font-semibold text-sm hover:bg-[#FEF2F2] disabled:opacity-60"
+                  >
+                    {busyId === r.id ? <Loader2 className="animate-spin" size={15} /> : <LockKeyhole size={15} />}
+                    Tutup Absen &amp; Tandai Alpha
+                  </button>
+                )}
               </div>
             </div>
           ))}

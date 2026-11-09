@@ -121,6 +121,7 @@ curl -b ck.txt https://<domain>/api/auth/me
 | DELETE | `/api/admin/kegiatan/{kegiatan_id}` | `require_staff` | Hapus |
 | POST | `/api/admin/kegiatan/{kegiatan_id}/close` | `require_staff` | Tutup manual, tandai peserta wajib yang belum diabsen sebagai Alpha, lalu cabut delegasi |
 | POST | `/api/admin/kegiatan/{kegiatan_id}/reopen` | `require_staff` | Buka kembali |
+| POST | `/api/admin/kegiatan/{kegiatan_id}/hadir-semua` | `require_staff` | Catat semua peserta wajib yang belum Hadir sebagai Hadir; status Izin/Sakit/Alpha yang ada diganti. Peserta yang sudah hadir di sesi lain dilewati |
 
 `KegiatanInput`:
 
@@ -280,6 +281,7 @@ Delegasi **otomatis dicabut** saat kegiatan ditutup (manual maupun otomatis).
 | POST | `/api/me/photo` | login | `{photo}` — harus diawali `data:image/` (400 bila tidak) |
 | GET | `/api/me/absen/{token}` | login | **Absen mandiri terfokus** — hanya data diri sendiri (`kegiatan` + `me`). **401** tanpa login |
 | POST | `/api/me/absen/{token}/mark` | login | Tandai **diri sendiri** hadir. **403** kegiatan ditutup / bukan peserta / profil belum lengkap. Balas `already: true` bila sudah tercatat |
+| POST | `/api/me/absen/{token}/tidak-hadir` | login | Tandai diri sendiri `izin` dengan `{alasan, keterangan?}`; alasan wajib (maks. 300 karakter), keterangan opsional (maks. 500 karakter). **409** bila sudah tercatat Hadir |
 
 ---
 

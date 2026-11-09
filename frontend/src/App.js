@@ -19,6 +19,7 @@ import PublicAbsensi from "@/pages/PublicAbsensi";
 import PublicHadir from "@/pages/PublicHadir";
 import KodeAbsen from "@/pages/KodeAbsen";
 import CompleteProfile from "@/pages/CompleteProfile";
+import ReleaseNotice from "@/components/ReleaseNotes";
 
 function CheckingSession() {
   return (
@@ -99,6 +100,7 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <AppRoutes />
+          <ReleaseNotice />
         </BrowserRouter>
         <Toaster position="top-center" richColors />
       </AuthProvider>

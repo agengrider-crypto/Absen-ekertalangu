@@ -4,6 +4,16 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 6 November 2026
+
+- Merapikan tombol Hadir/Izin/Sakit/Alpha agar rata kanan dengan area tekan lebih besar.
+- Menambahkan pop-up catatan rilis bertanggal yang tampil sekali per akun dan dapat dibuka kembali dari Profil Saya; tombol Coba Sekarang mengarah ke area fitur terkait.
+- Menambahkan tombol Tutup Absen pada Kode Akses; peserta wajib yang belum memiliki status otomatis ditandai Alpha.
+- Menambahkan pengaturan sembunyikan/tampilkan peserta pada Rekap Bulanan selama tiga bulan di perangkat, tanpa mengubah hitungan atau tautan publik.
+- Menambahkan tindakan Hadirkan Semua untuk peserta wajib yang belum tercatat Hadir; status sebelumnya dikonfirmasi akan diganti.
+- Mengubah pilihan jenis kegiatan menjadi tombol mendatar yang menyesuaikan ukuran layar.
+- Menambahkan laporan Tidak Bisa Hadir dengan alasan wajib dan keterangan opsional; status disimpan sebagai Izin dan keterangannya terlihat oleh pengurus.
+
 ## Pembaruan 5 November 2026
 
 - Dashboard kini menampilkan jumlah peserta belum pernah hadir, jarang hadir, dan cukup

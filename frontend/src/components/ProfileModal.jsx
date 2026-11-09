@@ -9,6 +9,8 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { resizeImageFile } from "@/lib/image";
 import { useAuth } from "@/context/AuthContext";
 import { formatTanggal, MARITAL_OPTIONS, maritalLabel } from "@/pages/admin/adminUtils";
+import { RELEASE_NOTES } from "@/constants/testIds";
+import { ReleaseNotesModal } from "@/components/ReleaseNotes";
 
 const ROLE_LABEL = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta" };
 const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white";
@@ -46,6 +48,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
   const [preview, setPreview] = useState(photo || null);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(startEditing);
+  const [showReleaseNotes, setShowReleaseNotes] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef(null);
 
@@ -278,6 +281,15 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                 <Row icon={Shield} label="Status Akun" value={user?.status === "active" ? "Aktif" : user?.status === "pending" ? "Belum aktivasi" : "Nonaktif"} />
               </div>
               <button
+                type="button"
+                data-testid={RELEASE_NOTES.profileOpen}
+                onClick={() => setShowReleaseNotes(true)}
+                className="w-full rounded-2xl border-2 border-[#D5D5CE] bg-white p-4 text-left hover:border-[#0D5C3A]"
+              >
+                <span className="block font-bold text-[#111827]">Pembaruan Terbaru</span>
+                <span className="mt-1 block text-sm text-[#6B7280]">Lihat fitur dan perbaikan terbaru aplikasi.</span>
+              </button>
+              <button
                 data-testid="profile-edit-open"
                 onClick={() => {
                   setF({
@@ -296,6 +308,9 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
           )}
         </div>
       </div>
+      {showReleaseNotes && (
+        <ReleaseNotesModal user={user} onClose={() => setShowReleaseNotes(false)} />
+      )}
     </div>
     ),
     document.body,

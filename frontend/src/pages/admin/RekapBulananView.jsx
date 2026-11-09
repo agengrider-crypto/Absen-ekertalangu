@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarRange, Loader2, Search, Users, TrendingUp, TrendingDown, Link2, Send,
-  ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Layers, ChevronDown,
+  ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Layers, ChevronDown, Eye, EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { SkeletonList } from "@/components/GlobalLoading";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MONTHLY_RECAP } from "@/constants/testIds";
+import { useAuth } from "@/context/AuthContext";
 import { REKAP, PersenRingkas, ratioColor } from "./rekapUtils";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
   "Agustus", "September", "Oktober", "November", "Desember"];
+const HIDDEN_PARTICIPANTS_KEY = "rekap-bulanan-peserta-tersembunyi";
 
 function thisMonth() {
   const n = new Date();
@@ -22,6 +24,27 @@ function shiftMonth(m, delta) {
   const [y, mm] = m.split("-").map(Number);
   const d = new Date(y, mm - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function hiddenStorageKey(userId) {
+  return `${HIDDEN_PARTICIPANTS_KEY}:${userId || "pengguna"}`;
+}
+
+function readHiddenParticipants(userId) {
+  const saved = JSON.parse(localStorage.getItem(hiddenStorageKey(userId)) || "{}");
+  const now = Date.now();
+  return Object.fromEntries(
+    Object.entries(saved).filter(([, expiresAt]) => Number(expiresAt) > now),
+  );
+}
+
+function threeMonthsFromNow() {
+  const date = new Date();
+  const day = date.getDate();
+  date.setDate(1);
+  date.setMonth(date.getMonth() + 3);
+  date.setDate(Math.min(day, new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()));
+  return date.getTime();
 }
 
 function badgeOf(r) {
@@ -44,6 +67,7 @@ function statusStyle(status) {
 }
 
 export default function RekapBulananView({ initialFilter = "semua" }) {
+  const { user } = useAuth();
   const [month, setMonth] = useState(thisMonth());
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -52,7 +76,20 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
   const [gender, setGender] = useState("semua"); // semua | L | P
   const [share, setShare] = useState(null);
   const [sharing, setSharing] = useState(false);
-  const [hideInactive, setHideInactive] = useState(false);
+  const [hiddenParticipants, setHiddenParticipants] = useState({});
+  const [showHiddenParticipants, setShowHiddenParticipants] = useState(false);
+
+  useEffect(() => {
+    setHiddenParticipants(readHiddenParticipants(user?.id));
+  }, [user?.id]);
+
+  const updateHiddenParticipants = (userId, hide) => {
+    const updated = { ...hiddenParticipants };
+    if (hide) updated[userId] = threeMonthsFromNow();
+    else delete updated[userId];
+    localStorage.setItem(hiddenStorageKey(user?.id), JSON.stringify(updated));
+    setHiddenParticipants(updated);
+  };
 
   const load = (m) => {
     setLoading(true);
@@ -64,9 +101,8 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
 
   useEffect(() => { load(month); setShare(null); }, [month]);
 
-  const rows = useMemo(() => {
+  const filteredRows = useMemo(() => {
     let list = data?.rows || [];
-    if (hideInactive) list = list.filter((r) => r.pertemuan > 0 && r.hadir > 0);
     if (gender !== "semua") list = list.filter((r) => r.gender === gender);
     const s = q.trim().toLowerCase();
     if (s) list = list.filter((r) => (r.name || "").toLowerCase().includes(s));
@@ -75,7 +111,9 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
     if (filter === "rajin") list = list.filter((r) => r.ratio >= 80 && r.pertemuan > 0);
     if (filter === "belum") list = list.filter((r) => r.pertemuan > 0 && r.hadir === 0);
     return list;
-  }, [data, q, filter, gender, hideInactive]);
+  }, [data, q, filter, gender]);
+  const rows = filteredRows.filter((r) => !hiddenParticipants[r.user_id]);
+  const hiddenRows = (data?.rows || []).filter((r) => hiddenParticipants[r.user_id]);
 
   const getLink = async () => {
     if (share) return share;
@@ -255,6 +293,39 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                 Sembunyikan tidak aktif
               </button>
             </div>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[#FAFAF8] px-3 py-2.5">
+              <p className="text-xs text-[#6B7280]">
+                Peserta tersembunyi hanya tidak ditampilkan di daftar ini selama 3 bulan; hitungan dan tautan publik tidak berubah.
+              </p>
+              <button
+                type="button"
+                data-testid={MONTHLY_RECAP.hiddenParticipantsToggle}
+                aria-expanded={showHiddenParticipants}
+                onClick={() => setShowHiddenParticipants((show) => !show)}
+                className="min-h-11 shrink-0 rounded-xl border-2 border-[#0F766E] px-3 text-sm font-semibold text-[#0F766E] inline-flex items-center gap-2"
+              >
+                {showHiddenParticipants ? <Eye size={16} /> : <EyeOff size={16} />}
+                {showHiddenParticipants ? "Tutup daftar tersembunyi" : `Peserta tersembunyi (${hiddenRows.length})`}
+              </button>
+            </div>
+            {showHiddenParticipants && hiddenRows.length > 0 && (
+              <div className="mb-3 rounded-xl border border-[#E8E8E4] p-3" data-testid={MONTHLY_RECAP.hiddenParticipantsList}>
+                <div className="mb-2 text-sm font-semibold text-[#111827]">Tampilkan kembali peserta</div>
+                <div className="flex flex-wrap gap-2">
+                  {hiddenRows.map((person) => (
+                    <button
+                      key={person.user_id}
+                      type="button"
+                      data-testid={`${MONTHLY_RECAP.showParticipantPrefix}-${person.user_id}`}
+                      onClick={() => updateHiddenParticipants(person.user_id, false)}
+                      className="min-h-11 rounded-xl border border-[#E8E8E4] px-3 text-sm font-semibold text-[#0F766E] hover:bg-[#F0FDFA]"
+                    >
+                      <Eye size={15} className="mr-1 inline" />{person.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full text-sm" data-testid="rekap-bulanan-table">
@@ -266,11 +337,12 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Izin</th>
                     <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Alpha</th>
                     <th className="px-3 py-2 font-semibold whitespace-nowrap">Terakhir hadir</th>
+                    <th className="px-3 py-2 font-semibold text-right">Tampilan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#ECECE8]">
                   {rows.length === 0 ? (
-                    <tr><td colSpan={6} className="p-10 text-center text-[#6B7280]">Tidak ada data peserta.</td></tr>
+                    <tr><td colSpan={7} className="p-10 text-center text-[#6B7280]">Tidak ada data peserta.</td></tr>
                   ) : rows.map((r) => {
                     const b = badgeOf(r);
                     return (
@@ -294,6 +366,16 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                         <td className="px-3 py-2.5 text-center tabular-nums text-[#D97706] font-semibold">{r.izin}</td>
                         <td className="px-3 py-2.5 text-center tabular-nums text-[#DC2626] font-semibold">{r.alpha}</td>
                         <td className="px-3 py-2.5 text-[#6B7280] whitespace-nowrap">{r.last_date || "—"}</td>
+                        <td className="px-3 py-2.5 text-right">
+                          <button
+                            type="button"
+                            data-testid={`${MONTHLY_RECAP.hideParticipantPrefix}-${r.user_id}`}
+                            onClick={() => updateHiddenParticipants(r.user_id, true)}
+                            className="min-h-11 rounded-lg px-2 text-xs font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+                          >
+                            <EyeOff size={15} className="mr-1 inline" />Sembunyikan
+                          </button>
+                        </td>
                       </tr>
                     );
                   })}
@@ -333,7 +415,9 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                       <div className="mt-1 divide-y divide-[#EEF1EE] rounded-lg bg-[#FAFAF8] px-3" data-testid={`${MONTHLY_RECAP.meetingParticipantsPrefix}-${i}`}>
                         {(p.peserta_rows || []).length === 0 ? (
                           <div className="py-3 text-sm text-[#6B7280]">Belum ada peserta yang wajib diabsen.</div>
-                        ) : (p.peserta_rows || []).map((person, j) => {
+                        ) : (p.peserta_rows || []).filter((person) => !hiddenParticipants[person.user_id]).length === 0 ? (
+                          <div className="py-3 text-sm text-[#6B7280]">Semua nama peserta pada daftar ini sedang disembunyikan.</div>
+                        ) : (p.peserta_rows || []).filter((person) => !hiddenParticipants[person.user_id]).map((person, j) => {
                           const status = statusStyle(person.status);
                           return (
                             <div key={`${person.name}-${j}`} className={`flex min-h-10 items-center justify-between gap-3 text-sm ${status.name}`}>
@@ -342,6 +426,15 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                                 {person.session_labels?.length > 0 && ` (${person.session_labels.join(", ")})`}
                               </span>
                               <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${status.badge}`}>{status.label}</span>
+                              <button
+                                type="button"
+                                data-testid={`${MONTHLY_RECAP.hideMeetingParticipantPrefix}-${person.user_id}`}
+                                onClick={() => updateHiddenParticipants(person.user_id, true)}
+                                aria-label={`Sembunyikan ${person.name}`}
+                                className="min-h-10 shrink-0 px-2 text-[#6B7280] hover:text-[#991B1B]"
+                              >
+                                <EyeOff size={15} />
+                              </button>
                             </div>
                           );
                         })}

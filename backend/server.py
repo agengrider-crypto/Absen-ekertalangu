@@ -29,6 +29,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from fastapi.responses import StreamingResponse, Response as FastResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
+from pymongo import UpdateOne
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -365,6 +366,11 @@ class FeedbackInput(BaseModel):
 
 class SelfAbsenInput(BaseModel):
     user_id: str
+
+
+class TidakHadirInput(BaseModel):
+    alasan: str
+    keterangan: Optional[str] = None
 
 # ---------------------------------------------------------------------------
 # Auth dependency
@@ -2429,6 +2435,45 @@ async def close_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
     return serialize_kegiatan(k, await kegiatan_counts(kegiatan_id))
 
 
+@api_router.post("/admin/kegiatan/{kegiatan_id}/hadir-semua")
+async def mark_all_present(kegiatan_id: str, admin: dict = Depends(require_staff)):
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+
+    peserta = await peserta_for_kegiatan(k)
+    eligible_ids = [
+        str(p["_id"]) for p in peserta
+        if session_requires_participant(k, str(p["_id"]))
+    ]
+    other = await attended_other_sessions(k)
+    eligible_ids = [uid for uid in eligible_ids if uid not in other]
+    existing = await db.absensis.find({
+        "kegiatan_id": kegiatan_id, "user_id": {"$in": eligible_ids},
+    }).to_list(5000) if eligible_ids else []
+    already_present = {a["user_id"] for a in existing if a.get("status") == "hadir"}
+    to_mark = [uid for uid in eligible_ids if uid not in already_present]
+    now = now_wita().isoformat()
+    if to_mark:
+        await db.absensis.bulk_write([
+            UpdateOne(
+                {"kegiatan_id": kegiatan_id, "user_id": uid},
+                {"$set": {
+                    "kegiatan_id": kegiatan_id, "user_id": uid, "status": "hadir",
+                    "arrival_time": now, "marked_by": admin.get("name"),
+                    "marked_by_id": str(admin["_id"]), "updated_at": now,
+                }, "$unset": {"reason": "", "note": ""}},
+                upsert=True,
+            )
+            for uid in to_mark
+        ], ordered=False)
+    return {
+        "applied": len(to_mark),
+        "skipped": len(peserta) - len(to_mark),
+        "message": f"{len(to_mark)} peserta berhasil dicatat hadir.",
+    }
+
+
 @api_router.post("/admin/kegiatan/{kegiatan_id}/reopen")
 async def reopen_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff)):
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
@@ -2560,7 +2605,8 @@ async def mark_absen_batch(kegiatan_id: str, body: AbsenBatchInput,
                       "note": (item.note or "").strip() or None,
                       "marked_by": f"{admin.get('name')} (sinkron offline)",
                       "marked_by_id": str(admin["_id"]),
-                      "updated_at": now_wita().isoformat()}},
+                      "updated_at": now_wita().isoformat()},
+             "$unset": {"reason": "", "note": ""}},
             upsert=True)
         applied += 1
     return {"applied": applied, "failed": failed,
@@ -2596,6 +2642,8 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
                 "status": status, "account_status": p.get("status", "active"),
                 "arrival_time": a.get("arrival_time") if a else ot.get("arrival_time"),
                 "marked_by": a.get("marked_by") if a else None,
+                "absence_reason": a.get("reason") if a else None,
+                "absence_note": a.get("note") if a else None,
                 "required_for_session": required,
                 "attended_other": True, "attended_other_label": ot.get("label"),
             })
@@ -2613,6 +2661,8 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
             "reason": a.get("reason") if a else None,
             "note": a.get("note") if a else None,
             "marked_by": a.get("marked_by") if a else None,
+            "absence_reason": a.get("reason") if a else None,
+            "absence_note": a.get("note") if a else None,
             "required_for_session": required,
             "attended_other": False, "attended_other_label": None,
         })
@@ -3251,17 +3301,13 @@ async def my_absen_info(token: str, user: dict = Depends(get_current_user)):
             "status": a.get("status") if a else None,
             "arrival_time": a.get("arrival_time") if a else None,
             "marked_by": a.get("marked_by") if a else None,
+            "absence_reason": a.get("reason") if a else None,
+            "absence_note": a.get("note") if a else None,
         },
     }
 
 
-@api_router.post("/me/absen/{token}/mark")
-async def my_absen_mark(token: str, user: dict = Depends(get_current_user)):
-    k = await kegiatan_by_absen_token(token)
-    if not k:
-        raise HTTPException(
-            status_code=404,
-            detail="Mohon maaf, tautan absen ini tidak dikenali. Silakan scan ulang QR kegiatan dari pengurus.")
+async def ensure_self_attendance_allowed(k: dict, user: dict) -> None:
     assert_barcode_valid(k)
     if k.get("status", "open") != "open":
         raise HTTPException(
@@ -3278,19 +3324,27 @@ async def my_absen_mark(token: str, user: dict = Depends(get_current_user)):
             status_code=403,
             detail="Mohon lengkapi data profil Anda terlebih dahulu sebelum melakukan absen. "
                    "Jazakumullahu khoiro.")
-    # FASE 8/9 — kegiatan khusus (jenis kelamin / status pernikahan / kelompok usia)
     if not match_gender_filter(k, user):
         labels = kegiatan_filter_labels(k) or ["khusus kelompok tertentu"]
         raise HTTPException(
             status_code=403,
             detail=f"Mohon maaf, kegiatan ini {' · '.join(labels).lower()} "
                    "sehingga absen Anda tidak dapat diproses.")
-    # FASE 8 — kegiatan reguler hanya untuk akun yang sudah aktivasi
     if (k.get("audience") or "reguler") == "reguler" and (user.get("status") or "active") != "active":
         raise HTTPException(
             status_code=403,
             detail="Mohon maaf, kegiatan reguler hanya untuk akun yang sudah diaktivasi. "
                    "Silakan aktivasi akun Anda terlebih dahulu.")
+
+
+@api_router.post("/me/absen/{token}/mark")
+async def my_absen_mark(token: str, user: dict = Depends(get_current_user)):
+    k = await kegiatan_by_absen_token(token)
+    if not k:
+        raise HTTPException(
+            status_code=404,
+            detail="Mohon maaf, tautan absen ini tidak dikenali. Silakan scan ulang QR kegiatan dari pengurus.")
+    await ensure_self_attendance_allowed(k, user)
     uid = str(user["_id"])
     await assert_not_attended_other_session(k, uid, "Kehadiran Anda")
     existing = await db.absensis.find_one({"kegiatan_id": k["_id"], "user_id": uid})
@@ -3314,6 +3368,42 @@ async def my_absen_mark(token: str, user: dict = Depends(get_current_user)):
         "message": f"Alhamdulillah, kehadiran Anda pada kegiatan {k.get('name')} berhasil dicatat. "
                    "Jazakumullahu khoiro.",
     }
+
+
+@api_router.post("/me/absen/{token}/tidak-hadir")
+async def my_absen_cannot_attend(token: str, body: TidakHadirInput,
+                                 user: dict = Depends(get_current_user)):
+    k = await kegiatan_by_absen_token(token)
+    if not k:
+        raise HTTPException(
+            status_code=404,
+            detail="Mohon maaf, tautan absen ini tidak dikenali. Silakan scan ulang QR kegiatan dari pengurus.")
+    await ensure_self_attendance_allowed(k, user)
+    reason = (body.alasan or "").strip()
+    note = (body.keterangan or "").strip()
+    if not reason:
+        raise HTTPException(status_code=400, detail="Alasan tidak boleh kosong.")
+    if len(reason) > 300 or len(note) > 500:
+        raise HTTPException(status_code=400, detail="Alasan maksimal 300 karakter dan keterangan maksimal 500 karakter.")
+
+    uid = str(user["_id"])
+    await assert_not_attended_other_session(k, uid, "Kehadiran Anda")
+    existing = await db.absensis.find_one({"kegiatan_id": k["_id"], "user_id": uid})
+    if existing and existing.get("status") == "hadir":
+        raise HTTPException(status_code=409, detail="Kehadiran Anda sudah tercatat sebagai hadir.")
+    now = now_wita().isoformat()
+    await db.absensis.update_one(
+        {"kegiatan_id": k["_id"], "user_id": uid},
+        {"$set": {
+            "kegiatan_id": k["_id"], "user_id": uid, "status": "izin",
+            "reason": reason, "note": note or None, "arrival_time": None,
+            "marked_by": "Mandiri (lapor tidak hadir)", "marked_by_id": uid,
+            "updated_at": now,
+        }},
+        upsert=True,
+    )
+    return {"name": user.get("name"), "status": "izin", "reason": reason,
+            "note": note or None, "message": "Laporan tidak hadir berhasil dikirim."}
 
 
 @api_router.post("/absen/{token}/feedback")

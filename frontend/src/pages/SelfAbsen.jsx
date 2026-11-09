@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   CalendarDays, Clock, MapPin, User, BookOpen, Loader2, CheckCircle2,
@@ -7,6 +7,7 @@ import {
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { SELF_ABSENCE } from "@/constants/testIds";
 import { TYPE_LABEL, tanggalPanjang, hhmm } from "./admin/kegiatanUtils";
 
 /**
@@ -26,7 +27,10 @@ export default function SelfAbsen() {
   const [err, setErr] = useState("");
   const [marking, setMarking] = useState(false);
   const [result, setResult] = useState(null);
-  const autoRef = useRef(false);
+  const [absenceFormOpen, setAbsenceFormOpen] = useState(false);
+  const [absenceReason, setAbsenceReason] = useState("");
+  const [absenceNote, setAbsenceNote] = useState("");
+  const [absenceSending, setAbsenceSending] = useState(false);
 
   const [fbName, setFbName] = useState("");
   const [fbMsg, setFbMsg] = useState("");
@@ -58,15 +62,32 @@ export default function SelfAbsen() {
     }
   }, [token, load]);
 
-  // REVISI: kehadiran LANGSUNG dicatat saat halaman terbuka (tanpa tombol "Saya Hadir").
-  useEffect(() => {
-    if (autoRef.current || !data) return;
-    const k = data.kegiatan || {};
-    const me = data.me || {};
-    if (k.status !== "open" || !me.is_peserta || me.status === "hadir") return;
-    autoRef.current = true;
-    doMark();
-  }, [data, doMark]);
+  const submitCannotAttend = async () => {
+    if (!absenceReason.trim()) {
+      toast.error("Mohon isi alasan tidak dapat hadir.");
+      return;
+    }
+    setAbsenceSending(true);
+    try {
+      const { data: res } = await api.post(`/me/absen/${token}/tidak-hadir`, {
+        alasan: absenceReason.trim(),
+        keterangan: absenceNote.trim() || null,
+      });
+      setData((current) => ({
+        ...current,
+        me: {
+          ...current.me, status: "izin",
+          absence_reason: res.reason, absence_note: res.note,
+        },
+      }));
+      setAbsenceFormOpen(false);
+      toast.success(res.message);
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setAbsenceSending(false);
+    }
+  };
 
   const sendFeedback = async (anonim = false) => {
     if (!fbMsg.trim()) { toast.error("Mohon tuliskan kesan & pesan Anda terlebih dahulu."); return; }
@@ -155,6 +176,7 @@ export default function SelfAbsen() {
   const me = data.me;
   const closed = k.status && k.status !== "open";
   const sudahHadir = me.status === "hadir";
+  const sudahLaporkan = me.status === "izin" && Boolean(me.absence_reason);
 
   return (
     <Shell>
@@ -233,22 +255,60 @@ export default function SelfAbsen() {
                 Kehadiran Anda sudah tercatat. Terima kasih, jazakumullahu khoiro.
               </p>
             </div>
+          ) : sudahLaporkan ? (
+            <div className="mt-4 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] p-4" data-testid={SELF_ABSENCE.absenceReported}>
+              <div className="font-bold text-[#92400E]">Laporan tidak hadir sudah dikirim</div>
+              <p className="text-sm text-[#78350F] mt-1">Alasan: {me.absence_reason}</p>
+              {me.absence_note && <p className="text-sm text-[#78350F] mt-1">Keterangan: {me.absence_note}</p>}
+              <button
+                type="button"
+                data-testid={SELF_ABSENCE.editAbsence}
+                onClick={() => {
+                  setAbsenceReason(me.absence_reason || "");
+                  setAbsenceNote(me.absence_note || "");
+                  setAbsenceFormOpen(true);
+                }}
+                className="mt-3 min-h-11 rounded-xl border-2 border-[#92400E] px-4 font-semibold text-[#92400E]"
+              >
+                Perbarui Laporan
+              </button>
+              {absenceFormOpen && <AbsenceForm
+                reason={absenceReason} setReason={setAbsenceReason}
+                note={absenceNote} setNote={setAbsenceNote}
+                sending={absenceSending} onSubmit={submitCannotAttend}
+                onCancel={() => setAbsenceFormOpen(false)}
+              />}
+            </div>
           ) : (
-            <div className="mt-4 rounded-xl bg-[#FAFAF8] border border-[#E8E8E4] p-4 text-center" data-testid="absen-auto">
-              {marking ? (
-                <>
-                  <Loader2 className="mx-auto animate-spin text-[#111114]" size={26} />
-                  <p className="text-sm font-semibold text-[#4B5563] mt-2">Mencatat kehadiran Anda...</p>
-                </>
-              ) : (
+            <div className="mt-4 rounded-xl bg-[#FAFAF8] border border-[#E8E8E4] p-4" data-testid="absen-auto">
+              <div className="grid gap-2 sm:grid-cols-2">
                 <button
-                  data-testid="button-saya-hadir"
+                  type="button"
+                  data-testid={SELF_ABSENCE.markPresent}
                   onClick={doMark}
-                  className="w-full h-[54px] rounded-xl bg-[#111114] text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#000000]"
+                  disabled={marking || absenceSending}
+                  className="min-h-[54px] rounded-xl bg-[#111114] px-3 text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60"
                 >
-                  <CheckCircle2 size={20} /> Catat Kehadiran Saya
+                  {marking ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
+                  Catat Kehadiran Saya
                 </button>
-              )}
+                <button
+                  type="button"
+                  data-testid={SELF_ABSENCE.cannotAttend}
+                  onClick={() => setAbsenceFormOpen((open) => !open)}
+                  disabled={marking || absenceSending}
+                  className="min-h-[54px] rounded-xl border-2 border-[#92400E] px-3 text-[#92400E] font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#FFFBEB] disabled:opacity-60"
+                >
+                  <UserX size={20} /> Tidak Bisa Hadir
+                </button>
+              </div>
+              {marking && <p className="text-center text-sm font-semibold text-[#4B5563] mt-2">Mencatat kehadiran Anda…</p>}
+              {absenceFormOpen && <AbsenceForm
+                reason={absenceReason} setReason={setAbsenceReason}
+                note={absenceNote} setNote={setAbsenceNote}
+                sending={absenceSending} onSubmit={submitCannotAttend}
+                onCancel={() => setAbsenceFormOpen(false)}
+              />}
             </div>
           )}
         </div>
@@ -332,6 +392,46 @@ export default function SelfAbsen() {
  * dalamnya, setiap ketikan (setState) membuat komponen ini dibuat ulang sehingga
  * input kehilangan fokus & keyboard HP menutup setiap 1 huruf.
  */
+function AbsenceForm({ reason, setReason, note, setNote, sending, onSubmit, onCancel }) {
+  return (
+    <div className="mt-4 space-y-3 border-t border-[#E8E8E4] pt-4" data-testid={SELF_ABSENCE.absenceForm}>
+      <label className="block text-left text-sm font-semibold text-[#374151]">
+        Alasan tidak dapat hadir *
+        <input
+          data-testid={SELF_ABSENCE.absenceReason}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          maxLength={300}
+          className="mt-1.5 w-full min-h-11 rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 text-base outline-none focus:border-[#111114]"
+          placeholder="Contoh: sakit atau ada keperluan keluarga"
+        />
+      </label>
+      <label className="block text-left text-sm font-semibold text-[#374151]">
+        Keterangan (opsional)
+        <textarea
+          data-testid={SELF_ABSENCE.absenceNote}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          maxLength={500}
+          rows={2}
+          className="mt-1.5 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 py-2.5 text-base outline-none focus:border-[#111114]"
+          placeholder="Tambahkan keterangan bila diperlukan"
+        />
+      </label>
+      <div className="flex gap-2">
+        <button type="button" data-testid={SELF_ABSENCE.cancelAbsence} onClick={onCancel}
+          className="min-h-11 rounded-xl border-2 border-[#E8E8E4] px-4 font-semibold text-[#4B5563]">
+          Batal
+        </button>
+        <button type="button" data-testid={SELF_ABSENCE.submitAbsence} onClick={onSubmit} disabled={sending}
+          className="min-h-11 flex-1 rounded-xl bg-[#92400E] px-4 font-bold text-white inline-flex items-center justify-center gap-2 disabled:opacity-60">
+          {sending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />} Kirim Laporan
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Shell({ children, subtitle = "Absen Mandiri" }) {
   return (
     <div className="min-h-screen bg-[#FAFAF8] pb-16">

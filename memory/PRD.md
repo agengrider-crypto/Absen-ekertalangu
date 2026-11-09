@@ -1,5 +1,14 @@
 # E-KERTALANGU — PRD
 
+## Pembaruan 2026-11-06
+- Pilihan Hadir/Izin/Sakit/Alpha pada absensi manual dirapikan rata kanan dengan area tekan yang lebih besar.
+- Pop-up catatan pembaruan muncul sekali per akun untuk versi terbaru; catatan bertanggal juga tersedia dari Profil Saya, dengan tombol Coba Sekarang menuju area fitur.
+- Kode Akses menyediakan tindakan Tutup Absen; penutupan menandai otomatis peserta wajib yang belum memiliki status sebagai Alpha.
+- Rekap Bulanan dapat menyembunyikan nama peserta dari daftar selama tiga bulan pada perangkat tersebut; hitungan dan tautan publik tidak terpengaruh.
+- Absensi manual menyediakan tindakan Hadirkan Semua; peserta wajib yang belum Hadir dicatat Hadir, termasuk yang sebelumnya Izin/Sakit/Alpha.
+- Jenis kegiatan dipilih melalui tombol mendatar yang menyesuaikan lebar layar.
+- Peserta dapat melaporkan tidak hadir dengan alasan wajib dan keterangan opsional. Pelaporan ini dicatat sebagai Izin dan pengurus dapat melihat keterangannya.
+
 ## Pembaruan 2026-11-05
 - Dashboard menampilkan jumlah peserta belum pernah hadir, jarang hadir, dan cukup aktif
   pada bulan berjalan; tiap jumlah membuka Rekap Bulanan dengan filter terkait.

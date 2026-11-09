@@ -427,6 +427,16 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
           <span>Kegiatan sudah selesai. Absen susulan masih bisa dicatat oleh admin/pengurus.</span>
         </div>
       )}
+      <button
+        type="button"
+        data-testid={ACTIVITIES.markAllPresent}
+        onClick={hadirSemua}
+        disabled={busyAll || belumDiabsen === 0}
+        className="min-h-11 w-full rounded-xl bg-[#15803D] px-4 font-bold text-white inline-flex items-center justify-center gap-2 hover:bg-[#166534] disabled:opacity-60"
+      >
+        {busyAll ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
+        Hadirkan Semua Peserta
+      </button>
       <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="detail-absen-manual">
         <div className="p-3 bg-[#FAFAF8] border-b border-[#E8E8E4] space-y-2">
           <div className="relative">
@@ -464,6 +474,11 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
                   {r.status === "hadir" && r.arrival_time && (
                     <span className="font-mono text-[11px] text-[#4B5563]">{hhmm(r.arrival_time)}</span>
                   )}
+                  {r.absence_reason && (
+                    <span className="text-[11px] text-[#92400E]">
+                      Alasan: {r.absence_reason}{r.absence_note ? ` · ${r.absence_note}` : ""}
+                    </span>
+                  )}
                   {r.attended_other && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">
                       Sudah hadir sesi {r.attended_other_label}
@@ -479,7 +494,7 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-1 shrink-0 ml-auto">
+              <div className="ml-auto flex w-full items-center justify-end gap-1 shrink-0 sm:w-auto">
                 {r.attended_other ? (
                   <span className="text-[11px] font-semibold text-[#9CA3AF]" data-testid={`detail-locked-${r.user_id}`}>tidak perlu diabsen lagi</span>
                 ) : ["hadir", "izin", "sakit", "alpha"].map((s) => {
@@ -493,7 +508,7 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
                       onClick={() => (s === "izin" ? openReason(r) : mark(r.user_id, s))}
                       title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.full}
                       aria-label={cfg.full}
-                      className={`h-8 w-9 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
+                      className={`h-11 w-11 rounded-lg text-sm font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
                     >
                       {cfg.label}
                     </button>

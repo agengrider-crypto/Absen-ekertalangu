@@ -286,26 +286,23 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
               </div>
               <div className="sm:col-span-2">
                 <label className={lbl}>Jenis</label>
-                <div className="flex flex-wrap gap-2" data-testid="keg-type">
-                  {KEGIATAN_TYPES.map((t) => {
-                    const active = f.type === t.value;
-                    return (
-                      <button
-                        key={t.value}
-                        type="button"
-                        data-testid={`keg-type-${t.value}`}
-                        onClick={() => set("type", t.value)}
-                        aria-pressed={active}
-                        className={`h-11 px-4 rounded-xl border-2 text-sm font-semibold transition-colors ${
-                          active
-                            ? "bg-[#111114] text-white border-[#111114]"
-                            : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    );
-                  })}
+                <div role="group" aria-label="Jenis kegiatan" className="grid grid-cols-3 gap-2" data-testid="keg-type">
+                  {KEGIATAN_TYPES.map((t) => (
+                    <button
+                      key={t.value}
+                      type="button"
+                      data-testid={`${ACTIVITIES.typeOptionPrefix}-${t.value}`}
+                      aria-pressed={f.type === t.value}
+                      onClick={() => set("type", t.value)}
+                      className={`min-h-12 rounded-xl border-2 px-2 text-sm font-semibold transition-colors ${
+                        f.type === t.value
+                          ? "border-[#111114] bg-[#111114] text-white"
+                          : "border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#111114]"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
                 </div>
               </div>
               <div>
