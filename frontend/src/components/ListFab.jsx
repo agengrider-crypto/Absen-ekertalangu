@@ -27,6 +27,8 @@ import { FAB } from "@/constants/testIds";
  * @param {number}   props.total           jumlah item setelah filter
  * @param {number}   props.pageSize
  * @param {Array}    props.actions         tombol tambahan [{ key, label, icon, onClick, active }]
+ * @param {string}   props.filterTestId    data-testid untuk wadah chip filter
+ * @param {string}   props.filterItemTestId prefix data-testid tiap chip filter
  */
 export default function ListFab({
   search = "",
@@ -45,6 +47,8 @@ export default function ListFab({
   total = 0,
   pageSize = 0,
   actions = [],
+  filterTestId,
+  filterItemTestId,
 }) {
   const [panel, setPanel] = useState(null); // null | "search" | "filter"
   const inputRef = useRef(null);
@@ -121,14 +125,14 @@ export default function ListFab({
             )}
 
             {panel === "filter" && (
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5" data-testid={filterTestId}>
                 {filters.map((f) => {
                   const on = f.key === filterValue;
                   return (
                     <button
                       key={f.key}
                       type="button"
-                      data-testid={FAB.filter}
+                      data-testid={filterItemTestId ? `${filterItemTestId}-${f.key}` : FAB.filter}
                       onClick={() => onFilter?.(f.key)}
                       aria-pressed={on}
                       className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border-2 px-3 text-xs font-semibold transition-colors ${

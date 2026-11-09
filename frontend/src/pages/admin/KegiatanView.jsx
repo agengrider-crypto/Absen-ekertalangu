@@ -261,22 +261,7 @@ export default function KegiatanView({
         </div>
       </div>
 
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Status kegiatan" data-testid={ACTIVITIES.phaseFilter}>
-        {[
-          { key: "all", label: "Semua", count: (items || []).filter((k) => String(k.date || "").startsWith(month)).length },
-          { key: "today", label: "Hari ini", count: (items || []).filter((k) => k.date === todayYmd() && phaseOf(k) !== "selesai").length },
-          { key: "upcoming", label: "Akan datang", count: (items || []).filter((k) => phaseOf(k) === "akan_datang").length },
-          { key: "completed", label: "Selesai", count: (items || []).filter((k) => phaseOf(k) === "selesai").length },
-        ].map((filter) => (
-          <button key={filter.key} type="button" role="tab" aria-selected={phaseFilter === filter.key}
-            data-testid={`${ACTIVITIES.phasePrefix}-${filter.key}`} onClick={() => setPhaseFilter(filter.key)}
-            className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border-2 px-3.5 text-sm font-semibold ${
-              phaseFilter === filter.key ? "border-[#111114] bg-[#111114] text-white" : "border-[#E8E8E4] bg-white text-[#4B5563]"
-            }`}>
-            {filter.label}<span className={`rounded-full px-1.5 py-0.5 text-xs ${phaseFilter === filter.key ? "bg-white/20" : "bg-[#F3F4F6]"}`}>{filter.count}</span>
-          </button>
-        ))}
-      </div>
+      {/* Filter status kegiatan dipindah ke FAB (bottom bar) */}
 
       {/* Month nav + view toggle */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -370,6 +355,8 @@ export default function KegiatanView({
         filterValue={phaseFilter}
         onFilter={setPhaseFilter}
         filterLabel="Filter status"
+        filterTestId={ACTIVITIES.phaseFilter}
+        filterItemTestId={ACTIVITIES.phasePrefix}
         onAdd={() => setShowAdd(true)}
         addLabel="Tambah Kegiatan"
         page={safePage}

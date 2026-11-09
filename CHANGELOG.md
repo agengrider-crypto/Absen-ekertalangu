@@ -4,6 +4,15 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 9 November 2026 (Filter Status ke FAB)
+
+- Baris **filter status** di atas daftar User dihapus; filter kini hanya lewat tombol **Filter**
+  di bottom bar (chip: Semua / Belum Aktivasi / Sudah Aktif / Data Belum Lengkap).
+- **Tab status kegiatan** (Semua / Hari ini / Akan datang / Selesai) dihapus dari atas;
+  filter yang sama tersedia di bottom bar.
+- `data-testid` lama (`status-filter`, `filter-*`, `kegiatan-phase-filter`, `kegiatan-phase-*`)
+  dipindahkan ke chip di FAB agar pengujian otomatis tetap berjalan.
+
 ## Pembaruan 9 November 2026 (Header Rapi)
 
 - Tombol **Tambah Peserta** dihapus dari header halaman User — cukup lewat FAB `+` di bottom bar.

@@ -5,7 +5,7 @@
 export const APP_INFO = {
   name: "E-KERTALANGU",
   tagline: "Absensi Pengajian",
-  version: "1.9.0",
+  version: "1.9.1",
   build: "2026.11.09",
   releaseYear: 2026,
   developer: "BrodyCorp",
@@ -18,6 +18,16 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    id: "2026-11-09-filter-fab",
+    date: "2026-11-09",
+    title: "Filter Status Pindah ke FAB",
+    items: [
+      "Baris filter status di atas daftar User dihapus — cukup lewat tombol Filter di bottom bar.",
+      "Tab status kegiatan (Semua/Hari ini/Akan datang/Selesai) dihapus dari atas — ada di bottom bar.",
+      "Halaman jadi lebih ringkas: judul, pencarian, lalu langsung daftar data.",
+    ],
+  },
   {
     id: "2026-11-09-rapi",
     date: "2026-11-09",

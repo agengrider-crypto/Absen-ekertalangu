@@ -290,36 +290,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         )}
       </div>
 
-      {/* Filter status aktivasi */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap" data-testid={PARTICIPANTS.statusFilter}>
-        {[
-          { key: "all", label: "Semua", count: counts.all, cls: "bg-[#111114] text-white border-[#111114]" },
-          { key: "pending", label: "Belum Aktivasi", count: counts.pending, cls: "bg-[#9CA3AF] text-white border-[#9CA3AF]" },
-          { key: "active", label: "Sudah Aktif", count: counts.active, cls: "bg-[#059669] text-white border-[#059669]" },
-          { key: "incomplete", label: "Data Belum Lengkap", count: counts.incomplete, cls: "bg-[#9D174D] text-white border-[#9D174D]" },
-        ].map((f) => {
-          const on = statusFilter === f.key;
-          return (
-            <button
-              key={f.key}
-              data-testid={`${PARTICIPANTS.statusFilterPrefix}-${f.key}`}
-              type="button"
-              onClick={() => setStatusFilter(f.key)}
-              className={`inline-flex items-center gap-2 h-9 px-3.5 rounded-full border-2 text-sm font-semibold transition-colors ${on ? f.cls : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114]"}`}
-            >
-              {f.key === "pending" && <AlertTriangle size={14} className={on ? "text-white" : "text-[#9CA3AF]"} />}
-              {f.key === "incomplete" && <ClipboardList size={14} className={on ? "text-white" : "text-[#9D174D]"} />}
-              {f.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${on ? "bg-white/25" : "bg-[#F3F4F6] text-[#374151]"}`}>{f.count}</span>
-            </button>
-          );
-        })}
-        {counts.pending > 0 && statusFilter !== "pending" && (
-          <span className="text-xs text-[#92400E] bg-[#FEF3C7] px-2.5 py-1 rounded-full">
-            {counts.pending} akun belum aktivasi
-          </span>
-        )}
-      </div>
+      {/* Filter status aktivasi dipindah ke FAB (bottom bar) */}
 
       {/* FASE 10 — Kelengkapan data (tanggal lahir & status pernikahan) */}
       {users && roleFilter === "peserta" && counts.incomplete > 0 && (
@@ -481,6 +452,8 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         filterValue={statusFilter}
         onFilter={setStatusFilter}
         filterLabel="Filter status"
+        filterTestId={PARTICIPANTS.statusFilter}
+        filterItemTestId={PARTICIPANTS.statusFilterPrefix}
         onAdd={() => setModal("add")}
         addLabel="Tambah Peserta"
         page={safePage}
