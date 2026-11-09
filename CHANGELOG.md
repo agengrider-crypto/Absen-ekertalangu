@@ -4,6 +4,17 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 9 November 2026 (Bottom Action Bar)
+
+- **Mobile Bottom Action Bar** menempel di bawah layar pada tampilan mobile (User & Kegiatan):
+  tombol **Cari**, **Filter**, **Previous/Next**, dan **indikator halaman** (`1 / 18`).
+- **FAB hijau "+"** menonjol di tengah bar sebagai tombol tambah data.
+- Memakai `env(safe-area-inset-bottom)` agar tidak tertutup gesture navigation Android/iPhone,
+  serta diposisikan di atas bottom-nav agar tidak saling menutupi.
+- Tombol Previous/Next otomatis nonaktif di halaman pertama/terakhir.
+- Panel **notifikasi** disederhanakan: satu baris judul + keterangan singkat, tanpa ikon kategori.
+- **Tour panduan hanya muncul sekali**; update berikutnya hanya menampilkan pop-up Update Terbaru.
+
 ## Pembaruan 9 November 2026 (FAB)
 
 - **Floating Action Button (FAB)** melayang di tengah bawah pada daftar **User** dan **Kegiatan**.

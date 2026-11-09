@@ -5,7 +5,7 @@
 export const APP_INFO = {
   name: "E-KERTALANGU",
   tagline: "Absensi Pengajian",
-  version: "1.7.0",
+  version: "1.8.0",
   build: "2026.11.09",
   releaseYear: 2026,
   developer: "BrodyCorp",
@@ -18,6 +18,19 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    id: "2026-11-09-bottom-bar",
+    date: "2026-11-09",
+    title: "Bottom Action Bar di Ponsel",
+    items: [
+      "Bar aksi menempel di bawah layar pada tampilan mobile: Cari, Filter, Previous/Next, dan indikator halaman.",
+      "FAB hijau \"+\" menonjol di tengah bar untuk menambah data.",
+      "Aman dari gesture navigation Android/iPhone (safe area) dan tidak menutupi menu bawah.",
+      "Tombol Previous/Next otomatis nonaktif di halaman pertama atau terakhir.",
+      "Panel notifikasi dibuat lebih sederhana: satu baris judul + keterangan singkat.",
+      "Tour panduan hanya muncul sekali; update berikutnya cukup menampilkan Update Terbaru.",
+    ],
+  },
   {
     id: "2026-11-09-fab",
     date: "2026-11-09",

@@ -15,17 +15,20 @@ import { APP_INFO, CHANGELOG, formatChangelogDate } from "@/lib/appInfo";
 
 const TOUR_STORAGE_KEY = "ekertalangu.tourSeen";
 
-/** True bila tour untuk versi terbaru belum pernah dijalankan pengguna. */
+/**
+ * Tour panduan hanya dijalankan SEKALI untuk selamanya (bukan per versi).
+ * Update aplikasi berikutnya tidak memunculkan tour lagi.
+ */
 export function hasUnseenTour() {
   try {
-    return localStorage.getItem(TOUR_STORAGE_KEY) !== APP_INFO.version;
+    return !localStorage.getItem(TOUR_STORAGE_KEY);
   } catch {
     return false;
   }
 }
 
 export function markTourSeen() {
-  try { localStorage.setItem(TOUR_STORAGE_KEY, APP_INFO.version); } catch { /* abaikan */ }
+  try { localStorage.setItem(TOUR_STORAGE_KEY, "1"); } catch { /* abaikan */ }
 }
 
 function InfoRow({ icon: Icon, label, value }) {

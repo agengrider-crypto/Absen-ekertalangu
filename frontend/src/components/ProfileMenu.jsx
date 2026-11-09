@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import ProfileModal from "@/components/ProfileModal";
 import ActionModal from "@/components/ActionModal";
 import RoleSwitcher from "@/components/RoleSwitcher";
-import UpdateModal, { hasUnreadUpdate, markUpdatesRead } from "@/components/UpdateModal";
+import UpdateModal, { hasUnreadUpdate } from "@/components/UpdateModal";
 import AboutApp, { hasUnseenTour } from "@/components/AboutApp";
 import GuidedTour from "@/components/GuidedTour";
 import { rolesLabel } from "@/lib/roles";
@@ -33,7 +33,8 @@ export default function ProfileMenu({ subtitle }) {
   const incomplete = (user?.missing_fields || []).length > 0;
   const isStaff = (user?.roles || []).some((r) => r === "admin" || r === "pengurus");
 
-  // Guided tour muncul sekali setiap ada versi/fitur baru (khusus admin & pengurus).
+  // Guided tour hanya muncul SEKALI (khusus admin & pengurus). Update berikutnya
+  // tidak memunculkan tour lagi — cukup pop-up Update Terbaru.
   useEffect(() => {
     if (!isStaff || !hasUnseenTour()) return;
     const t = setTimeout(() => setTourOpen(true), 900);
@@ -161,7 +162,7 @@ export default function ProfileMenu({ subtitle }) {
       {tourOpen && (
         <GuidedTour
           onClose={() => setTourOpen(false)}
-          onFinish={() => { markUpdatesRead(); setUnreadUpdate(false); }}
+          onFinish={() => setTourOpen(false)}
         />
       )}
     </>

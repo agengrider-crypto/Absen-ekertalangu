@@ -368,7 +368,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           </div>
         </header>
 
-        <main className="px-4 pb-24 pt-6 sm:px-8 sm:pb-24 sm:pt-10 lg:py-10 max-w-6xl mx-auto">
+        <main className="px-4 pb-40 pt-6 sm:px-8 sm:pb-40 sm:pt-10 lg:py-10 max-w-6xl mx-auto">
           <DemoBanner />
           {active === "dashboard" && (
             <DashboardView
