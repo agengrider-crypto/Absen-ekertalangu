@@ -21,3 +21,4 @@ export * from './activities';
 export * from './monthlyRecap';
 export * from './releaseNotes';
 export * from './selfAbsence';
+export * from './about';

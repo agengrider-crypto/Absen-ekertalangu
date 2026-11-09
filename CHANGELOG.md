@@ -4,6 +4,17 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 9 November 2026
+
+- Menambahkan menu **Tentang Aplikasi** (dari menu Profil dan tab Profil peserta) berisi logo,
+  nama aplikasi, versi, pengembang (BrodyCorp), tahun rilis, hak cipta, dan deskripsi singkat.
+- **Update Terbaru** kini punya tombol **Lihat Perubahan** yang membuka daftar changelog
+  dalam accordion. Sumber data changelog dipusatkan di `src/lib/appInfo.js`.
+- **Tour Panduan** dipisah dari Update Terbaru dengan tombol **Mulai Tour** yang memandu
+  5 langkah: Dashboard → User → Daftar Kegiatan → Rekap & Laporan → Profil.
+- Tour tetap muncul otomatis sekali per versi untuk Admin & Pengurus, dan bisa diulang
+  kapan saja dari Tentang Aplikasi.
+
 ## Pembaruan 6 November 2026
 
 - Merapikan tombol Hadir/Izin/Sakit/Alpha agar rata kanan dengan area tekan lebih besar.

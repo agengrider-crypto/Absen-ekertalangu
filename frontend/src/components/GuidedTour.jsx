@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight, Check, Sparkles } from "lucide-react";
 import { markTourSeen } from "@/components/AboutApp";
+import { TOUR } from "@/constants/testIds";
 
 const PAD = 6;
 
@@ -13,35 +14,34 @@ const PAD = 6;
  */
 export const TOUR_STEPS = [
   {
-    id: "profil",
-    target: '[data-testid="button-profile-menu"]',
-    title: "Menu Profil",
-    body: "Semua pengaturan akun ada di sini: profil, ganti peran, dan Tentang Aplikasi.",
+    id: "dashboard",
+    target: '[data-testid="nav-dashboard"], [data-testid="admin-mobile-nav-dashboard"]',
+    title: "Dashboard",
+    body: "Ringkasan kehadiran bulan ini: total peserta, peserta yang perlu ditindaklanjuti, tren 6 bulan, dan daftar kegiatan mendatang.",
   },
   {
-    id: "tentang",
-    target: '[data-testid="menu-about"]',
-    title: "Tentang Aplikasi",
-    body: "Buka Tentang Aplikasi untuk melihat versi, pengembang, dan riwayat update.",
-    optional: true,
-  },
-  {
-    id: "peserta",
+    id: "user",
     target: '[data-testid="nav-peserta"], [data-testid="admin-mobile-nav-peserta"]',
-    title: "Halaman User",
-    body: "Daftar user kini berupa kartu ringkas. Ketuk baris mana pun untuk membuka detail bertab.",
+    title: "User",
+    body: "Kelola akun jamaah: tambah peserta, aktivasi, pindah kelompok, dan buka detail bertab untuk melihat kehadiran serta QR pribadi.",
   },
   {
     id: "kegiatan",
     target: '[data-testid="nav-kegiatan"], [data-testid="admin-mobile-nav-kegiatan"]',
     title: "Daftar Kegiatan",
-    body: "Kartu kegiatan lebih ringkas. Lokasi bisa diketuk langsung untuk membuka Google Maps.",
+    body: "Buat jadwal pengajian, buka sesi absensi, dan bagikan kode akses. Kartu kegiatan bisa diketuk untuk membuka detail.",
   },
   {
     id: "rekap",
     target: '[data-testid="nav-rekap-bulanan"], [data-testid="admin-mobile-nav-rekap"]',
     title: "Rekap & Laporan",
-    body: "Rekap harian, bulanan, dan laporan per peserta siap diunduh atau dibagikan.",
+    body: "Rekap harian, bulanan, dan laporan per peserta siap diunduh (Excel/PDF) atau dibagikan lewat WhatsApp.",
+  },
+  {
+    id: "profil",
+    target: '[data-testid="button-profile-menu"]',
+    title: "Profil",
+    body: "Menu akun: ubah profil, ganti peran, buka Update Terbaru, Tentang Aplikasi, dan ulangi tour ini kapan saja.",
   },
 ];
 
@@ -98,28 +98,33 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
     setCardSize({ w: r.width, h: r.height });
   }, [index, rect, ready]);
 
+  const finish = useCallback(() => {
+    markTourSeen();
+    onFinish?.();
+    onClose?.();
+  }, [onFinish, onClose]);
+
+  const skip = useCallback(() => {
+    markTourSeen();
+    onClose?.();
+  }, [onClose]);
+
+  const next = useCallback(() => {
+    if (isLast) finish();
+    else setIndex((i) => Math.min(i + 1, steps.length - 1));
+  }, [isLast, finish, steps.length]);
+
+  const prev = useCallback(() => setIndex((i) => Math.max(i - 1, 0)), []);
+
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === "Escape") finish();
+      if (e.key === "Escape") skip();
       if (e.key === "ArrowRight") next();
       if (e.key === "ArrowLeft") prev();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index]);
-
-  const finish = () => {
-    markTourSeen();
-    onFinish?.();
-    onClose?.();
-  };
-  const skip = () => {
-    markTourSeen();
-    onClose?.();
-  };
-  const next = () => { if (isLast) finish(); else setIndex((i) => Math.min(i + 1, steps.length - 1)); };
-  const prev = () => setIndex((i) => Math.max(i - 1, 0));
+  }, [next, prev, skip]);
 
   const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
   const vh = typeof window !== "undefined" ? window.innerHeight : 768;
@@ -142,7 +147,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
   }, [rect, cardSize, vw, vh]);
 
   const content = (
-    <div className="fixed inset-0 z-[95]" data-testid="guided-tour" role="dialog" aria-modal="true" aria-label="Panduan aplikasi">
+    <div className="fixed inset-0 z-[95]" data-testid={TOUR.root} role="dialog" aria-modal="true" aria-label="Panduan aplikasi">
       {/* Lapisan gelap dengan lubang highlight */}
       {rect ? (
         <div
@@ -162,6 +167,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
       {/* Kartu tooltip */}
       <div
         ref={cardRef}
+        data-testid={TOUR.step}
         className="absolute rounded-2xl border border-[#E8E8E4] bg-white p-4 shadow-2xl transition-all duration-200"
         style={{ left: cardPos.left, top: cardPos.top, width: cardPos.width }}
       >
@@ -199,7 +205,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
         <div className="mt-3 flex items-center justify-between gap-2">
           <button
             type="button"
-            data-testid="tour-skip"
+            data-testid={TOUR.skip}
             onClick={skip}
             className="h-9 rounded-lg px-2 text-xs font-semibold text-[#6B7280] hover:bg-[#F4F4F1]"
           >
@@ -208,7 +214,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              data-testid="tour-prev"
+              data-testid={TOUR.prev}
               onClick={prev}
               disabled={index === 0}
               className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#E8E8E4] px-3 text-xs font-semibold text-[#4B5563] hover:border-[#111114] disabled:opacity-40"
@@ -217,7 +223,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
             </button>
             <button
               type="button"
-              data-testid="tour-next"
+              data-testid={TOUR.next}
               onClick={next}
               className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#111114] px-3 text-xs font-semibold text-white hover:bg-black"
             >

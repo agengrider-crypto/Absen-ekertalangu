@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Camera, Save, User as UserIcon, Trash2, AlertCircle } from "lucide-react";
+import { Loader2, Camera, Save, User as UserIcon, Trash2, AlertCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { resizeImageFile } from "@/lib/image";
 import ContactButtons from "@/components/ContactButtons";
+import AboutApp from "@/components/AboutApp";
 import { MARITAL_OPTIONS } from "@/pages/admin/adminUtils";
 
 function Field({ label, required, children }) {
@@ -31,6 +32,7 @@ export default function ProfilTab({ user }) {
     marital: user?.marital || "",
   });
   const [saving, setSaving] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
 
   useEffect(() => {
@@ -136,6 +138,18 @@ export default function ProfilTab({ user }) {
           {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Simpan Profil
         </button>
       </div>
+
+      <button
+        type="button"
+        data-testid="profil-about-open"
+        onClick={() => setShowAbout(true)}
+        className="w-full rounded-2xl border-2 border-[#E8E8E4] bg-white p-4 text-left hover:border-[#111114]"
+      >
+        <span className="flex items-center gap-2 font-bold text-[#111827]"><Info size={16} /> Tentang Aplikasi</span>
+        <span className="mt-1 block text-sm text-[#6B7280]">Versi, pengembang, update terbaru, dan tour panduan.</span>
+      </button>
+
+      {showAbout && <AboutApp onClose={() => setShowAbout(false)} />}
     </div>
   );
 }

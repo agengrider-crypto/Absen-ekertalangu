@@ -1,68 +1,25 @@
 // Popup "Update Terbaru": menampilkan daftar perubahan aplikasi beserta tanggal,
 // bisa diklik untuk menuju halaman terkait, dan punya tombol "Coba Sekarang".
+// Sumber data changelog ada di @/lib/appInfo (dipakai juga oleh Tentang Aplikasi).
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Sparkles, X, ChevronRight, CalendarDays, CheckCircle2 } from "lucide-react";
+import { CHANGELOG, formatChangelogDate } from "@/lib/appInfo";
 
 const STORAGE_KEY = "ekertalangu.updateSeen";
 
-// Daftar update terbaru. Tambahkan entri baru di paling atas setiap rilis.
-export const UPDATES = [
-  {
-    id: "2026-11-08-tentang",
-    date: "2026-11-08",
-    title: "Tentang Aplikasi & Tour Panduan",
-    items: [
-      "Menu Tentang Aplikasi di Profil: versi, build, pengembang, dan hak cipta.",
-      "Admin & Pengurus mendapat Riwayat Update di halaman Tentang Aplikasi.",
-      "Tour panduan menandai bagian yang baru diperbarui, bisa diulang kapan saja.",
-    ],
-    action: { label: "Coba Sekarang", nav: "peserta" },
-  },
-  {
-    id: "2026-11-08-user-redesign",
-    date: "2026-11-08",
-    title: "Halaman User lebih rapi",
-    items: [
-      "Daftar user kini berupa kartu ringkas — cukup nama, kontak, peran, dan status.",
-      "Seluruh baris bisa diketuk untuk membuka detail, bukan hanya nama atau foto.",
-      "Detail user dibagi menjadi tab Profil, Kehadiran, QR, dan Riwayat.",
-      "Semua aksi (ubah data, pindah sambung, reset sandi, nonaktifkan) ada di tombol ⋯.",
-    ],
-    action: { label: "Coba Sekarang", nav: "peserta" },
-  },
-  {
-    id: "2026-11-07-absensi",
-    date: "2026-11-07",
-    title: "Absensi lebih cepat & lengkap",
-    items: [
-      "Tombol Hadir Semua untuk menandai seluruh peserta sekaligus.",
-      "Tutup Absen di Kode Akses — peserta yang belum diabsen otomatis Alpha.",
-      "Izin/Sakit kini meminta alasan dan keterangan (opsional).",
-      "Posisi tombol H/I/S/A dirapikan rata kanan agar mudah dibaca.",
-    ],
-    action: { label: "Coba Sekarang", nav: "kegiatan" },
-  },
-  {
-    id: "2026-11-07-form",
-    date: "2026-11-07",
-    title: "Form & data peserta",
-    items: [
-      "Jenis kegiatan dipilih horizontal, bukan dropdown lagi.",
-      "Status akun peserta: Aktif, Nonaktif, atau Pindah.",
-      "Rekap Bulanan punya tombol sembunyikan peserta tidak aktif.",
-    ],
-    action: { label: "Buka Rekap", nav: "rekap-bulanan" },
-  },
-];
+// Tujuan tombol "Coba Sekarang" per entri changelog.
+const ACTION_BY_ID = {
+  "2026-11-09-tentang": { label: "Buka Dashboard", nav: "dashboard" },
+  "2026-11-08-user": { label: "Coba Sekarang", nav: "peserta" },
+  "2026-11-07-absensi": { label: "Coba Sekarang", nav: "kegiatan" },
+  "2026-11-06-rekap": { label: "Buka Rekap", nav: "rekap-bulanan" },
+};
 
-function fmtDate(iso) {
-  try {
-    return new Date(`${iso}T00:00:00`).toLocaleDateString("id-ID", {
-      day: "numeric", month: "long", year: "numeric",
-    });
-  } catch { return iso; }
-}
+export const UPDATES = CHANGELOG.map((entry) => ({
+  ...entry,
+  action: ACTION_BY_ID[entry.id] || { label: "Coba Sekarang", nav: "dashboard" },
+}));
 
 /** True bila ada update yang belum pernah dibuka pengguna. */
 export function hasUnreadUpdate() {
@@ -146,7 +103,7 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose }) 
                   <CalendarDays size={15} className="shrink-0 text-[#9CA3AF]" />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-bold text-[#111827] truncate">{u.title}</div>
-                    <div className="text-[11px] text-[#9CA3AF]">{fmtDate(u.date)}</div>
+                    <div className="text-[11px] text-[#9CA3AF]">{formatChangelogDate(u.date)}</div>
                   </div>
                   <ChevronRight
                     size={16}
