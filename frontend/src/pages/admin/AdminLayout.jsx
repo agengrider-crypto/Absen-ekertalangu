@@ -1,5 +1,5 @@
 // Navigasi Admin/Pengurus: sidebar desktop dan menu bottom-sheet di ponsel.
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
@@ -263,11 +263,13 @@ export default function AdminLayout({ user, role = "admin" }) {
   const location = useLocation();
   const { logout } = useAuth();
   const menu = buildMenu(role);
-  const [active, setActive] = useState(() => (
-    new URLSearchParams(location.search).has("laporanPesertaId")
-      ? "laporan-peserta"
-      : "dashboard"
-  ));
+  const [active, setActive] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.has("laporanPesertaId")) return "laporan-peserta";
+    const tab = params.get("tab");
+    const valid = menu.flatMap((m) => (m.items ? m.items.map((i) => i.key) : [m.key]));
+    return tab && valid.includes(tab) ? tab : "dashboard";
+  });
   const [drawer, setDrawer] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [addPesertaRequest, setAddPesertaRequest] = useState(0);
@@ -277,6 +279,20 @@ export default function AdminLayout({ user, role = "admin" }) {
   const leaveGuard = useRef(null);
 
   const allKeys = menu.flatMap((m) => (m.items ? m.items.map((i) => i.key) : [m.key]));
+
+  // Dukung navigasi dari luar (mis. tombol "Coba Sekarang" di Update Terbaru)
+  // lewat query `?tab=<key>`. Setelah dipakai, query dibersihkan agar refresh
+  // tidak memaksa kembali ke tab tersebut.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+    if (!tab) return;
+    if (allKeys.includes(tab)) setActive(tab);
+    params.delete("tab");
+    const qs = params.toString();
+    navigate(`${location.pathname}${qs ? `?${qs}` : ""}`, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const go = (key, filter = "semua") => {
     if (!allKeys.includes(key)) return;

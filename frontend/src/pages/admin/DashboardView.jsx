@@ -9,6 +9,8 @@ import {
 } from "recharts";
 import { api } from "@/lib/api";
 import { DASHBOARD } from "@/constants/testIds";
+import { ActivationQrCard } from "@/components/ActivationQr";
+import ActivationQrModal from "@/components/ActivationQr";
 import { todayIndo } from "./adminUtils";
 import { MONTH_SHORT, TYPE_LABEL, tanggalSingkat } from "./kegiatanUtils";
 
@@ -36,6 +38,7 @@ export default function DashboardView({
 }) {
   const [d, setD] = useState(null);
   const [monthlyRecap, setMonthlyRecap] = useState(null);
+  const [qrOpen, setQrOpen] = useState(false);
 
   useEffect(() => {
     api.get("/admin/dashboard").then(({ data }) => setD(data)).catch(() => setD(false));
@@ -100,6 +103,12 @@ export default function DashboardView({
       <div className="mb-6 max-w-sm">
         <StatCard value={d.total_peserta} />
       </div>
+
+      <div className="mb-6">
+        <ActivationQrCard onOpen={() => setQrOpen(true)} />
+      </div>
+
+      {qrOpen && <ActivationQrModal onClose={() => setQrOpen(false)} />}
 
       <section className="mb-6 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-4 sm:p-5" data-testid={DASHBOARD.followUp.container}>
         <div className="mb-3">

@@ -4,6 +4,16 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 9 November 2026 (lanjutan)
+
+- **QR Aktivasi Akun** kini tersedia di Dashboard: kartu ringkas dengan QR, tombol **Buka**,
+  pembesar QR sekali ketuk, **Salin Tautan**, dan **Cetak QR**.
+- **Aktivasi manual** dari Dashboard: cari nama peserta yang belum aktivasi lalu tekan
+  **Aktifkan**, atau ketik nama baru (+ tanggal lahir) untuk membuat akun yang langsung aktif.
+- Tombol **Coba Sekarang** pada Update Terbaru kini langsung membuka fitur yang dimaksud
+  lewat `/area/admin?tab=<fitur>` (sebelumnya selalu kembali ke Dashboard).
+- Memperbaiki sisa konflik rebase pada Rekap Bulanan (variabel `hideInactive` yang tidak ada).
+
 ## Pembaruan 9 November 2026
 
 - Menambahkan menu **Tentang Aplikasi** (dari menu Profil dan tab Profil peserta) berisi logo,

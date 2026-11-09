@@ -5,7 +5,7 @@
 export const APP_INFO = {
   name: "E-KERTALANGU",
   tagline: "Absensi Pengajian",
-  version: "1.5.0",
+  version: "1.6.0",
   build: "2026.11.09",
   releaseYear: 2026,
   developer: "BrodyCorp",
@@ -18,6 +18,18 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    id: "2026-11-09-aktivasi",
+    date: "2026-11-09",
+    title: "QR Aktivasi Akun di Dashboard",
+    items: [
+      "Kartu QR Aktivasi Akun di Dashboard: jamaah memindai lalu mengaktifkan akunnya sendiri.",
+      "Pembesar QR sekali ketuk, plus tombol Salin Tautan dan Cetak QR.",
+      "Aktivasi manual: cari nama peserta yang belum aktivasi lalu tekan Aktifkan.",
+      "Buat & aktifkan akun baru langsung dari Dashboard dengan mengetik nama dan tanggal lahir.",
+      "Tombol Coba Sekarang pada Update Terbaru kini langsung membuka fitur yang dimaksud.",
+    ],
+  },
   {
     id: "2026-11-09-tentang",
     date: "2026-11-09",

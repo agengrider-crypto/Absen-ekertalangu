@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   CalendarRange, Loader2, Search, Users, TrendingUp, TrendingDown, Link2, Send,
   ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Layers, ChevronDown, Eye, EyeOff,
@@ -171,7 +171,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
             {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 rounded-2xl bg-[#F1F3F1] animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />)}
           </div>
           <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5">
-            <div className="text-sm text-[#6B7280] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#0F766E]" /> Memuat rekap bulanan…</div>
+            <div className="text-sm text-[#6B7280] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#0F766E]" /> Memuat rekap bulananâ€¦</div>
             <SkeletonList rows={6} testid="rekap-bulanan-skeleton" />
           </div>
         </div>
@@ -189,7 +189,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">Rata-rata hadir {data.summary.rata_rata}%</div>
             </div>
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-rajin">
-              <div className="text-xs font-semibold text-[#15803D] inline-flex items-center gap-1.5"><TrendingUp size={14} /> Rajin hadir (≥80%)</div>
+              <div className="text-xs font-semibold text-[#15803D] inline-flex items-center gap-1.5"><TrendingUp size={14} /> Rajin hadir (â‰¥80%)</div>
               <div className="text-3xl font-bold text-[#15803D] mt-1 tabular-nums">{data.summary.rajin}</div>
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">Cukup aktif: {data.summary.cukup}</div>
             </div>
@@ -205,7 +205,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
             <div className="text-sm font-bold text-[#115E59] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap bulan ini</div>
             <p className="text-[11px] text-[#0F766E] leading-relaxed">
               Tautan publik: siapa pun yang klik bisa langsung melihat siapa saja yang hadir,
-              berapa kali ikut, dan rincian sesinya — tanpa perlu login.
+              berapa kali ikut, dan rincian sesinya â€” tanpa perlu login.
             </p>
             {share && (
               <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#E8E8E4] px-2.5 py-2 text-[#111114]" data-testid="rekap-bulanan-link">{share.link}</div>
@@ -246,7 +246,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                   <div key={x.label} data-testid={`${MONTHLY_RECAP.sessionCardPrefix}-${i}`}
                     className="min-w-0 rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-3">
                     <div className="truncate text-sm font-bold text-[#111827]" title={x.label}>{x.label}</div>
-                    <div className="mt-1 text-[11px] text-[#6B7280]">{x.pertemuan}× kegiatan{x.required === false ? " · opsional" : ""}</div>
+                    <div className="mt-1 text-[11px] text-[#6B7280]">{x.pertemuan}Ã— kegiatan{x.required === false ? " Â· opsional" : ""}</div>
                     <div className="mt-1 text-xl font-bold tabular-nums" style={{ color: ratioColor(x.ratio) }}>{x.ratio}%</div>
                   </div>
                 ))}
@@ -259,7 +259,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
               <div className="relative flex-1 min-w-[200px]">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
                 <input data-testid="rekap-bulanan-search" value={q} onChange={(e) => setQ(e.target.value)}
-                  placeholder="Cari nama peserta…"
+                  placeholder="Cari nama pesertaâ€¦"
                   className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#0F766E]" />
               </div>
               <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1" data-testid="rekap-bulanan-gender-tabs">
@@ -277,20 +277,20 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
               <button
                 type="button"
                 role="switch"
-                aria-checked={hideInactive}
-                data-testid="rekap-bulanan-hide-inactive"
-                onClick={() => setHideInactive((v) => !v)}
+                aria-checked={showHiddenParticipants}
+                data-testid="rekap-bulanan-show-hidden"
+                onClick={() => setShowHiddenParticipants((v) => !v)}
                 className={`inline-flex items-center gap-2 h-9 pl-2 pr-3 rounded-xl border-2 text-xs font-semibold transition-colors ${
-                  hideInactive
+                  showHiddenParticipants
                     ? "bg-[#0F766E] border-[#0F766E] text-white"
                     : "bg-white border-[#E8E8E4] text-[#6B7280] hover:border-[#0F766E]"
                 }`}
-                title="Sembunyikan peserta yang tidak pernah hadir dalam 3 bulan terakhir"
+                title="Tampilkan peserta yang disembunyikan dari daftar rekap"
               >
-                <span className={`relative h-5 w-9 rounded-full transition-colors ${hideInactive ? "bg-white/30" : "bg-[#E8E8E4]"}`}>
-                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${hideInactive ? "left-[18px]" : "left-0.5"}`} />
+                <span className={`relative h-5 w-9 rounded-full transition-colors ${showHiddenParticipants ? "bg-white/30" : "bg-[#E8E8E4]"}`}>
+                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${showHiddenParticipants ? "left-[18px]" : "left-0.5"}`} />
                 </span>
-                Sembunyikan tidak aktif
+                Tampilkan tersembunyi ({hiddenRows.length})
               </button>
             </div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[#FAFAF8] px-3 py-2.5">
@@ -353,8 +353,8 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${b.cls}`}>{b.t}</span>
                           </div>
                           <div className="text-[11px] text-[#9CA3AF]">
-                            {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—"}
-                            {r.kelompok_name ? ` · ${r.kelompok_name}` : ""}
+                            {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "â€”"}
+                            {r.kelompok_name ? ` Â· ${r.kelompok_name}` : ""}
                           </div>
                         </td>
                         <td className="px-3 py-2.5 text-center font-bold tabular-nums text-[#15803D] whitespace-nowrap">
@@ -365,7 +365,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                         </td>
                         <td className="px-3 py-2.5 text-center tabular-nums text-[#D97706] font-semibold">{r.izin}</td>
                         <td className="px-3 py-2.5 text-center tabular-nums text-[#DC2626] font-semibold">{r.alpha}</td>
-                        <td className="px-3 py-2.5 text-[#6B7280] whitespace-nowrap">{r.last_date || "—"}</td>
+                        <td className="px-3 py-2.5 text-[#6B7280] whitespace-nowrap">{r.last_date || "â€”"}</td>
                         <td className="px-3 py-2.5 text-right">
                           <button
                             type="button"
@@ -394,7 +394,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                 {data.per_pertemuan.map((p, i) => (
                   <div key={i} className="rounded-xl border border-[#EEF1EE] p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="font-semibold text-sm text-[#111827]">{p.date} · {p.name}</div>
+                      <div className="font-semibold text-sm text-[#111827]">{p.date} Â· {p.name}</div>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button type="button" data-testid={`${MONTHLY_RECAP.meetingAttendancePrefix}-${i}`}
@@ -444,7 +444,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {p.sesi.map((x, j) => (
                           <span key={j} className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${x.required ? "bg-[#CCFBF1] text-[#115E59]" : "bg-[#E0F2FE] text-[#075985]"}`}>
-                            {x.label} {x.start_time}–{x.end_time}{x.required ? "" : " · opsional"}
+                            {x.label} {x.start_time}â€“{x.end_time}{x.required ? "" : " Â· opsional"}
                           </span>
                         ))}
                       </div>
@@ -458,7 +458,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
 
           <div className="rounded-xl border border-[#E8E8E4] bg-white p-4 text-sm text-[#4B5563] space-y-1" data-testid="rekap-bulanan-legend">
             <div className="font-bold text-[#111114] inline-flex items-center gap-1.5"><CheckCircle2 size={15} /> Cara menghitung</div>
-            <p>Persen hadir = pertemuan berstatus Hadir ÷ pertemuan wajib × 100.</p>
+            <p>Persen hadir = pertemuan berstatus Hadir Ã· pertemuan wajib Ã— 100.</p>
             <p>Hadir di salah satu sesi wajib dihitung hadir. Izin, sakit, alpha, dan belum diabsen dicatat terpisah; sesi opsional tidak menambah kewajiban.</p>
           </div>
         </>
