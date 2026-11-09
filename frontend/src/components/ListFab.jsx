@@ -26,6 +26,7 @@ import { FAB } from "@/constants/testIds";
  * @param {function} props.onNext
  * @param {number}   props.total           jumlah item setelah filter
  * @param {number}   props.pageSize
+ * @param {Array}    props.actions         tombol tambahan [{ key, label, icon, onClick, active }]
  */
 export default function ListFab({
   search = "",
@@ -43,6 +44,7 @@ export default function ListFab({
   onNext,
   total = 0,
   pageSize = 0,
+  actions = [],
 }) {
   const [panel, setPanel] = useState(null); // null | "search" | "filter"
   const inputRef = useRef(null);
@@ -210,8 +212,28 @@ export default function ListFab({
             </button>
           </div>
 
-          {/* Kanan: ruang untuk FAB yang menonjol */}
-          <div className="h-11 w-11 shrink-0" aria-hidden="true" />
+          {/* Kanan: aksi tambahan (Panduan, Daftar/Kalender) */}
+          <div className="flex items-center gap-1">
+            {actions.map((a) => {
+              const Icon = a.icon;
+              return (
+                <button
+                  key={a.key}
+                  type="button"
+                  data-testid={a.testid}
+                  onClick={a.onClick}
+                  aria-label={a.label}
+                  aria-pressed={a.active}
+                  title={a.label}
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
+                    a.active ? "bg-[#111114] text-white" : "text-[#4B5563] hover:bg-[#F4F4F1]"
+                  }`}
+                >
+                  {Icon ? <Icon size={19} /> : a.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* FAB "+" menonjol di tengah atas toolbar */}

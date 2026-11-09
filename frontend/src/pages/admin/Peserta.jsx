@@ -226,17 +226,9 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
-          <Users size={20} /> Peserta &amp; Akun
-          {users && <span className="text-sm font-medium text-[#6B7280]">({users.length})</span>}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button data-testid={PARTICIPANTS.openAdd} onClick={() => setModal("add")}
-            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]">
-            <UserPlus size={16} /> Tambah Peserta
-          </button>
-        </div>
+      <div className="mb-4 flex items-center gap-2 text-[#111114] font-bold text-lg">
+        <Users size={20} /> Peserta &amp; Akun
+        {users && <span className="text-sm font-medium text-[#6B7280]">({users.length})</span>}
       </div>
 
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Kategori peran" data-testid={PARTICIPANTS.roleFilter}>
@@ -498,7 +490,6 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         total={filtered.length}
         pageSize={PAGE_SIZE}
       />
-
       {detailId && (
         <PesertaDetailModal
           userId={detailId}

@@ -5,7 +5,7 @@
 export const APP_INFO = {
   name: "E-KERTALANGU",
   tagline: "Absensi Pengajian",
-  version: "1.8.0",
+  version: "1.9.0",
   build: "2026.11.09",
   releaseYear: 2026,
   developer: "BrodyCorp",
@@ -18,6 +18,17 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    id: "2026-11-09-rapi",
+    date: "2026-11-09",
+    title: "Header Rapi, Aksi Pindah ke Bottom Bar",
+    items: [
+      "Tombol Tambah Peserta dihapus dari header — cukup lewat FAB \"+\" di bottom bar.",
+      "Tombol Tambah Kegiatan dihapus dari header — cukup lewat FAB \"+\" di bottom bar.",
+      "Animasi Panduan, Daftar, dan Kalender dipindah ke bottom bar pada tampilan mobile.",
+      "Semua tombol bottom bar disejajarkan rata dalam satu baris.",
+    ],
+  },
   {
     id: "2026-11-09-bottom-bar",
     date: "2026-11-09",

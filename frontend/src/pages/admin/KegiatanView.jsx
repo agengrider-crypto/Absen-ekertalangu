@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  CalendarDays, Plus, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
+  CalendarDays, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
   Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
   Clock, MapPin, User, ScanLine, MessageSquareText,
   MoreHorizontal, Pencil, FileBarChart2, ChevronDown, AlertTriangle,
@@ -238,20 +238,8 @@ export default function KegiatanView({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
-          <CalendarDays size={20} /> Kegiatan
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" data-testid={ACTIVITIES.helpButton} onClick={() => setShowHelp(true)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 text-base font-semibold text-[#111114] hover:border-[#111114]">
-            <Play size={16} /> Animasi Panduan
-          </button>
-          <button data-testid="button-add-kegiatan" onClick={() => setShowAdd(true)}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]">
-            <Plus size={17} /> Tambah Kegiatan
-          </button>
-        </div>
+      <div className="mb-4 flex items-center gap-2 text-[#111114] font-bold text-lg">
+        <CalendarDays size={20} /> Kegiatan
       </div>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -297,7 +285,7 @@ export default function KegiatanView({
           <div className="font-semibold text-[#111827] min-w-[150px] text-center">{MONTH_SHORT[m - 1]} {y}</div>
           <button data-testid="button-next-month" onClick={() => shiftMonth(1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#111114]"><ChevronRight size={18} /></button>
         </div>
-        <div className="flex items-center gap-1 bg-white border border-[#E8E8E4] rounded-xl p-1">
+        <div className="hidden items-center gap-1 rounded-xl border border-[#E8E8E4] bg-white p-1 lg:flex">
           <button data-testid="view-list" onClick={() => setView("list")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "list" ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}><List size={16} /> Daftar</button>
           <button data-testid="view-calendar" onClick={() => setView("calendar")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "calendar" ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}><Grid3x3 size={16} /> Kalender</button>
         </div>
@@ -390,6 +378,31 @@ export default function KegiatanView({
         onNext={() => setPage((p) => Math.min(pageCount, p + 1))}
         total={filtered.length}
         pageSize={PAGE_SIZE}
+        actions={[
+          {
+            key: "panduan",
+            label: "Animasi Panduan",
+            testid: ACTIVITIES.helpButton,
+            icon: Play,
+            onClick: () => setShowHelp(true),
+          },
+          {
+            key: "daftar",
+            label: "Tampilan Daftar",
+            testid: "view-list",
+            icon: List,
+            active: view === "list",
+            onClick: () => setView("list"),
+          },
+          {
+            key: "kalender",
+            label: "Tampilan Kalender",
+            testid: "view-calendar",
+            icon: Grid3x3,
+            active: view === "calendar",
+            onClick: () => setView("calendar"),
+          },
+        ]}
       />
 
       {showAdd && <KegiatanFormModal suggestions={Array.isArray(items) ? items : []}

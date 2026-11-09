@@ -4,6 +4,14 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 9 November 2026 (Header Rapi)
+
+- Tombol **Tambah Peserta** dihapus dari header halaman User — cukup lewat FAB `+` di bottom bar.
+- Tombol **Tambah Kegiatan** dihapus dari header halaman Kegiatan — cukup lewat FAB `+`.
+- **Animasi Panduan**, **Daftar**, dan **Kalender** dipindah ke bottom bar pada tampilan mobile
+  (tetap tersedia di header pada desktop).
+- Semua tombol bottom bar disejajarkan rata dalam satu baris: Cari · Filter · Prev/Next · Panduan · Daftar · Kalender.
+
 ## Pembaruan 9 November 2026 (Bottom Action Bar)
 
 - **Mobile Bottom Action Bar** menempel di bawah layar pada tampilan mobile (User & Kegiatan):
