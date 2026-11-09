@@ -5,7 +5,7 @@
 export const APP_INFO = {
   name: "E-KERTALANGU",
   tagline: "Absensi Pengajian",
-  version: "1.9.1",
+  version: "2.0.0",
   build: "2026.11.09",
   releaseYear: 2026,
   developer: "BrodyCorp",
@@ -18,6 +18,17 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    id: "2026-11-09-profil",
+    date: "2026-11-09",
+    title: "Profil & Pesan WhatsApp Lebih Ringkas",
+    items: [
+      "Pembaruan Terbaru tampil sebagai kartu dengan tombol Coba Sekarang yang langsung membuka fiturnya.",
+      "Tombol Ganti Peran dipindah ke luar, di samping profil, dengan ukuran lebih kecil.",
+      "Tentang Aplikasi kini fokus pada identitas aplikasi dan Tour Panduan saja.",
+      "Teks pesan WhatsApp (laporan, rekap, undangan) dibuat singkat tanpa salam pembuka dan penutup.",
+    ],
+  },
   {
     id: "2026-11-09-filter-fab",
     date: "2026-11-09",

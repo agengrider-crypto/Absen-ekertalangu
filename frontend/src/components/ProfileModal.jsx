@@ -9,8 +9,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { resizeImageFile } from "@/lib/image";
 import { useAuth } from "@/context/AuthContext";
 import { formatTanggal, MARITAL_OPTIONS, maritalLabel } from "@/pages/admin/adminUtils";
-import { RELEASE_NOTES } from "@/constants/testIds";
-import { ReleaseNotesModal } from "@/components/ReleaseNotes";
+import UpdateModal from "@/components/UpdateModal";
 
 const ROLE_LABEL = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta" };
 const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white";
@@ -282,7 +281,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
               </div>
               <button
                 type="button"
-                data-testid={RELEASE_NOTES.profileOpen}
+                data-testid="profile-release-notes-open"
                 onClick={() => setShowReleaseNotes(true)}
                 className="w-full rounded-2xl border-2 border-[#D5D5CE] bg-white p-4 text-left hover:border-[#0D5C3A]"
               >
@@ -309,7 +308,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
         </div>
       </div>
       {showReleaseNotes && (
-        <ReleaseNotesModal user={user} onClose={() => setShowReleaseNotes(false)} />
+        <UpdateModal forceOpen onClose={() => setShowReleaseNotes(false)} />
       )}
     </div>
     ),

@@ -4,6 +4,17 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 9 November 2026 (Profil & Pesan WA)
+
+- **Pembaruan Terbaru** kini berbentuk kartu (judul + ringkasan + tombol **Coba Sekarang**)
+  sesuai desain; tombol langsung membuka fitur terkait.
+- **Ganti Peran** dipindah keluar dari menu profil, menjadi tombol kecil di samping avatar.
+- **Tentang Aplikasi** hanya berisi identitas aplikasi + Tour Panduan; daftar perubahan
+  dipusatkan di menu Update Terbaru.
+- **Teks WhatsApp** (laporan, rekap bulanan/harian, musyawarah, undangan, QR kegiatan)
+  dibuat singkat: tanpa salam pembuka dan tanpa penutup syukur.
+- Pop-up catatan rilis lama (`ReleaseNotes`) dihapus agar tidak dobel dengan Update Terbaru.
+
 ## Pembaruan 9 November 2026 (Filter Status ke FAB)
 
 - Baris **filter status** di atas daftar User dihapus; filter kini hanya lewat tombol **Filter**

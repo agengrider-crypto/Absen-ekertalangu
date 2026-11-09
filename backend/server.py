@@ -1598,10 +1598,8 @@ def wa_template_laporan(judul: str, link: str) -> str:
     """Template WhatsApp BAKU untuk berbagi laporan/rekap (Fase 7)."""
     judul = re.sub(r"^laporan\s+", "", (judul or "").strip(), flags=re.IGNORECASE)
     return (
-        "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
-        f"Berikut laporan {judul}\n"
-        f"{link}\n\n"
-        "Alhamdulillah, jazakumullahu khoiro."
+        f"Laporan {judul}\n"
+        f"{link}"
     )
 
 
@@ -3843,10 +3841,9 @@ async def ensure_publik_token(kegiatan_id: str, request: Optional[Request] = Non
         "kegiatan_name": k.get("name"),
         "kegiatan_status": k.get("status", "open"),
         "wa_text": (
-            "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
-            f"Berikut tautan absen kehadiran kegiatan {k.get('name')}\n"
-            f"{link}\n\n"
-            "Cukup isi nama, kehadiran langsung tercatat. Jazakumullahu khoiro."
+            f"Absen kehadiran: {k.get('name')}\n"
+            f"{link}\n"
+            "Isi nama, kehadiran langsung tercatat."
         ),
     }
 
@@ -4026,10 +4023,8 @@ async def share_musyawarah(musy_id: str, request: Request, staff: dict = Depends
     link = f"{resolve_base_url(request)}/musyawarah/{token}"
     label = MUSY_LABEL.get(m.get("category"), "Musyawarah")
     wa_text = (
-        "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
-        f"Berikut hasil {label} tanggal {m.get('date', '-')}\n"
-        f"{link}\n\n"
-        "Alhamdulillah, jazakumullahu khoiro."
+        f"Hasil {label} tanggal {m.get('date', '-')}\n"
+        f"{link}"
     )
     return {"token": token, "link": link, "wa_text": wa_text, "label": label}
 
@@ -4288,7 +4283,7 @@ def build_reminder_text(k: dict) -> str:
     if k.get("material"):
         lines.append(f"Materi : {k.get('material')}")
     lines.append("")
-    lines.append("Mohon kehadiran dan doa restunya. Jazakumullahu khoiro.")
+    lines.append("Mohon kehadiran dan doa restunya.")
     return "\n".join(lines)
 
 
@@ -5505,12 +5500,10 @@ async def share_rekap_bulanan(request: Request, month: Optional[str] = None,
     link = f"{resolve_base_url(request)}/rekap-bulanan/{token}"
     data = await build_rekap_bulanan(month)
     wa_text = (
-        "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
-        f"Berikut rekap absen bulan {data['label']}\n"
-        f"Jumlah pertemuan: {data['total_pertemuan']}\n"
+        f"Rekap absen bulan {data['label']}\n"
+        f"Pertemuan: {data['total_pertemuan']}\n"
         f"Rata-rata kehadiran: {data['summary']['rata_rata']}%\n"
-        f"{link}\n\n"
-        "Silakan dibuka untuk melihat kehadiran tiap peserta. Jazakumullahu khoiro."
+        f"{link}"
     )
     return {"token": token, "link": link, "month": month, "label": data["label"],
             "wa_text": wa_text}
@@ -5543,15 +5536,12 @@ async def share_rekap_harian(request: Request, date: Optional[str] = None,
     data = await build_rekap_harian(d)
     s = data["summary"]
     wa_text = (
-        "Assalamu'alaikum warahmatullahi wabarakatuh\n\n"
-        f"Berikut rekap absen harian {data.get('label') or d}\n"
+        f"Rekap absen harian {data.get('label') or d}\n"
         f"Kegiatan: {', '.join(data.get('kegiatan') or []) or '-'}\n"
-        f"Jumlah sesi: {data.get('total_sesi', 0)}\n"
+        f"Sesi: {data.get('total_sesi', 0)}\n"
         f"Hadir {s.get('hadir', 0)}x · Izin {s.get('izin', 0)}x · Alpha {s.get('alpha', 0)}x "
-        f"dari {s.get('slot', 0)} slot sesi ({s.get('ratio', 0)}%)\n"
-        f"{link}\n\n"
-        "Silakan dibuka untuk melihat rincian tiap sesi & keterangan tiap peserta. "
-        "Jazakumullahu khoiro."
+        f"dari {s.get('slot', 0)} slot ({s.get('ratio', 0)}%)\n"
+        f"{link}"
     )
     await log_activity(staff, "bagikan_rekap_harian", f"Membagikan tautan rekap harian {d}")
     return {"token": token, "link": link, "date": d, "label": data.get("label"),

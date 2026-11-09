@@ -19,7 +19,6 @@ export * from './participants';
 export * from './participantReport';
 export * from './activities';
 export * from './monthlyRecap';
-export * from './releaseNotes';
 export * from './selfAbsence';
 export * from './about';
 export * from './activationQr';

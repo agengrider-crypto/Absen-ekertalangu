@@ -1,17 +1,14 @@
-// Halaman "Tentang Aplikasi": identitas aplikasi, Update Terbaru (accordion),
-// dan Tour Panduan. Dua fitur terakhir sengaja dipisah menjadi dua kartu.
+// Halaman "Tentang Aplikasi": identitas aplikasi dan Tour Panduan.
+// Daftar perubahan aplikasi ada di menu "Update Terbaru" (terpisah).
 // Murni UI — tidak memanggil API apa pun.
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
-  X, Info, Sparkles, Play, ChevronDown, CheckCircle2, CalendarDays,
+  X, Info, Play, CalendarDays,
   ShieldCheck, Users, Smartphone, HeartHandshake, Layers, BookOpen,
 } from "lucide-react";
-import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
-} from "@/components/ui/accordion";
 import { ABOUT } from "@/constants/testIds";
-import { APP_INFO, CHANGELOG, formatChangelogDate } from "@/lib/appInfo";
+import { APP_INFO } from "@/lib/appInfo";
 
 const TOUR_STORAGE_KEY = "ekertalangu.tourSeen";
 
@@ -46,8 +43,6 @@ function InfoRow({ icon: Icon, label, value }) {
 }
 
 export default function AboutApp({ onClose, onStartTour }) {
-  const [showUpdates, setShowUpdates] = useState(false);
-
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
     document.addEventListener("keydown", onKey);
@@ -140,59 +135,7 @@ export default function AboutApp({ onClose, onStartTour }) {
               </div>
             </div>
 
-            {/* FITUR 1 — Update Terbaru */}
-            <div className="rounded-2xl border border-[#E8E8E4] bg-white" data-testid={ABOUT.updatesSection}>
-              <div className="flex items-center justify-between gap-2 px-4 py-3">
-                <div className="inline-flex items-center gap-2 text-sm font-semibold text-[#111827]">
-                  <Sparkles size={15} /> Update Terbaru
-                </div>
-                <button
-                  type="button"
-                  data-testid={ABOUT.updatesToggle}
-                  onClick={() => setShowUpdates((v) => !v)}
-                  aria-expanded={showUpdates}
-                  aria-controls="about-updates-list"
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E8E8E4] bg-white px-3 text-xs font-semibold text-[#111114] hover:border-[#111114]"
-                >
-                  {showUpdates ? "Sembunyikan" : "Lihat Perubahan"}
-                  <ChevronDown size={14} className={`transition-transform ${showUpdates ? "rotate-180" : ""}`} />
-                </button>
-              </div>
-
-              {showUpdates && (
-                <div id="about-updates-list" className="border-t border-[#F1F1EE] px-4 pb-2" data-testid={ABOUT.updatesList}>
-                  <Accordion type="single" collapsible defaultValue={CHANGELOG[0]?.id} className="w-full">
-                    {CHANGELOG.map((entry) => (
-                      <AccordionItem key={entry.id} value={entry.id} className="border-[#F1F1EE]">
-                        <AccordionTrigger
-                          data-testid={`${ABOUT.updateItemPrefix}-${entry.id}`}
-                          className="py-3 text-left hover:no-underline"
-                        >
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-semibold text-[#111827]">{entry.title}</span>
-                            <span className="mt-0.5 block text-[11px] font-normal text-[#9CA3AF]">
-                              {formatChangelogDate(entry.date)}
-                            </span>
-                          </span>
-                        </AccordionTrigger>
-                        <AccordionContent className="pb-3">
-                          <ul className="space-y-1.5">
-                            {entry.items.map((item, i) => (
-                              <li key={i} className="flex gap-2 text-[13px] leading-snug text-[#4B5563]">
-                                <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-[#15803D]" />
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </div>
-              )}
-            </div>
-
-            {/* FITUR 2 — Tour Panduan (terpisah dari Update Terbaru) */}
+            {/* Tour Panduan */}
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid={ABOUT.tourSection}>
               <div className="flex items-center gap-2 text-sm font-semibold text-[#111827]">
                 <BookOpen size={15} /> Tour Panduan
@@ -214,8 +157,8 @@ export default function AboutApp({ onClose, onStartTour }) {
             <div className="flex items-start gap-2 rounded-2xl border border-[#E8E8E4] bg-white p-3.5 text-xs leading-relaxed text-[#6B7280]">
               <Info size={15} className="mt-0.5 shrink-0 text-[#9CA3AF]" />
               <span>
-                Update Terbaru berisi daftar perubahan aplikasi. Tour Panduan memandu Anda
-                mengenali menu utama. Keduanya bisa dibuka kapan saja dari menu Profil.
+                Tour Panduan memandu Anda mengenali menu utama dan bisa diulang kapan saja.
+                Daftar perubahan aplikasi ada di menu <b>Update Terbaru</b>.
               </span>
             </div>
           </div>

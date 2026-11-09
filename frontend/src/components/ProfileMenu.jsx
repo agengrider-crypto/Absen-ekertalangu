@@ -53,24 +53,38 @@ export default function ProfileMenu({ subtitle }) {
 
   return (
     <>
-      <button
-        data-testid="button-profile-menu"
-        onClick={() => setOpenMenu(true)}
-        className="relative flex items-center gap-2.5 rounded-full pl-1 pr-2 py-1 hover:bg-[#F4F4F1] transition-colors"
-      >
-        <div className="text-right hidden sm:block leading-tight">
-          <div className="font-semibold text-[#111827] text-sm">{user?.name}</div>
-          {subtitle && <div className="text-xs text-[#6B7280]">{subtitle}</div>}
-        </div>
-        <Avatar size={40} photo={photo} initials={initials} />
-        {incomplete && (
-          <span data-testid="profile-incomplete-dot" className="absolute -top-0.5 right-6 h-3 w-3 rounded-full bg-[#9CA3AF] ring-2 ring-white" />
+      <div className="flex items-center gap-1.5">
+        {multiRole && (
+          <button
+            type="button"
+            data-testid="button-switch-role"
+            onClick={() => setShowSwitcher(true)}
+            aria-label="Ganti Peran"
+            title="Ganti Peran"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E8E8E4] text-[#6B7280] transition-colors hover:border-[#111114] hover:text-[#111114]"
+          >
+            <RefreshCw size={14} />
+          </button>
         )}
-        {unreadUpdate && (
-          <span data-testid="profile-update-dot" className="absolute top-0.5 right-5 h-2.5 w-2.5 rounded-full bg-[#DC2626] ring-2 ring-white" />
-        )}
-        <ChevronDown size={16} className="text-[#6B7280]" />
-      </button>
+        <button
+          data-testid="button-profile-menu"
+          onClick={() => setOpenMenu(true)}
+          className="relative flex items-center gap-2.5 rounded-full pl-1 pr-2 py-1 hover:bg-[#F4F4F1] transition-colors"
+        >
+          <div className="text-right hidden sm:block leading-tight">
+            <div className="font-semibold text-[#111827] text-sm">{user?.name}</div>
+            {subtitle && <div className="text-xs text-[#6B7280]">{subtitle}</div>}
+          </div>
+          <Avatar size={40} photo={photo} initials={initials} />
+          {incomplete && (
+            <span data-testid="profile-incomplete-dot" className="absolute -top-0.5 right-6 h-3 w-3 rounded-full bg-[#9CA3AF] ring-2 ring-white" />
+          )}
+          {unreadUpdate && (
+            <span data-testid="profile-update-dot" className="absolute top-0.5 right-5 h-2.5 w-2.5 rounded-full bg-[#DC2626] ring-2 ring-white" />
+          )}
+          <ChevronDown size={16} className="text-[#6B7280]" />
+        </button>
+      </div>
 
       {openMenu && (
         <ActionModal
@@ -108,9 +122,8 @@ export default function ProfileMenu({ subtitle }) {
               key: "tentang",
               testid: "menu-about",
               label: "Tentang Aplikasi",
-              desc: isStaff && hasUnseenTour() ? "Versi, pengembang & panduan baru tersedia" : "Versi, pengembang, dan riwayat update",
+              desc: "Versi, pengembang, dan panduan aplikasi",
               icon: Info,
-              badge: isStaff && hasUnseenTour(),
               onClick: () => setShowAbout(true),
             },
             {
