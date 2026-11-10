@@ -8,7 +8,7 @@ import {
 } from "@/pages/admin/kegiatanUtils";
 
 const STATUS_STYLE = {
-  hadir: { label: "Hadir", cls: "bg-[#F1F1EE] text-[#111114]" },
+  hadir: { label: "Hadir", cls: "bg-[#EFF6FF] text-[#1D4ED8]" },
   izin: { label: "Izin", cls: "bg-[#FEF3C7] text-[#92400E]" },
   sakit: { label: "Sakit", cls: "bg-[#DBEAFE] text-[#1D4ED8]" },
   alpha: { label: "Alpha", cls: "bg-[#FEE2E2] text-[#991B1B]" },
@@ -33,7 +33,7 @@ function DetailModal({ k, onClose }) {
               ? k.filter_labels
               : (k.gender_filter && k.gender_filter !== "semua" ? [GENDER_FILTER_LABEL[k.gender_filter]] : [])
             ).map((l) => (
-              <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{l}</span>
+              <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEF2F2] text-[#B91C1C]">{l}</span>
             ))}
             {(k.session_total || 1) > 1 && k.session_label && (
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]">Sesi {k.session_label}</span>
@@ -41,12 +41,12 @@ function DetailModal({ k, onClose }) {
           </div>
           <h2 className="font-heading text-xl font-bold text-[#111827]">{k.name}</h2>
           <div className="text-sm text-[#4B5563] space-y-2">
-            <div className="flex items-center gap-2"><CalendarDays size={16} className="text-[#111114]" /> {tanggalPanjang(k.date)}</div>
-            <div className="flex items-center gap-2"><Clock size={16} className="text-[#111114]" /> {k.start_time}–{k.end_time} WITA</div>
-            {k.location && <div className="flex items-center gap-2"><MapPin size={16} className="text-[#111114]" /> {k.location}</div>}
-            {k.teacher && <div className="flex items-center gap-2"><User size={16} className="text-[#111114]" /> {k.teacher}</div>}
-            {k.material && <div className="flex items-start gap-2"><BookOpen size={16} className="text-[#111114] mt-0.5" /> {k.material}</div>}
-            <div className="flex items-center gap-2"><Users size={16} className="text-[#111114]" /> {AUDIENCE_LABEL[k.audience] || "Reguler"}</div>
+            <div className="flex items-center gap-2"><CalendarDays size={16} className="text-[#1D4ED8]" /> {tanggalPanjang(k.date)}</div>
+            <div className="flex items-center gap-2"><Clock size={16} className="text-[#1D4ED8]" /> {k.start_time}–{k.end_time} WITA</div>
+            {k.location && <div className="flex items-center gap-2"><MapPin size={16} className="text-[#1D4ED8]" /> {k.location}</div>}
+            {k.teacher && <div className="flex items-center gap-2"><User size={16} className="text-[#1D4ED8]" /> {k.teacher}</div>}
+            {k.material && <div className="flex items-start gap-2"><BookOpen size={16} className="text-[#1D4ED8] mt-0.5" /> {k.material}</div>}
+            <div className="flex items-center gap-2"><Users size={16} className="text-[#1D4ED8]" /> {AUDIENCE_LABEL[k.audience] || "Reguler"}</div>
           </div>
         </div>
       </div>
@@ -85,7 +85,7 @@ export default function KegiatanList() {
       </div>
 
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
       ) : items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-8 text-center text-[#6B7280] text-sm">Tidak ada kegiatan bulan ini.</div>
       ) : (
@@ -100,7 +100,7 @@ export default function KegiatanList() {
                 {g.items.map((k) => {
                   const st = STATUS_STYLE[k.my_status] || STATUS_STYLE.belum_diabsen;
                   return (
-                    <button key={k.id} data-testid={`peserta-keg-${k.id}`} onClick={() => setDetail(k)} className="w-full text-left bg-white rounded-2xl border border-[#E8E8E4] p-4 hover:border-[#111114] transition-colors">
+                    <button key={k.id} data-testid={`peserta-keg-${k.id}`} onClick={() => setDetail(k)} className="w-full text-left bg-white rounded-2xl border border-[#E8E8E4] p-4 hover:border-[#2563EB] transition-colors">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>

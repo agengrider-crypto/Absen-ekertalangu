@@ -11,6 +11,7 @@ const STORAGE_KEY = "ekertalangu.updateSeen";
 // Tujuan tombol "Coba Sekarang" per entri changelog.
 // `nav` = key tab di AdminLayout (dibuka lewat /area/admin?tab=<nav>).
 const ACTION_BY_ID = {
+  "2026-11-09-tema": { label: "Coba Sekarang", nav: "dashboard" },
   "2026-11-09-profil": { label: "Coba Sekarang", nav: "peserta" },
   "2026-11-09-filter-fab": { label: "Coba Sekarang", nav: "peserta" },
   "2026-11-09-rapi": { label: "Coba Sekarang", nav: "kegiatan" },
@@ -73,7 +74,7 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose }) 
       >
         <div className="shrink-0 flex items-start justify-between gap-3 px-5 pt-5 pb-3 border-b border-[#ECECE8] bg-white">
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="h-10 w-10 shrink-0 rounded-xl bg-[#111114] text-white flex items-center justify-center">
+            <span className="h-10 w-10 shrink-0 rounded-xl bg-[#2563EB] text-white flex items-center justify-center">
               <BellRing size={19} />
             </span>
             <div className="min-w-0">
@@ -87,7 +88,7 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose }) 
             data-testid="update-modal-close"
             onClick={close}
             aria-label="Tutup"
-            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F4F4F1]"
+            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F3F4F6]"
           >
             <X size={20} />
           </button>
@@ -108,7 +109,7 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose }) 
                 type="button"
                 data-testid={`update-try-${u.id}`}
                 onClick={() => go(u.action?.nav)}
-                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#0D5C3A] px-4 text-sm font-bold text-white hover:bg-[#09482D]"
+                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#2563EB] px-4 text-sm font-bold text-white hover:bg-[#1D4ED8]"
               >
                 {u.action?.label || "Coba Sekarang"} <ArrowRight size={16} />
               </button>
@@ -119,7 +120,7 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose }) 
         <div className="shrink-0 px-4 py-3 border-t border-[#ECECE8] bg-white">
           <button
             onClick={close}
-            className="h-11 w-full rounded-xl bg-[#F4F4F1] text-sm font-semibold text-[#4B5563] hover:bg-[#E9EDE9]"
+            className="h-11 w-full rounded-xl bg-[#F3F4F6] text-sm font-semibold text-[#4B5563] hover:bg-[#E8E8E4]"
           >
             Tutup
           </button>

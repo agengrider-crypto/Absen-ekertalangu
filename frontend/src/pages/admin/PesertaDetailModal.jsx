@@ -17,7 +17,7 @@ import {
   genderLabel, statusBadge, formatTanggal, formatDateTime, maritalLabel, mubalighLabel,
 } from "./adminUtils";
 
-const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
+const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white";
 const lbl = "text-xs font-semibold text-[#6B7280] mb-1 block";
 const card = "bg-white rounded-2xl border border-[#E8E8E4]";
 
@@ -30,15 +30,15 @@ const TABS = [
 
 const ROLE_NAMES = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta", guru: "Guru" };
 const STATUS_ABSEN = {
-  hadir: { label: "Hadir", cls: "bg-[#E8F5EE] text-[#14532D]" },
+  hadir: { label: "Hadir", cls: "bg-[#EFF6FF] text-[#166534]" },
   izin: { label: "Izin", cls: "bg-[#FEF3C7] text-[#92400E]" },
   sakit: { label: "Sakit", cls: "bg-[#DBEAFE] text-[#1D4ED8]" },
   alpha: { label: "Alpha", cls: "bg-[#FEE2E2] text-[#991B1B]" },
   belum_diabsen: { label: "Belum diabsen", cls: "bg-[#F3F4F6] text-[#4B5563]" },
 };
 const LOG_COLORS = {
-  login: "bg-[#E0F2FE] text-[#075985]",
-  buat_akun: "bg-[#F1F1EE] text-[#111114]",
+  login: "bg-[#CFFAFE] text-[#155E75]",
+  buat_akun: "bg-[#EFF6FF] text-[#1D4ED8]",
   hapus_akun: "bg-[#FEE2E2] text-[#991B1B]",
   reset_sandi: "bg-[#FEF3C7] text-[#92400E]",
   pindah_sambung: "bg-[#EDE9FE] text-[#5B21B6]",
@@ -321,7 +321,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
         <div className="shrink-0 border-b border-[#ECECE8] bg-white">
           <div className="flex items-start justify-between gap-3 px-4 pt-3 sm:px-5">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#F1F1EE] text-[#111114]">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#EFF6FF] text-[#1D4ED8]">
                 {data?.photo ? (
                   <img src={data.photo} alt={data.name} className="h-full w-full object-cover" />
                 ) : (
@@ -348,12 +348,12 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                   aria-label="Aksi lainnya"
                   title="Aksi lainnya"
                   data-testid="button-more-actions"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl text-[#4B5563] transition-colors hover:bg-[#F4F4F1] hover:text-[#111114]"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-[#4B5563] transition-colors hover:bg-[#F3F4F6] hover:text-[#1D4ED8]"
                 >
                   <MoreHorizontal size={20} />
                 </button>
               )}
-              <button data-testid="button-close-detail" onClick={onClose} aria-label="Tutup" className="flex h-9 w-9 items-center justify-center rounded-xl text-[#6B7280] transition-colors hover:bg-[#F4F4F1]"><X size={20} /></button>
+              <button data-testid="button-close-detail" onClick={onClose} aria-label="Tutup" className="flex h-9 w-9 items-center justify-center rounded-xl text-[#6B7280] transition-colors hover:bg-[#F3F4F6]"><X size={20} /></button>
             </div>
           </div>
 
@@ -371,11 +371,11 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                   data-testid={`detail-tab-${t.key}`}
                   onClick={() => setTab(t.key)}
                   className={`relative inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-t-lg px-3 text-sm font-semibold transition-colors ${
-                    active ? "text-[#111114]" : "text-[#6B7280] hover:text-[#111114]"
+                    active ? "text-[#1D4ED8]" : "text-[#6B7280] hover:text-[#1D4ED8]"
                   }`}
                 >
                   <Icon size={15} /> {t.label}
-                  <span className={`absolute inset-x-2 bottom-0 h-0.5 rounded-full transition-colors ${active ? "bg-[#111114]" : "bg-transparent"}`} />
+                  <span className={`absolute inset-x-2 bottom-0 h-0.5 rounded-full transition-colors ${active ? "bg-[#2563EB]" : "bg-transparent"}`} />
                 </button>
               );
             })}
@@ -383,7 +383,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
         </div>
 
         {!data ? (
-          <div className="flex flex-1 justify-center p-16"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
+          <div className="flex flex-1 justify-center p-16"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
         ) : (
           <div className="flex-1 overflow-y-auto p-4 sm:p-5">
             {/* ---------------- PROFIL ---------------- */}
@@ -394,7 +394,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                     <div className={`${card} p-4`}>
                       <div className="flex items-center gap-4">
                         <div className="relative shrink-0">
-                          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#F1F1EE] text-[#111114]">
+                          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-[#EFF6FF] text-[#1D4ED8]">
                             {data.photo ? <img src={data.photo} alt={data.name} className="h-full w-full object-cover" /> : <UserIcon size={28} />}
                           </div>
                         </div>
@@ -403,7 +403,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
                             <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${badge.cls}`}>{badge.label}</span>
                             {(data.roles || []).map((r) => (
-                              <span key={r} className="rounded-full bg-[#F1F1EE] px-2 py-0.5 text-[11px] font-medium text-[#374151]">{ROLE_NAMES[r] || r}</span>
+                              <span key={r} className="rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-medium text-[#374151]">{ROLE_NAMES[r] || r}</span>
                             ))}
                           </div>
                           <div className="mt-1 truncate text-xs text-[#6B7280]">
@@ -429,7 +429,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                             type="button"
                             data-testid="button-start-edit"
                             onClick={() => setEditing(true)}
-                            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-[#111114] transition-colors hover:bg-[#F1F1EE]"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-[#1D4ED8] transition-colors hover:bg-[#EFF6FF]"
                           >
                             <Save size={13} /> Ubah
                           </button>
@@ -467,13 +467,13 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                     <div className={`${card} p-4`}>
                       <div className="flex items-center gap-4">
                         <div className="relative shrink-0">
-                          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl bg-[#F1F1EE] text-[#111114]">
+                          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl bg-[#EFF6FF] text-[#1D4ED8]">
                             {form.photo ? <img src={form.photo} alt="foto" className="h-full w-full object-cover" /> : <UserIcon size={36} />}
                           </div>
                           <button
                             data-testid="button-upload-photo"
                             onClick={() => fileRef.current?.click()}
-                            className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#111114] text-white"
+                            className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#2563EB] text-white"
                             title="Ganti foto"
                           ><Camera size={15} /></button>
                           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPhoto} data-testid="input-photo" />
@@ -483,7 +483,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
                             <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${badge.cls}`}>{badge.label}</span>
                             {(data.roles || []).map((r) => (
-                              <span key={r} className="rounded-full bg-[#F1F1EE] px-2 py-0.5 text-[11px] font-medium text-[#374151]">{ROLE_NAMES[r] || r}</span>
+                              <span key={r} className="rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-medium text-[#374151]">{ROLE_NAMES[r] || r}</span>
                             ))}
                           </div>
                           <div className="mt-1 truncate text-xs text-[#6B7280]">
@@ -563,8 +563,8 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                           {["pengurus", "guru", "peserta"].map((r) => {
                             const on = (form.roles || []).includes(r);
                             return (
-                              <label key={r} data-testid={`detail-role-${r}`} className={`inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border-2 px-3.5 text-sm font-semibold capitalize ${on ? "border-[#111114] bg-[#F1F1EE] text-[#111114]" : "border-[#E8E8E4] text-[#6B7280]"}`}>
-                                <input type="checkbox" className="accent-[#111114]" checked={on} onChange={() => toggleRole(r)} />{r}
+                              <label key={r} data-testid={`detail-role-${r}`} className={`inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border-2 px-3.5 text-sm font-semibold capitalize ${on ? "border-[#2563EB] bg-[#EFF6FF] text-[#1D4ED8]" : "border-[#E8E8E4] text-[#6B7280]"}`}>
+                                <input type="checkbox" className="accent-[#2563EB]" checked={on} onChange={() => toggleRole(r)} />{r}
                               </label>
                             );
                           })}
@@ -592,7 +592,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                           data-testid="button-open-move-confirm"
                           onClick={() => setMoveConfirm(true)}
                           disabled={busy === "move" || (moveTarget === undefined || moveTarget === (form.kelompok_id || ""))}
-                          className="flex h-[46px] shrink-0 items-center gap-2 rounded-xl bg-[#111114] px-4 text-sm font-semibold text-white hover:bg-[#000000] disabled:opacity-40"
+                          className="flex h-[46px] shrink-0 items-center gap-2 rounded-xl bg-[#2563EB] px-4 text-sm font-semibold text-white hover:bg-[#1D4ED8] disabled:opacity-40"
                         >
                           {busy === "move" ? <Loader2 className="animate-spin" size={16} /> : <ArrowRightLeft size={16} />} Pindah
                         </button>
@@ -606,7 +606,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                         {[
                           { v: "active", label: "Aktif", cls: "bg-[#DCFCE7] text-[#166534] border-[#166534]" },
                           { v: "nonaktif", label: "Nonaktif", cls: "bg-[#FEE2E2] text-[#991B1B] border-[#991B1B]" },
-                          { v: "pindah", label: "Pindah", cls: "bg-[#E0F2FE] text-[#075985] border-[#075985]" },
+                          { v: "pindah", label: "Pindah", cls: "bg-[#CFFAFE] text-[#155E75] border-[#075985]" },
                         ].map((opt) => {
                           const active = (data.status || "active") === opt.v;
                           return (
@@ -635,12 +635,12 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                         type="button"
                         data-testid="button-cancel-edit"
                         onClick={() => { setForm(data); setMoveTarget(undefined); setEditing(false); }}
-                        className="h-11 rounded-xl border-2 border-[#E8E8E4] bg-white px-4 text-sm font-semibold text-[#4B5563] hover:bg-[#F4F4F1]"
+                        className="h-11 rounded-xl border-2 border-[#E8E8E4] bg-white px-4 text-sm font-semibold text-[#4B5563] hover:bg-[#F3F4F6]"
                       >
                         Batal
                       </button>
                       <button data-testid="button-save-detail" onClick={save} disabled={saving}
-                        className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#111114] px-5 text-sm font-bold text-white hover:bg-[#000000] disabled:opacity-60">
+                        className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-5 text-sm font-bold text-white hover:bg-[#1D4ED8] disabled:opacity-60">
                         {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Simpan
                       </button>
                     </div>
@@ -653,7 +653,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
             {tab === "kehadiran" && (
               <div className="space-y-4">
                 {report === null ? (
-                  <div className="flex justify-center p-10"><Loader2 className="animate-spin text-[#111114]" size={26} /></div>
+                  <div className="flex justify-center p-10"><Loader2 className="animate-spin text-[#1D4ED8]" size={26} /></div>
                 ) : report === false ? (
                   <EmptyState icon={ClipboardList} text="Data kehadiran gagal dimuat." />
                 ) : (
@@ -664,8 +664,8 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                         <div className="text-xs text-[#6B7280]">{six.summary.hadir} hadir dari {six.summary.total_pertemuan} pertemuan</div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        <StatCard label="Kehadiran" value={`${six.summary.ratio}%`} color="text-[#0D5C3A]" />
-                        <StatCard label="Hadir" value={six.summary.hadir} color="text-[#14532D]" />
+                        <StatCard label="Kehadiran" value={`${six.summary.ratio}%`} color="text-[#1D4ED8]" />
+                        <StatCard label="Hadir" value={six.summary.hadir} color="text-[#166534]" />
                         <StatCard label="Izin / Sakit" value={`${six.summary.izin} / ${six.summary.sakit}`} color="text-[#92400E]" />
                         <StatCard label="Alpha" value={six.summary.alpha} color="text-[#991B1B]" />
                       </div>
@@ -677,8 +677,8 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                         {six.months.map((item) => (
                           <div key={item.month} className="grid grid-cols-[4.5rem_1fr_3rem] items-center gap-3">
                             <span className="text-xs font-semibold text-[#4B5563]">{item.label}</span>
-                            <div className="h-2.5 overflow-hidden rounded-full bg-[#F1F1EE]">
-                              <div className="h-full rounded-full bg-[#0D5C3A]" style={{ width: `${Math.min(Math.max(item.ratio || 0, 0), 100)}%` }} />
+                            <div className="h-2.5 overflow-hidden rounded-full bg-[#EFF6FF]">
+                              <div className="h-full rounded-full bg-[#2563EB]" style={{ width: `${Math.min(Math.max(item.ratio || 0, 0), 100)}%` }} />
                             </div>
                             <span className="text-right text-xs font-bold tabular-nums text-[#111827]">{item.ratio}%</span>
                           </div>
@@ -730,6 +730,8 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                       title={`Barcode identitas ${data.name}`}
                       size={200}
                       level="M"
+                      fgColor="#000000"
+                      bgColor="#FFFFFF"
                     />
                   </div>
                   <div className="text-center">
@@ -741,7 +743,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                       type="button"
                       onClick={printQr}
                       data-testid="button-print-qr"
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#111114] text-sm font-semibold text-white hover:bg-[#000000]"
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8]"
                     >
                       <Printer size={16} /> Cetak QR
                     </button>
@@ -749,13 +751,13 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                       type="button"
                       onClick={downloadQr}
                       data-testid="button-download-qr"
-                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#E8E8E4] bg-white text-sm font-semibold text-[#111114] hover:border-[#111114]"
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#E8E8E4] bg-white text-sm font-semibold text-[#1D4ED8] hover:border-[#2563EB]"
                     >
                       <Download size={16} /> Unduh QR
                     </button>
                   </div>
                 </div>
-                <p className="rounded-xl bg-[#F0FDF4] p-3 text-xs leading-relaxed text-[#14532D]">
+                <p className="rounded-xl bg-[#F0FDF4] p-3 text-xs leading-relaxed text-[#166534]">
                   QR ini permanen untuk identifikasi peserta. QR presensi tetap memakai barcode berputar dari menu peserta.
                 </p>
               </div>
@@ -782,7 +784,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                     {logs && <span className="text-xs text-[#6B7280]">{participantLogs.length} catatan</span>}
                   </div>
                   {logs === null ? (
-                    <div className="flex justify-center p-8"><Loader2 className="animate-spin text-[#111114]" size={22} /></div>
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin text-[#1D4ED8]" size={22} /></div>
                   ) : logs === false ? (
                     <div className="p-6"><EmptyState icon={History} text="Riwayat aktivitas gagal dimuat." /></div>
                   ) : participantLogs.length === 0 ? (
@@ -791,7 +793,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                     <ul className="max-h-80 divide-y divide-[#ECECE8] overflow-y-auto">
                       {participantLogs.map((l) => (
                         <li key={l.id} className="flex items-start gap-3 px-4 py-3">
-                          <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${LOG_COLORS[l.action] || "bg-[#F4F4F1] text-[#4B5563]"}`}>
+                          <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${LOG_COLORS[l.action] || "bg-[#F3F4F6] text-[#4B5563]"}`}>
                             {ACTION_LABELS[l.action] || l.action}
                           </span>
                           <div className="min-w-0 flex-1">
@@ -840,20 +842,20 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
               onChange={(e) => setMoveKeterangan(e.target.value)}
               rows={3}
               placeholder="cth: pindah domisili, ikut keluarga, dsb."
-              className="w-full resize-none rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#111114]"
+              className="w-full resize-none rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#2563EB]"
             />
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button
                 data-testid="button-move-no"
                 onClick={() => setMoveConfirm(false)}
-                className="h-11 rounded-xl border-2 border-[#E8E8E4] text-sm font-semibold text-[#4B5563] hover:bg-[#F4F4F1]"
+                className="h-11 rounded-xl border-2 border-[#E8E8E4] text-sm font-semibold text-[#4B5563] hover:bg-[#F3F4F6]"
               >
                 Tidak
               </button>
               <button
                 data-testid="button-move-yes"
                 onClick={doMove}
-                className="h-11 rounded-xl bg-[#111114] text-sm font-bold text-white hover:bg-[#000000]"
+                className="h-11 rounded-xl bg-[#2563EB] text-sm font-bold text-white hover:bg-[#1D4ED8]"
               >
                 Ya, Pindahkan
               </button>
@@ -872,7 +874,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
             </p>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button data-testid="button-reset-cancel" onClick={() => setResetConfirm(false)}
-                className="h-11 rounded-xl border-2 border-[#E8E8E4] font-semibold text-[#4B5563] hover:bg-[#F4F4F1]">Tidak</button>
+                className="h-11 rounded-xl border-2 border-[#E8E8E4] font-semibold text-[#4B5563] hover:bg-[#F3F4F6]">Tidak</button>
               <button data-testid="button-reset-confirm" onClick={doReset}
                 className="h-11 rounded-xl bg-[#9CA3AF] font-bold text-white hover:bg-[#B45309]">Ya, Reset</button>
             </div>
@@ -883,15 +885,15 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
       {resetResult && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={() => setResetResult(null)}>
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="modal-reset-result">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#F1F1EE] text-[#111114]"><CheckCircle2 size={24} /></div>
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#EFF6FF] text-[#1D4ED8]"><CheckCircle2 size={24} /></div>
             <h3 className="font-heading text-lg font-bold text-[#111827]">Kata Sandi Direset</h3>
             <p className="mt-1.5 text-sm text-[#6B7280]">Nama pengguna:</p>
-            <div className="my-2 rounded-xl bg-[#F4F4F1] px-3 py-2 font-semibold text-[#111114]" data-testid={PARTICIPANTS.resetUsername}>{resetResult.username || data?.name}</div>
+            <div className="my-2 rounded-xl bg-[#F3F4F6] px-3 py-2 font-semibold text-[#1D4ED8]" data-testid={PARTICIPANTS.resetUsername}>{resetResult.username || data?.name}</div>
             <p className="mt-2 text-sm text-[#6B7280]">Kata sandi sementara:</p>
-            <div className="my-2 rounded-xl bg-[#F4F4F1] py-3 font-mono text-2xl font-bold tracking-widest text-[#111114]" data-testid="reset-result-password">{resetResult.password}</div>
+            <div className="my-2 rounded-xl bg-[#F3F4F6] py-3 font-mono text-2xl font-bold tracking-widest text-[#1D4ED8]" data-testid="reset-result-password">{resetResult.password}</div>
             <p className="text-xs text-[#9CA3AF]">Sampaikan dengan aman. Peserta harus mengganti kata sandi ini dan melengkapi data akun setelah masuk.</p>
             <button data-testid="button-reset-result-close" onClick={() => setResetResult(null)}
-              className="mt-4 h-11 w-full rounded-xl bg-[#111114] font-bold text-white hover:bg-[#000000]">Tutup</button>
+              className="mt-4 h-11 w-full rounded-xl bg-[#2563EB] font-bold text-white hover:bg-[#1D4ED8]">Tutup</button>
           </div>
         </div>
       )}

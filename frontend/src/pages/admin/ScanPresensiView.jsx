@@ -33,7 +33,7 @@ export default function ScanPresensiView() {
       <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-            <ScanLine size={22} className="text-[#111114]" /> Scan Presensi
+            <ScanLine size={22} className="text-[#1D4ED8]" /> Scan Presensi
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
             Daftar kegiatan beserta <b>QR kegiatannya</b>. Tampilkan QR agar peserta memindainya sendiri,
@@ -45,12 +45,12 @@ export default function ScanPresensiView() {
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value || todayYmd())}
-          className="h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white"
+          className="h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white"
         />
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
       ) : data === false ? (
         <div className="p-10 text-center text-[#6B7280]">Gagal memuat daftar kegiatan.</div>
       ) : data.rows.length === 0 ? (
@@ -62,11 +62,11 @@ export default function ScanPresensiView() {
           {data.rows.map((r) => (
             <div key={r.id} className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid={`scan-card-${r.id}`}>
               <div className="flex items-center gap-2 flex-wrap">
-                {r.session_label && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">{r.session_label}</span>}
+                {r.session_label && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">{r.session_label}</span>}
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${r.status === "open" ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#F3F4F6] text-[#4B5563]"}`}>
                   {r.status === "open" ? "Terbuka" : "Selesai"}
                 </span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#111114]">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#ECFEFF] text-[#1D4ED8]">
                   H {r.counts?.hadir ?? 0} · I {r.counts?.izin ?? 0} · A {r.counts?.alpha ?? 0}
                 </span>
               </div>
@@ -80,22 +80,22 @@ export default function ScanPresensiView() {
               <div className="mt-3 flex items-center gap-3">
                 <button type="button" onClick={() => setQrPreview(r)} aria-label={`Perbesar QR ${r.base_name}`}
                   data-testid={`${ACTIVITIES.scanQrOpenPrefix}-${r.id}`}
-                  className="shrink-0 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#111114]">
+                  className="shrink-0 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2563EB]">
                   <img src={r.image} alt={`QR ${r.base_name}`} className="w-28 h-28 rounded-xl border border-[#E8E8E4] p-1.5" data-testid={`scan-qr-${r.id}`} />
                 </button>
                 <div className="min-w-0 text-xs text-[#6B7280] space-y-2">
                   <p className="leading-relaxed">
-                    <QrCode size={13} className="inline mr-1 text-[#111114]" />
+                    <QrCode size={13} className="inline mr-1 text-[#1D4ED8]" />
                     QR ini berlaku <b>satu hari</b>{r.sessions > 1 ? " dan dipakai semua sesi hari itu" : ""}.
                   </p>
-                  <p className="font-semibold text-[#111114]">Ketuk QR untuk memperbesar.</p>
+                  <p className="font-semibold text-[#1D4ED8]">Ketuk QR untuk memperbesar.</p>
                 </div>
               </div>
 
               <button
                 data-testid={`scan-open-camera-${r.id}`}
                 onClick={() => setScanKegiatan({ id: r.id, name: r.base_name, status: r.status })}
-                className="mt-3 w-full h-11 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#000000]"
+                className="mt-3 w-full h-11 rounded-xl bg-[#2563EB] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8]"
               >
                 <Camera size={17} /> Scan QR Peserta
               </button>

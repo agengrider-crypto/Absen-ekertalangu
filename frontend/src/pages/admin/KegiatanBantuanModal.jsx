@@ -33,7 +33,7 @@ const inputClass = "flex h-9 min-w-0 items-center rounded-lg border border-[#E8E
 
 function Field({ label, value, highlighted = false }) {
   return (
-    <div className={`min-w-0 ${highlighted ? "rounded-lg ring-2 ring-[#111114] ring-offset-2" : ""}`}>
+    <div className={`min-w-0 ${highlighted ? "rounded-lg ring-2 ring-[#2563EB] ring-offset-2" : ""}`}>
       <div className="mb-1 text-[10px] font-semibold text-[#6B7280]">{label}</div>
       <div className={`${inputClass} truncate`}>{value}</div>
     </div>
@@ -60,7 +60,7 @@ function PreviewScene({ step }) {
       <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="truncate text-xs font-bold text-[#111827] sm:text-sm">{STEPS[step].title}</div>
-          <span className="shrink-0 rounded-full bg-[#F1F1EE] px-2 py-1 text-[9px] font-bold text-[#111114]">
+          <span className="shrink-0 rounded-full bg-[#EFF6FF] px-2 py-1 text-[9px] font-bold text-[#1D4ED8]">
             {step + 1} / {STEPS.length}
           </span>
         </div>
@@ -72,7 +72,7 @@ function PreviewScene({ step }) {
               <div>
                 <div className="mb-1 text-[10px] font-semibold text-[#6B7280]">Jenis kegiatan</div>
                 <div className="flex gap-2">
-                  <span className="rounded-lg bg-[#111114] px-3 py-1.5 text-[10px] font-semibold text-white">Rutin</span>
+                  <span className="rounded-lg bg-[#2563EB] px-3 py-1.5 text-[10px] font-semibold text-white">Rutin</span>
                   <span className="rounded-lg border border-[#E8E8E4] px-3 py-1.5 text-[10px] font-semibold text-[#4B5563]">Khusus</span>
                 </div>
               </div>
@@ -97,7 +97,7 @@ function PreviewScene({ step }) {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {["Pagi · 08.00–10.00", "Sore · 16.00–17.30"].map((session, index) => (
-                  <div key={session} className={`rounded-lg border bg-[#FAFAF8] p-2 ${index === 0 ? "border-[#111114] ring-2 ring-[#111114] ring-offset-1" : "border-[#E8E8E4]"}`}>
+                  <div key={session} className={`rounded-lg border bg-[#FAFAF8] p-2 ${index === 0 ? "border-[#2563EB] ring-2 ring-[#2563EB] ring-offset-1" : "border-[#E8E8E4]"}`}>
                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#111827]">
                       <Clock3 size={12} /> {session}
                     </div>
@@ -112,11 +112,11 @@ function PreviewScene({ step }) {
             <div className="grid h-full content-center gap-2.5">
               <div className="flex flex-wrap gap-1.5">
                 {["Reguler", "Remaja", "Khusus"].map((audience, index) => (
-                  <span key={audience} className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${index === 0 ? "bg-[#111114] text-white" : "border border-[#E8E8E4] text-[#4B5563]"}`}>
+                  <span key={audience} className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${index === 0 ? "bg-[#2563EB] text-white" : "border border-[#E8E8E4] text-[#4B5563]"}`}>
                     {audience}
                   </span>
                 ))}
-                <span className="rounded-full border border-[#111114] px-2.5 py-1 text-[9px] font-semibold text-[#111114]">Filter kelompok</span>
+                <span className="rounded-full border border-[#2563EB] px-2.5 py-1 text-[9px] font-semibold text-[#1D4ED8]">Filter kelompok</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {[
@@ -125,10 +125,10 @@ function PreviewScene({ step }) {
                   ["MR", "Muhammad Ridwan"],
                   ["FA", "Fatimah Azzahra"],
                 ].map(([initials, name], index) => (
-                  <div key={name} className={`flex min-w-0 items-center gap-2 rounded-lg border bg-white p-2 ${index === 1 ? "border-[#111114] ring-2 ring-[#111114] ring-offset-1" : "border-[#E8E8E4]"}`}>
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F1F1EE] text-[8px] font-bold text-[#111114]">{initials}</span>
+                  <div key={name} className={`flex min-w-0 items-center gap-2 rounded-lg border bg-white p-2 ${index === 1 ? "border-[#2563EB] ring-2 ring-[#2563EB] ring-offset-1" : "border-[#E8E8E4]"}`}>
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#EFF6FF] text-[8px] font-bold text-[#1D4ED8]">{initials}</span>
                     <span className="truncate text-[9px] font-medium text-[#374151]">{name}</span>
-                    {index === 1 && <Check size={12} className="ml-auto shrink-0 text-[#111114]" />}
+                    {index === 1 && <Check size={12} className="ml-auto shrink-0 text-[#1D4ED8]" />}
                   </div>
                 ))}
               </div>
@@ -148,10 +148,10 @@ function PreviewScene({ step }) {
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5 text-[9px] font-medium text-[#4B5563]">
-                  <span className="flex h-4 w-4 items-center justify-center rounded border border-[#111114] bg-[#111114] text-white"><Check size={10} /></span>
+                  <span className="flex h-4 w-4 items-center justify-center rounded border border-[#2563EB] bg-[#2563EB] text-white"><Check size={10} /></span>
                   Saya sudah memeriksa informasi
                 </span>
-                <span className="rounded-lg bg-[#111114] px-3 py-2 text-[9px] font-bold text-white">Simpan Kegiatan</span>
+                <span className="rounded-lg bg-[#2563EB] px-3 py-2 text-[9px] font-bold text-white">Simpan Kegiatan</span>
               </div>
             </div>
           )}
@@ -372,7 +372,7 @@ export default function KegiatanBantuanModal({ onClose }) {
             title="Tutup jika sudah paham"
             data-testid={ACTIVITIES.helpClose}
             onClick={onClose}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#111114] hover:text-[#111114]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#2563EB] hover:text-[#1D4ED8]"
           >
             <X size={20} />
           </button>
@@ -389,7 +389,7 @@ export default function KegiatanBantuanModal({ onClose }) {
                 aria-label={playback === "playing" ? "Jeda animasi" : playback === "paused" ? "Lanjutkan narasi" : step === STEPS.length - 1 ? "Putar ulang animasi dengan narasi" : "Putar animasi dengan narasi"}
                 data-testid={ACTIVITIES.helpPlay}
                 onClick={togglePlayback}
-                className="inline-flex min-h-11 shrink-0 touch-manipulation items-center justify-center gap-2 rounded-xl bg-[#111114] px-4 text-base font-semibold text-white hover:bg-black"
+                className="inline-flex min-h-11 shrink-0 touch-manipulation items-center justify-center gap-2 rounded-xl bg-[#2563EB] px-4 text-base font-semibold text-white hover:bg-[#1D4ED8]"
               >
                 {playback === "playing" ? <Pause size={17} /> : step === STEPS.length - 1 ? <RotateCcw size={17} /> : <Play size={17} />}
                 {playback === "playing" ? "Jeda" : playback === "paused" ? "Lanjutkan" : step === STEPS.length - 1 ? "Putar lagi" : "Putar"}
@@ -400,7 +400,7 @@ export default function KegiatanBantuanModal({ onClose }) {
                 data-testid={ACTIVITIES.helpPrevious}
                 onClick={() => moveToStep(step - 1)}
                 disabled={step === 0}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#E8E8E4] bg-white text-[#111114] disabled:opacity-40"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#E8E8E4] bg-white text-[#1D4ED8] disabled:opacity-40"
               >
                 <ChevronLeft size={19} />
               </button>
@@ -410,7 +410,7 @@ export default function KegiatanBantuanModal({ onClose }) {
                 data-testid={ACTIVITIES.helpNext}
                 onClick={() => moveToStep(step + 1)}
                 disabled={step === STEPS.length - 1}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#E8E8E4] bg-white text-[#111114] disabled:opacity-40"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-[#E8E8E4] bg-white text-[#1D4ED8] disabled:opacity-40"
               >
                 <ChevronRight size={19} />
               </button>
@@ -427,7 +427,7 @@ export default function KegiatanBantuanModal({ onClose }) {
                   aria-current={index === step ? "step" : undefined}
                   data-testid={`${ACTIVITIES.helpStep}-${index + 1}`}
                   onClick={() => moveToStep(index)}
-                  className={`h-2 flex-1 rounded-full transition-colors ${index <= step ? "bg-[#111114]" : "bg-[#E8E8E4]"}`}
+                  className={`h-2 flex-1 rounded-full transition-colors ${index <= step ? "bg-[#2563EB]" : "bg-[#E8E8E4]"}`}
                 />
               ))}
             </div>
@@ -451,7 +451,7 @@ export default function KegiatanBantuanModal({ onClose }) {
               <Play size={16} /> Naskah Narasi
             </h3>
             <div key={step} className="rounded-xl bg-[#FAFAF8] p-4 animate-[riseIn_0.32s_ease-out_both] motion-reduce:animate-none">
-              <h4 className="text-base font-bold text-[#111114]">{STEPS[step].title}</h4>
+              <h4 className="text-base font-bold text-[#1D4ED8]">{STEPS[step].title}</h4>
               <p className="mt-2 text-base leading-relaxed text-[#4B5563]">{STEPS[step].narration}</p>
               {step === 2 && (
                 <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#E8E8E4] bg-white p-2.5 text-sm text-[#4B5563]">
@@ -477,7 +477,7 @@ export default function KegiatanBantuanModal({ onClose }) {
                   onClick={() => moveToStep(index)}
                   data-testid={`${ACTIVITIES.helpNarrationStep}-${index + 1}`}
                   aria-current={index === step ? "step" : undefined}
-                  className={`min-h-10 rounded-xl border px-3 text-sm font-semibold ${index === step ? "border-[#111114] bg-[#111114] text-white" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}
+                  className={`min-h-10 rounded-xl border px-3 text-sm font-semibold ${index === step ? "border-[#2563EB] bg-[#2563EB] text-white" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}
                 >
                   {index + 1}. {item.title.split(" ").slice(0, 3).join(" ")}
                 </button>

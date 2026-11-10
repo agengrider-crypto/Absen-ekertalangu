@@ -3,15 +3,35 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tema "Clean" — off-white lapang, garis hairline, aksen hitam pekat (monokrom). */
+/* Tema "Clean" - off-white lapang, garis hairline, aksen biru (primary). */
 :root {
     --bg-app: #FAFAF8;
     --bg-surface: #FFFFFF;
     --hairline: #E8E8E4;
-    --ink: #111114;
+    --ink: #111827;
     --ink-muted: #6B7280;
-    --accent: #111114;
-    --accent-soft: #F1F1EE;
+    --accent: #2563EB;
+    --accent-soft: #EFF6FF;
+
+    /* Design token warna (selaras dengan src/lib/theme.js) */
+    --color-primary: #2563EB;
+    --color-primary-hover: #1D4ED8;
+    --color-primary-soft: #EFF6FF;
+    --color-success: #16A34A;
+    --color-success-soft: #DCFCE7;
+    --color-info: #0891B2;
+    --color-info-soft: #CFFAFE;
+    --color-warning: #D97706;
+    --color-warning-soft: #FEF3C7;
+    --color-danger: #DC2626;
+    --color-danger-soft: #FEE2E2;
+    --color-neutral: #6B7280;
+    --color-neutral-soft: #F3F4F6;
+    --color-border: #E8E8E4;
+    --color-text: #111827;
+    --color-text-muted: #6B7280;
+    --qr-foreground: #000000;
+    --qr-background: #FFFFFF;
 }
 
 body {
@@ -32,24 +52,24 @@ body {
 @layer base {
     :root {
         --background: 0 0% 100%;
-        --foreground: 240 6% 7%;
+        --foreground: 220 26% 14%;
         --card: 0 0% 100%;
-        --card-foreground: 240 6% 7%;
+        --card-foreground: 220 26% 14%;
         --popover: 0 0% 100%;
-        --popover-foreground: 240 6% 7%;
-        --primary: 240 6% 7%;
-        --primary-foreground: 0 0% 98%;
+        --popover-foreground: 220 26% 14%;
+        --primary: 221 83% 53%;
+        --primary-foreground: 0 0% 100%;
         --secondary: 40 14% 96%;
-        --secondary-foreground: 0 0% 9%;
+        --secondary-foreground: 220 26% 14%;
         --muted: 40 14% 96%;
         --muted-foreground: 220 9% 46%;
         --accent: 60 9% 94%;
-        --accent-foreground: 240 6% 7%;
+        --accent-foreground: 220 26% 14%;
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 0 0% 98%;
         --border: 45 10% 90%;
         --input: 45 10% 90%;
-        --ring: 240 6% 7%;
+        --ring: 221 83% 53%;
         --radius: 0.875rem;
     }
 }
@@ -64,7 +84,7 @@ body {
 }
 
 ::selection {
-    background: #111114;
+    background: #2563EB;
     color: #fff;
 }
 

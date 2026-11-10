@@ -6,13 +6,13 @@ import { Logo } from "@/components/Logo";
 import { TYPE_LABEL, tanggalPanjang, hhmm } from "./admin/kegiatanUtils";
 
 const ST = {
-  hadir: { t: "H", cls: "bg-[#111114] text-white", title: "Hadir" },
+  hadir: { t: "H", cls: "bg-[#2563EB] text-white", title: "Hadir" },
   izin: { t: "I", cls: "bg-[#9CA3AF] text-white", title: "Izin" },
   sakit: { t: "S", cls: "bg-[#DBEAFE] text-[#1D4ED8]", title: "Sakit" },
   alpha: { t: "A", cls: "bg-[#FEE2E2] text-[#991B1B]", title: "Alpha" },
   belum_diabsen: { t: "—", cls: "bg-[#FEF3C7] text-[#92400E]", title: "Belum diabsen" },
   exempt: { t: "✓", cls: "bg-[#F3F4F6] text-[#9CA3AF]", title: "Sudah hadir di sesi sebelumnya — tidak dihitung" },
-  optional: { t: "·", cls: "bg-[#EEF2FF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
+  optional: { t: "·", cls: "bg-[#ECFEFF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
 };
 
 // Rekap tetap berwarna: bar hijau sebagai warna dasar kehadiran.
@@ -54,12 +54,12 @@ export default function PublicRekapGabungan() {
     );
   }
   if (!data) {
-    return <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>;
+    return <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={32} /></div>;
   }
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] pb-14" data-testid="rekap-gabungan-public">
-      <header className="bg-[#111114] text-white">
+      <header className="bg-[#2563EB] text-white">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" /></div>
           <div className="leading-tight">
@@ -72,9 +72,9 @@ export default function PublicRekapGabungan() {
       <main className="max-w-2xl mx-auto px-4 -mt-3">
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">{TYPE_LABEL[data.type] || data.type}</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">{TYPE_LABEL[data.type] || data.type}</span>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] inline-flex items-center gap-1"><Layers size={12} /> {data.sessions.length} Sesi</span>
-            {(data.filter_labels || []).map((l) => <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{l}</span>)}
+            {(data.filter_labels || []).map((l) => <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEF2F2] text-[#B91C1C]">{l}</span>)}
           </div>
           <h1 className="font-heading text-xl font-bold text-[#111827] mt-2">{data.base_name}</h1>
           <div className="text-sm text-[#6B7280] mt-2 space-y-1">
@@ -109,7 +109,7 @@ export default function PublicRekapGabungan() {
 
         {/* Tabel peserta × sesi */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] mt-4 overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#E8E8E4] font-semibold text-sm text-[#111827] flex items-center gap-2"><Clock size={15} className="text-[#111114]" /> Daftar Peserta per Sesi</div>
+          <div className="px-4 py-3 border-b border-[#E8E8E4] font-semibold text-sm text-[#111827] flex items-center gap-2"><Clock size={15} className="text-[#1D4ED8]" /> Daftar Peserta per Sesi</div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="gabungan-public-table">
               <thead className="bg-[#FAFAF8] text-[#6B7280] text-left">

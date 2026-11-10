@@ -111,7 +111,7 @@ export default function SelfAbsen() {
   if (user === null) {
     return (
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#111114]" size={32} />
+        <Loader2 className="animate-spin text-[#1D4ED8]" size={32} />
       </div>
     );
   }
@@ -120,8 +120,8 @@ export default function SelfAbsen() {
   if (user === false) {
     return (
       <Shell subtitle="Absen Mandiri">
-        <div className="bg-white rounded-2xl border-2 border-[#111114]/15 p-6 text-center shadow-sm" data-testid="absen-need-login">
-          <div className="h-16 w-16 rounded-2xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-2xl border-2 border-[#2563EB]/15 p-6 text-center shadow-sm" data-testid="absen-need-login">
+          <div className="h-16 w-16 rounded-2xl bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center mx-auto">
             <ShieldAlert size={30} />
           </div>
           <h1 className="font-heading text-lg font-bold text-[#111827] mt-4">Mohon masuk terlebih dahulu</h1>
@@ -132,7 +132,7 @@ export default function SelfAbsen() {
           <button
             data-testid="absen-login-button"
             onClick={() => navigate(`/login?next=${encodeURIComponent(`/absen/${token}`)}`)}
-            className="mt-5 w-full h-[52px] rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#000000]"
+            className="mt-5 w-full h-[52px] rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8]"
           >
             <LogIn size={19} /> Masuk untuk Absen
           </button>
@@ -148,14 +148,14 @@ export default function SelfAbsen() {
   if (err) {
     return (
       <Shell>
-        <div className="bg-white rounded-2xl border border-[#FCA5A5] p-6 text-center" data-testid="absen-error">
+        <div className="bg-white rounded-2xl border border-[#FECACA] p-6 text-center" data-testid="absen-error">
           <div className="h-14 w-14 rounded-full bg-[#FEE2E2] text-[#991B1B] flex items-center justify-center mx-auto">
             <ShieldAlert size={26} />
           </div>
           <p className="text-[#991B1B] font-semibold mt-4">{err}</p>
           <button
             onClick={() => navigate("/roles")}
-            className="mt-5 h-11 px-5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE]"
+            className="mt-5 h-11 px-5 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm hover:bg-[#EFF6FF]"
           >
             Kembali ke Beranda
           </button>
@@ -167,7 +167,7 @@ export default function SelfAbsen() {
   if (!data) {
     return (
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#111114]" size={32} />
+        <Loader2 className="animate-spin text-[#1D4ED8]" size={32} />
       </div>
     );
   }
@@ -182,7 +182,7 @@ export default function SelfAbsen() {
     <Shell>
       {/* Info kegiatan */}
       <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 shadow-sm" data-testid="absen-kegiatan-info">
-        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">{TYPE_LABEL[k.type] || k.type}</span>
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">{TYPE_LABEL[k.type] || k.type}</span>
         <h1 className="font-heading text-xl font-bold text-[#111827] mt-2">{k.name}</h1>
         <div className="text-sm text-[#6B7280] mt-2 space-y-1">
           <div className="flex items-center gap-2"><CalendarDays size={15} /> {tanggalPanjang(k.date)}</div>
@@ -195,20 +195,20 @@ export default function SelfAbsen() {
 
       {/* Kartu absen — FOKUS 1 NAMA */}
       {result && !result.already ? (
-        <div className="bg-white rounded-2xl border-2 border-[#111114] p-6 mt-4 text-center" data-testid="absen-success">
-          <div className="h-16 w-16 rounded-full bg-[#F1F1EE] text-[#111114] flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-2xl border-2 border-[#2563EB] p-6 mt-4 text-center" data-testid="absen-success">
+          <div className="h-16 w-16 rounded-full bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center mx-auto">
             <PartyPopper size={30} />
           </div>
           <div className="text-lg font-bold text-[#111827] mt-3">Absen Berhasil</div>
           <p className="text-[#4B5563] mt-1.5 leading-relaxed">{result.message}</p>
           <div className="mt-4 inline-flex items-center gap-2 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl px-4 py-2.5">
-            <UserCheck size={18} className="text-[#111114]" />
-            <span className="font-bold text-[#111114]">{result.name}</span>
+            <UserCheck size={18} className="text-[#1D4ED8]" />
+            <span className="font-bold text-[#1D4ED8]">{result.name}</span>
             <span className="text-[#4B5563] text-sm">· Hadir {result.arrival_time ? `${hhmm(result.arrival_time)} WITA` : ""}</span>
           </div>
         </div>
       ) : closed ? (
-        <div className="bg-white rounded-2xl border border-[#FCA5A5] p-6 mt-4 text-center" data-testid="absen-closed">
+        <div className="bg-white rounded-2xl border border-[#FECACA] p-6 mt-4 text-center" data-testid="absen-closed">
           <div className="h-14 w-14 rounded-full bg-[#FEE2E2] text-[#991B1B] flex items-center justify-center mx-auto"><Lock size={26} /></div>
           <div className="text-base font-bold text-[#991B1B] mt-3">Kegiatan sudah ditutup</div>
           <p className="text-sm text-[#4B5563] mt-1.5 leading-relaxed">
@@ -220,22 +220,22 @@ export default function SelfAbsen() {
         <div className="bg-white rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-6 mt-4 text-center" data-testid="absen-not-peserta">
           <div className="h-14 w-14 rounded-full bg-[#FEF3C7] text-[#92400E] flex items-center justify-center mx-auto"><ShieldAlert size={26} /></div>
           <div className="text-base font-bold text-[#92400E] mt-3">Akun Anda bukan peserta pengajian</div>
-          <p className="text-sm text-[#78350F] mt-1.5">
+          <p className="text-sm text-[#92400E] mt-1.5">
             Mohon maaf, absen mandiri hanya untuk akun dengan peran peserta.
             Silakan menghubungi pengurus untuk didaftarkan.
           </p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4" data-testid="absen-self-card">
-          <div className="flex items-center gap-2 text-[#111114] font-bold">
+          <div className="flex items-center gap-2 text-[#1D4ED8] font-bold">
             <UserCheck size={18} /> Kehadiran Anda
           </div>
           <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
             Kehadiran langsung dicatat atas nama akun Anda sendiri dan tidak dapat dititipkan.
           </p>
 
-          <div className="mt-4 rounded-2xl border-2 border-[#111114]/15 bg-[#FAFAF8] p-4 flex items-center gap-3.5">
-            <div className="h-12 w-12 shrink-0 rounded-full bg-[#111114] text-white flex items-center justify-center font-bold">
+          <div className="mt-4 rounded-2xl border-2 border-[#2563EB]/15 bg-[#FAFAF8] p-4 flex items-center gap-3.5">
+            <div className="h-12 w-12 shrink-0 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold">
               {(me.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
             </div>
             <div className="min-w-0">
@@ -249,17 +249,17 @@ export default function SelfAbsen() {
           </div>
 
           {sudahHadir ? (
-            <div className="mt-4 rounded-xl bg-[#F1F1EE] border border-[#D5D5CE] p-4 text-center" data-testid="absen-already">
-              <CheckCircle2 className="mx-auto text-[#111114]" size={26} />
-              <p className="text-sm font-semibold text-[#111114] mt-1.5">
+            <div className="mt-4 rounded-xl bg-[#EFF6FF] border border-[#D1D5DB] p-4 text-center" data-testid="absen-already">
+              <CheckCircle2 className="mx-auto text-[#1D4ED8]" size={26} />
+              <p className="text-sm font-semibold text-[#1D4ED8] mt-1.5">
                 Kehadiran Anda sudah tercatat. Terima kasih, jazakumullahu khoiro.
               </p>
             </div>
           ) : sudahLaporkan ? (
             <div className="mt-4 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] p-4" data-testid={SELF_ABSENCE.absenceReported}>
               <div className="font-bold text-[#92400E]">Laporan tidak hadir sudah dikirim</div>
-              <p className="text-sm text-[#78350F] mt-1">Alasan: {me.absence_reason}</p>
-              {me.absence_note && <p className="text-sm text-[#78350F] mt-1">Keterangan: {me.absence_note}</p>}
+              <p className="text-sm text-[#92400E] mt-1">Alasan: {me.absence_reason}</p>
+              {me.absence_note && <p className="text-sm text-[#92400E] mt-1">Keterangan: {me.absence_note}</p>}
               <button
                 type="button"
                 data-testid={SELF_ABSENCE.editAbsence}
@@ -287,7 +287,7 @@ export default function SelfAbsen() {
                   data-testid={SELF_ABSENCE.markPresent}
                   onClick={doMark}
                   disabled={marking || absenceSending}
-                  className="min-h-[54px] rounded-xl bg-[#111114] px-3 text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60"
+                  className="min-h-[54px] rounded-xl bg-[#2563EB] px-3 text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60"
                 >
                   {marking ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
                   Catat Kehadiran Saya
@@ -316,11 +316,11 @@ export default function SelfAbsen() {
 
       {/* Kotak Pesan / Saran */}
       <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4">
-        <div className="flex items-center gap-2 text-[#111114] font-bold"><MessageSquareText size={18} /> Kotak Pesan / Saran</div>
+        <div className="flex items-center gap-2 text-[#1D4ED8] font-bold"><MessageSquareText size={18} /> Kotak Pesan / Saran</div>
         {fbDone ? (
-          <div className="mt-3 rounded-xl bg-[#F1F1EE] text-[#111114] p-4 text-center text-sm font-semibold" data-testid="feedback-done">
+          <div className="mt-3 rounded-xl bg-[#EFF6FF] text-[#1D4ED8] p-4 text-center text-sm font-semibold" data-testid="feedback-done">
             Alhamdulillah, jazakumullahu khoiro 🤲
-            <button onClick={() => { setFbDone(false); setShowFb(false); }} className="block mx-auto mt-2 text-[#111114] underline text-xs font-normal">Kirim lagi</button>
+            <button onClick={() => { setFbDone(false); setShowFb(false); }} className="block mx-auto mt-2 text-[#1D4ED8] underline text-xs font-normal">Kirim lagi</button>
           </div>
         ) : !showFb ? (
           <>
@@ -328,7 +328,7 @@ export default function SelfAbsen() {
             <button
               data-testid="button-open-feedback"
               onClick={() => setShowFb(true)}
-              className="mt-3 w-full h-12 rounded-xl border-2 border-[#111114] text-[#111114] font-bold flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"
+              className="mt-3 w-full h-12 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-bold flex items-center justify-center gap-2 hover:bg-[#EFF6FF]"
             >
               <MessageSquareText size={18} /> Tulis Pesan / Saran
             </button>
@@ -340,7 +340,7 @@ export default function SelfAbsen() {
               value={fbName}
               onChange={(e) => setFbName(e.target.value)}
               placeholder={`Nama (opsional) — mis. ${user?.name || ""}`}
-              className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#111114] bg-white"
+              className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#2563EB] bg-white"
             />
             <textarea
               data-testid="feedback-message"
@@ -348,13 +348,13 @@ export default function SelfAbsen() {
               onChange={(e) => setFbMsg(e.target.value)}
               rows={3}
               placeholder="Tulis pesan / saran Anda..."
-              className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#111114] bg-white resize-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#2563EB] bg-white resize-none"
             />
             <div className="flex gap-2">
               <button
                 data-testid="button-cancel-feedback"
                 onClick={() => setShowFb(false)}
-                className="h-12 px-4 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold hover:bg-[#F4F4F1]"
+                className="h-12 px-4 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold hover:bg-[#F3F4F6]"
               >
                 Batal
               </button>
@@ -362,7 +362,7 @@ export default function SelfAbsen() {
                 data-testid="button-send-feedback"
                 onClick={() => sendFeedback(false)}
                 disabled={fbSending}
-                className="flex-1 h-12 rounded-xl bg-[#111114] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60"
+                className="flex-1 h-12 rounded-xl bg-[#2563EB] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60"
               >
                 {fbSending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />} Kirim
               </button>
@@ -371,7 +371,7 @@ export default function SelfAbsen() {
               data-testid="button-send-feedback-anonim"
               onClick={() => sendFeedback(true)}
               disabled={fbSending}
-              className="w-full h-12 rounded-xl border-2 border-[#111114] text-[#111114] font-bold flex items-center justify-center gap-2 hover:bg-[#F1F1EE] disabled:opacity-60"
+              className="w-full h-12 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-bold flex items-center justify-center gap-2 hover:bg-[#EFF6FF] disabled:opacity-60"
             >
               <UserX size={18} /> Kirim Tanpa Nama (Anonim)
             </button>
@@ -402,7 +402,7 @@ function AbsenceForm({ reason, setReason, note, setNote, sending, onSubmit, onCa
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           maxLength={300}
-          className="mt-1.5 w-full min-h-11 rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 text-base outline-none focus:border-[#111114]"
+          className="mt-1.5 w-full min-h-11 rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 text-base outline-none focus:border-[#2563EB]"
           placeholder="Contoh: sakit atau ada keperluan keluarga"
         />
       </label>
@@ -414,7 +414,7 @@ function AbsenceForm({ reason, setReason, note, setNote, sending, onSubmit, onCa
           onChange={(e) => setNote(e.target.value)}
           maxLength={500}
           rows={2}
-          className="mt-1.5 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 py-2.5 text-base outline-none focus:border-[#111114]"
+          className="mt-1.5 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 py-2.5 text-base outline-none focus:border-[#2563EB]"
           placeholder="Tambahkan keterangan bila diperlukan"
         />
       </label>
@@ -435,7 +435,7 @@ function AbsenceForm({ reason, setReason, note, setNote, sending, onSubmit, onCa
 function Shell({ children, subtitle = "Absen Mandiri" }) {
   return (
     <div className="min-h-screen bg-[#FAFAF8] pb-16">
-      <header className="bg-[#111114] text-white">
+      <header className="bg-[#2563EB] text-white">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
             <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />

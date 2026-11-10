@@ -485,7 +485,7 @@ def make_qr_data_url(data: str) -> str:
                        error_correction=qrcode.constants.ERROR_CORRECT_M)
     qr.add_data(data)
     qr.make(fit=True)
-    img = qr.make_image(fill_color="#111114", back_color="white")
+    img = qr.make_image(fill_color="#000000", back_color="#FFFFFF")
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()

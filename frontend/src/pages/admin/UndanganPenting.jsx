@@ -53,7 +53,7 @@ export default function UndanganPenting({ kegiatanId }) {
     } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
   };
 
-  if (!data) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>;
+  if (!data) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>;
 
   const terkirim = (data.user_ids || []).length;
 
@@ -83,7 +83,7 @@ export default function UndanganPenting({ kegiatanId }) {
             onChange={(e) => setMessage(e.target.value)}
             rows={3}
             placeholder="Mis. Mohon hadir 15 menit lebih awal, ada pembahasan penting."
-            className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] resize-none"
+            className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] resize-none"
           />
         </div>
 
@@ -95,11 +95,11 @@ export default function UndanganPenting({ kegiatanId }) {
             <div className="flex gap-2">
               <button type="button" data-testid="undangan-check-all"
                 onClick={() => setPicked(rows.map((r) => r.user_id))}
-                className="h-8 px-2.5 rounded-lg border border-[#E8E8E4] text-xs font-semibold text-[#4B5563] hover:border-[#111114] hover:text-[#111114]">
+                className="h-8 px-2.5 rounded-lg border border-[#E8E8E4] text-xs font-semibold text-[#4B5563] hover:border-[#2563EB] hover:text-[#1D4ED8]">
                 Centang semua
               </button>
               <button type="button" data-testid="undangan-uncheck-all" onClick={() => setPicked([])}
-                className="h-8 px-2.5 rounded-lg border border-[#E8E8E4] text-xs font-semibold text-[#4B5563] hover:border-[#111114] hover:text-[#111114]">
+                className="h-8 px-2.5 rounded-lg border border-[#E8E8E4] text-xs font-semibold text-[#4B5563] hover:border-[#2563EB] hover:text-[#1D4ED8]">
                 Kosongkan
               </button>
             </div>
@@ -108,7 +108,7 @@ export default function UndanganPenting({ kegiatanId }) {
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
             <input data-testid="undangan-search" value={q} onChange={(e) => setQ(e.target.value)}
               placeholder="Cari nama peserta…"
-              className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
+              className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white" />
           </div>
           <div className="mt-2 max-h-72 overflow-y-auto rounded-xl border border-[#E8E8E4] divide-y divide-[#F3F4F6]">
             {rows.length === 0 ? (

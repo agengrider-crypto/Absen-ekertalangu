@@ -5,7 +5,7 @@
 export const APP_INFO = {
   name: "E-KERTALANGU",
   tagline: "Absensi Pengajian",
-  version: "2.0.0",
+  version: "2.1.0",
   build: "2026.11.09",
   releaseYear: 2026,
   developer: "BrodyCorp",
@@ -18,6 +18,17 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    id: "2026-11-09-tema",
+    date: "2026-11-09",
+    title: "Standar Warna Baru & Halaman Maintenance",
+    items: [
+      "Seluruh aplikasi memakai satu palet warna: biru (utama), hijau (hadir/aktif), cyan (info), amber (izin), merah (alpha/hapus), abu-abu (netral).",
+      "Design token terpusat di src/lib/theme.js dan CSS variable, mudah diubah di masa depan.",
+      "QR Code & Barcode tetap hitam di atas putih agar pemindaian tetap cepat.",
+      "Halaman Maintenance baru dengan pesan ramah dan tombol Coba Lagi.",
+    ],
+  },
   {
     id: "2026-11-09-profil",
     date: "2026-11-09",

@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { ACTIVATION_QR } from "@/constants/testIds";
 
-const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white";
+const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white";
 
 function errText(e) {
   return formatApiErrorDetail(e?.response?.data?.detail) || e?.message || "Terjadi kesalahan.";
@@ -48,7 +48,7 @@ export function ActivationQrCard({ onOpen }) {
           type="button"
           data-testid={ACTIVATION_QR.open}
           onClick={onOpen}
-          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[#111114] px-3.5 text-sm font-semibold text-white hover:bg-black"
+          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[#2563EB] px-3.5 text-sm font-semibold text-white hover:bg-[#1D4ED8]"
         >
           <Maximize2 size={15} /> Buka
         </button>
@@ -59,7 +59,7 @@ export function ActivationQrCard({ onOpen }) {
           type="button"
           onClick={onOpen}
           aria-label="Perbesar QR aktivasi"
-          className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border border-[#E8E8E4] bg-white p-1.5 hover:border-[#111114]"
+          className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border border-[#E8E8E4] bg-white p-1.5 hover:border-[#2563EB]"
         >
           {qr?.image ? (
             <img src={qr.image} alt="QR Aktivasi Akun" className="h-full w-full object-contain" />
@@ -229,7 +229,7 @@ export default function ActivationQrModal({ onClose }) {
       >
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#ECECE8] bg-white px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F1F1EE] text-[#111114]">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#1D4ED8]">
               <QrCode size={20} />
             </span>
             <div className="min-w-0">
@@ -244,7 +244,7 @@ export default function ActivationQrModal({ onClose }) {
             data-testid={ACTIVATION_QR.close}
             onClick={onClose}
             aria-label="Tutup"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F4F4F1]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F3F4F6]"
           >
             <X size={20} />
           </button>
@@ -260,7 +260,7 @@ export default function ActivationQrModal({ onClose }) {
                   data-testid={ACTIVATION_QR.zoom}
                   onClick={() => qr?.image && setZoom(true)}
                   aria-label="Perbesar QR"
-                  className="group relative flex h-56 w-56 items-center justify-center rounded-2xl border border-[#E8E8E4] bg-white p-2 hover:border-[#111114]"
+                  className="group relative flex h-56 w-56 items-center justify-center rounded-2xl border border-[#E8E8E4] bg-white p-2 hover:border-[#2563EB]"
                 >
                   {qr?.image ? (
                     <img
@@ -275,7 +275,7 @@ export default function ActivationQrModal({ onClose }) {
                     <Loader2 size={26} className="animate-spin text-[#9CA3AF]" />
                   )}
                   {qr?.image && (
-                    <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#111114]/85 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#2563EB]/85 text-white opacity-0 transition-opacity group-hover:opacity-100">
                       <Maximize2 size={15} />
                     </span>
                   )}
@@ -289,7 +289,7 @@ export default function ActivationQrModal({ onClose }) {
                     data-testid={ACTIVATION_QR.print}
                     onClick={printQr}
                     disabled={!qr?.image}
-                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[#111114] text-sm font-semibold text-white hover:bg-black disabled:opacity-50"
+                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8] disabled:opacity-50"
                   >
                     <Printer size={15} /> Cetak QR
                   </button>
@@ -351,7 +351,7 @@ export default function ActivationQrModal({ onClose }) {
                         data-testid={`${ACTIVATION_QR.activatePrefix}-${r.id}`}
                         onClick={() => activateExisting(r)}
                         disabled={busyId === r.id}
-                        className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[#15803D] px-3 text-xs font-semibold text-white hover:bg-[#166534] disabled:opacity-60"
+                        className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[#16A34A] px-3 text-xs font-semibold text-white hover:bg-[#15803D] disabled:opacity-60"
                       >
                         {busyId === r.id ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
                         Aktifkan
@@ -391,7 +391,7 @@ export default function ActivationQrModal({ onClose }) {
                 type="submit"
                 data-testid={ACTIVATION_QR.manualSubmit}
                 disabled={manualBusy}
-                className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#111114] text-sm font-semibold text-white hover:bg-black disabled:opacity-60"
+                className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8] disabled:opacity-60"
               >
                 {manualBusy ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
                 Buat &amp; Aktifkan
@@ -400,7 +400,7 @@ export default function ActivationQrModal({ onClose }) {
               {manualResult && (
                 <div
                   data-testid={ACTIVATION_QR.manualResult}
-                  className="mt-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-sm text-[#14532D]"
+                  className="mt-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-sm text-[#166534]"
                 >
                   <div className="flex items-center gap-1.5 font-semibold">
                     <CheckCircle2 size={15} /> Akun aktif
@@ -428,7 +428,7 @@ export default function ActivationQrModal({ onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="h-11 w-full rounded-xl bg-[#F4F4F1] text-sm font-semibold text-[#4B5563] hover:bg-[#E9EDE9]"
+            className="h-11 w-full rounded-xl bg-[#F3F4F6] text-sm font-semibold text-[#4B5563] hover:bg-[#E8E8E4]"
           >
             Tutup
           </button>

@@ -19,6 +19,7 @@ import PublicAbsensi from "@/pages/PublicAbsensi";
 import PublicHadir from "@/pages/PublicHadir";
 import KodeAbsen from "@/pages/KodeAbsen";
 import CompleteProfile from "@/pages/CompleteProfile";
+import Maintenance, { isMaintenanceMode } from "@/pages/Maintenance";
 
 function CheckingSession() {
   return (
@@ -88,12 +89,21 @@ function AppRoutes() {
       <Route path="/absen-kode" element={<KodeAbsen />} />
       <Route path="/roles" element={<Protected><RoleDashboard /></Protected>} />
       <Route path="/area/:role" element={<Protected><RoleArea /></Protected>} />
+      <Route path="/maintenance" element={<Maintenance />} />
       <Route path="*" element={<Navigate to="/roles" replace />} />
     </Routes>
   );
 }
 
 function App() {
+  // Mode maintenance: aktif lewat ?maintenance=1 atau localStorage.
+  if (isMaintenanceMode()) {
+    return (
+      <div className="App">
+        <Maintenance />
+      </div>
+    );
+  }
   return (
     <div className="App">
       <AuthProvider>

@@ -54,7 +54,7 @@ export default function PublicHadir() {
   if (!info) {
     return (
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#111114]" size={32} />
+        <Loader2 className="animate-spin text-[#1D4ED8]" size={32} />
       </div>
     );
   }
@@ -66,10 +66,10 @@ export default function PublicHadir() {
     <Shell>
       <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5" data-testid="hadir-kegiatan-info">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">{TYPE_LABEL[k.type] || "Kegiatan"}</span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EEF2FF] text-[#111114]">Terbuka untuk Umum</span>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">{TYPE_LABEL[k.type] || "Kegiatan"}</span>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#ECFEFF] text-[#1D4ED8]">Terbuka untuk Umum</span>
           {k.gender_filter && k.gender_filter !== "semua" && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{k.gender_label}</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEF2F2] text-[#B91C1C]">{k.gender_label}</span>
           )}
         </div>
         <h1 className="font-heading text-xl font-bold text-[#111827] mt-2">{k.name}</h1>
@@ -83,8 +83,8 @@ export default function PublicHadir() {
       </div>
 
       {result ? (
-        <div className="bg-white rounded-2xl border-2 border-[#111114] p-6 mt-4 text-center" data-testid="hadir-success">
-          <div className="h-16 w-16 rounded-full bg-[#F1F1EE] text-[#111114] flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-2xl border-2 border-[#2563EB] p-6 mt-4 text-center" data-testid="hadir-success">
+          <div className="h-16 w-16 rounded-full bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center mx-auto">
             <PartyPopper size={30} />
           </div>
           <div className="text-lg font-bold text-[#111827] mt-3">
@@ -92,20 +92,20 @@ export default function PublicHadir() {
           </div>
           <p className="text-[#4B5563] mt-1.5 leading-relaxed">{result.message}</p>
           <div className="mt-4 inline-flex items-center gap-2 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl px-4 py-2.5">
-            <UserCheck size={18} className="text-[#111114]" />
-            <span className="font-bold text-[#111114]">{result.name}</span>
+            <UserCheck size={18} className="text-[#1D4ED8]" />
+            <span className="font-bold text-[#1D4ED8]">{result.name}</span>
             {result.arrival_time && <span className="text-[#4B5563] text-sm">· {hhmm(result.arrival_time)} WITA</span>}
           </div>
           <button
             data-testid="hadir-again"
             onClick={() => { setResult(null); setName(""); }}
-            className="mt-4 w-full h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold hover:bg-[#F1F1EE]"
+            className="mt-4 w-full h-11 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold hover:bg-[#EFF6FF]"
           >
             Catat Kehadiran Lain
           </button>
         </div>
       ) : closed ? (
-        <div className="bg-white rounded-2xl border border-[#FCA5A5] p-6 mt-4 text-center" data-testid="hadir-closed">
+        <div className="bg-white rounded-2xl border border-[#FECACA] p-6 mt-4 text-center" data-testid="hadir-closed">
           <ShieldAlert className="mx-auto text-[#DC2626]" size={30} />
           <p className="mt-3 text-[#991B1B] font-semibold">Kegiatan ini sudah selesai/ditutup.</p>
           <p className="text-sm text-[#4B5563] mt-1.5">
@@ -114,7 +114,7 @@ export default function PublicHadir() {
         </div>
       ) : (
         <form onSubmit={submit} className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4" data-testid="hadir-form">
-          <div className="flex items-center gap-2 text-[#111114] font-bold">
+          <div className="flex items-center gap-2 text-[#1D4ED8] font-bold">
             <UserCheck size={18} /> Absen Kehadiran
           </div>
           <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
@@ -125,13 +125,13 @@ export default function PublicHadir() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nama lengkap Anda"
-            className="mt-4 w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white"
+            className="mt-4 w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white"
           />
           <button
             data-testid="hadir-submit"
             type="submit"
             disabled={saving}
-            className="mt-3 w-full h-[54px] rounded-xl bg-[#111114] text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60"
+            className="mt-3 w-full h-[54px] rounded-xl bg-[#2563EB] text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60"
           >
             {saving ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />} Catat Kehadiran Saya
           </button>

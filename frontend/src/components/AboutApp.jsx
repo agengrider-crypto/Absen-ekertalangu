@@ -31,7 +31,7 @@ export function markTourSeen() {
 function InfoRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-start gap-3 py-2.5">
-      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F1F1EE] text-[#111114]">
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EFF6FF] text-[#1D4ED8]">
         <Icon size={15} />
       </span>
       <div className="min-w-0 flex-1">
@@ -67,7 +67,7 @@ export default function AboutApp({ onClose, onStartTour }) {
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#ECECE8] bg-white px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F1F1EE] p-1">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] p-1">
               <img src="/logo.png" alt="" className="h-full w-full object-contain" />
             </span>
             <div className="min-w-0">
@@ -84,7 +84,7 @@ export default function AboutApp({ onClose, onStartTour }) {
             data-testid={ABOUT.close}
             onClick={onClose}
             aria-label="Tutup"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F4F4F1]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F3F4F6]"
           >
             <X size={20} />
           </button>
@@ -95,17 +95,17 @@ export default function AboutApp({ onClose, onStartTour }) {
             {/* Identitas aplikasi */}
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid={ABOUT.identity}>
               <div className="flex items-center gap-3">
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F1F1EE] p-1.5">
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#EFF6FF] p-1.5">
                   <img src="/logo.png" alt={APP_INFO.name} className="h-full w-full object-contain" />
                 </span>
                 <div className="min-w-0">
                   <div className="font-heading text-base font-bold text-[#111827]">{APP_INFO.name}</div>
                   <div className="text-xs text-[#6B7280]">{APP_INFO.tagline}</div>
                   <div className="mt-1 flex flex-wrap gap-1.5">
-                    <span className="rounded-full bg-[#111114] px-2 py-0.5 text-[11px] font-semibold text-white">
+                    <span className="rounded-full bg-[#2563EB] px-2 py-0.5 text-[11px] font-semibold text-white">
                       v{APP_INFO.version}
                     </span>
-                    <span className="rounded-full bg-[#F1F1EE] px-2 py-0.5 text-[11px] font-semibold text-[#374151]">
+                    <span className="rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-semibold text-[#374151]">
                       build {APP_INFO.build}
                     </span>
                   </div>
@@ -148,7 +148,7 @@ export default function AboutApp({ onClose, onStartTour }) {
                 type="button"
                 data-testid={ABOUT.tourStart}
                 onClick={() => onStartTour?.()}
-                className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#111114] text-sm font-semibold text-white hover:bg-black"
+                className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8]"
               >
                 <Play size={16} /> Mulai Tour
               </button>
@@ -168,7 +168,7 @@ export default function AboutApp({ onClose, onStartTour }) {
           <button
             type="button"
             onClick={onClose}
-            className="h-11 w-full rounded-xl bg-[#F4F4F1] text-sm font-semibold text-[#4B5563] hover:bg-[#E9EDE9]"
+            className="h-11 w-full rounded-xl bg-[#F3F4F6] text-sm font-semibold text-[#4B5563] hover:bg-[#E8E8E4]"
           >
             Tutup
           </button>

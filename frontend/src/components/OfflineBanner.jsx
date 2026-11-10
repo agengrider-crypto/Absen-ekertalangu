@@ -14,7 +14,7 @@ export default function OfflineBanner({ online, pending = 0, syncing, onSync, cl
         className={`rounded-2xl border-2 border-[#FDE68A] bg-[#FFFBEB] p-4 flex items-start gap-3 ${className}`}
       >
         <CloudOff size={20} className="text-[#B45309] shrink-0 mt-0.5" />
-        <div className="text-sm text-[#78350F] leading-relaxed">
+        <div className="text-sm text-[#92400E] leading-relaxed">
           <b>Sedang tanpa internet (mode offline).</b> Absen yang Anda tandai tetap
           tersimpan di HP ini{pending > 0 ? ` (${pending} data menunggu)` : ""} dan akan
           otomatis terkirim begitu internet kembali. Mohon jangan menutup halaman ini.
@@ -26,17 +26,17 @@ export default function OfflineBanner({ online, pending = 0, syncing, onSync, cl
   return (
     <div
       data-testid="offline-pending-banner"
-      className={`rounded-2xl border-2 border-[#D5D5CE] bg-[#FAFAF8] p-4 flex items-center gap-3 flex-wrap ${className}`}
+      className={`rounded-2xl border-2 border-[#D1D5DB] bg-[#FAFAF8] p-4 flex items-center gap-3 flex-wrap ${className}`}
     >
-      {syncing ? <Loader2 size={20} className="text-[#111114] animate-spin" /> : <CheckCircle2 size={20} className="text-[#111114]" />}
-      <div className="text-sm text-[#111114] flex-1 min-w-[180px]">
+      {syncing ? <Loader2 size={20} className="text-[#1D4ED8] animate-spin" /> : <CheckCircle2 size={20} className="text-[#1D4ED8]" />}
+      <div className="text-sm text-[#1D4ED8] flex-1 min-w-[180px]">
         <b>{pending} absen offline</b> menunggu dikirim ke server.
       </div>
       <button
         data-testid="offline-sync-now"
         onClick={onSync}
         disabled={syncing}
-        className="h-10 px-4 rounded-xl bg-[#111114] text-white font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#000000] disabled:opacity-60"
+        className="h-10 px-4 rounded-xl bg-[#2563EB] text-white font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60"
       >
         <RefreshCw size={15} /> Kirim Sekarang
       </button>

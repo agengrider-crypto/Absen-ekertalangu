@@ -108,7 +108,7 @@ export default function Login() {  const navigate = useNavigate();
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="cth: 0813xxxx atau nama@email.com"
-                className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#111114] bg-white"
+                className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#2563EB] bg-white"
               />
             </div>
 
@@ -125,14 +125,14 @@ export default function Login() {  const navigate = useNavigate();
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan kata sandi"
-                  className="w-full h-[52px] pl-4 pr-14 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#111114] bg-white"
+                  className="w-full h-[52px] pl-4 pr-14 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#2563EB] bg-white"
                 />
                 <button
                   type="button"
                   data-testid="button-password-toggle"
                   onClick={() => setShowPw((s) => !s)}
                   aria-label={showPw ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-11 w-11 flex items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F4F4F1] transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-11 w-11 flex items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F3F4F6] transition-colors"
                 >
                   {showPw ? <EyeOff size={22} /> : <Eye size={22} />}
                 </button>
@@ -143,7 +143,7 @@ export default function Login() {  const navigate = useNavigate();
               data-testid="button-login-submit"
               type="submit"
               disabled={loading}
-              className="w-full h-[54px] rounded-xl bg-[#111114] text-white text-lg font-bold tracking-wide flex items-center justify-center gap-2 hover:bg-[#000000] active:scale-[0.99] transition-all disabled:opacity-60"
+              className="w-full h-[54px] rounded-xl bg-[#2563EB] text-white text-lg font-bold tracking-wide flex items-center justify-center gap-2 hover:bg-[#1D4ED8] active:scale-[0.99] transition-all disabled:opacity-60"
             >
               {loading ? <Loader2 className="animate-spin" size={22} /> : <LogIn size={22} />}
               Masuk
@@ -154,7 +154,7 @@ export default function Login() {  const navigate = useNavigate();
             <button
               data-testid="button-forgot-password"
               onClick={() => setShowReset(true)}
-              className="text-[#111114] font-semibold text-base hover:underline inline-flex items-center justify-center gap-1.5"
+              className="text-[#1D4ED8] font-semibold text-base hover:underline inline-flex items-center justify-center gap-1.5"
             >
               <KeyRound size={18} /> Lupa kata sandi?
             </button>
@@ -171,7 +171,7 @@ export default function Login() {  const navigate = useNavigate();
             <button
               data-testid="button-activate-qr"
               onClick={() => navigate("/activate")}
-              className="w-full h-[52px] rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] text-base font-bold flex items-center justify-center gap-2 hover:bg-[#F4F4F1] transition-colors"
+              className="w-full h-[52px] rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] text-base font-bold flex items-center justify-center gap-2 hover:bg-[#F3F4F6] transition-colors"
             >
               <UserPlus size={22} /> Aktivasi Akun (Cari Nama)
             </button>
@@ -213,12 +213,12 @@ function ResetDialog({ onClose }) {
       <div className="bg-white rounded-2xl p-6 sm:p-7 w-full max-w-md shadow-2xl">
         <div className="flex items-start justify-between mb-1">
           <h2 className="font-heading text-xl font-bold text-[#111827]">Reset Kata Sandi</h2>
-          <button onClick={onClose} aria-label="Tutup" className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-[#F4F4F1] text-[#4B5563]">
+          <button onClick={onClose} aria-label="Tutup" className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-[#F3F4F6] text-[#4B5563]">
             <X size={20} />
           </button>
         </div>
         <p className="text-sm text-[#6B7280] mb-1">
-          Khusus <span className="font-semibold text-[#111114]">Peserta</span>. Verifikasi dengan tanggal lahir & Nomor HP terdaftar.
+          Khusus <span className="font-semibold text-[#1D4ED8]">Peserta</span>. Verifikasi dengan tanggal lahir & Nomor HP terdaftar.
         </p>
         <p className="text-xs text-[#9CA3AF] mb-5">
           Untuk akun Admin/Pengurus: hubungi administrator.
@@ -233,7 +233,7 @@ function ResetDialog({ onClose }) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="cth: 081300000003"
-              className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114]"
+              className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB]"
             />
           </div>
           <div>
@@ -250,14 +250,14 @@ function ResetDialog({ onClose }) {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Minimal 6 karakter"
-              className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114]"
+              className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB]"
             />
           </div>
           <button
             data-testid="button-reset-submit"
             type="submit"
             disabled={loading}
-            className="w-full h-[52px] rounded-xl bg-[#111114] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#000000] transition-colors disabled:opacity-60"
+            className="w-full h-[52px] rounded-xl bg-[#2563EB] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#1D4ED8] transition-colors disabled:opacity-60"
           >
             {loading ? <Loader2 className="animate-spin" size={22} /> : <KeyRound size={20} />}
             Perbarui Kata Sandi

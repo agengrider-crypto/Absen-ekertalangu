@@ -60,7 +60,7 @@ export default function KalenderView() {
     <div data-testid="kalender-view">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
+          <div className="flex items-center gap-2 text-[#1D4ED8] font-bold text-lg">
             <CalendarRange size={20} /> Kalender Kegiatan
           </div>
           <p className="text-sm text-[#6B7280] mt-0.5">
@@ -69,15 +69,15 @@ export default function KalenderView() {
         </div>
         <div className="flex items-center gap-2">
           <button data-testid="kalender-prev" onClick={() => shift(-1)}
-            className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#111114]"><ChevronLeft size={18} /></button>
+            className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#2563EB]"><ChevronLeft size={18} /></button>
           <div className="font-semibold text-[#111827] min-w-[140px] text-center">{MONTH_SHORT[m - 1]} {y}</div>
           <button data-testid="kalender-next" onClick={() => shift(1)}
-            className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#111114]"><ChevronRight size={18} /></button>
+            className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#2563EB]"><ChevronRight size={18} /></button>
         </div>
       </div>
 
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr] items-start">
           <div className="bg-white rounded-2xl border border-[#E8E8E4] p-3 sm:p-4" data-testid="kalender-grid">
@@ -96,9 +96,9 @@ export default function KalenderView() {
                     data-testid={`kalender-day-${ymd}`}
                     onClick={() => setPick(ymd)}
                     className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 text-sm transition-colors border-2 ${
-                      on ? "bg-[#111114] text-white border-transparent"
-                        : list.length ? "bg-[#F1F1EE] text-[#111114] font-semibold border-transparent hover:border-[#111114]"
-                        : `text-[#6B7280] border-transparent hover:bg-[#F7F7F5] ${isToday ? "ring-2 ring-[#111114]/20" : ""}`
+                      on ? "bg-[#2563EB] text-white border-transparent"
+                        : list.length ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold border-transparent hover:border-[#2563EB]"
+                        : `text-[#6B7280] border-transparent hover:bg-[#F7F7F5] ${isToday ? "ring-2 ring-[#2563EB]/20" : ""}`
                     }`}
                   >
                     {parseInt(ymd.slice(-2), 10)}
@@ -112,7 +112,7 @@ export default function KalenderView() {
               })}
             </div>
             <p className="text-[11px] text-[#9CA3AF] mt-3">
-              Total <b className="text-[#111114]">{totalBulan}</b> jadwal pada {MONTH_SHORT[m - 1]} {y}.
+              Total <b className="text-[#1D4ED8]">{totalBulan}</b> jadwal pada {MONTH_SHORT[m - 1]} {y}.
             </p>
           </div>
 
@@ -146,12 +146,12 @@ export default function KalenderView() {
                       {k.teacher && <span className="inline-flex items-center gap-1"><User size={12} /> {k.teacher}</span>}
                     </div>
                     <div className="text-xs text-[#4B5563] mt-1.5">
-                      Hadir <b className="text-[#047857]">{k.counts?.hadir ?? 0}</b> ·
+                      Hadir <b className="text-[#15803D]">{k.counts?.hadir ?? 0}</b> ·
                       Izin <b className="text-[#92400E]"> {k.counts?.izin ?? 0}</b> ·
                       Sakit <b className="text-[#1D4ED8]"> {k.counts?.sakit ?? 0}</b> ·
                       Alpha <b className="text-[#991B1B]"> {k.counts?.alpha ?? 0}</b> ·
                       Belum diabsen <b className="text-[#6B7280]"> {k.counts?.belum_diabsen ?? 0}</b> ·
-                      <b className="text-[#111114]"> {k.counts?.ratio ?? 0}%</b>
+                      <b className="text-[#1D4ED8]"> {k.counts?.ratio ?? 0}%</b>
                     </div>
                   </div>
                 ))}

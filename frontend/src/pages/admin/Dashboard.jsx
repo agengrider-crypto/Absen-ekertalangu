@@ -31,7 +31,7 @@ export default function Dashboard({ user }) {
   }, []);
 
   if (!users) {
-    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>;
+    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={32} /></div>;
   }
 
   const peserta = users.filter((u) => u.roles?.includes("peserta"));
@@ -83,7 +83,7 @@ export default function Dashboard({ user }) {
 
         <div className="bg-white rounded-2xl p-6 border border-[#E8E8E4]" data-testid="upcoming-activities">
           <h2 className="font-heading font-bold text-[#111827] mb-3">Kegiatan Mendatang</h2>
-          <div className="rounded-xl bg-[#FAFAF8] border border-dashed border-[#CBD5E1] p-6 text-center">
+          <div className="rounded-xl bg-[#FAFAF8] border border-dashed border-[#D1D5DB] p-6 text-center">
             <CalendarDays size={28} className="mx-auto text-[#9CA3AF] mb-2" />
             <p className="text-[#6B7280] text-sm">Modul Kegiatan & Absensi akan aktif pada tahap berikutnya (2C). Statistik kehadiran akan muncul di sini.</p>
           </div>

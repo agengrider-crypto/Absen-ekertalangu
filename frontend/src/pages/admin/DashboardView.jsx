@@ -17,7 +17,7 @@ import { MONTH_SHORT, TYPE_LABEL, tanggalSingkat } from "./kegiatanUtils";
 function StatCard({ value }) {
   return (
     <div className="flex items-center gap-4 rounded-2xl border border-[#E8E8E4] bg-white p-5" data-testid={DASHBOARD.totalPeserta}>
-      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#F1F1EE] text-[#111114]">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#1D4ED8]">
         <Users size={24} />
       </span>
       <div>
@@ -50,7 +50,7 @@ export default function DashboardView({
   }, [role]);
 
   if (d === null) {
-    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={32} /></div>;
+    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={32} /></div>;
   }
   if (d === false) {
     return <div className="p-10 text-center text-[#6B7280]">Gagal memuat data dashboard.</div>;
@@ -70,7 +70,7 @@ export default function DashboardView({
   return (
     <div>
       <div className="mb-8">
-        <h1 className="font-heading text-[28px] sm:text-[34px] font-bold text-[#111114] leading-tight" data-testid={DASHBOARD.welcome}>
+        <h1 className="font-heading text-[28px] sm:text-[34px] font-bold text-[#1D4ED8] leading-tight" data-testid={DASHBOARD.welcome}>
           Selamat datang, {user?.name || "-"}
         </h1>
         <p className="text-[#6B7280] flex items-center gap-1.5 mt-2"><CalendarDays size={16} /> {todayIndo()}</p>
@@ -90,9 +90,9 @@ export default function DashboardView({
                 key={s.key}
                 data-testid={s.testId}
                 onClick={s.action}
-                className="flex min-h-14 items-center gap-3 rounded-xl border border-[#E8E8E4] bg-white px-4 py-3 text-left hover:border-[#111114] hover:bg-[#FAFAF8] transition-colors"
+                className="flex min-h-14 items-center gap-3 rounded-xl border border-[#E8E8E4] bg-white px-4 py-3 text-left hover:border-[#2563EB] hover:bg-[#FAFAF8] transition-colors"
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F1F1EE] text-[#111114]"><Icon size={20} /></span>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#1D4ED8]"><Icon size={20} /></span>
                 <span className="text-sm font-semibold text-[#374151]">{s.label}</span>
               </button>
             );
@@ -112,7 +112,7 @@ export default function DashboardView({
 
       <section className="mb-6 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-4 sm:p-5" data-testid={DASHBOARD.followUp.container}>
         <div className="mb-3">
-          <h2 className="font-heading font-bold text-[#78350F]">Perlu Tindakan</h2>
+          <h2 className="font-heading font-bold text-[#92400E]">Perlu Tindakan</h2>
           <p className="mt-0.5 text-xs text-[#92400E]">Kehadiran peserta bulan ini</p>
         </div>
         {monthlyRecap === null ? (
@@ -124,7 +124,7 @@ export default function DashboardView({
             {[
               { key: "neverAttended", label: "Belum pernah hadir", filter: "belum", testId: DASHBOARD.followUp.neverAttended, color: "border-[#FECACA] bg-white text-[#991B1B]" },
               { key: "rarelyAttended", label: "Jarang hadir", filter: "jarang", testId: DASHBOARD.followUp.rarelyAttended, color: "border-[#FDE68A] bg-white text-[#92400E]" },
-              { key: "sometimesAttended", label: "Cukup aktif", filter: "cukup", testId: DASHBOARD.followUp.sometimesAttended, color: "border-[#BAE6FD] bg-white text-[#075985]" },
+              { key: "sometimesAttended", label: "Cukup aktif", filter: "cukup", testId: DASHBOARD.followUp.sometimesAttended, color: "border-[#A5F3FC] bg-white text-[#155E75]" },
             ].map((item) => (
               <button
                 key={item.key}
@@ -161,12 +161,12 @@ export default function DashboardView({
       <section className="rounded-2xl border border-[#E8E8E4] bg-white p-5 sm:p-6" data-testid={DASHBOARD.activitiesSection}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-heading font-bold text-[#111827]">Daftar Kegiatan</h2>
-          <button onClick={() => onGoto && onGoto("kegiatan")} className="text-sm font-semibold text-[#111114] hover:underline inline-flex items-center gap-1">
+          <button onClick={() => onGoto && onGoto("kegiatan")} className="text-sm font-semibold text-[#1D4ED8] hover:underline inline-flex items-center gap-1">
             <CalendarPlus size={15} /> Kelola
           </button>
         </div>
         {(!d.upcoming || d.upcoming.length === 0) ? (
-          <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-[#FAFAF8] p-6 text-center text-sm text-[#6B7280]">
+          <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-[#FAFAF8] p-6 text-center text-sm text-[#6B7280]">
             Belum ada kegiatan mendatang.
           </div>
         ) : (
@@ -188,7 +188,7 @@ export default function DashboardView({
                         type="button"
                         data-testid={`${DASHBOARD.kegiatanRowPrefix}-${k.id}`}
                         onClick={() => onOpenKegiatan?.(k.id)}
-                        className="text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#0D5C3A]"
+                        className="text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#2563EB]"
                       >
                         {k.name}
                       </button>

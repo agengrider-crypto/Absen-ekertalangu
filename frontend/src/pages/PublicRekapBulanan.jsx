@@ -13,8 +13,8 @@ function badgeOf(r) {
   if (r.pertemuan === 0) return { t: "Tidak ada kegiatan", cls: "bg-[#F3F4F6] text-[#6B7280]" };
   if (r.hadir === 0) return { t: "Belum pernah hadir", cls: "bg-[#FEE2E2] text-[#991B1B]" };
   if (r.ratio < 50) return { t: "Jarang hadir", cls: "bg-[#FEF3C7] text-[#92400E]" };
-  if (r.ratio < 80) return { t: "Cukup aktif", cls: "bg-[#E0F2FE] text-[#075985]" };
-  return { t: "Rajin hadir", cls: "bg-[#F1F1EE] text-[#111114]" };
+  if (r.ratio < 80) return { t: "Cukup aktif", cls: "bg-[#CFFAFE] text-[#155E75]" };
+  return { t: "Rajin hadir", cls: "bg-[#EFF6FF] text-[#1D4ED8]" };
 }
 
 export default function PublicRekapBulanan() {
@@ -59,7 +59,7 @@ export default function PublicRekapBulanan() {
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] pb-14" data-testid="rekap-bulanan-public">
-      <header className="bg-[#111114] text-white">
+      <header className="bg-[#2563EB] text-white">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" /></div>
           <div className="leading-tight">
@@ -71,7 +71,7 @@ export default function PublicRekapBulanan() {
 
       <main className="max-w-3xl mx-auto px-4 -mt-3">
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 shadow-sm">
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114] inline-flex items-center gap-1">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8] inline-flex items-center gap-1">
             <CalendarRange size={12} /> {data.label}
           </span>
           <h1 className="font-heading text-xl font-bold text-[#111827] mt-2">
@@ -81,8 +81,8 @@ export default function PublicRekapBulanan() {
             Rata-rata kehadiran {data.summary.rata_rata}% · {data.total_kegiatan} jadwal termasuk sesi
           </p>
           <div className="flex flex-wrap gap-2 mt-3 text-xs">
-            <span className="px-2.5 py-1 rounded-full bg-[#F1F1EE] text-[#111114] font-semibold inline-flex items-center gap-1"><TrendingUp size={12} /> Rajin: {data.summary.rajin}</span>
-            <span className="px-2.5 py-1 rounded-full bg-[#E0F2FE] text-[#075985] font-semibold">Cukup: {data.summary.cukup}</span>
+            <span className="px-2.5 py-1 rounded-full bg-[#EFF6FF] text-[#1D4ED8] font-semibold inline-flex items-center gap-1"><TrendingUp size={12} /> Rajin: {data.summary.rajin}</span>
+            <span className="px-2.5 py-1 rounded-full bg-[#CFFAFE] text-[#155E75] font-semibold">Cukup: {data.summary.cukup}</span>
             <span className="px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#92400E] font-semibold inline-flex items-center gap-1"><TrendingDown size={12} /> Jarang: {data.summary.jarang}</span>
             <span className="px-2.5 py-1 rounded-full bg-[#FEE2E2] text-[#991B1B] font-semibold">Belum hadir: {data.summary.belum_pernah}</span>
           </div>
@@ -90,7 +90,7 @@ export default function PublicRekapBulanan() {
 
         {/* Pisah Laki-laki / Perempuan */}
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 mt-4" data-testid="bulanan-public-gender">
-          <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2 mb-3"><Users size={16} className="text-[#111114]" /> Kehadiran Laki-laki &amp; Perempuan</div>
+          <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2 mb-3"><Users size={16} className="text-[#1D4ED8]" /> Kehadiran Laki-laki &amp; Perempuan</div>
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl bg-[#F0FDF4] p-3" data-testid={MONTHLY_RECAP.maleSummary}>
               <div className="text-xs font-semibold text-[#166534]">Laki-laki</div>
@@ -106,14 +106,14 @@ export default function PublicRekapBulanan() {
         {/* Ringkasan tiap sesi selama 1 bulan */}
         {data.per_sesi?.length > 0 && (
           <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 mt-4" data-testid="bulanan-public-sesi">
-            <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2 mb-3"><Layers size={16} className="text-[#111114]" /> Ringkasan Sesi Sebulan</div>
+            <div className="text-sm font-semibold text-[#111827] inline-flex items-center gap-2 mb-3"><Layers size={16} className="text-[#1D4ED8]" /> Ringkasan Sesi Sebulan</div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {data.per_sesi.map((x, i) => (
                 <div key={x.label} data-testid={`${MONTHLY_RECAP.sessionCardPrefix}-${i}`}
                   className="min-w-0 rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-3">
                   <div className="truncate text-sm font-bold text-[#111827]" title={x.label}>{x.label}</div>
                   <div className="mt-1 text-[11px] text-[#6B7280]">{x.pertemuan}× kegiatan{x.required === false ? " · opsional" : ""}</div>
-                  <div className="mt-1 text-xl font-bold tabular-nums text-[#111114]">{x.ratio}%</div>
+                  <div className="mt-1 text-xl font-bold tabular-nums text-[#1D4ED8]">{x.ratio}%</div>
                 </div>
               ))}
             </div>
@@ -126,12 +126,12 @@ export default function PublicRekapBulanan() {
             <div className="relative flex-1 min-w-[180px]">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
               <input data-testid="bulanan-public-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta…"
-                className="w-full h-10 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114]" />
+                className="w-full h-10 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB]" />
             </div>
-            <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1">
+            <div className="flex items-center gap-1 bg-[#F3F4F6] rounded-xl p-1">
               {GEN.map(([v, l]) => (
                 <button key={v} data-testid={`bulanan-public-gender-${v}`} onClick={() => setGender(v)}
-                  className={`h-8 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                  className={`h-8 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#1D4ED8] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
               ))}
             </div>
           </div>
@@ -163,7 +163,7 @@ export default function PublicRekapBulanan() {
                           {r.kelompok_name ? ` · ${r.kelompok_name}` : ""}
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-center font-bold tabular-nums text-[#111114] whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-center font-bold tabular-nums text-[#1D4ED8] whitespace-nowrap">
                         {r.hadir}<span className="text-[#9CA3AF] font-semibold">/{r.pertemuan}</span>
                       </td>
                       <td className="px-3 py-2.5">
@@ -204,7 +204,7 @@ export default function PublicRekapBulanan() {
                   {(p.sesi || []).length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {p.sesi.map((x, j) => (
-                        <span key={j} className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${x.required ? "bg-[#F1F1EE] text-[#111114]" : "bg-[#EEF2FF] text-[#111114]"}`}>
+                        <span key={j} className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${x.required ? "bg-[#EFF6FF] text-[#1D4ED8]" : "bg-[#ECFEFF] text-[#1D4ED8]"}`}>
                           {x.label} {x.start_time}–{x.end_time}{x.required ? "" : " · opsional"}
                         </span>
                       ))}
@@ -217,7 +217,7 @@ export default function PublicRekapBulanan() {
         </div>
 
         <div className="bg-white rounded-xl border border-[#E8E8E4] p-4 mt-4 text-sm text-[#4B5563] space-y-1" data-testid="bulanan-public-legend">
-          <div className="font-bold text-[#111114]">Cara menghitung</div>
+          <div className="font-bold text-[#1D4ED8]">Cara menghitung</div>
           <p>Persen hadir = pertemuan berstatus Hadir ÷ pertemuan wajib × 100.</p>
           <p>Hadir di salah satu sesi wajib dihitung hadir. Izin, sakit, alpha, dan belum diabsen dicatat terpisah; sesi opsional tidak menambah kewajiban.</p>
         </div>

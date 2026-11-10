@@ -173,7 +173,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#111114] text-white">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#2563EB] text-white">
               <Sparkles size={14} />
             </span>
             <span className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
@@ -184,7 +184,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
             type="button"
             onClick={skip}
             aria-label="Tutup panduan"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#F4F4F1] hover:text-[#111114]"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#F3F4F6] hover:text-[#1D4ED8]"
           >
             <X size={16} />
           </button>
@@ -197,7 +197,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
           {steps.map((s, i) => (
             <span
               key={s.id}
-              className={`h-1.5 rounded-full transition-all ${i === index ? "w-5 bg-[#111114]" : "w-1.5 bg-[#D1D5DB]"}`}
+              className={`h-1.5 rounded-full transition-all ${i === index ? "w-5 bg-[#2563EB]" : "w-1.5 bg-[#D1D5DB]"}`}
             />
           ))}
         </div>
@@ -207,7 +207,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
             type="button"
             data-testid={TOUR.skip}
             onClick={skip}
-            className="h-9 rounded-lg px-2 text-xs font-semibold text-[#6B7280] hover:bg-[#F4F4F1]"
+            className="h-9 rounded-lg px-2 text-xs font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
           >
             Lewati
           </button>
@@ -217,7 +217,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
               data-testid={TOUR.prev}
               onClick={prev}
               disabled={index === 0}
-              className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#E8E8E4] px-3 text-xs font-semibold text-[#4B5563] hover:border-[#111114] disabled:opacity-40"
+              className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#E8E8E4] px-3 text-xs font-semibold text-[#4B5563] hover:border-[#2563EB] disabled:opacity-40"
             >
               <ChevronLeft size={14} /> Sebelumnya
             </button>
@@ -225,7 +225,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
               type="button"
               data-testid={TOUR.next}
               onClick={next}
-              className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#111114] px-3 text-xs font-semibold text-white hover:bg-black"
+              className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#2563EB] px-3 text-xs font-semibold text-white hover:bg-[#1D4ED8]"
             >
               {isLast ? <>Selesai <Check size={14} /></> : <>Berikutnya <ChevronRight size={14} /></>}
             </button>

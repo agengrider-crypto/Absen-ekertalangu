@@ -51,7 +51,7 @@ function badgeOf(r) {
   if (r.pertemuan === 0) return { t: "Tidak ada kegiatan", cls: "bg-[#F3F4F6] text-[#6B7280]" };
   if (r.hadir === 0) return { t: "Belum pernah hadir", cls: "bg-[#FEE2E2] text-[#991B1B]" };
   if (r.ratio < 50) return { t: "Jarang hadir", cls: "bg-[#FEF3C7] text-[#92400E]" };
-  if (r.ratio < 80) return { t: "Cukup aktif", cls: "bg-[#E0F2FE] text-[#075985]" };
+  if (r.ratio < 80) return { t: "Cukup aktif", cls: "bg-[#CFFAFE] text-[#155E75]" };
   return { t: "Rajin hadir", cls: "bg-[#DCFCE7] text-[#166534]" };
 }
 
@@ -156,12 +156,12 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
         </div>
         <div className="flex items-center gap-2">
           <button data-testid="bulan-prev" onClick={() => setMonth(shiftMonth(month, -1))}
-            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#0F766E] hover:text-[#0F766E]"><ChevronLeft size={18} /></button>
-          <div className="h-11 px-4 rounded-xl bg-[#0F766E] text-white font-semibold text-sm inline-flex items-center gap-2" data-testid="bulan-aktif">
+            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#2563EB] hover:text-[#1D4ED8]"><ChevronLeft size={18} /></button>
+          <div className="h-11 px-4 rounded-xl bg-[#2563EB] text-white font-semibold text-sm inline-flex items-center gap-2" data-testid="bulan-aktif">
             <CalendarRange size={16} /> {BULAN[m - 1]} {y}
           </div>
           <button data-testid="bulan-next" onClick={() => setMonth(shiftMonth(month, 1))}
-            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#0F766E] hover:text-[#0F766E]"><ChevronRight size={18} /></button>
+            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#2563EB] hover:text-[#1D4ED8]"><ChevronRight size={18} /></button>
         </div>
       </div>
 
@@ -171,7 +171,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
             {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 rounded-2xl bg-[#F1F3F1] animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />)}
           </div>
           <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5">
-            <div className="text-sm text-[#6B7280] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#0F766E]" /> Memuat rekap bulananâ€¦</div>
+            <div className="text-sm text-[#6B7280] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#1D4ED8]" /> Memuat rekap bulananâ€¦</div>
             <SkeletonList rows={6} testid="rekap-bulanan-skeleton" />
           </div>
         </div>
@@ -179,8 +179,8 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-pertemuan">
-              <div className="text-xs font-semibold text-[#0F766E] inline-flex items-center gap-1.5"><CalendarRange size={14} /> Pertemuan bulan ini</div>
-              <div className="text-3xl font-bold text-[#0F766E] mt-1 tabular-nums">{data.total_pertemuan}</div>
+              <div className="text-xs font-semibold text-[#1D4ED8] inline-flex items-center gap-1.5"><CalendarRange size={14} /> Pertemuan bulan ini</div>
+              <div className="text-3xl font-bold text-[#1D4ED8] mt-1 tabular-nums">{data.total_pertemuan}</div>
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">{data.total_kegiatan} jadwal termasuk sesi</div>
             </div>
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-jamaah">
@@ -189,7 +189,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">Rata-rata hadir {data.summary.rata_rata}%</div>
             </div>
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="stat-rajin">
-              <div className="text-xs font-semibold text-[#15803D] inline-flex items-center gap-1.5"><TrendingUp size={14} /> Rajin hadir (â‰¥80%)</div>
+              <div className="text-xs font-semibold text-[#15803D] inline-flex items-center gap-1.5"><TrendingUp size={14} /> Rajin hadir (≥80%)</div>
               <div className="text-3xl font-bold text-[#15803D] mt-1 tabular-nums">{data.summary.rajin}</div>
               <div className="text-[11px] text-[#9CA3AF] mt-0.5">Cukup aktif: {data.summary.cukup}</div>
             </div>
@@ -201,14 +201,14 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
           </div>
 
           {/* Bagikan sebagai tautan + WhatsApp */}
-          <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#F0FDFA] p-4 space-y-2.5" data-testid="rekap-bulanan-share">
+          <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#EFF6FF] p-4 space-y-2.5" data-testid="rekap-bulanan-share">
             <div className="text-sm font-bold text-[#115E59] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap bulan ini</div>
-            <p className="text-[11px] text-[#0F766E] leading-relaxed">
+            <p className="text-[11px] text-[#1D4ED8] leading-relaxed">
               Tautan publik: siapa pun yang klik bisa langsung melihat siapa saja yang hadir,
               berapa kali ikut, dan rincian sesinya â€” tanpa perlu login.
             </p>
             {share && (
-              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#E8E8E4] px-2.5 py-2 text-[#111114]" data-testid="rekap-bulanan-link">{share.link}</div>
+              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#E8E8E4] px-2.5 py-2 text-[#1D4ED8]" data-testid="rekap-bulanan-link">{share.link}</div>
             )}
             <div className="grid grid-cols-2 gap-2 max-w-md">
               <button onClick={shareWa} disabled={sharing} data-testid="rekap-bulanan-share-wa"
@@ -216,7 +216,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                 {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Bagikan ke WhatsApp
               </button>
               <button onClick={copyLink} disabled={sharing} data-testid="rekap-bulanan-copy-link"
-                className="h-11 rounded-xl border-2 border-[#0F766E] text-[#0F766E] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#CCFBF1] disabled:opacity-60">
+                className="h-11 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#CCFBF1] disabled:opacity-60">
                 <Link2 size={15} /> Salin Tautan
               </button>
             </div>
@@ -260,18 +260,18 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
                 <input data-testid="rekap-bulanan-search" value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari nama pesertaâ€¦"
-                  className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#0F766E]" />
+                  className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB]" />
               </div>
-              <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1" data-testid="rekap-bulanan-gender-tabs">
+              <div className="flex items-center gap-1 bg-[#F3F4F6] rounded-xl p-1" data-testid="rekap-bulanan-gender-tabs">
                 {[["semua", "L/P"], ["L", "Laki-laki"], ["P", "Perempuan"]].map(([v, l]) => (
                   <button key={v} data-testid={`rekap-bulanan-gender-${v}`} onClick={() => setGender(v)}
-                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#0F766E] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#1D4ED8] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
-              <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1">
+              <div className="flex items-center gap-1 bg-[#F3F4F6] rounded-xl p-1">
                 {[["semua", "Semua"], ["belum", "Belum hadir"], ["jarang", "Jarang"], ["cukup", "Cukup"], ["rajin", "Rajin"]].map(([v, l]) => (
                   <button key={v} data-testid={`rekap-bulanan-filter-${v}`} onClick={() => setFilter(v)}
-                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#0F766E] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#1D4ED8] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
               <button
@@ -282,8 +282,8 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                 onClick={() => setShowHiddenParticipants((v) => !v)}
                 className={`inline-flex items-center gap-2 h-9 pl-2 pr-3 rounded-xl border-2 text-xs font-semibold transition-colors ${
                   showHiddenParticipants
-                    ? "bg-[#0F766E] border-[#0F766E] text-white"
-                    : "bg-white border-[#E8E8E4] text-[#6B7280] hover:border-[#0F766E]"
+                    ? "bg-[#2563EB] border-[#2563EB] text-white"
+                    : "bg-white border-[#E8E8E4] text-[#6B7280] hover:border-[#2563EB]"
                 }`}
                 title="Tampilkan peserta yang disembunyikan dari daftar rekap"
               >
@@ -302,7 +302,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                 data-testid={MONTHLY_RECAP.hiddenParticipantsToggle}
                 aria-expanded={showHiddenParticipants}
                 onClick={() => setShowHiddenParticipants((show) => !show)}
-                className="min-h-11 shrink-0 rounded-xl border-2 border-[#0F766E] px-3 text-sm font-semibold text-[#0F766E] inline-flex items-center gap-2"
+                className="min-h-11 shrink-0 rounded-xl border-2 border-[#2563EB] px-3 text-sm font-semibold text-[#1D4ED8] inline-flex items-center gap-2"
               >
                 {showHiddenParticipants ? <Eye size={16} /> : <EyeOff size={16} />}
                 {showHiddenParticipants ? "Tutup daftar tersembunyi" : `Peserta tersembunyi (${hiddenRows.length})`}
@@ -318,7 +318,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                       type="button"
                       data-testid={`${MONTHLY_RECAP.showParticipantPrefix}-${person.user_id}`}
                       onClick={() => updateHiddenParticipants(person.user_id, false)}
-                      className="min-h-11 rounded-xl border border-[#E8E8E4] px-3 text-sm font-semibold text-[#0F766E] hover:bg-[#F0FDFA]"
+                      className="min-h-11 rounded-xl border border-[#E8E8E4] px-3 text-sm font-semibold text-[#1D4ED8] hover:bg-[#EFF6FF]"
                     >
                       <Eye size={15} className="mr-1 inline" />{person.name}
                     </button>
@@ -408,7 +408,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                     </div>
                     <details className="mt-1 group">
                       <summary data-testid={`${MONTHLY_RECAP.meetingTogglePrefix}-${i}`}
-                        className="flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-semibold text-[#0F766E]">
+                        className="flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-semibold text-[#1D4ED8]">
                         Lihat nama dan absensi <span className="text-[#6B7280]">({p.peserta} peserta)</span>
                         <ChevronDown size={16} className="ml-auto transition-transform group-open:rotate-180" />
                       </summary>
@@ -443,7 +443,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                     {(p.sesi || []).length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {p.sesi.map((x, j) => (
-                          <span key={j} className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${x.required ? "bg-[#CCFBF1] text-[#115E59]" : "bg-[#E0F2FE] text-[#075985]"}`}>
+                          <span key={j} className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${x.required ? "bg-[#CCFBF1] text-[#115E59]" : "bg-[#CFFAFE] text-[#155E75]"}`}>
                             {x.label} {x.start_time}â€“{x.end_time}{x.required ? "" : " Â· opsional"}
                           </span>
                         ))}
@@ -457,7 +457,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
           </div>
 
           <div className="rounded-xl border border-[#E8E8E4] bg-white p-4 text-sm text-[#4B5563] space-y-1" data-testid="rekap-bulanan-legend">
-            <div className="font-bold text-[#111114] inline-flex items-center gap-1.5"><CheckCircle2 size={15} /> Cara menghitung</div>
+            <div className="font-bold text-[#1D4ED8] inline-flex items-center gap-1.5"><CheckCircle2 size={15} /> Cara menghitung</div>
             <p>Persen hadir = pertemuan berstatus Hadir Ã· pertemuan wajib Ã— 100.</p>
             <p>Hadir di salah satu sesi wajib dihitung hadir. Izin, sakit, alpha, dan belum diabsen dicatat terpisah; sesi opsional tidak menambah kewajiban.</p>
           </div>

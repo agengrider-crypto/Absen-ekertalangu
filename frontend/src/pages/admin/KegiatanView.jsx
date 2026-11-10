@@ -26,7 +26,7 @@ import ActionModal from "@/components/ActionModal";
 import ListFab from "@/components/ListFab";
 import { Send as SendIcon, ShieldCheck as ShieldIcon, ScanLine as ScanIcon } from "lucide-react";
 
-const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
+const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white";
 const TIMES = timeOptions();
 
 function todayYmd() {
@@ -238,7 +238,7 @@ export default function KegiatanView({
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2 text-[#111114] font-bold text-lg">
+      <div className="mb-4 flex items-center gap-2 text-[#1D4ED8] font-bold text-lg">
         <CalendarDays size={20} /> Kegiatan
       </div>
 
@@ -248,7 +248,7 @@ export default function KegiatanView({
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama, pengajar, atau lokasi kegiatan"
             data-testid={ACTIVITIES.search}
-            className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-4 text-base outline-none focus:border-[#111114]" />
+            className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-4 text-base outline-none focus:border-[#2563EB]" />
         </label>
         <div className="flex items-center gap-2">
           <label htmlFor="kegiatan-type-filter" className="sr-only">Filter jenis kegiatan</label>
@@ -266,13 +266,13 @@ export default function KegiatanView({
       {/* Month nav + view toggle */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <button data-testid="button-prev-month" onClick={() => shiftMonth(-1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#111114]"><ChevronLeft size={18} /></button>
+          <button data-testid="button-prev-month" onClick={() => shiftMonth(-1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#2563EB]"><ChevronLeft size={18} /></button>
           <div className="font-semibold text-[#111827] min-w-[150px] text-center">{MONTH_SHORT[m - 1]} {y}</div>
-          <button data-testid="button-next-month" onClick={() => shiftMonth(1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#111114]"><ChevronRight size={18} /></button>
+          <button data-testid="button-next-month" onClick={() => shiftMonth(1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#2563EB]"><ChevronRight size={18} /></button>
         </div>
         <div className="hidden items-center gap-1 rounded-xl border border-[#E8E8E4] bg-white p-1 lg:flex">
-          <button data-testid="view-list" onClick={() => setView("list")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "list" ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}><List size={16} /> Daftar</button>
-          <button data-testid="view-calendar" onClick={() => setView("calendar")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "calendar" ? "bg-[#F1F1EE] text-[#111114]" : "text-[#6B7280]"}`}><Grid3x3 size={16} /> Kalender</button>
+          <button data-testid="view-list" onClick={() => setView("list")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "list" ? "bg-[#EFF6FF] text-[#1D4ED8]" : "text-[#6B7280]"}`}><List size={16} /> Daftar</button>
+          <button data-testid="view-calendar" onClick={() => setView("calendar")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "calendar" ? "bg-[#EFF6FF] text-[#1D4ED8]" : "text-[#6B7280]"}`}><Grid3x3 size={16} /> Kalender</button>
         </div>
       </div>
 
@@ -283,18 +283,18 @@ export default function KegiatanView({
       {dayFilter && (
         <div className="mb-3 flex items-center gap-2 text-sm">
           <span className="text-[#6B7280]">Menampilkan:</span>
-          <span className="font-semibold text-[#111114]">{tanggalPanjang(dayFilter)}</span>
+          <span className="font-semibold text-[#1D4ED8]">{tanggalPanjang(dayFilter)}</span>
           <button onClick={() => setDayFilter("")} className="text-[#DC2626] font-semibold hover:underline">Tampilkan semua</button>
         </div>
       )}
 
       {/* List */}
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
       ) : items === false ? (
         <div className="rounded-2xl border border-[#FECACA] bg-white p-8 text-center">
           <p className="text-sm text-[#6B7280]">Daftar kegiatan gagal dimuat.</p>
-          <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#111114] px-4 font-semibold text-white">Coba lagi</button>
+          <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#2563EB] px-4 font-semibold text-white">Coba lagi</button>
         </div>
       ) : (
         <>
@@ -302,7 +302,7 @@ export default function KegiatanView({
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E8E8E4] bg-white px-3 py-2.5">
               <label className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#374151]">
                 <input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleSelection}
-                  data-testid={ACTIVITIES.selectAll} className="h-5 w-5 accent-[#111114]" />
+                  data-testid={ACTIVITIES.selectAll} className="h-5 w-5 accent-[#2563EB]" />
                 Pilih semua yang tampil ({filtered.length})
               </label>
               {selectedVisibleCount > 0 && (
@@ -442,7 +442,7 @@ function FilterBadges({ k }) {
     <>
       {labels.map((l) => (
         <span key={l} data-testid="keg-filter-badge"
-          className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{l}</span>
+          className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEF2F2] text-[#B91C1C]">{l}</span>
       ))}
     </>
   );
@@ -462,7 +462,7 @@ function LocationLink({ k, className = "" }) {
       onKeyDown={(e) => e.stopPropagation()}
       data-testid={`kegiatan-lokasi-${k.id}`}
       title="Buka lokasi di Google Maps"
-      className={`inline-flex min-w-0 items-center gap-1 rounded text-[#4B5563] underline decoration-[#D1D5DB] underline-offset-2 transition-colors hover:text-[#111114] hover:decoration-[#111114] ${className}`}
+      className={`inline-flex min-w-0 items-center gap-1 rounded text-[#4B5563] underline decoration-[#D1D5DB] underline-offset-2 transition-colors hover:text-[#1D4ED8] hover:decoration-[#2563EB] ${className}`}
     >
       <MapPin size={13} className="shrink-0" />
       <span className="truncate">{k.location || k.maps_query}</span>
@@ -477,7 +477,7 @@ function DateBlock({ k, muted = false }) {
     <div
       data-testid={`${ACTIVITIES.datePrefix}-${k.id}`}
       className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl text-center ${
-        muted ? "bg-[#F4F4F1] text-[#6B7280]" : "bg-[#F4F4F1] text-[#111114]"
+        muted ? "bg-[#F3F4F6] text-[#6B7280]" : "bg-[#F3F4F6] text-[#1D4ED8]"
       }`}
     >
       <span className="text-xl font-bold leading-none tabular-nums">{Number(dd) || "—"}</span>
@@ -501,8 +501,8 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
       }}
       aria-label={`Buka detail kegiatan ${k.name}`}
       data-testid={`kegiatan-card-${k.id}`}
-      className={`group flex cursor-pointer items-center gap-3 rounded-2xl border bg-white px-3 py-3 outline-none transition-colors hover:border-[#111114] hover:bg-[#FCFCFB] focus-visible:border-[#111114] focus-visible:ring-2 focus-visible:ring-[#111114] focus-visible:ring-offset-1 sm:gap-4 sm:px-4 ${
-        selected ? "border-[#111114] bg-[#FAFAF8]" : "border-[#E8E8E4]"
+      className={`group flex cursor-pointer items-center gap-3 rounded-2xl border bg-white px-3 py-3 outline-none transition-colors hover:border-[#2563EB] hover:bg-[#FCFCFB] focus-visible:border-[#2563EB] focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-1 sm:gap-4 sm:px-4 ${
+        selected ? "border-[#2563EB] bg-[#FAFAF8]" : "border-[#E8E8E4]"
       }`}
     >
       <label
@@ -517,7 +517,7 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
           onChange={onSelect}
           aria-label={`Pilih kegiatan ${k.name}`}
           data-testid={`${ACTIVITIES.checkboxPrefix}-${k.id}`}
-          className="h-4 w-4 accent-[#111114]"
+          className="h-4 w-4 accent-[#2563EB]"
         />
       </label>
 
@@ -543,7 +543,7 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
         <span className="hidden text-[11px] text-[#9CA3AF] sm:inline">{TYPE_LABEL[k.type]}</span>
       </div>
 
-      <ChevronRight size={18} className="shrink-0 text-[#C4C4C0] transition-colors group-hover:text-[#111114]" />
+      <ChevronRight size={18} className="shrink-0 text-[#C4C4C0] transition-colors group-hover:text-[#1D4ED8]" />
     </div>
   );
 }
@@ -601,7 +601,7 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
                 }}
                 aria-label={`Buka detail sesi ${k.session_label || ""} ${first.base_name || first.name}`}
                 data-testid={`kegiatan-card-${k.id}`}
-                className="group flex cursor-pointer items-center gap-3 rounded-lg px-1 py-2 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#111114]"
+                className="group flex cursor-pointer items-center gap-3 rounded-lg px-1 py-2 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2563EB]"
               >
                 <label
                   className="flex h-8 w-6 shrink-0 items-center justify-center"
@@ -615,16 +615,16 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
                     onChange={() => onToggle(k.id)}
                     aria-label={`Pilih sesi ${k.session_label || ""}`}
                     data-testid={`${ACTIVITIES.checkboxPrefix}-${k.id}`}
-                    className="h-4 w-4 accent-[#111114]"
+                    className="h-4 w-4 accent-[#2563EB]"
                   />
                 </label>
-                <span className="w-14 shrink-0 text-sm font-semibold text-[#111114]">{k.session_label || "Sesi"}</span>
+                <span className="w-14 shrink-0 text-sm font-semibold text-[#1D4ED8]">{k.session_label || "Sesi"}</span>
                 <span className="min-w-0 flex-1 truncate text-xs text-[#6B7280]">
                   {k.start_time}–{k.end_time}
                   {k.teacher ? ` · ${k.teacher}` : ""}
                 </span>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.cls}`}>{meta.badge}</span>
-                <ChevronRight size={16} className="shrink-0 text-[#C4C4C0] transition-colors group-hover:text-[#111114]" />
+                <ChevronRight size={16} className="shrink-0 text-[#C4C4C0] transition-colors group-hover:text-[#1D4ED8]" />
               </div>
             </li>
           );
@@ -660,11 +660,11 @@ function CalendarMonth({ year, month, daysWithEvent, dayFilter, onPick }) {
               data-testid={`cal-day-${ymd}`}
               onClick={() => onPick(active ? "" : ymd)}
               className={`aspect-square rounded-xl flex flex-col items-center justify-center text-sm relative transition-colors ${
-                active ? "bg-[#111114] text-white" : count ? "bg-[#F1F1EE] text-[#111114] font-semibold hover:bg-[#d6efe0]" : "text-[#4B5563] hover:bg-[#F4F4F1]"
+                active ? "bg-[#2563EB] text-white" : count ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold hover:bg-[#d6efe0]" : "text-[#4B5563] hover:bg-[#F3F4F6]"
               }`}
             >
               {d}
-              {count > 0 && <span className={`mt-0.5 h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-[#111114]"}`} />}
+              {count > 0 && <span className={`mt-0.5 h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-[#2563EB]"}`} />}
             </button>
           );
         })}
@@ -679,7 +679,7 @@ function ModalShell({ title, children, onClose, testid, wide }) {
       <div className={`bg-[#FAFAF8] w-full ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
         <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E8E8E4] px-5 py-3.5 flex items-center justify-between z-10">
           <h2 className="font-heading font-bold text-[#111827]">{title}</h2>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"><X size={20} /></button>
+          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -689,7 +689,7 @@ function ModalShell({ title, children, onClose, testid, wide }) {
 
 
 const STATUS_BTN = {
-  hadir: { label: "Hadir", on: "bg-[#111114] text-white", off: "text-[#111114]" },
+  hadir: { label: "Hadir", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
   izin: { label: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#92400E]" },
   sakit: { label: "Sakit", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
   alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
@@ -738,12 +738,12 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
   return (
     <ModalShell title={k ? k.name : "Absensi"} onClose={onClose} testid="modal-absensi" wide>
       {!data ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            <div className="rounded-xl bg-[#F4F4F1] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{c.total}</div><div className="text-xs text-[#6B7280]">Total</div></div>
-            <div className="rounded-xl bg-[#F1F1EE] p-3 text-center"><div className="text-xl font-bold text-[#111114]">{c.hadir}</div><div className="text-xs text-[#6B7280]">Hadir</div></div>
+            <div className="rounded-xl bg-[#F3F4F6] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{c.total}</div><div className="text-xs text-[#6B7280]">Total</div></div>
+            <div className="rounded-xl bg-[#EFF6FF] p-3 text-center"><div className="text-xl font-bold text-[#1D4ED8]">{c.hadir}</div><div className="text-xs text-[#6B7280]">Hadir</div></div>
             <div className="rounded-xl bg-[#FEF3C7] p-3 text-center"><div className="text-xl font-bold text-[#92400E]">{c.izin}</div><div className="text-xs text-[#6B7280]">Izin</div></div>
             <div className="rounded-xl bg-[#DBEAFE] p-3 text-center"><div className="text-xl font-bold text-[#1D4ED8]">{c.sakit || 0}</div><div className="text-xs text-[#6B7280]">Sakit</div></div>
             <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{c.alpha}</div><div className="text-xs text-[#6B7280]">Alpha</div></div>
@@ -757,7 +757,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
               className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8]"
             >
               <span className="flex items-center gap-2.5">
-                <span className="h-9 w-9 rounded-xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center"><CheckCircle2 size={18} /></span>
+                <span className="h-9 w-9 rounded-xl bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center"><CheckCircle2 size={18} /></span>
                 <span>
                   <span className="block font-bold text-[#111827] text-[15px]">Absen Manual</span>
                   <span className="block text-xs text-[#6B7280]">Tandai Hadir / Izin / Sakit / Alpha per peserta</span>
@@ -771,7 +771,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
                 <div className="p-3 bg-[#FAFAF8]">
                   <div className="relative">
                     <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-                    <input data-testid="absensi-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#111114] bg-white" />
+                    <input data-testid="absensi-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#2563EB] bg-white" />
                   </div>
                 </div>
                 <div className="divide-y divide-[#ECECE8] max-h-[46vh] overflow-y-auto">
@@ -837,7 +837,7 @@ function FeedbackModal({ kegiatan, onClose }) {
         Pesan &amp; saran dari peserta untuk <b className="text-[#111827]">{kegiatan.name}</b>.
       </div>
       {items === null ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>
       ) : items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[#E8E8E4] bg-[#FAFAF8] p-8 text-center text-sm text-[#9CA3AF]">
           Belum ada pesan / saran dari peserta.
@@ -897,18 +897,18 @@ function ShareAbsensiModal({ data, onClose }) {
       <div className="text-center">
         <img src={info.image} alt="QR Absensi Kegiatan" className="mx-auto w-52 h-52 rounded-xl border border-[#E8E8E4] p-2" data-testid="akses-qr-image" />
 
-        <div className="mt-4 rounded-2xl border-2 border-dashed border-[#111114] bg-[#FAFAF8] p-4">
-          <div className="text-xs font-semibold text-[#111114] flex items-center justify-center gap-1.5">
+        <div className="mt-4 rounded-2xl border-2 border-dashed border-[#2563EB] bg-[#FAFAF8] p-4">
+          <div className="text-xs font-semibold text-[#1D4ED8] flex items-center justify-center gap-1.5">
             <KeyRound size={14} /> KODE AKSES ABSENSI
           </div>
-          <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#111114]" data-testid="akses-code">{info.code}</div>
+          <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#1D4ED8]" data-testid="akses-code">{info.code}</div>
           <div className="text-xs text-[#4B5563] mt-1">
             Berlaku sampai kegiatan <b>ditutup/selesai</b>
             {info.valid_until ? <> · jadwal selesai {tanggalSingkat(String(info.valid_until).slice(0, 10))} {String(info.valid_until).slice(11, 16)} WITA</> : null}
           </div>
           <div className="flex gap-2 mt-3">
-            <button onClick={copyCode} data-testid="akses-copy-code" className="flex-1 h-10 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={15} /> Salin Kode</button>
-            <button onClick={regenerate} disabled={busy} data-testid="akses-regenerate" className="flex-1 h-10 rounded-xl bg-[#111114] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
+            <button onClick={copyCode} data-testid="akses-copy-code" className="flex-1 h-10 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#EFF6FF]"><Copy size={15} /> Salin Kode</button>
+            <button onClick={regenerate} disabled={busy} data-testid="akses-regenerate" className="flex-1 h-10 rounded-xl bg-[#2563EB] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60">
               {busy ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />} Perbarui Kode
             </button>
           </div>
@@ -923,8 +923,8 @@ function ShareAbsensiModal({ data, onClose }) {
         <p className="text-xs text-[#9CA3AF] mt-2 break-all px-2">{info.link}</p>
 
         <div className="flex gap-2 mt-3">
-          <button onClick={copyLink} data-testid="akses-copy-link" className="flex-1 h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={16} /> Salin Link</button>
-          <button onClick={download} data-testid="akses-download" className="flex-1 h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold flex items-center justify-center gap-2 hover:border-[#111114] hover:text-[#111114]"><Download size={16} /> Unduh QR</button>
+          <button onClick={copyLink} data-testid="akses-copy-link" className="flex-1 h-11 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold flex items-center justify-center gap-2 hover:bg-[#EFF6FF]"><Copy size={16} /> Salin Link</button>
+          <button onClick={download} data-testid="akses-download" className="flex-1 h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold flex items-center justify-center gap-2 hover:border-[#2563EB] hover:text-[#1D4ED8]"><Download size={16} /> Unduh QR</button>
         </div>
         <button onClick={shareWa} data-testid="akses-share-wa" className="mt-2 w-full h-11 rounded-xl bg-[#25D366] text-white font-semibold flex items-center justify-center gap-2 hover:brightness-95"><Send size={16} /> Bagikan lewat WhatsApp</button>
       </div>

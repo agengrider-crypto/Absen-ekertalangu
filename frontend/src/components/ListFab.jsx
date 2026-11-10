@@ -94,7 +94,7 @@ export default function ListFab({
                 data-testid={FAB.close}
                 onClick={() => setPanel(null)}
                 aria-label="Tutup panel"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"
               >
                 <X size={16} />
               </button>
@@ -109,14 +109,14 @@ export default function ListFab({
                   value={search}
                   onChange={(e) => onSearch?.(e.target.value)}
                   placeholder={searchPlaceholder}
-                  className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-10 pr-9 text-sm outline-none focus:border-[#111114]"
+                  className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-10 pr-9 text-sm outline-none focus:border-[#2563EB]"
                 />
                 {search && (
                   <button
                     type="button"
                     onClick={() => onSearch?.("")}
                     aria-label="Hapus pencarian"
-                    className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#F4F4F1]"
+                    className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#F3F4F6]"
                   >
                     <X size={14} />
                   </button>
@@ -137,8 +137,8 @@ export default function ListFab({
                       aria-pressed={on}
                       className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border-2 px-3 text-xs font-semibold transition-colors ${
                         on
-                          ? "border-[#111114] bg-[#111114] text-white"
-                          : "border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#111114]"
+                          ? "border-[#2563EB] bg-[#2563EB] text-white"
+                          : "border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#2563EB]"
                       }`}
                     >
                       {on && <Check size={12} />}
@@ -167,12 +167,12 @@ export default function ListFab({
               aria-label="Cari"
               aria-expanded={panel === "search"}
               className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
-                panel === "search" ? "bg-[#111114] text-white" : "text-[#4B5563] hover:bg-[#F4F4F1]"
+                panel === "search" ? "bg-[#2563EB] text-white" : "text-[#4B5563] hover:bg-[#F3F4F6]"
               }`}
             >
               <Search size={19} />
               {search && panel !== "search" && (
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#0D5C3A]" aria-hidden="true" />
+                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#2563EB]" aria-hidden="true" />
               )}
             </button>
             <button
@@ -182,12 +182,12 @@ export default function ListFab({
               aria-label={filterLabel}
               aria-expanded={panel === "filter"}
               className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
-                panel === "filter" ? "bg-[#111114] text-white" : "text-[#4B5563] hover:bg-[#F4F4F1]"
+                panel === "filter" ? "bg-[#2563EB] text-white" : "text-[#4B5563] hover:bg-[#F3F4F6]"
               }`}
             >
               <SlidersHorizontal size={19} />
               {hasFilter && panel !== "filter" && (
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#0D5C3A]" aria-hidden="true" />
+                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#2563EB]" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -200,7 +200,7 @@ export default function ListFab({
               onClick={onPrev}
               disabled={atFirst}
               aria-label="Halaman sebelumnya"
-              className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F4F4F1] disabled:opacity-30"
+              className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F3F4F6] disabled:opacity-30"
             >
               <ChevronLeft size={19} />
             </button>
@@ -210,7 +210,7 @@ export default function ListFab({
               onClick={onNext}
               disabled={atLast}
               aria-label="Halaman berikutnya"
-              className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F4F4F1] disabled:opacity-30"
+              className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F3F4F6] disabled:opacity-30"
             >
               <ChevronRight size={19} />
             </button>
@@ -230,7 +230,7 @@ export default function ListFab({
                   aria-pressed={a.active}
                   title={a.label}
                   className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
-                    a.active ? "bg-[#111114] text-white" : "text-[#4B5563] hover:bg-[#F4F4F1]"
+                    a.active ? "bg-[#2563EB] text-white" : "text-[#4B5563] hover:bg-[#F3F4F6]"
                   }`}
                 >
                   {Icon ? <Icon size={19} /> : a.label}
@@ -248,7 +248,7 @@ export default function ListFab({
             onClick={onAdd}
             aria-label={addLabel}
             title={addLabel}
-            className="absolute bottom-[calc(100%-1.75rem)] left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-[#0D5C3A] text-white shadow-[0_8px_20px_-4px_rgba(13,92,58,0.55)] ring-4 ring-white transition-transform active:scale-95"
+            className="absolute bottom-[calc(100%-1.75rem)] left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-[#2563EB] text-white shadow-[0_8px_20px_-4px_rgba(13,92,58,0.55)] ring-4 ring-white transition-transform active:scale-95"
           >
             <Plus size={26} strokeWidth={2.6} />
           </button>
@@ -258,7 +258,7 @@ export default function ListFab({
         <div className="mt-1 flex items-center justify-center gap-2 text-[10px] font-medium text-[#9CA3AF]">
           <span
             data-testid={FAB.pageInfo}
-            className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#111114] shadow-sm"
+            className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#1D4ED8] shadow-sm"
           >
             {page} / {pageCount}
           </span>

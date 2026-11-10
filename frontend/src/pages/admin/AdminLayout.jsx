@@ -95,8 +95,8 @@ function NavButton({ item, active, onNav, collapsed, mobile = false }) {
     ? ADMIN_SIDEBAR.participantReport
     : item.key === "kartu-nama" ? ADMIN_SIDEBAR.nameTags : `nav-${item.key}`;
   const activeClass = mobile
-    ? (on ? "text-[#0D5C3A] font-semibold" : "text-[#4B5563] hover:bg-[#F7F7F5]")
-    : (on ? "bg-[#F1F1EE] text-[#111114] font-semibold" : "text-[#6B7280] hover:bg-[#F4F4F1] hover:text-[#111114]");
+    ? (on ? "text-[#1D4ED8] font-semibold" : "text-[#4B5563] hover:bg-[#F7F7F5]")
+    : (on ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold" : "text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#1D4ED8]");
   return (
     <button
       data-testid={testId}
@@ -139,7 +139,7 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
             data-testid={ADMIN_SIDEBAR.closeButton}
             onClick={onClose}
             aria-label="Tutup menu"
-            className="absolute right-3 top-5 flex h-10 w-10 items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F4F4F1]"
+            className="absolute right-3 top-5 flex h-10 w-10 items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F3F4F6]"
           >
             <X size={20} />
           </button>
@@ -148,11 +148,11 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
         <div className={`px-3 py-4 flex items-center ${collapsed ? "justify-center" : "justify-between"} gap-2.5 border-b border-[#E8E8E4]`}>
           {!collapsed && (
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-9 w-9 rounded-xl bg-[#F1F1EE] flex items-center justify-center overflow-hidden p-1">
+              <div className="h-9 w-9 rounded-xl bg-[#EFF6FF] flex items-center justify-center overflow-hidden p-1">
                 <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
               </div>
               <div className="leading-tight">
-                <div className="text-[#111114] font-bold font-heading">E-KERTALANGU</div>
+                <div className="text-[#1D4ED8] font-bold font-heading">E-KERTALANGU</div>
                 <div className="text-[#9CA3AF] text-xs">{role === "pengurus" ? "Panel Pengurus" : "Panel Adminator"}</div>
               </div>
             </div>
@@ -163,7 +163,7 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
             onClick={onToggleCollapse}
             aria-label={collapsed ? "Buka sidebar" : "Ciutkan sidebar"}
             title={collapsed ? "Buka sidebar" : "Ciutkan sidebar"}
-            className="hidden lg:flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"
+            className="hidden lg:flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"
           >
             {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
           </button>
@@ -200,7 +200,7 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
           onClick={onLogout}
           title={collapsed ? "Keluar" : undefined}
           aria-label="Keluar"
-          className={`w-full flex items-center ${mobile ? "gap-3 px-4" : collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 rounded-xl text-[#6B7280] hover:bg-[#F4F4F1] hover:text-[#DC2626] font-medium text-sm transition-colors`}
+          className={`w-full flex items-center ${mobile ? "gap-3 px-4" : collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 rounded-xl text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#DC2626] font-medium text-sm transition-colors`}
         >
           <LogOut size={18} /> {!collapsed && "Keluar"}
         </button>
@@ -245,7 +245,7 @@ function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
               aria-expanded={item.key === "menu" ? menuOpen : undefined}
               aria-controls={item.key === "menu" ? "admin-mobile-menu" : undefined}
               className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-xs font-medium leading-none transition-colors ${
-                isActive ? "text-[#0D5C3A]" : "text-[#6B7280] hover:text-[#111114]"
+                isActive ? "text-[#1D4ED8]" : "text-[#6B7280] hover:text-[#1D4ED8]"
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />

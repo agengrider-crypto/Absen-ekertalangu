@@ -96,7 +96,7 @@ export default function BantuanView() {
                 data-testid={`bantuan-panduan-${key}`}
                 onClick={() => setRole(key)}
                 className={`h-10 px-3.5 rounded-xl border-2 text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
-                  on ? "bg-[#111114] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
+                  on ? "bg-[#2563EB] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#2563EB] hover:text-[#1D4ED8]"
                 }`}
               >
                 <Icon size={15} /> {g.label}
@@ -111,7 +111,7 @@ export default function BantuanView() {
               <li key={s.title} data-testid={`bantuan-step-${role}-${i}`}
                 className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-3.5">
                 <div className="flex gap-3">
-                  <span className="h-9 w-9 shrink-0 rounded-xl bg-[#111114] text-white flex items-center justify-center font-bold text-sm">
+                  <span className="h-9 w-9 shrink-0 rounded-xl bg-[#2563EB] text-white flex items-center justify-center font-bold text-sm">
                     {i + 1}
                   </span>
                   <span className="min-w-0">
@@ -126,7 +126,7 @@ export default function BantuanView() {
                     type="button"
                     data-testid={`bantuan-step-img-${role}-${i}`}
                     onClick={() => setZoom(`/panduan/${s.img}.jpg`)}
-                    className="mt-3 block w-full rounded-xl overflow-hidden border border-[#E8E8E4] bg-[#F4F4F1] group"
+                    className="mt-3 block w-full rounded-xl overflow-hidden border border-[#E8E8E4] bg-[#F3F4F6] group"
                     title="Klik untuk memperbesar"
                   >
                     <span className={`block mx-auto ${role === "peserta" ? "max-w-[300px]" : "max-w-full"}`}>
@@ -162,7 +162,7 @@ export default function BantuanView() {
                 <button
                   data-testid={`bantuan-faq-${i}`}
                   onClick={() => setOpenFaq(on ? null : i)}
-                  className={`w-full text-left px-4 py-3 flex items-start justify-between gap-3 ${on ? "bg-[#F4F4F1]" : "hover:bg-[#FAFAF8]"}`}
+                  className={`w-full text-left px-4 py-3 flex items-start justify-between gap-3 ${on ? "bg-[#F3F4F6]" : "hover:bg-[#FAFAF8]"}`}
                 >
                   <span className="font-semibold text-sm text-[#111827]">{f.q}</span>
                   <ChevronDown size={17} className={`shrink-0 mt-0.5 text-[#6B7280] transition-transform ${on ? "rotate-180" : ""}`} />
@@ -187,7 +187,7 @@ export default function BantuanView() {
           Daftar diambil otomatis dari akun admin &amp; pengurus yang aktif.
         </p>
         {kontak === null ? (
-          <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={22} /></div>
+          <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={22} /></div>
         ) : kontak.length === 0 ? (
           <p className="text-sm text-[#6B7280] mt-3">Belum ada kontak pengurus yang tercatat.</p>
         ) : (
@@ -210,13 +210,13 @@ export default function BantuanView() {
                   )}
                   {k.phone && (
                     <a href={`tel:${k.phone}`} data-testid={`bantuan-kontak-tel-${k.id}`}
-                      className="h-9 px-3 rounded-lg border-2 border-[#111114] text-[#111114] text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-[#F1F1EE]">
+                      className="h-9 px-3 rounded-lg border-2 border-[#2563EB] text-[#1D4ED8] text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-[#EFF6FF]">
                       <PhoneCall size={13} /> Telepon
                     </a>
                   )}
                   {k.email && (
                     <a href={`mailto:${k.email}`} data-testid={`bantuan-kontak-mail-${k.id}`}
-                      className="h-9 w-9 rounded-lg border-2 border-[#E8E8E4] text-[#4B5563] inline-flex items-center justify-center hover:border-[#111114] hover:text-[#111114]">
+                      className="h-9 w-9 rounded-lg border-2 border-[#E8E8E4] text-[#4B5563] inline-flex items-center justify-center hover:border-[#2563EB] hover:text-[#1D4ED8]">
                       <Mail size={14} />
                     </a>
                   )}

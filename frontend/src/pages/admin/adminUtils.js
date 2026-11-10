@@ -49,9 +49,9 @@ export function mubalighLabel(m) {
 
 export function statusBadge(status, needsCompletion) {
   if (status === "pending") return { label: "Menunggu Aktivasi", cls: "bg-[#FEF3C7] text-[#92400E]" };
-  if (status === "nonaktif") return { label: "Nonaktif", cls: "bg-[#FEE2E2] text-[#991B1B]" };
-  if (needsCompletion) return { label: "Perlu Dilengkapi", cls: "bg-[#FEF3C7] text-[#92400E]" };
-  return { label: "Aktif", cls: "bg-[#F1F1EE] text-[#111114]" };
+  if (status === "nonaktif") return { label: "Nonaktif", cls: "bg-[#F3F4F6] text-[#4B5563]" };
+  if (needsCompletion) return { label: "Perlu Dilengkapi", cls: "bg-[#FFFBEB] text-[#92400E]" };
+  return { label: "Aktif", cls: "bg-[#DCFCE7] text-[#166534]" };
 }
 
 export const ACTION_LABELS = {

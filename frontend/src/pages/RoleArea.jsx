@@ -53,7 +53,7 @@ export default function RoleArea() {
           <button
             data-testid="button-back-roles"
             onClick={() => navigate("/roles")}
-            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114] transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#2563EB] hover:text-[#1D4ED8] transition-colors"
           >
             <ArrowLeft size={18} /> Pilih Peran
           </button>
@@ -73,7 +73,7 @@ export default function RoleArea() {
         </div>
 
         <div className="bg-white rounded-2xl p-8 border border-[#E8E8E4] text-center" data-testid="area-placeholder">
-          <div className="inline-flex items-center gap-2 bg-[#F1F1EE] text-[#111114] px-3 py-1 rounded-full text-sm font-semibold mb-4">
+          <div className="inline-flex items-center gap-2 bg-[#EFF6FF] text-[#1D4ED8] px-3 py-1 rounded-full text-sm font-semibold mb-4">
             Segera Hadir
           </div>
           <p className="text-[#4B5563] text-lg max-w-xl mx-auto">

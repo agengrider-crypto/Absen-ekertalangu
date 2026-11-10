@@ -32,7 +32,7 @@ export default function PublicRekapHarian() {
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-6">
         <div className="bg-white rounded-2xl border border-[#E8E8E4] p-8 text-center max-w-md" data-testid="pub-harian-error">
           <Info size={28} className="mx-auto text-[#DC2626] mb-2" />
-          <p className="font-semibold text-[#111114]">{err}</p>
+          <p className="font-semibold text-[#1D4ED8]">{err}</p>
           <p className="text-sm text-[#6B7280] mt-1">Silakan minta tautan terbaru kepada pengurus.</p>
         </div>
       </div>
@@ -42,7 +42,7 @@ export default function PublicRekapHarian() {
   if (!data) {
     return (
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#0F766E]" size={30} />
+        <Loader2 className="animate-spin text-[#1D4ED8]" size={30} />
       </div>
     );
   }
@@ -55,22 +55,22 @@ export default function PublicRekapHarian() {
     <div className="min-h-screen bg-[#FAFAF8] pb-16">
       <header className="bg-white border-b border-[#E8E8E4]">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-[#F1F1EE] flex items-center justify-center overflow-hidden p-1">
+          <div className="h-9 w-9 rounded-xl bg-[#EFF6FF] flex items-center justify-center overflow-hidden p-1">
             <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
           </div>
           <div className="leading-tight">
-            <div className="font-heading font-bold text-[#111114]">E-KERTALANGU</div>
+            <div className="font-heading font-bold text-[#1D4ED8]">E-KERTALANGU</div>
             <div className="text-xs text-[#9CA3AF]">Rekap Absen Harian</div>
           </div>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-5">
-        <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#F0FDFA] p-4" data-testid="pub-harian-header">
+        <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#EFF6FF] p-4" data-testid="pub-harian-header">
           <div className="font-heading text-xl font-bold text-[#115E59] inline-flex items-center gap-2">
             <CalendarCheck size={20} /> {data.label || data.date}
           </div>
-          <div className="text-sm text-[#0F766E] mt-1">
+          <div className="text-sm text-[#1D4ED8] mt-1">
             {(data.kegiatan || []).join(" · ") || "-"} — {data.total_sesi} sesi
           </div>
         </div>
@@ -104,7 +104,7 @@ export default function PublicRekapHarian() {
             </div>
 
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 space-y-4" data-testid="pub-harian-sesi">
-              <div className="text-sm font-semibold text-[#111114] inline-flex items-center gap-2">
+              <div className="text-sm font-semibold text-[#1D4ED8] inline-flex items-center gap-2">
                 <Layers size={16} style={{ color: REKAP.main }} /> Kehadiran Tiap Sesi
               </div>
               {data.sesi.map((x) => (
@@ -127,7 +127,7 @@ export default function PublicRekapHarian() {
             </div>
 
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 space-y-4" data-testid="pub-harian-gender">
-              <div className="text-sm font-semibold text-[#111114] inline-flex items-center gap-2">
+              <div className="text-sm font-semibold text-[#1D4ED8] inline-flex items-center gap-2">
                 <Users size={16} style={{ color: REKAP.main }} /> Pisah Laki-laki &amp; Perempuan
               </div>
               <PercentBar label={`Laki-laki (${data.gender?.L?.peserta || 0} peserta)`} value={data.gender?.L?.ratio || 0}
@@ -141,7 +141,7 @@ export default function PublicRekapHarian() {
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
                 <input data-testid="pub-harian-search" value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari nama peserta…"
-                  className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#0F766E]" />
+                  className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB]" />
               </div>
               <div className="divide-y divide-[#ECECE8]" data-testid="pub-harian-rows">
                 {rows.length === 0 ? (
@@ -154,7 +154,7 @@ export default function PublicRekapHarian() {
                       <button type="button" onClick={() => setOpen(expanded ? null : r.user_id)}
                         className="w-full text-left flex items-center gap-3 justify-between">
                         <span className="min-w-0">
-                          <span className="font-semibold text-[#111114] flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-[#1D4ED8] flex items-center gap-1.5 flex-wrap">
                             {r.name}
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${chip.cls}`}>{chip.t}</span>
                           </span>
@@ -191,7 +191,7 @@ export default function PublicRekapHarian() {
             </div>
 
             <div className="rounded-2xl border-2 border-dashed border-[#E8E8E4] bg-white p-4 text-xs text-[#4B5563] space-y-1.5" data-testid="pub-harian-legend">
-              <div className="font-bold text-[#111114] inline-flex items-center gap-1.5"><Info size={14} /> Keterangan hitungan</div>
+              <div className="font-bold text-[#1D4ED8] inline-flex items-center gap-1.5"><Info size={14} /> Keterangan hitungan</div>
               <p>Persen kehadiran = jumlah <b>Hadir</b> ÷ jumlah sesi yang wajib diikuti × 100.</p>
               <p>Hadir + Izin + Alpha selalu sama dengan jumlah sesi peserta tersebut, sehingga persennya berjumlah <b>100%</b>.</p>
               <p>Warna persen: <span className="font-bold text-[#166534]">hijau ≥80%</span>, <span className="font-bold text-[#92400E]">kuning 50–79%</span>, <span className="font-bold text-[#991B1B]">merah &lt;50%</span>.</p>

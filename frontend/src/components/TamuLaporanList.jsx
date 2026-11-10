@@ -16,7 +16,7 @@ export default function TamuLaporanList({ rows = [] }) {
           <UserPlus size={17} className="text-[#9CA3AF]" /> Daftar Tamu (bukan peserta terdaftar)
           <span className="text-xs font-medium text-[#6B7280]">({rows.length})</span>
         </span>
-        <span className="text-sm font-semibold text-[#111114]">{open ? "Tutup" : "Lihat"}</span>
+        <span className="text-sm font-semibold text-[#1D4ED8]">{open ? "Tutup" : "Lihat"}</span>
       </button>
       {open && (
         <div className="border-t border-[#E8E8E4] overflow-x-auto max-h-[52vh] overflow-y-auto">

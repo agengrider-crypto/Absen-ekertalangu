@@ -120,8 +120,8 @@ export function groupSessions(items) {
 
 // Fase waktu kegiatan → dipakai untuk urutan daftar
 export const PHASE_META = {
-  akan_datang: { label: "Akan Datang", badge: "Akan Datang", cls: "bg-[#E0F2FE] text-[#075985]" },
-  berlangsung: { label: "Berlangsung", badge: "Berlangsung", cls: "bg-[#F1F1EE] text-[#111114]" },
+  akan_datang: { label: "Akan Datang", badge: "Akan Datang", cls: "bg-[#CFFAFE] text-[#155E75]" },
+  berlangsung: { label: "Berlangsung", badge: "Berlangsung", cls: "bg-[#EFF6FF] text-[#1D4ED8]" },
   selesai: { label: "Selesai", badge: "Selesai", cls: "bg-[#F3F4F6] text-[#4B5563]" },
 };
 

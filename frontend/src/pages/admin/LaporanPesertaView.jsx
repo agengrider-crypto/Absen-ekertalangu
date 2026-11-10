@@ -13,7 +13,7 @@ const MONTHS = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
 const STATUS = {
-  hadir: { label: "Hadir", color: "text-[#14532D]", bg: "bg-[#E8F5EE]" },
+  hadir: { label: "Hadir", color: "text-[#166534]", bg: "bg-[#EFF6FF]" },
   izin: { label: "Izin", color: "text-[#92400E]", bg: "bg-[#FEF3C7]" },
   sakit: { label: "Sakit", color: "text-[#1D4ED8]", bg: "bg-[#DBEAFE]" },
   alpha: { label: "Alpha", color: "text-[#991B1B]", bg: "bg-[#FEE2E2]" },
@@ -151,9 +151,9 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
         {error ? (
           <>
             <p className="text-base text-[#991B1B]">{error}</p>
-            <button type="button" data-testid={PARTICIPANT_REPORT.retry} onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#111114] px-4 font-semibold text-white">Coba lagi</button>
+            <button type="button" data-testid={PARTICIPANT_REPORT.retry} onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#2563EB] px-4 font-semibold text-white">Coba lagi</button>
           </>
-        ) : <Loader2 className="mx-auto animate-spin text-[#111114]" size={28} aria-label="Memuat laporan peserta" />}
+        ) : <Loader2 className="mx-auto animate-spin text-[#1D4ED8]" size={28} aria-label="Memuat laporan peserta" />}
       </div>
     );
   }
@@ -164,14 +164,14 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <button type="button" data-testid={PARTICIPANT_REPORT.back} onClick={onBack}
-            className="mb-2 inline-flex min-h-11 items-center gap-2 rounded-lg text-base font-semibold text-[#4B5563] hover:text-[#111114]">
+            className="mb-2 inline-flex min-h-11 items-center gap-2 rounded-lg text-base font-semibold text-[#4B5563] hover:text-[#1D4ED8]">
             <ArrowLeft size={17} /> Daftar peserta
           </button>
           <h1 className="truncate font-heading text-2xl font-bold text-[#111827]">{data.participant.name}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" data-testid={PARTICIPANT_REPORT.copyLink} onClick={copyLink}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 text-base font-semibold text-[#111827] hover:border-[#111114]">
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 text-base font-semibold text-[#111827] hover:border-[#2563EB]">
             <Share2 size={16} /> Salin tautan
           </button>
           <button type="button" data-testid={PARTICIPANT_REPORT.shareWhatsApp} onClick={shareWhatsApp}
@@ -181,14 +181,14 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
         </div>
       </header>
       {shareLink && (
-        <p className="break-all rounded-xl bg-[#F4F4F1] p-3 text-base text-[#4B5563]" data-testid={PARTICIPANT_REPORT.shareLink}>
+        <p className="break-all rounded-xl bg-[#F3F4F6] p-3 text-base text-[#4B5563]" data-testid={PARTICIPANT_REPORT.shareLink}>
           {shareLink}
           <span className="mt-1 block text-sm">Tautan berlaku sampai {new Date(shareExpiresAt).toLocaleDateString("id-ID")}.</span>
         </p>
       )}
 
       <section className="grid gap-3 sm:grid-cols-2" data-testid={PARTICIPANT_REPORT.periodSummary}>
-        <SummaryCard label={`Kehadiran · ${monthLabel(month)}${week !== "bulanan" ? ` · Pekan ${week}` : ""}`} value={`${data.summary.ratio}%`} color="text-[#0D5C3A]" />
+        <SummaryCard label={`Kehadiran · ${monthLabel(month)}${week !== "bulanan" ? ` · Pekan ${week}` : ""}`} value={`${data.summary.ratio}%`} color="text-[#1D4ED8]" />
         <SummaryCard label="Total pertemuan pada periode" value={data.summary.total_pertemuan} />
       </section>
       <StatusSummary summary={data.summary} testid={PARTICIPANT_REPORT.periodStatuses} />
@@ -205,8 +205,8 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
           {six.months.map((item) => (
             <div key={item.month} className="grid grid-cols-[5.5rem_1fr_3rem] items-center gap-3">
               <span className="text-base font-semibold text-[#4B5563]">{item.label}</span>
-              <div className="h-3 overflow-hidden rounded-full bg-[#F1F1EE]">
-                <div className="h-full origin-left rounded-full bg-[#0D5C3A] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
+              <div className="h-3 overflow-hidden rounded-full bg-[#EFF6FF]">
+                <div className="h-full origin-left rounded-full bg-[#2563EB] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
                   style={{ width: `${Math.min(Math.max(item.ratio || 0, 0), 100)}%` }} />
               </div>
               <span className="text-right text-base font-bold text-[#111827]">{item.ratio}%</span>
@@ -331,7 +331,7 @@ export default function LaporanPesertaView() {
             <label htmlFor="laporan-peserta-month" className="mb-1 block text-base font-semibold text-[#4B5563]">Bulan laporan</label>
             <div className="flex items-center gap-2">
               <button type="button" aria-label="Bulan sebelumnya" data-testid={PARTICIPANT_REPORT.previousMonth} onClick={() => setMonthValue(shiftMonth(month, -1))}
-                className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#E8E8E4] text-[#4B5563] hover:bg-[#F4F4F1]">
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#E8E8E4] text-[#4B5563] hover:bg-[#F3F4F6]">
                 <ChevronLeft size={18} />
               </button>
               <input id="laporan-peserta-month" data-testid={PARTICIPANT_REPORT.month} type="month" max={maxMonth} value={month}
@@ -339,18 +339,18 @@ export default function LaporanPesertaView() {
                   if (/^\d{4}-\d{2}$/.test(e.target.value) && e.target.value <= maxMonth) setMonthValue(e.target.value);
                 }} className="h-11 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-base font-semibold text-[#111827]" />
               <button type="button" aria-label="Bulan berikutnya" data-testid={PARTICIPANT_REPORT.nextMonth} disabled={month >= maxMonth} onClick={() => setMonthValue(shiftMonth(month, 1))}
-                className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#E8E8E4] text-[#4B5563] hover:bg-[#F4F4F1] disabled:cursor-not-allowed disabled:opacity-40">
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#E8E8E4] text-[#4B5563] hover:bg-[#F3F4F6] disabled:cursor-not-allowed disabled:opacity-40">
                 <ChevronRight size={18} />
               </button>
             </div>
           </div>
-          <div className="inline-flex rounded-xl bg-[#F4F4F1] p-1" role="group" aria-label="Periode laporan">
+          <div className="inline-flex rounded-xl bg-[#F3F4F6] p-1" role="group" aria-label="Periode laporan">
             <button type="button" data-testid={PARTICIPANT_REPORT.monthlyMode} aria-pressed={mode === "bulanan"}
-              onClick={() => setMode("bulanan")} className={`min-h-11 rounded-lg px-4 text-base font-semibold ${mode === "bulanan" ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>
+              onClick={() => setMode("bulanan")} className={`min-h-11 rounded-lg px-4 text-base font-semibold ${mode === "bulanan" ? "bg-white text-[#1D4ED8] shadow-sm" : "text-[#6B7280]"}`}>
               Bulanan
             </button>
             <button type="button" data-testid={PARTICIPANT_REPORT.weeklyMode} aria-pressed={mode === "mingguan"}
-              onClick={() => { setMode("mingguan"); setWeek("1"); }} className={`min-h-11 rounded-lg px-4 text-base font-semibold ${mode === "mingguan" ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>
+              onClick={() => { setMode("mingguan"); setWeek("1"); }} className={`min-h-11 rounded-lg px-4 text-base font-semibold ${mode === "mingguan" ? "bg-white text-[#1D4ED8] shadow-sm" : "text-[#6B7280]"}`}>
               Mingguan
             </button>
           </div>
@@ -372,7 +372,7 @@ export default function LaporanPesertaView() {
         <div className="relative">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
           <input id="laporan-peserta-search" data-testid={PARTICIPANT_REPORT.search} value={search} onChange={(e) => setSearch(e.target.value)}
-            aria-label="Nama peserta" placeholder="Nama peserta" className="h-12 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-3 text-base outline-none focus:border-[#111114]" />
+            aria-label="Nama peserta" placeholder="Nama peserta" className="h-12 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-3 text-base outline-none focus:border-[#2563EB]" />
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <label className="inline-flex min-h-11 items-center gap-2 text-base font-semibold text-[#374151]">
@@ -390,7 +390,7 @@ export default function LaporanPesertaView() {
             </select>
             <button type="button" data-testid={PARTICIPANT_REPORT.selectedOnly} aria-pressed={selectedOnly}
               onClick={() => setSelectedOnly((value) => !value)}
-              className={`min-h-11 rounded-xl border px-3 text-base font-semibold ${selectedOnly ? "border-[#0D5C3A] bg-[#E8F5EE] text-[#14532D]" : "border-[#E8E8E4] text-[#4B5563]"}`}>
+              className={`min-h-11 rounded-xl border px-3 text-base font-semibold ${selectedOnly ? "border-[#2563EB] bg-[#EFF6FF] text-[#166534]" : "border-[#E8E8E4] text-[#4B5563]"}`}>
               {selectedOnly ? "Tampilkan semua" : `Pilihan (${selected.size})`}
             </button>
             {selected.size > 0 && (
@@ -405,12 +405,12 @@ export default function LaporanPesertaView() {
 
       {rows === null ? (
         <div className="rounded-2xl border border-[#E8E8E4] bg-white p-12 text-center">
-          <Loader2 className="mx-auto animate-spin text-[#111114]" size={28} aria-label="Memuat daftar peserta" />
+          <Loader2 className="mx-auto animate-spin text-[#1D4ED8]" size={28} aria-label="Memuat daftar peserta" />
         </div>
       ) : error ? (
         <div className="rounded-2xl border border-[#FECACA] bg-white p-8 text-center">
           <p className="text-base text-[#991B1B]">{error}</p>
-          <button type="button" data-testid={PARTICIPANT_REPORT.retry} onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#111114] px-4 font-semibold text-white">Coba lagi</button>
+          <button type="button" data-testid={PARTICIPANT_REPORT.retry} onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#2563EB] px-4 font-semibold text-white">Coba lagi</button>
         </div>
       ) : (
         <section className="overflow-hidden rounded-2xl border border-[#E8E8E4] bg-white">
@@ -433,7 +433,7 @@ export default function LaporanPesertaView() {
                     <span className="block truncate font-semibold text-[#111827]">{row.name}</span>
                   </button>
                   <div className="shrink-0 text-right">
-                    <div className="font-bold text-[#0D5C3A]">{row.ratio}%</div>
+                    <div className="font-bold text-[#1D4ED8]">{row.ratio}%</div>
                     <div className="text-base text-[#6B7280]">{row.hadir}/{row.total_pertemuan} hadir</div>
                   </div>
                 </li>

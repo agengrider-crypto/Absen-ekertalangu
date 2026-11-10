@@ -21,7 +21,7 @@ const DURATIONS = [
   { value: 90, label: "1,5 jam" },
   { value: 120, label: "2 jam" },
 ];
-const fld = "w-full h-12 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-[15px] outline-none focus:border-[#111114] bg-white transition-colors";
+const fld = "w-full h-12 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-[15px] outline-none focus:border-[#2563EB] bg-white transition-colors";
 const lbl = "block text-[13px] font-semibold text-[#111827] mb-1.5";
 
 function todayYmd() {
@@ -54,7 +54,7 @@ function Section({ icon: Icon, title, desc, children, testid }) {
   return (
     <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={testid}>
       <div className="flex items-start gap-3 mb-3.5">
-        <span className="h-9 w-9 shrink-0 rounded-xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center">
+        <span className="h-9 w-9 shrink-0 rounded-xl bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center">
           <Icon size={17} />
         </span>
         <div className="min-w-0">
@@ -82,7 +82,7 @@ function Chip({ on, children, ...rest }) {
       type="button"
       {...rest}
       className={`h-11 rounded-xl border-2 font-semibold text-xs sm:text-sm transition-colors ${
-        on ? "bg-[#111114] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
+        on ? "bg-[#2563EB] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#2563EB] hover:text-[#1D4ED8]"
       }`}
     >
       {children}
@@ -256,7 +256,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
             </p>
           </div>
           <button onClick={onClose} data-testid="kegiatan-form-close"
-            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F4F4F1]">
+            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F3F4F6]">
             <X size={19} />
           </button>
         </div>
@@ -267,7 +267,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
               aria-current={step === index ? "step" : undefined}
               data-testid={`${ACTIVITIES.wizardStepPrefix}-${index + 1}`}
               className={`min-h-10 rounded-lg px-1 text-xs font-semibold sm:text-sm ${
-                step === index ? "bg-[#111114] text-white" : step > index ? "bg-[#E8F5EE] text-[#0D5C3A]" : "bg-[#F7F7F5] text-[#9CA3AF]"
+                step === index ? "bg-[#2563EB] text-white" : step > index ? "bg-[#EFF6FF] text-[#1D4ED8]" : "bg-[#F7F7F5] text-[#9CA3AF]"
               }`}>
               <span className="mr-1">{index + 1}.</span>{label}
             </button>
@@ -296,8 +296,8 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                       onClick={() => set("type", t.value)}
                       className={`min-h-12 rounded-xl border-2 px-2 text-sm font-semibold transition-colors ${
                         f.type === t.value
-                          ? "border-[#111114] bg-[#111114] text-white"
-                          : "border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#111114]"
+                          ? "border-[#2563EB] bg-[#2563EB] text-white"
+                          : "border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#2563EB]"
                       }`}
                     >
                       {t.label}
@@ -402,8 +402,8 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
 
             {!editing && (
               <>
-                <label className="mt-3 flex items-start gap-2.5 rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-3.5 cursor-pointer hover:border-[#111114]">
-                  <input data-testid="keg-multi-session" type="checkbox" className="accent-[#111114] w-4 h-4 mt-0.5"
+                <label className="mt-3 flex items-start gap-2.5 rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-3.5 cursor-pointer hover:border-[#2563EB]">
+                  <input data-testid="keg-multi-session" type="checkbox" className="accent-[#2563EB] w-4 h-4 mt-0.5"
                     checked={multi} onChange={(e) => { setReviewConfirmed(false); setMulti(e.target.checked); }} />
                   <span>
                     <span className="block text-sm font-bold text-[#111827] inline-flex items-center gap-1.5">
@@ -426,13 +426,13 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                             <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Nama waktu</label>
                             <input data-testid={`keg-session-label-${i}`} list="session-presets" value={s.label}
                               onChange={(e) => setSession(i, "label", e.target.value)} placeholder="Pagi / Sore / Malam"
-                              className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
+                              className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white" />
                           </div>
                           <div>
                             <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Mulai</label>
                             <select data-testid={`keg-session-start-${i}`} value={s.start_time}
                               onChange={(e) => setSession(i, "start_time", e.target.value)}
-                              className="w-full h-11 px-2 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white">
+                              className="w-full h-11 px-2 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white">
                               {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
                             </select>
                           </div>
@@ -440,7 +440,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                             <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Selesai</label>
                             <select data-testid={`keg-session-end-${i}`} value={s.end_time}
                               onChange={(e) => setSession(i, "end_time", e.target.value)}
-                              className="w-full h-11 px-2 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white">
+                              className="w-full h-11 px-2 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white">
                               {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
                             </select>
                           </div>
@@ -453,7 +453,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                         <div className="grid sm:grid-cols-3 gap-2">
                           <input data-testid={`${ACTIVITIES.sessionLocationPrefix}${i}`} list="kegiatan-location-suggestions" value={s.location || ""}
                             onChange={(e) => setSession(i, "location", e.target.value)} placeholder="Lokasi sesi"
-                            className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
+                            className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white" />
                         </div>
                         <div className="rounded-xl border border-[#E8E8E4] bg-white p-3">
                           <label className="mb-2 block text-xs font-bold text-[#111827]">
@@ -475,7 +475,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                       {SESSION_LABEL_PRESETS.map((l) => <option key={l} value={l} />)}
                     </datalist>
                     <button type="button" data-testid="keg-session-add" onClick={addSession} disabled={sessions.length >= 6}
-                      className="w-full h-11 rounded-xl border-2 border-dashed border-[#111114] text-[#111114] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#F1F1EE] disabled:opacity-40">
+                      className="w-full h-11 rounded-xl border-2 border-dashed border-[#2563EB] text-[#1D4ED8] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#EFF6FF] disabled:opacity-40">
                       <Plus size={16} /> Tambah Waktu / Sesi
                     </button>
                   </div>
@@ -519,9 +519,9 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
               </div>
 
               {/* FASE 18 — MODE CEKLIS peserta tertentu */}
-              <div className="rounded-2xl border-2 border-[#111114] bg-white p-3.5" data-testid="keg-pick-mode-box">
+              <div className="rounded-2xl border-2 border-[#2563EB] bg-white p-3.5" data-testid="keg-pick-mode-box">
                 <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input data-testid="keg-pick-mode" type="checkbox" className="accent-[#111114] w-4 h-4 mt-0.5"
+                  <input data-testid="keg-pick-mode" type="checkbox" className="accent-[#2563EB] w-4 h-4 mt-0.5"
                     checked={pickMode} onChange={(e) => { setReviewConfirmed(false); setPickMode(e.target.checked); }} />
                   <span>
                     <span className="block text-sm font-bold text-[#111827] inline-flex items-center gap-1.5">
@@ -545,7 +545,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
               </div>
 
               {(!multi || editing) && (
-                <div className="rounded-2xl border-2 border-[#111114] bg-white p-3.5" data-testid={ACTIVITIES.attendanceParticipants}>
+                <div className="rounded-2xl border-2 border-[#2563EB] bg-white p-3.5" data-testid={ACTIVITIES.attendanceParticipants}>
                   <label className="mb-1 block text-sm font-bold text-[#111827]">
                     Peserta wajib diabsen
                   </label>
@@ -565,7 +565,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
               )}
 
               <div className="rounded-2xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-3.5" data-testid="keg-advanced-group">
-                <div className="flex items-center gap-2 text-sm font-bold text-[#111114]">
+                <div className="flex items-center gap-2 text-sm font-bold text-[#1D4ED8]">
                   <SlidersHorizontal size={15} /> Pengelompokan Lanjutan
                 </div>
                 <div className="mt-3">
@@ -587,7 +587,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                       return (
                         <button key={o.value} type="button" data-testid={`keg-age-${o.value}`} onClick={() => toggleAge(o.value)}
                           className={`h-12 rounded-xl border-2 font-semibold text-xs transition-colors flex flex-col items-center justify-center leading-tight ${
-                            on ? "bg-[#111114] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
+                            on ? "bg-[#2563EB] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#2563EB] hover:text-[#1D4ED8]"
                           }`}>
                           <span>{o.label}</span>
                           <span className={`text-[10px] font-medium ${on ? "text-white/80" : "text-[#9CA3AF]"}`}>{o.range}</span>
@@ -631,13 +631,13 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                 <ReviewItem label="Pengulangan" value={!editing && Number(f.recurring_months)
                   ? `Bulanan, ${f.recurring_months} jadwal` : "Tidak berulang"} />
               </dl>
-              <p className="mt-4 rounded-xl bg-[#F0FDF4] p-3 text-sm text-[#14532D]">
+              <p className="mt-4 rounded-xl bg-[#F0FDF4] p-3 text-sm text-[#166534]">
                 Periksa kembali semua informasi. Data belum disimpan sampai tombol Simpan ditekan.
               </p>
               <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2 text-sm font-semibold text-[#111827]">
                 <input type="checkbox" data-testid={ACTIVITIES.reviewConfirm} checked={reviewConfirmed}
                   onChange={(event) => setReviewConfirmed(event.target.checked)}
-                  className="h-5 w-5 accent-[#111114]" />
+                  className="h-5 w-5 accent-[#2563EB]" />
                 Saya sudah memeriksa informasi kegiatan.
               </label>
             </Section>
@@ -654,17 +654,17 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
             }
           }}
             data-testid={step === 0 ? "kegiatan-form-cancel" : ACTIVITIES.wizardPrevious}
-            className="h-12 px-4 rounded-xl bg-[#F4F4F1] text-[#4B5563] font-semibold hover:bg-[#E9EDE9]">
+            className="h-12 px-4 rounded-xl bg-[#F3F4F6] text-[#4B5563] font-semibold hover:bg-[#E8E8E4]">
             {step === 0 ? "Batal" : "Kembali"}
           </button>
           {step < 3 ? (
             <button type="button" onClick={nextStep} data-testid={ACTIVITIES.wizardNext}
-              className="flex-1 h-12 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-black">
+              className="flex-1 h-12 rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8]">
               Lanjut
             </button>
           ) : (
           <button form="kegiatan-form" type="submit" data-testid="button-submit-kegiatan" disabled={saving || !reviewConfirmed}
-            className="flex-1 h-12 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-black disabled:opacity-60">
+            className="flex-1 h-12 rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60">
             {saving ? <Loader2 className="animate-spin" size={18} /> : editing ? <Save size={18} /> : <Plus size={18} />}
             {editing ? "Simpan Perubahan" : "Simpan Kegiatan"}
           </button>

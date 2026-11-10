@@ -10,7 +10,7 @@ const MONTHS = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
 const STATUSES = [
-  ["hadir", "Hadir", "text-[#14532D]", "bg-[#E8F5EE]"],
+  ["hadir", "Hadir", "text-[#166534]", "bg-[#EFF6FF]"],
   ["izin", "Izin", "text-[#92400E]", "bg-[#FEF3C7]"],
   ["sakit", "Sakit", "text-[#1D4ED8]", "bg-[#DBEAFE]"],
   ["alpha", "Alpha", "text-[#991B1B]", "bg-[#FEE2E2]"],
@@ -68,7 +68,7 @@ export default function PublicLaporanPeserta() {
   if (!data) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#FAFAF8]" role="status">
-        <Loader2 className="animate-spin text-[#111114]" size={32} aria-label="Memuat laporan peserta" />
+        <Loader2 className="animate-spin text-[#1D4ED8]" size={32} aria-label="Memuat laporan peserta" />
       </div>
     );
   }
@@ -76,7 +76,7 @@ export default function PublicLaporanPeserta() {
   const summary = data.summary;
   return (
     <div className="min-h-screen bg-[#FAFAF8] pb-12" data-testid={PARTICIPANT_REPORT.publicPage}>
-      <header className="bg-[#111114] text-white">
+      <header className="bg-[#2563EB] text-white">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
           <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white p-0.5">
             <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
@@ -101,7 +101,7 @@ export default function PublicLaporanPeserta() {
         </section>
 
         <section className="grid gap-3 sm:grid-cols-2" data-testid={PARTICIPANT_REPORT.periodSummary}>
-          <Metric label="Persentase kehadiran" value={`${summary.ratio}%`} color="text-[#0D5C3A]" />
+          <Metric label="Persentase kehadiran" value={`${summary.ratio}%`} color="text-[#1D4ED8]" />
           <Metric label="Total pertemuan" value={summary.total_pertemuan} />
         </section>
 
@@ -121,8 +121,8 @@ export default function PublicLaporanPeserta() {
           {data.six_months.months.map((item) => (
             <div key={item.month} className="grid grid-cols-[5.5rem_1fr_3rem] items-center gap-3">
               <span className="text-base font-semibold text-[#4B5563]">{item.label}</span>
-              <div className="h-3 overflow-hidden rounded-full bg-[#F1F1EE]">
-                <div className="h-full origin-left rounded-full bg-[#0D5C3A] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
+              <div className="h-3 overflow-hidden rounded-full bg-[#EFF6FF]">
+                <div className="h-full origin-left rounded-full bg-[#2563EB] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
                   style={{ width: `${Math.min(Math.max(item.ratio || 0, 0), 100)}%` }} />
               </div>
               <span className="text-right text-base font-bold text-[#111827]">{item.ratio}%</span>

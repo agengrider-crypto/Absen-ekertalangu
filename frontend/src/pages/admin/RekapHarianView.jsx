@@ -88,26 +88,26 @@ export default function RekapHarianView() {
     <div className="space-y-5" data-testid="rekap-harian-view">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-[#111114]">Rekap Absen Harian</h1>
+          <h1 className="font-heading text-2xl font-bold text-[#1D4ED8]">Rekap Absen Harian</h1>
           <p className="text-sm text-[#6B7280] mt-0.5">
             Rincian kehadiran seluruh sesi pada satu tanggal, lengkap dengan keterangan hitungan tiap peserta.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button data-testid="harian-prev" onClick={() => setDate(shiftDay(date, -1))}
-            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#0F766E] hover:text-[#0F766E]"><ChevronLeft size={18} /></button>
+            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#2563EB] hover:text-[#1D4ED8]"><ChevronLeft size={18} /></button>
           <input data-testid="harian-date" type="date" value={date}
             onChange={(e) => setDate(e.target.value || todayYmd())}
-            className="h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm font-semibold outline-none focus:border-[#0F766E] bg-white" />
+            className="h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm font-semibold outline-none focus:border-[#2563EB] bg-white" />
           <button data-testid="harian-next" onClick={() => setDate(shiftDay(date, 1))}
-            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#0F766E] hover:text-[#0F766E]"><ChevronRight size={18} /></button>
+            className="h-11 w-11 rounded-xl border-2 border-[#E8E8E4] flex items-center justify-center text-[#4B5563] hover:border-[#2563EB] hover:text-[#1D4ED8]"><ChevronRight size={18} /></button>
         </div>
       </div>
 
       {loading ? (
         <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5">
           <div className="text-sm text-[#6B7280] mb-3 inline-flex items-center gap-2">
-            <Loader2 size={15} className="animate-spin text-[#0F766E]" /> Memuat rekap harian…
+            <Loader2 size={15} className="animate-spin text-[#1D4ED8]" /> Memuat rekap harian…
           </div>
           <SkeletonList rows={6} testid="rekap-harian-skeleton" />
         </div>
@@ -117,16 +117,16 @@ export default function RekapHarianView() {
         </div>
       ) : (
         <>
-          <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#F0FDFA] p-4" data-testid="rekap-harian-header">
+          <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#EFF6FF] p-4" data-testid="rekap-harian-header">
             <div className="font-heading text-lg font-bold text-[#115E59]">{data.label}</div>
-            <div className="text-sm text-[#0F766E] mt-0.5">
+            <div className="text-sm text-[#1D4ED8] mt-0.5">
               {data.kegiatan.join(" · ")} — {data.total_sesi} sesi
             </div>
           </div>
 
-          <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#F0FDFA] p-4 space-y-2.5" data-testid="rekap-harian-share">
+          <div className="rounded-2xl border-2 border-[#CCFBF1] bg-[#EFF6FF] p-4 space-y-2.5" data-testid="rekap-harian-share">
             <div className="text-sm font-bold text-[#115E59] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap hari ini</div>
-            <p className="text-[11px] text-[#0F766E] leading-relaxed">
+            <p className="text-[11px] text-[#1D4ED8] leading-relaxed">
               Tautan publik: siapa pun yang klik bisa langsung melihat rincian tiap sesi,
               keterangan hitungan, dan status kehadiran tiap peserta pada tanggal ini — tanpa perlu login.
             </p>
@@ -139,7 +139,7 @@ export default function RekapHarianView() {
                 {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Bagikan ke WhatsApp
               </button>
               <button onClick={copyLink} disabled={sharing} data-testid="rekap-harian-copy-link"
-                className="h-11 rounded-xl border-2 border-[#0F766E] text-[#0F766E] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#CCFBF1] disabled:opacity-60">
+                className="h-11 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#CCFBF1] disabled:opacity-60">
                 <Link2 size={15} /> Salin Tautan
               </button>
             </div>
@@ -168,7 +168,7 @@ export default function RekapHarianView() {
           </div>
 
           <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 space-y-4" data-testid="rekap-harian-sesi">
-            <div className="text-sm font-semibold text-[#111114] inline-flex items-center gap-2">
+            <div className="text-sm font-semibold text-[#1D4ED8] inline-flex items-center gap-2">
               <Layers size={16} style={{ color: REKAP.main }} /> Kehadiran Tiap Sesi
             </div>
             {data.sesi.map((s) => (
@@ -191,7 +191,7 @@ export default function RekapHarianView() {
           </div>
 
           <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 space-y-4" data-testid="rekap-harian-gender">
-            <div className="text-sm font-semibold text-[#111114] inline-flex items-center gap-2">
+            <div className="text-sm font-semibold text-[#1D4ED8] inline-flex items-center gap-2">
               <Users size={16} style={{ color: REKAP.main }} /> Pisah Laki-laki &amp; Perempuan
             </div>
             <PercentBar label={`Laki-laki (${data.gender?.L?.peserta || 0} peserta)`} value={data.gender?.L?.ratio || 0}
@@ -206,12 +206,12 @@ export default function RekapHarianView() {
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
                 <input data-testid="harian-search" value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari nama peserta…"
-                  className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#0F766E]" />
+                  className="w-full h-11 pl-9 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB]" />
               </div>
-              <div className="flex items-center gap-1 bg-[#F4F6F4] rounded-xl p-1">
+              <div className="flex items-center gap-1 bg-[#F3F4F6] rounded-xl p-1">
                 {[["semua", "Semua"], ["hadir", "Hadir"], ["izin", "Izin"], ["alpha", "Alpha"]].map(([v, l]) => (
                   <button key={v} data-testid={`harian-filter-${v}`} onClick={() => setFilter(v)}
-                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#0F766E] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#1D4ED8] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
                 ))}
               </div>
             </div>
@@ -227,7 +227,7 @@ export default function RekapHarianView() {
                     <button type="button" onClick={() => setOpen(expanded ? null : r.user_id)}
                       className="w-full text-left flex items-center gap-3 justify-between">
                       <span className="min-w-0">
-                        <span className="font-semibold text-[#111114] flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-[#1D4ED8] flex items-center gap-1.5 flex-wrap">
                           {r.name}
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${chip.cls}`}>{chip.t}</span>
                         </span>
@@ -266,7 +266,7 @@ export default function RekapHarianView() {
           </div>
 
           <div className="rounded-2xl border-2 border-dashed border-[#E8E8E4] bg-white p-4 text-xs text-[#4B5563] space-y-1.5" data-testid="rekap-harian-legend">
-            <div className="font-bold text-[#111114] inline-flex items-center gap-1.5"><Info size={14} /> Keterangan hitungan</div>
+            <div className="font-bold text-[#1D4ED8] inline-flex items-center gap-1.5"><Info size={14} /> Keterangan hitungan</div>
             <p>Persen kehadiran = jumlah <b>Hadir</b> ÷ jumlah sesi yang wajib diikuti × 100.</p>
             <p>Hadir + Izin + Alpha selalu sama dengan jumlah sesi peserta tersebut, sehingga persennya berjumlah <b>100%</b>.</p>
             <p>Warna persen: <span className="font-bold text-[#166534]">hijau ≥80%</span>, <span className="font-bold text-[#92400E]">kuning 50–79%</span>, <span className="font-bold text-[#991B1B]">merah &lt;50%</span>.</p>

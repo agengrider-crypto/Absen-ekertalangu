@@ -14,7 +14,7 @@ import ListFab from "@/components/ListFab";
 import PesertaDetailModal from "./PesertaDetailModal";
 import { genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
 
-const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
+const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white";
 
 /**
  * FASE 10 — KELENGKAPAN DATA: tanggal lahir & status pernikahan dipakai untuk
@@ -68,7 +68,7 @@ function PesertaAvatar({ user, size = "md" }) {
     );
   }
   return (
-    <div className={`${box} shrink-0 rounded-full bg-[#F1F1EE] text-[#111114] flex items-center justify-center font-bold`}>
+    <div className={`${box} shrink-0 rounded-full bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center font-bold`}>
       {initials}
     </div>
   );
@@ -226,7 +226,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2 text-[#111114] font-bold text-lg">
+      <div className="mb-4 flex items-center gap-2 text-[#1D4ED8] font-bold text-lg">
         <Users size={20} /> Peserta &amp; Akun
         {users && <span className="text-sm font-medium text-[#6B7280]">({users.length})</span>}
       </div>
@@ -250,7 +250,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
               data-testid={`${PARTICIPANTS.roleTabPrefix}-${tab.key}`}
               onClick={() => setRoleFilter(tab.key)}
               className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border-2 px-4 text-sm font-semibold transition-colors ${
-                active ? "border-[#111114] bg-[#111114] text-white" : "border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#111114]"
+                active ? "border-[#2563EB] bg-[#2563EB] text-white" : "border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#2563EB]"
               }`}
             >
               {tab.label}
@@ -268,12 +268,12 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari nama, nama pengguna, No HP..."
-            className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white"
+            className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white"
           />
         </div>
         {activatableSelected.length > 0 && (
           <button data-testid={PARTICIPANTS.bulkActivateButton} onClick={bulkActivate}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#0D5C3A] text-white font-semibold text-sm hover:bg-[#08452B]">
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#2563EB] text-white font-semibold text-sm hover:bg-[#1D4ED8]">
             <CheckCircle2 size={16} /> Aktifkan Terpilih ({activatableSelected.length})
           </button>
         )}
@@ -294,13 +294,13 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
       {/* FASE 10 — Kelengkapan data (tanggal lahir & status pernikahan) */}
       {users && roleFilter === "peserta" && counts.incomplete > 0 && (
-        <div className={`mb-4 rounded-2xl border-2 p-3.5 flex flex-wrap items-center gap-3 ${statusFilter === "incomplete" ? "border-[#9D174D] bg-[#FDF2F8]" : "border-[#F5D0E3] bg-[#FDF2F8]/60"}`} data-testid="kelengkapan-banner">
-          <span className="h-10 w-10 rounded-xl bg-[#9D174D] text-white flex items-center justify-center shrink-0"><ClipboardList size={18} /></span>
+        <div className={`mb-4 rounded-2xl border-2 p-3.5 flex flex-wrap items-center gap-3 ${statusFilter === "incomplete" ? "border-[#DC2626] bg-[#FEF2F2]" : "border-[#FECACA] bg-[#FEF2F2]/60"}`} data-testid="kelengkapan-banner">
+          <span className="h-10 w-10 rounded-xl bg-[#DC2626] text-white flex items-center justify-center shrink-0"><ClipboardList size={18} /></span>
           <div className="flex-1 min-w-[200px]">
-            <div className="text-sm font-bold text-[#831843]">
+            <div className="text-sm font-bold text-[#991B1B]">
               {counts.incomplete} peserta datanya belum lengkap
             </div>
-            <div className="text-xs text-[#9D174D] mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+            <div className="text-xs text-[#B91C1C] mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
               <span className="inline-flex items-center gap-1"><CalendarDays size={12} /> Tgl lahir kosong: <b>{counts.missingDob}</b></span>
               <span className="inline-flex items-center gap-1"><Heart size={12} /> Status nikah kosong: <b>{counts.missingMarital}</b></span>
             </div>
@@ -311,26 +311,26 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
           </div>
           {statusFilter !== "incomplete" ? (
             <button data-testid="kelengkapan-show" onClick={() => setStatusFilter("incomplete")}
-              className="h-10 px-4 rounded-xl bg-[#9D174D] text-white font-semibold text-sm hover:bg-[#831843]">Tampilkan daftar</button>
+              className="h-10 px-4 rounded-xl bg-[#DC2626] text-white font-semibold text-sm hover:bg-[#B91C1C]">Tampilkan daftar</button>
           ) : (
             <button data-testid="kelengkapan-hide" onClick={() => setStatusFilter("all")}
-              className="h-10 px-4 rounded-xl border-2 border-[#9D174D] text-[#9D174D] font-semibold text-sm hover:bg-[#FDF2F8]">Tampilkan semua</button>
+              className="h-10 px-4 rounded-xl border-2 border-[#DC2626] text-[#B91C1C] font-semibold text-sm hover:bg-[#FEF2F2]">Tampilkan semua</button>
           )}
         </div>
       )}
       {users && roleFilter === "peserta" && counts.incomplete === 0 && statusFilter === "incomplete" && (
-        <div className="mb-4 rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-3.5 text-sm text-[#111114] font-semibold" data-testid="kelengkapan-complete">
+        <div className="mb-4 rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-3.5 text-sm text-[#1D4ED8] font-semibold" data-testid="kelengkapan-complete">
           Semua peserta sudah melengkapi tanggal lahir dan status pernikahan.
         </div>
       )}
 
       <div className="overflow-hidden rounded-2xl border border-[#E8E8E4] bg-white" data-testid="peserta-table">
         {users === null ? (
-          <div className="flex justify-center p-10"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
+          <div className="flex justify-center p-10"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>
         ) : users === false ? (
           <div className="p-10 text-center">
             <p className="text-[#6B7280]">Daftar akun gagal dimuat.</p>
-            <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#111114] px-4 font-semibold text-white">Coba lagi</button>
+            <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#2563EB] px-4 font-semibold text-white">Coba lagi</button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-10 text-center text-[#6B7280]">{q ? "Tidak ada akun yang cocok." : "Belum ada akun pada kategori ini."}</div>
@@ -348,7 +348,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                   data-testid={PARTICIPANTS.selectAllActivatable}
                 />
                 Pilih yang bisa diaktifkan
-                <span className="rounded-full bg-[#F1F1EE] px-1.5 py-0.5 text-[11px] font-bold text-[#374151]">{activationEligible.length}</span>
+                <span className="rounded-full bg-[#EFF6FF] px-1.5 py-0.5 text-[11px] font-bold text-[#374151]">{activationEligible.length}</span>
               </label>
               <span className="text-xs text-[#9CA3AF]">{filtered.length} akun</span>
             </div>
@@ -369,7 +369,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                       }}
                       aria-label={`Buka detail ${u.name}`}
                       data-testid={`peserta-row-${u.id}`}
-                      className={`group flex cursor-pointer items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#111114] sm:gap-4 sm:px-4 ${
+                      className={`group flex cursor-pointer items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2563EB] sm:gap-4 sm:px-4 ${
                         isSelected ? "bg-[#FAFAF8]" : ""
                       }`}
                     >
@@ -381,7 +381,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                         <input
                           aria-label={`Pilih ${u.name}`}
                           type="checkbox"
-                          className="h-4 w-4 accent-[#111114]"
+                          className="h-4 w-4 accent-[#2563EB]"
                           checked={isSelected}
                           onChange={() => toggleOne(u.id)}
                           data-testid={`checkbox-${u.id}`}
@@ -404,7 +404,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                           {u.phone && <span className="hidden shrink-0 sm:inline">· {u.phone}</span>}
                         </div>
                         {miss.length > 0 && (
-                          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#FDF2F8] px-2 py-0.5 text-[11px] font-semibold text-[#9D174D]">
+                          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#FEF2F2] px-2 py-0.5 text-[11px] font-semibold text-[#B91C1C]">
                             <ClipboardList size={11} /> {miss.map((m) => MISSING_LABEL[m]).join(" & ")} belum diisi
                           </div>
                         )}
@@ -412,7 +412,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
                       <div className="hidden shrink-0 items-center gap-1 md:flex">
                         {(u.roles || []).map((r) => (
-                          <span key={r} className="rounded-full bg-[#F1F1EE] px-2 py-0.5 text-[11px] font-medium text-[#374151]">
+                          <span key={r} className="rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-medium text-[#374151]">
                             {ROLE_NAMES[r] || r}
                           </span>
                         ))}
@@ -426,7 +426,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                         aria-label={`Aksi lain untuk ${u.name}`}
                         title="Aksi lainnya"
                         data-testid={`button-more-${u.id}`}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B7280] transition-colors hover:bg-[#F1F1EE] hover:text-[#111114] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#111114]"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B7280] transition-colors hover:bg-[#EFF6FF] hover:text-[#1D4ED8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
                       >
                         <MoreHorizontal size={18} />
                       </button>
@@ -516,7 +516,7 @@ function ModalShell({ title, children, onClose, testid, wide = false }) {
       <div className={`bg-[#FAFAF8] w-full ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
         <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E8E8E4] px-5 py-3.5 flex items-center justify-between z-10">
           <h2 className="font-heading font-bold text-[#111827]">{title}</h2>
-          <button type="button" onClick={onClose} aria-label={`Tutup ${title}`} data-testid={PARTICIPANTS.closeModal} className="h-11 w-11 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"><X size={20} /></button>
+          <button type="button" onClick={onClose} aria-label={`Tutup ${title}`} data-testid={PARTICIPANTS.closeModal} className="h-11 w-11 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -579,7 +579,7 @@ function AddModal({ kelompok, onClose, onDone }) {
               aria-current={step === index ? "step" : undefined}
               data-testid={`${PARTICIPANTS.addWizardStepPrefix}-${index + 1}`}
               className={`min-h-10 rounded-lg px-1 text-xs font-semibold sm:text-sm ${
-                step === index ? "bg-[#111114] text-white" : step > index ? "bg-[#E8F5EE] text-[#0D5C3A]" : "bg-[#F7F7F5] text-[#9CA3AF]"
+                step === index ? "bg-[#2563EB] text-white" : step > index ? "bg-[#EFF6FF] text-[#1D4ED8]" : "bg-[#F7F7F5] text-[#9CA3AF]"
               }`}>
               <span className="mr-1">{index + 1}.</span>{label}
             </button>
@@ -587,10 +587,10 @@ function AddModal({ kelompok, onClose, onDone }) {
         </div>
 
         {step === 0 && <>
-        <div className="flex items-start gap-3 rounded-2xl border border-[#B7E4CA] bg-[#E8F5EE] p-4">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#0D5C3A]"><UserPlus size={21} /></span>
+        <div className="flex items-start gap-3 rounded-2xl border border-[#B7E4CA] bg-[#EFF6FF] p-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#1D4ED8]"><UserPlus size={21} /></span>
           <div>
-            <h3 className="font-bold text-[#14532D]">Akun baru menunggu aktivasi</h3>
+            <h3 className="font-bold text-[#166534]">Akun baru menunggu aktivasi</h3>
             <p className="mt-1 text-sm leading-relaxed text-[#166534]">
               Nama wajib diisi. Data lainnya bisa dilengkapi sekarang atau nanti.
             </p>
@@ -599,7 +599,7 @@ function AddModal({ kelompok, onClose, onDone }) {
 
         <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addMainSection}>
           <div className="mb-4 flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#111114] text-sm font-bold text-white">1</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#2563EB] text-sm font-bold text-white">1</span>
             <div>
               <h3 className="font-bold text-[#111827]">Data utama peserta</h3>
               <p className="text-sm text-[#6B7280]">Isi nama terlebih dahulu. Data lainnya bisa dilengkapi nanti.</p>
@@ -640,7 +640,7 @@ function AddModal({ kelompok, onClose, onDone }) {
 
         {step === 1 && <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addContactSection}>
           <div className="mb-4 flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F1F1EE] text-sm font-bold text-[#111114]">2</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EFF6FF] text-sm font-bold text-[#1D4ED8]">2</span>
             <div>
               <h3 className="font-bold text-[#111827]">Kontak dan kelompok</h3>
               <p className="text-sm text-[#6B7280]">Semua isian pada bagian ini bersifat opsional</p>
@@ -694,12 +694,12 @@ function AddModal({ kelompok, onClose, onDone }) {
               </div>
             ))}
           </dl>
-          <p className="mt-3 rounded-xl bg-[#E8F5EE] p-3 text-sm text-[#14532D]">
+          <p className="mt-3 rounded-xl bg-[#EFF6FF] p-3 text-sm text-[#166534]">
             Akun peserta akan menunggu aktivasi. Pastikan tanggal lahir benar agar peserta dapat mengaktifkan akunnya.
           </p>
           <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2 text-sm font-semibold text-[#111827]">
             <input type="checkbox" data-testid={PARTICIPANTS.addWizardConfirm} checked={reviewConfirmed}
-              onChange={(event) => setReviewConfirmed(event.target.checked)} className="h-5 w-5 accent-[#111114]" />
+              onChange={(event) => setReviewConfirmed(event.target.checked)} className="h-5 w-5 accent-[#2563EB]" />
             Saya sudah memeriksa data peserta.
           </label>
         </section>}
@@ -707,17 +707,17 @@ function AddModal({ kelompok, onClose, onDone }) {
         <div className="sticky bottom-0 -mx-5 -mb-5 flex gap-2 border-t border-[#E8E8E4] bg-[#FAFAF8]/95 p-4 backdrop-blur">
           <button data-testid={step === 0 ? PARTICIPANTS.addCancel : PARTICIPANTS.addWizardPrevious} type="button"
             onClick={() => step === 0 ? onClose() : setStep((current) => Math.max(current - 1, 0))}
-            className="min-h-12 flex-1 rounded-xl border-2 border-[#E8E8E4] bg-white text-base font-semibold text-[#374151] hover:bg-[#F4F4F1]">
+            className="min-h-12 flex-1 rounded-xl border-2 border-[#E8E8E4] bg-white text-base font-semibold text-[#374151] hover:bg-[#F3F4F6]">
             {step === 0 ? "Batal" : <><ChevronLeft size={17} className="mr-1 inline" /> Kembali</>}
           </button>
           {step < 2 ? (
             <button data-testid={PARTICIPANTS.addWizardNext} type="button" onClick={nextStep}
-              className="min-h-12 flex-[2] rounded-xl bg-[#111114] text-base font-bold text-white hover:bg-black">
+              className="min-h-12 flex-[2] rounded-xl bg-[#2563EB] text-base font-bold text-white hover:bg-[#1D4ED8]">
               Lanjut <ChevronRight size={17} className="ml-1 inline" />
             </button>
           ) : (
             <button data-testid={PARTICIPANTS.addSubmit} type="submit" disabled={saving || !reviewConfirmed}
-              className="min-h-12 flex-[2] rounded-xl bg-[#0D5C3A] text-base font-bold text-white inline-flex items-center justify-center gap-2 hover:bg-[#09492E] disabled:opacity-60">
+              className="min-h-12 flex-[2] rounded-xl bg-[#2563EB] text-base font-bold text-white inline-flex items-center justify-center gap-2 hover:bg-[#09492E] disabled:opacity-60">
               {saving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Simpan Peserta
             </button>
           )}
@@ -777,7 +777,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
         </div>
       </header>
       <div className="name-tag-screen-only space-y-4">
-        <div className="rounded-2xl border border-[#D1E7DD] bg-[#F0FDF4] p-4 text-sm leading-relaxed text-[#14532D]">
+        <div className="rounded-2xl border border-[#D1E7DD] bg-[#F0FDF4] p-4 text-sm leading-relaxed text-[#166534]">
           Barcode QR ini permanen untuk identifikasi nama tag. QR presensi peserta tetap memakai barcode berputar dari menu peserta.
         </div>
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px_190px]">
@@ -789,7 +789,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Cari nama peserta"
-              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-4 text-base outline-none focus:border-[#111114]"
+              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-4 text-base outline-none focus:border-[#2563EB]"
             />
           </label>
           <label>
@@ -798,7 +798,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
               data-testid={PARTICIPANTS.nameTagGroupFilter}
               value={groupFilter}
               onChange={(event) => setGroupFilter(event.target.value)}
-              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-base outline-none focus:border-[#111114]"
+              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-base outline-none focus:border-[#2563EB]"
             >
               <option value="all">Semua kelompok</option>
               {kelompok.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
@@ -810,7 +810,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
               data-testid={PARTICIPANTS.nameTagStatusFilter}
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-base outline-none focus:border-[#111114]"
+              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-base outline-none focus:border-[#2563EB]"
             >
               <option value="all">Semua status</option>
               <option value="active">Sudah aktif</option>
@@ -834,27 +834,27 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
           <div className="flex flex-wrap items-center gap-2">
             {selected.size > 0 && (
               <button type="button" onClick={() => setSelected(new Set())} data-testid={PARTICIPANTS.nameTagClearSelection}
-                className="min-h-11 rounded-lg border border-[#E8E8E4] bg-white px-3 text-sm font-semibold text-[#4B5563] hover:border-[#111114]">
+                className="min-h-11 rounded-lg border border-[#E8E8E4] bg-white px-3 text-sm font-semibold text-[#4B5563] hover:border-[#2563EB]">
                 Hapus pilihan
               </button>
             )}
             <button type="button" aria-pressed={orientation === "portrait"} onClick={() => setOrientation("portrait")}
               data-testid={PARTICIPANTS.nameTagPortrait}
-              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "portrait" ? "border-[#0D5C3A] bg-[#F0FDF4] text-[#0D5C3A]" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}>
+              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "portrait" ? "border-[#2563EB] bg-[#F0FDF4] text-[#1D4ED8]" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}>
               Vertikal
             </button>
             <button type="button" aria-pressed={orientation === "landscape"} onClick={() => setOrientation("landscape")}
               data-testid={PARTICIPANTS.nameTagLandscape}
-              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "landscape" ? "border-[#0D5C3A] bg-[#F0FDF4] text-[#0D5C3A]" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}>
+              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "landscape" ? "border-[#2563EB] bg-[#F0FDF4] text-[#1D4ED8]" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}>
               Horizontal
             </button>
             <button type="button" aria-expanded={previewOpen} onClick={() => setPreviewOpen((open) => !open)}
               data-testid={PARTICIPANTS.nameTagPreviewToggle} disabled={!visibleSelected.length}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#E8E8E4] bg-white px-3 text-sm font-semibold text-[#374151] hover:border-[#111114] disabled:opacity-50">
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#E8E8E4] bg-white px-3 text-sm font-semibold text-[#374151] hover:border-[#2563EB] disabled:opacity-50">
               <Eye size={16} /> {previewOpen ? "Tutup pratinjau" : `Pratinjau cetak (${visibleSelected.length})`}
             </button>
             <button type="button" onClick={printTags} data-testid={PARTICIPANTS.nameTagPrint}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#111114] px-4 text-sm font-semibold text-white hover:bg-black">
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#2563EB] px-4 text-sm font-semibold text-white hover:bg-[#1D4ED8]">
               <Printer size={16} /> Cetak ({visibleSelected.length})
             </button>
           </div>
@@ -871,7 +871,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
                 {visibleSelected.map((user) => <NameTagCard key={user.id} user={user} orientation={orientation} preview />)}
               </div>
             ) : (
-              <p className="rounded-lg border border-dashed border-[#CBD5E1] bg-white p-5 text-center text-sm text-[#6B7280]">
+              <p className="rounded-lg border border-dashed border-[#D1D5DB] bg-white p-5 text-center text-sm text-[#6B7280]">
                 Pilih peserta untuk melihat kartu yang siap dicetak.
               </p>
             )}
@@ -885,10 +885,10 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
         ) : loadError ? (
           <div className="rounded-xl border border-[#FECACA] bg-white p-6 text-center">
             <p className="text-sm text-[#6B7280]">Daftar peserta gagal dimuat.</p>
-            <button type="button" onClick={onRetry} data-testid={PARTICIPANTS.nameTagRetry} className="mt-3 min-h-11 rounded-xl bg-[#111114] px-4 font-semibold text-white">Coba lagi</button>
+            <button type="button" onClick={onRetry} data-testid={PARTICIPANTS.nameTagRetry} className="mt-3 min-h-11 rounded-xl bg-[#2563EB] px-4 font-semibold text-white">Coba lagi</button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[#CBD5E1] bg-white p-8 text-center text-sm text-[#6B7280]">
+          <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-white p-8 text-center text-sm text-[#6B7280]">
             Tidak ada peserta yang cocok dengan pencarian atau filter.
           </div>
         ) : (
@@ -928,7 +928,7 @@ function NameTagCard({ user, orientation, preview = false }) {
   return (
     <div className={`name-tag-card name-tag-card-${orientation}${preview ? " name-tag-preview-card" : ""}`}>
       <div className="name-tag-card-name">{user.name}</div>
-      <QRCodeSVG value={`EKT:${user.id}`} title={`Barcode identitas ${user.name}`} size={108} level="M" />
+      <QRCodeSVG value={`EKT:${user.id}`} title={`Barcode identitas ${user.name}`} size={108} level="M" fgColor="#000000" bgColor="#FFFFFF" />
     </div>
   );
 }

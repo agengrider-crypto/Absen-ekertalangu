@@ -61,7 +61,7 @@ export default function ProfileMenu({ subtitle }) {
             onClick={() => setShowSwitcher(true)}
             aria-label="Ganti Peran"
             title="Ganti Peran"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E8E8E4] text-[#6B7280] transition-colors hover:border-[#111114] hover:text-[#111114]"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E8E8E4] text-[#6B7280] transition-colors hover:border-[#2563EB] hover:text-[#1D4ED8]"
           >
             <RefreshCw size={14} />
           </button>
@@ -69,7 +69,7 @@ export default function ProfileMenu({ subtitle }) {
         <button
           data-testid="button-profile-menu"
           onClick={() => setOpenMenu(true)}
-          className="relative flex items-center gap-2.5 rounded-full pl-1 pr-2 py-1 hover:bg-[#F4F4F1] transition-colors"
+          className="relative flex items-center gap-2.5 rounded-full pl-1 pr-2 py-1 hover:bg-[#F3F4F6] transition-colors"
         >
           <div className="text-right hidden sm:block leading-tight">
             <div className="font-semibold text-[#111827] text-sm">{user?.name}</div>
@@ -90,7 +90,6 @@ export default function ProfileMenu({ subtitle }) {
         <ActionModal
           testid="profile-action-modal"
           title={user?.name || "Akun Saya"}
-          subtitle={rolesLabel(user?.roles)}
           onClose={() => setOpenMenu(false)}
           actions={[
             {
@@ -189,7 +188,7 @@ export default function ProfileMenu({ subtitle }) {
 function Avatar({ size = 40, photo, initials }) {
   return (
     <div
-      className="rounded-full overflow-hidden bg-[#111114] text-white flex items-center justify-center font-bold shrink-0 border-2 border-white shadow-sm"
+      className="rounded-full overflow-hidden bg-[#2563EB] text-white flex items-center justify-center font-bold shrink-0 border-2 border-white shadow-sm"
       style={{ height: size, width: size, fontSize: size * 0.34 }}
     >
       {photo ? <img src={photo} alt="Foto profil" className="h-full w-full object-cover" /> : initials}

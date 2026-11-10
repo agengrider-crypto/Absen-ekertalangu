@@ -48,7 +48,7 @@ export default function ActionModal({ title, subtitle, actions = [], onClose, te
             data-testid={`${testid}-close`}
             onClick={onClose}
             aria-label="Tutup"
-            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F4F4F1]"
+            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F3F4F6]"
           >
             <X size={19} />
           </button>
@@ -102,7 +102,7 @@ export default function ActionModal({ title, subtitle, actions = [], onClose, te
           <button
             data-testid={`${testid}-cancel`}
             onClick={onClose}
-            className="w-full h-12 rounded-2xl bg-[#F4F4F1] text-[#4B5563] font-semibold hover:bg-[#E9EDE9]"
+            className="w-full h-12 rounded-2xl bg-[#F3F4F6] text-[#4B5563] font-semibold hover:bg-[#E8E8E4]"
           >
             {actions.some((a) => a && a.danger) ? "Batalkan" : "Tutup"}
           </button>

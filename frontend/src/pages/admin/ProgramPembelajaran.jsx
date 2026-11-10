@@ -7,8 +7,8 @@ import {
 import { toast } from "sonner";
 import { api, API, formatApiErrorDetail } from "@/lib/api";
 
-const fld = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white";
-const area = "w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white resize-none";
+const fld = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white";
+const area = "w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white resize-none";
 const lbl = "block text-[13px] font-semibold text-[#111827] mb-1.5";
 
 function MediaChip({ m, onRemove }) {
@@ -85,7 +85,7 @@ function MateriForm({ jenjangId, initial, onClose, onDone }) {
 
   return (
     <form onSubmit={submit} data-testid="program-materi-form"
-      className="rounded-2xl border-2 border-[#111114] bg-white p-4 space-y-3">
+      className="rounded-2xl border-2 border-[#2563EB] bg-white p-4 space-y-3">
       <div className="font-bold text-[#111827] text-sm">
         {initial?.id ? "Edit Materi" : "Materi Baru"}
       </div>
@@ -121,11 +121,11 @@ function MateriForm({ jenjangId, initial, onClose, onDone }) {
           <input data-testid="program-media-label" value={linkLabel} onChange={(e) => setLinkLabel(e.target.value)}
             placeholder="Nama tautan (opsional)" className={fld} />
           <button type="button" data-testid="program-media-add-link" onClick={addLink}
-            className="h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm font-semibold text-[#4B5563] hover:border-[#111114] hover:text-[#111114] inline-flex items-center gap-1.5">
+            className="h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm font-semibold text-[#4B5563] hover:border-[#2563EB] hover:text-[#1D4ED8] inline-flex items-center gap-1.5">
             <Link2 size={15} /> Tautan
           </button>
         </div>
-        <label className="mt-2 inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border-2 border-dashed border-[#111114] text-sm font-semibold text-[#111114] cursor-pointer hover:bg-[#F1F1EE]">
+        <label className="mt-2 inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border-2 border-dashed border-[#2563EB] text-sm font-semibold text-[#1D4ED8] cursor-pointer hover:bg-[#EFF6FF]">
           {uploading ? <Loader2 className="animate-spin" size={15} /> : <Paperclip size={15} />}
           Unggah berkas (PDF / gambar, maks 10 MB)
           <input data-testid="program-media-file" type="file" className="hidden"
@@ -134,9 +134,9 @@ function MateriForm({ jenjangId, initial, onClose, onDone }) {
       </div>
       <div className="flex gap-2">
         <button type="button" onClick={onClose} data-testid="program-materi-cancel"
-          className="h-11 px-4 rounded-xl bg-[#F4F4F1] text-[#4B5563] font-semibold hover:bg-[#E9EDE9]">Batal</button>
+          className="h-11 px-4 rounded-xl bg-[#F3F4F6] text-[#4B5563] font-semibold hover:bg-[#E8E8E4]">Batal</button>
         <button type="submit" disabled={busy} data-testid="program-materi-submit"
-          className="flex-1 h-11 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-black disabled:opacity-60">
+          className="flex-1 h-11 rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60">
           {busy ? <Loader2 className="animate-spin" size={17} /> : <Save size={17} />} Simpan Materi
         </button>
       </div>
@@ -190,7 +190,7 @@ function JadwalForm({ jenjangId, hari, onDone }) {
           onChange={(e) => set("location", e.target.value)} placeholder="Ruang / masjid" className={fld} />
       </div>
       <button type="submit" disabled={busy} data-testid="program-jadwal-submit"
-        className="sm:col-span-6 h-11 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-black disabled:opacity-60">
+        className="sm:col-span-6 h-11 rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60">
         {busy ? <Loader2 className="animate-spin" size={17} /> : <Plus size={17} />} Tambah Jadwal
       </button>
     </form>
@@ -253,13 +253,13 @@ export default function ProgramPembelajaran() {
   };
 
   if (list === null) {
-    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>;
+    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>;
   }
 
   return (
     <div data-testid="program-pembelajaran">
       <div className="mb-4">
-        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
+        <div className="flex items-center gap-2 text-[#1D4ED8] font-bold text-lg">
           <BookOpen size={20} /> Program Pembelajaran
         </div>
         <p className="text-sm text-[#6B7280] mt-0.5">
@@ -280,7 +280,7 @@ export default function ProgramPembelajaran() {
                   return (
                     <button key={j.id} data-testid={`program-jenjang-${j.id}`} onClick={() => setPick(j.id)}
                       className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
-                        on ? "bg-[#111114] text-white" : "text-[#4B5563] hover:bg-[#F4F4F1] hover:text-[#111114]"
+                        on ? "bg-[#2563EB] text-white" : "text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#1D4ED8]"
                       }`}>
                       <span className="block text-sm font-semibold">{j.label}</span>
                       <span className={`block text-[11px] ${on ? "text-white/70" : "text-[#9CA3AF]"}`}>
@@ -296,12 +296,12 @@ export default function ProgramPembelajaran() {
 
         {/* Detail jenjang */}
         {detail === null ? (
-          <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
+          <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>
         ) : (
           <div className="space-y-4" data-testid="program-detail">
             <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5">
               <div className="flex items-center gap-2.5">
-                <span className="h-10 w-10 rounded-xl bg-[#F1F1EE] text-[#111114] flex items-center justify-center">
+                <span className="h-10 w-10 rounded-xl bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center">
                   <GraduationCap size={19} />
                 </span>
                 <div>
@@ -342,7 +342,7 @@ export default function ProgramPembelajaran() {
                       placeholder="cth: Durasi maksimal 30 menit, banyak gerak dan pujian." />
                   </div>
                   <button data-testid="program-kurikulum-save" onClick={saveKur} disabled={savingKur}
-                    className="h-11 px-4 rounded-xl bg-[#111114] text-white font-bold inline-flex items-center gap-2 hover:bg-black disabled:opacity-60">
+                    className="h-11 px-4 rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60">
                     {savingKur ? <Loader2 className="animate-spin" size={17} /> : <Save size={17} />} Simpan Kurikulum
                   </button>
                 </div>
@@ -364,7 +364,7 @@ export default function ProgramPembelajaran() {
                 </div>
                 {canEdit && !showMateri && !editMateri && (
                   <button data-testid="program-materi-add" onClick={() => setShowMateri(true)}
-                    className="h-10 px-3.5 rounded-xl bg-[#111114] text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-black">
+                    className="h-10 px-3.5 rounded-xl bg-[#2563EB] text-white text-sm font-semibold inline-flex items-center gap-2 hover:bg-[#1D4ED8]">
                     <Plus size={16} /> Tambah Materi
                   </button>
                 )}
@@ -391,7 +391,7 @@ export default function ProgramPembelajaran() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           {m.pekan && (
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#111114] text-white">
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#2563EB] text-white">
                               Pekan {m.pekan}
                             </span>
                           )}
@@ -409,7 +409,7 @@ export default function ProgramPembelajaran() {
                       {canEdit && (
                         <div className="flex gap-1 shrink-0">
                           <button data-testid={`program-materi-edit-${m.id}`} onClick={() => { setShowMateri(false); setEditMateri(m); }}
-                            className="h-9 w-9 flex items-center justify-center rounded-lg border border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#111114] hover:text-[#111114]">
+                            className="h-9 w-9 flex items-center justify-center rounded-lg border border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#2563EB] hover:text-[#1D4ED8]">
                             <Pencil size={15} />
                           </button>
                           <button data-testid={`program-materi-delete-${m.id}`} onClick={() => delMateri(m.id)}

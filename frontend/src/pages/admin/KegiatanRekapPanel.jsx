@@ -27,13 +27,13 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
   useEffect(() => { load(); }, [load]);
 
   if (!data && !error) {
-    return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>;
+    return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>;
   }
   if (error) {
     return (
       <div className="rounded-2xl border border-[#FECACA] bg-white p-8 text-center" data-testid={ACTIVITIES.recapError}>
         <p className="text-sm text-[#6B7280]">{error}</p>
-        <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#111114] px-4 font-semibold text-white">Coba lagi</button>
+        <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#2563EB] px-4 font-semibold text-white">Coba lagi</button>
       </div>
     );
   }
@@ -52,7 +52,7 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
   const counts = rekap.counts || {};
   const genderStatus = rekap.gender_status || {};
   const statuses = [
-    { key: "hadir", label: "Hadir", color: "bg-[#0D5C3A]", text: "text-[#14532D]", bg: "bg-[#E8F5EE]" },
+    { key: "hadir", label: "Hadir", color: "bg-[#2563EB]", text: "text-[#166534]", bg: "bg-[#EFF6FF]" },
     { key: "izin", label: "Izin", color: "bg-[#D97706]", text: "text-[#92400E]", bg: "bg-[#FEF3C7]" },
     { key: "sakit", label: "Sakit", color: "bg-[#2563EB]", text: "text-[#1D4ED8]", bg: "bg-[#DBEAFE]" },
     { key: "alpha", label: "Alpha", color: "bg-[#DC2626]", text: "text-[#991B1B]", bg: "bg-[#FEE2E2]" },
@@ -79,9 +79,9 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
           <FileBarChart2 size={18} /> Rekap Kehadiran
         </h3>
         <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-2xl font-bold text-[#111114]">{counts.total || 0}</span>
+          <span className="text-2xl font-bold text-[#1D4ED8]">{counts.total || 0}</span>
           <span className="text-sm text-[#4B5563]">peserta dan tamu</span>
-          <span className="ml-auto text-lg font-bold text-[#0D5C3A]">{counts.ratio || 0}% hadir</span>
+          <span className="ml-auto text-lg font-bold text-[#1D4ED8]">{counts.ratio || 0}% hadir</span>
         </div>
         <div className="grid gap-2 sm:grid-cols-2" data-testid={ACTIVITIES.recapGraph}>
           {statuses.map((status, index) => {
@@ -139,20 +139,20 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
           <h3 className="inline-flex items-center gap-2 font-bold text-[#111827]">
             <Users size={17} /> Peserta Hadir
           </h3>
-          <span className="rounded-full bg-[#E8F5EE] px-2.5 py-1 text-xs font-bold text-[#14532D]">{hadirRows.length + (rekap.guests || []).length}</span>
+          <span className="rounded-full bg-[#EFF6FF] px-2.5 py-1 text-xs font-bold text-[#166534]">{hadirRows.length + (rekap.guests || []).length}</span>
         </div>
         {hadirRows.length || rekap.guests?.length ? (
           <ul className="max-h-72 divide-y divide-[#ECECE8] overflow-y-auto">
             {hadirRows.map((row) => (
               <li key={row.user_id} className="flex items-center gap-3 px-4 py-3">
-                <CheckCircle2 size={17} className="shrink-0 text-[#0D5C3A]" />
+                <CheckCircle2 size={17} className="shrink-0 text-[#1D4ED8]" />
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#111827]">{row.name}</span>
                 <span className="text-xs text-[#6B7280]">{row.gender === "L" ? "Laki-laki" : row.gender === "P" ? "Perempuan" : "Peserta"}</span>
               </li>
             ))}
             {(rekap.guests || []).map((guest) => (
               <li key={guest.id} className="flex items-center gap-3 px-4 py-3">
-                <CheckCircle2 size={17} className="shrink-0 text-[#0D5C3A]" />
+                <CheckCircle2 size={17} className="shrink-0 text-[#1D4ED8]" />
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#111827]">{guest.name}</span>
                 <span className="text-xs text-[#6B7280]">Tamu</span>
               </li>
@@ -167,12 +167,12 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
         <h3 className="font-bold text-[#111827]">Bagikan tautan rekap</h3>
         <p className="mt-1 text-sm text-[#6B7280]">Tautan publik berlaku 7 hari. Tidak ada barcode pada bagian ini.</p>
         <a href={link.link} target="_blank" rel="noreferrer" data-testid="detail-rekap-link"
-          className="mt-3 block break-all rounded-xl bg-[#F7F7F5] p-3 text-sm font-semibold text-[#111114] hover:underline">
+          className="mt-3 block break-all rounded-xl bg-[#F7F7F5] p-3 text-sm font-semibold text-[#1D4ED8] hover:underline">
           <ExternalLink size={15} className="mr-1 inline" />{link.link}
         </a>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           <button type="button" data-testid="detail-rekap-copy" onClick={copyLink}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#111114] font-semibold text-[#111114] hover:bg-[#F1F1EE]">
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#2563EB] font-semibold text-[#1D4ED8] hover:bg-[#EFF6FF]">
             <Copy size={16} /> Salin Tautan
           </button>
           <button type="button" data-testid="detail-rekap-wa" onClick={shareWa}

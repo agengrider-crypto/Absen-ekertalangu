@@ -8,7 +8,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { tanggalSingkat, TYPE_LABEL } from "./kegiatanUtils";
 import TamuLaporanList from "@/components/TamuLaporanList";
 
-const inp = "h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white";
+const inp = "h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white";
 
 function todayYmd() {
   const n = new Date();
@@ -78,20 +78,20 @@ export default function LaporanView() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-[#111114] font-bold text-lg">
+        <div className="flex items-center gap-2 text-[#1D4ED8] font-bold text-lg">
           <FileBarChart2 size={20} /> Laporan Kehadiran
         </div>
         <div className="flex items-center gap-2">
           <button data-testid="button-buat-link-laporan" onClick={buatLink} disabled={sharing}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000] disabled:opacity-60">
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#2563EB] text-white font-semibold text-sm hover:bg-[#1D4ED8] disabled:opacity-60">
             {sharing ? <Loader2 className="animate-spin" size={16} /> : <LinkIcon size={16} />} Buat Link Laporan
           </button>
           <button data-testid="button-export-excel" onClick={() => doExport("excel")} disabled={!!exporting}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE] disabled:opacity-50">
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm hover:bg-[#EFF6FF] disabled:opacity-50">
             {exporting === "excel" ? <Loader2 className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} Excel
           </button>
           <button data-testid="button-export-pdf" onClick={() => doExport("pdf")} disabled={!!exporting}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE] disabled:opacity-50">
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm hover:bg-[#EFF6FF] disabled:opacity-50">
             {exporting === "pdf" ? <Loader2 className="animate-spin" size={16} /> : <FileText size={16} />} PDF
           </button>
         </div>
@@ -99,10 +99,10 @@ export default function LaporanView() {
 
       {/* Tabs + range */}
       <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 mb-5">
-        <div className="flex items-center gap-1 bg-[#F4F4F1] rounded-xl p-1 w-fit mb-3">
+        <div className="flex items-center gap-1 bg-[#F3F4F6] rounded-xl p-1 w-fit mb-3">
           {[["harian", "Harian"], ["bulanan", "Bulanan"], ["custom", "Rentang"]].map(([v, l]) => (
             <button key={v} data-testid={`tab-${v}`} onClick={() => setPreset(v)}
-              className={`h-9 px-4 rounded-lg text-sm font-semibold ${tab === v ? "bg-white text-[#111114] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+              className={`h-9 px-4 rounded-lg text-sm font-semibold ${tab === v ? "bg-white text-[#1D4ED8] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
           ))}
         </div>
         <div className="flex items-end gap-3 flex-wrap">
@@ -118,14 +118,14 @@ export default function LaporanView() {
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
       ) : data === false ? (
         <div className="p-10 text-center text-[#6B7280]">Gagal memuat laporan.</div>
       ) : (
         <div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-5">
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#111114]">{s.ratio}%</div><div className="text-sm text-[#6B7280] mt-1">Kehadiran</div></div>
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#111114]">{s.hadir}</div><div className="text-sm text-[#6B7280] mt-1">Total Hadir</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#1D4ED8]">{s.ratio}%</div><div className="text-sm text-[#6B7280] mt-1">Kehadiran</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#1D4ED8]">{s.hadir}</div><div className="text-sm text-[#6B7280] mt-1">Total Hadir</div></div>
             <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#92400E]">{s.izin}</div><div className="text-sm text-[#6B7280] mt-1">Total Izin</div></div>
             <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#1D4ED8]">{s.sakit}</div><div className="text-sm text-[#6B7280] mt-1">Total Sakit</div></div>
             <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#991B1B]">{s.alpha}</div><div className="text-sm text-[#6B7280] mt-1">Total Alpha</div></div>
@@ -136,7 +136,7 @@ export default function LaporanView() {
             <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]">
               <div className="text-sm font-semibold text-[#111827] mb-1">Kehadiran per Jenis Kelamin</div>
               <div className="flex gap-4 text-sm text-[#4B5563]">
-                <span>Laki-laki: <b className="text-[#111114]">{data.gender_hadir?.L ?? 0}</b></span>
+                <span>Laki-laki: <b className="text-[#1D4ED8]">{data.gender_hadir?.L ?? 0}</b></span>
                 <span>Perempuan: <b className="text-[#9CA3AF]">{data.gender_hadir?.P ?? 0}</b></span>
               </div>
             </div>
@@ -172,12 +172,12 @@ export default function LaporanView() {
                           <div className="font-semibold text-[#111827]">{r.name}</div>
                           <div className="text-xs text-[#9CA3AF]">{TYPE_LABEL[r.type]}</div>
                         </td>
-                        <td className="px-4 py-3 text-center text-[#111114] font-semibold">{r.hadir}</td>
+                        <td className="px-4 py-3 text-center text-[#1D4ED8] font-semibold">{r.hadir}</td>
                         <td className="px-4 py-3 text-center text-[#92400E]">{r.izin}</td>
                         <td className="px-4 py-3 text-center text-[#1D4ED8]">{r.sakit}</td>
                         <td className="px-4 py-3 text-center text-[#991B1B]">{r.alpha}</td>
                         <td className="px-4 py-3 text-center text-[#6B7280]">{r.belum_diabsen}</td>
-                        <td className="px-4 py-3 text-center font-bold text-[#111114]">{r.ratio}%</td>
+                        <td className="px-4 py-3 text-center font-bold text-[#1D4ED8]">{r.ratio}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -216,7 +216,7 @@ function PesertaLaporanList({ rows }) {
     return acc;
   }, {});
   const FILTERS = [
-    { key: "semua", label: "Semua", desc: "seluruh peserta", cls: "bg-[#111114] text-white" },
+    { key: "semua", label: "Semua", desc: "seluruh peserta", cls: "bg-[#2563EB] text-white" },
     { key: "rajin", label: "Rajin Kegiatan", desc: "kehadiran ≥ 80%", cls: "bg-[#047857] text-white" },
     { key: "cukup", label: "Cukup", desc: "kehadiran 50–79%", cls: "bg-[#B45309] text-white" },
     { key: "jarang", label: "Jarang", desc: "kehadiran < 50%", cls: "bg-[#DC2626] text-white" },
@@ -233,10 +233,10 @@ function PesertaLaporanList({ rows }) {
         className="w-full px-5 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8]"
       >
         <span className="flex items-center gap-2 font-bold text-[#111827]">
-          <Users size={17} className="text-[#111114]" /> Rekap per Peserta
+          <Users size={17} className="text-[#1D4ED8]" /> Rekap per Peserta
           <span className="text-xs font-medium text-[#6B7280]">({rows.length})</span>
         </span>
-        <span className="text-sm font-semibold text-[#111114]">{open ? "Tutup" : "Lihat"}</span>
+        <span className="text-sm font-semibold text-[#1D4ED8]">{open ? "Tutup" : "Lihat"}</span>
       </button>
       {open && (
         <div className="border-t border-[#E8E8E4]">
@@ -252,7 +252,7 @@ function PesertaLaporanList({ rows }) {
                     data-testid={`laporan-filter-${ft.key}`}
                     onClick={() => setFilter(ft.key)}
                     className={`h-10 px-3.5 rounded-xl border-2 text-xs sm:text-sm font-semibold transition-colors ${
-                      on ? `${ft.cls} border-transparent` : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#111114] hover:text-[#111114]"
+                      on ? `${ft.cls} border-transparent` : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#2563EB] hover:text-[#1D4ED8]"
                     }`}
                   >
                     {ft.label} <span className={on ? "text-white/85" : "text-[#9CA3AF]"}>({n})</span>
@@ -289,12 +289,12 @@ function PesertaLaporanList({ rows }) {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#111114] font-semibold">{p.hadir}</td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#1D4ED8] font-semibold">{p.hadir}</td>
                   <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#92400E]">{p.izin}</td>
                   <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#1D4ED8]">{p.sakit}</td>
                   <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#991B1B]">{p.alpha}</td>
                   <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#6B7280]">{p.belum_diabsen}</td>
-                  <td className="px-4 py-2.5 text-right font-bold text-[#111114]">{p.ratio}%</td>
+                  <td className="px-4 py-2.5 text-right font-bold text-[#1D4ED8]">{p.ratio}%</td>
                 </tr>
               ))}
               {list.length === 0 && (
@@ -325,11 +325,11 @@ function LaporanLinkModal({ data, onClose }) {
       <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid="modal-laporan-link">
         <div className="sticky top-0 bg-white border-b border-[#E8E8E4] px-5 py-4 flex items-center justify-between">
           <h3 className="font-heading font-bold text-[#111827]">Tautan Laporan Publik</h3>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]"><X size={20} /></button>
+          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
         </div>
         <div className="p-5">
           <div className="mt-3 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl p-3 text-left">
-            <p className="text-sm font-semibold text-[#111114]">{data.title}</p>
+            <p className="text-sm font-semibold text-[#1D4ED8]">{data.title}</p>
             <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
               Siapa pun yang membuka tautan ini <b>langsung melihat laporannya tanpa perlu login</b>.
               Tautan bersifat <b>permanen</b> untuk periode {tanggalSingkat(data.date_from)} s/d {tanggalSingkat(data.date_to)}.
@@ -340,12 +340,12 @@ function LaporanLinkModal({ data, onClose }) {
             target="_blank"
             rel="noreferrer"
             data-testid="laporan-link-open"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#111114] hover:underline break-all"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#1D4ED8] hover:underline break-all"
           >
             <ExternalLink size={14} className="shrink-0" /> {data.link}
           </a>
           <div className="grid grid-cols-2 gap-2 mt-4">
-            <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#F1F1EE]"><Copy size={16} /> Salin Tautan</button>
+            <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#EFF6FF]"><Copy size={16} /> Salin Tautan</button>
             <button data-testid="laporan-link-wa" onClick={shareWa} className="h-11 rounded-xl bg-[#25D366] text-white font-bold flex items-center justify-center gap-2 hover:brightness-95">
               <Send size={18} /> Bagikan Tautan via WhatsApp
             </button>

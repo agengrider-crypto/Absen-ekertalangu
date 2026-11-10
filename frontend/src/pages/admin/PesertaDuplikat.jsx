@@ -35,20 +35,20 @@ export default function PesertaDuplikat() {
       <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-            <CopyCheck size={22} className="text-[#111114]" /> Cek Duplikat
+            <CopyCheck size={22} className="text-[#1D4ED8]" /> Cek Duplikat
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
             Peserta dengan nama sama akan dikelompokkan di sini. Periksa tanggal lahir &amp; No. HP sebelum menghapus.
           </p>
         </div>
         <button data-testid="duplikat-refresh" onClick={() => { setData(null); load(); }}
-          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm hover:bg-[#F1F1EE]">
+          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm hover:bg-[#EFF6FF]">
           <RefreshCw size={16} /> Periksa Ulang
         </button>
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
       ) : data === false ? (
         <div className="p-10 text-center text-[#6B7280]">Gagal memuat data.</div>
       ) : (
@@ -68,8 +68,8 @@ export default function PesertaDuplikat() {
 
           {data.groups.length === 0 ? (
             <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center" data-testid="duplikat-empty">
-              <CopyCheck size={30} className="mx-auto text-[#111114] mb-2" />
-              <p className="text-[#111114] font-semibold">Alhamdulillah, tidak ada nama peserta yang kembar.</p>
+              <CopyCheck size={30} className="mx-auto text-[#1D4ED8] mb-2" />
+              <p className="text-[#1D4ED8] font-semibold">Alhamdulillah, tidak ada nama peserta yang kembar.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -95,16 +95,16 @@ export default function PesertaDuplikat() {
                               <span className="inline-flex items-center gap-1"><Phone size={12} /> {r.phone || "-"}</span>
                               <span>{genderLabel(r.gender)}</span>
                               {kel && <span>{kel.name}</span>}
-                              {r.pernah_login && <span className="text-[#111114] font-semibold">pernah login</span>}
+                              {r.pernah_login && <span className="text-[#1D4ED8] font-semibold">pernah login</span>}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <button data-testid={`duplikat-detail-${r.id}`} onClick={() => setDetailId(r.id)}
-                              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#111114] font-semibold text-sm hover:border-[#111114] hover:bg-[#F1F1EE]">
+                              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#1D4ED8] font-semibold text-sm hover:border-[#2563EB] hover:bg-[#EFF6FF]">
                               <Eye size={15} /> Detail
                             </button>
                             <button data-testid={`duplikat-hapus-${r.id}`} onClick={() => hapus(r)}
-                              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#FCA5A5] text-[#DC2626] font-semibold text-sm hover:bg-red-50">
+                              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#FECACA] text-[#DC2626] font-semibold text-sm hover:bg-red-50">
                               <Trash2 size={15} /> Hapus
                             </button>
                           </div>

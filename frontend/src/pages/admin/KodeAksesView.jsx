@@ -88,21 +88,21 @@ export default function KodeAksesView({ onLeave }) {
       <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-            <KeyRound size={22} className="text-[#111114]" /> Kode Akses Kegiatan
+            <KeyRound size={22} className="text-[#1D4ED8]" /> Kode Akses Kegiatan
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
             Kirim tautan dan kode akses lewat WhatsApp.
           </p>
         </div>
         <div className="flex items-center gap-1 bg-white rounded-xl border border-[#E8E8E4] p-1">
-          <button data-testid="kode-prev-month" onClick={() => shift(-1)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F4F4F1]"><ChevronLeft size={18} /></button>
+          <button data-testid="kode-prev-month" onClick={() => shift(-1)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F3F4F6]"><ChevronLeft size={18} /></button>
           <div className="px-3 font-semibold text-[#111827] text-sm" data-testid="kode-month">{BULAN[m - 1]} {y}</div>
-          <button data-testid="kode-next-month" onClick={() => shift(1)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F4F4F1]"><ChevronRight size={18} /></button>
+          <button data-testid="kode-next-month" onClick={() => shift(1)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F3F4F6]"><ChevronRight size={18} /></button>
         </div>
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
       ) : data === false ? (
         <div className="p-10 text-center text-[#6B7280]">Gagal memuat kode akses.</div>
       ) : data.rows.length === 0 ? (
@@ -116,7 +116,7 @@ export default function KodeAksesView({ onLeave }) {
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {r.session_label && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">{r.session_label}</span>}
+                    {r.session_label && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">{r.session_label}</span>}
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${r.status === "open" ? "bg-[#DCFCE7] text-[#166534]" : "bg-[#F3F4F6] text-[#4B5563]"}`}>
                       {r.status === "open" ? "Terbuka" : "Selesai"}
                     </span>
@@ -126,17 +126,17 @@ export default function KodeAksesView({ onLeave }) {
                 </div>
                 <div className="text-center">
                   <div className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wide">Kode akses</div>
-                  <div className="font-mono text-3xl font-bold text-[#111114] tracking-[0.25em]" data-testid={`kode-value-${r.id}`}>{r.code}</div>
+                  <div className="font-mono text-3xl font-bold text-[#1D4ED8] tracking-[0.25em]" data-testid={`kode-value-${r.id}`}>{r.code}</div>
                 </div>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <a data-testid={`${ACTIVITIES.accessSharePrefix}-${r.id}`} href={`https://wa.me/?text=${encodeURIComponent(r.wa_text)}`} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-[#16A34A] text-white font-semibold text-sm hover:bg-[#15803D]">
+                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-[#16A34A] text-white font-semibold text-sm hover:bg-[#16A34A]">
                   <Send size={15} /> Bagikan ke WhatsApp
                 </a>
                 <button data-testid={`${ACTIVITIES.accessRegeneratePrefix}-${r.id}`} onClick={() => regenerate(r)} disabled={busyId === r.id}
-                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#FCD34D] text-[#92400E] font-semibold text-sm hover:bg-[#FFFBEB] disabled:opacity-60">
+                  className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#FDE68A] text-[#92400E] font-semibold text-sm hover:bg-[#FFFBEB] disabled:opacity-60">
                   {busyId === r.id ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />} Perbarui Kode
                 </button>
                 {r.status === "open" && (
@@ -144,7 +144,7 @@ export default function KodeAksesView({ onLeave }) {
                     data-testid={`${ACTIVITIES.accessClosePrefix}-${r.id}`}
                     onClick={() => tutupAbsen(r)}
                     disabled={busyId === r.id}
-                    className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#FCA5A5] text-[#991B1B] font-semibold text-sm hover:bg-[#FEF2F2] disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl border border-[#FECACA] text-[#991B1B] font-semibold text-sm hover:bg-[#FEF2F2] disabled:opacity-60"
                   >
                     {busyId === r.id ? <Loader2 className="animate-spin" size={15} /> : <LockKeyhole size={15} />}
                     Tutup Absen &amp; Tandai Alpha
@@ -171,7 +171,7 @@ export default function KodeAksesView({ onLeave }) {
             </ul>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button data-testid="leave-keep-open" onClick={() => confirmLeave(false)}
-                className="h-11 rounded-xl border-2 border-[#E8E8E4] font-semibold text-[#4B5563] hover:border-[#111114]">
+                className="h-11 rounded-xl border-2 border-[#E8E8E4] font-semibold text-[#4B5563] hover:border-[#2563EB]">
                 Biarkan terbuka
               </button>
               <button data-testid="leave-close-all" onClick={() => confirmLeave(true)}

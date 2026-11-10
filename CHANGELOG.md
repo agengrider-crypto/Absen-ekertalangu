@@ -4,6 +4,20 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 9 November 2026 (Standar Warna & Maintenance)
+
+- **Design token terpusat**: `frontend/src/lib/theme.js` (COLORS, ROLE_COLORS, ATTENDANCE_COLORS,
+  ACCOUNT_COLORS, ACTIVITY_COLORS, UI) + CSS variable di `index.css`. Ubah satu tempat, seluruh UI ikut.
+- **Palet standar diterapkan** ke 81 file: Primary biru `#2563EB`, Success hijau `#16A34A`,
+  Info cyan `#0891B2`, Warning amber `#D97706`, Sakit biru muda `#2563EB`, Danger merah `#DC2626`,
+  Netral abu-abu. Background `#FAFAF8`, card putih, border `#E8E8E4`.
+- **Badge status diselaraskan**: Aktif = hijau, Belum Aktivasi = amber, Nonaktif = abu-abu,
+  Hadir = hijau, Izin = amber, Sakit = biru, Alpha = merah.
+- **QR Code & Barcode** dipaksa hitam `#000000` di atas putih `#FFFFFF` (backend `make_qr_data_url`
+  dan `QRCodeSVG` di frontend) agar kontras & kecepatan pindai optimal.
+- **Halaman Maintenance** baru (`/maintenance`, atau `?maintenance=1`) dengan ikon Wrench,
+  pesan ramah, jam pengecekan, dan tombol Coba Lagi.
+
 ## Pembaruan 9 November 2026 (Profil & Pesan WA)
 
 - **Pembaruan Terbaru** kini berbentuk kartu (judul + ringkasan + tombol **Coba Sekarang**)

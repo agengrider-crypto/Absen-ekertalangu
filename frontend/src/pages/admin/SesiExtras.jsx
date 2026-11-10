@@ -17,7 +17,7 @@ function Shell({ title, subtitle, children, onClose, testid, wide }) {
             <h2 className="font-heading font-bold text-[#111827] truncate">{title}</h2>
             {subtitle && <p className="text-xs text-[#6B7280] truncate">{subtitle}</p>}
           </div>
-          <button onClick={onClose} className="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F4F4F1]" data-testid={`${testid}-close`}><X size={20} /></button>
+          <button onClick={onClose} className="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]" data-testid={`${testid}-close`}><X size={20} /></button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -26,13 +26,13 @@ function Shell({ title, subtitle, children, onClose, testid, wide }) {
 }
 
 const ST = {
-  hadir: { t: "H", cls: "bg-[#111114] text-white", title: "Hadir" },
+  hadir: { t: "H", cls: "bg-[#2563EB] text-white", title: "Hadir" },
   izin: { t: "I", cls: "bg-[#9CA3AF] text-white", title: "Izin" },
   sakit: { t: "S", cls: "bg-[#DBEAFE] text-[#1D4ED8]", title: "Sakit" },
   alpha: { t: "A", cls: "bg-[#FEE2E2] text-[#991B1B]", title: "Alpha" },
   belum_diabsen: { t: "—", cls: "bg-[#FEF3C7] text-[#92400E]", title: "Belum diabsen" },
   exempt: { t: "✓", cls: "bg-[#F3F4F6] text-[#9CA3AF]", title: "Sudah hadir di sesi sebelumnya — tidak dihitung" },
-  optional: { t: "·", cls: "bg-[#EEF2FF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
+  optional: { t: "·", cls: "bg-[#ECFEFF] text-[#6366F1]", title: "Sesi opsional — tidak wajib, tidak dihitung" },
 };
 
 /**
@@ -120,10 +120,10 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
       {err && !data ? (
         <div className="p-8 text-center">
           <p className="text-sm text-[#DC2626] mb-3" data-testid="rekap-gabungan-error">{err}</p>
-          <button onClick={load} className="h-10 px-4 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-sm">Coba lagi</button>
+          <button onClick={load} className="h-10 px-4 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm">Coba lagi</button>
         </div>
       ) : !data ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>
       ) : (
         <div className="space-y-4">
           <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid="rekap-gabungan-per-sesi">
@@ -136,10 +136,10 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                       <div className="truncate font-bold text-[#111827]">{session.label}</div>
                       <div className="text-xs text-[#6B7280]">{session.start_time}–{session.end_time} WITA</div>
                     </div>
-                    <div className="shrink-0 text-xl font-bold text-[#111114]">{session.counts.ratio}%</div>
+                    <div className="shrink-0 text-xl font-bold text-[#1D4ED8]">{session.counts.ratio}%</div>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-[#E8E8E4]">
-                    <div className="h-full origin-left rounded-full bg-[#0D5C3A] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
+                    <div className="h-full origin-left rounded-full bg-[#2563EB] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
                       style={{ width: `${Math.min(Math.max(session.counts.ratio || 0, 0), 100)}%` }} />
                   </div>
                   {session.required === false && <div className="mt-1 text-[11px] text-[#6B7280]">Sesi opsional</div>}
@@ -150,12 +150,12 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
 
           {/* Bagikan sebagai LINK (seperti rekap kegiatan biasa) */}
           <div className="rounded-2xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-4 space-y-2.5" data-testid="rekap-gabungan-share">
-            <div className="text-sm font-bold text-[#111114] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap ini sebagai tautan</div>
-            <p className="text-[11px] text-[#111114]/80 leading-relaxed">
+            <div className="text-sm font-bold text-[#1D4ED8] inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap ini sebagai tautan</div>
+            <p className="text-[11px] text-[#1D4ED8]/80 leading-relaxed">
               Tautan publik berisi bar persentase kehadiran semua sesi — bisa dibuka siapa pun tanpa login (berlaku 7 hari).
             </p>
             {share && (
-              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#E8E8E4] px-2.5 py-2 text-[#111114]" data-testid="rekap-gabungan-link">{share.link}</div>
+              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#E8E8E4] px-2.5 py-2 text-[#1D4ED8]" data-testid="rekap-gabungan-link">{share.link}</div>
             )}
             <div className="grid grid-cols-2 gap-2">
               <button onClick={shareWa} disabled={sharing} data-testid="rekap-gabungan-share-wa"
@@ -163,20 +163,20 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                 {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Bagikan ke WhatsApp
               </button>
               <button onClick={copyLink} disabled={sharing} data-testid="rekap-gabungan-copy-link"
-                className="h-11 rounded-xl border-2 border-[#111114] text-[#111114] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#F1F1EE] disabled:opacity-60">
+                className="h-11 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#EFF6FF] disabled:opacity-60">
                 <Link2 size={15} /> Salin Tautan
               </button>
             </div>
           </div>
 
           <button onClick={copyText} data-testid="rekap-gabungan-copy"
-            className="w-full h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:border-[#111114] hover:text-[#111114]">
+            className="w-full h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:border-[#2563EB] hover:text-[#1D4ED8]">
             <ClipboardCopy size={16} /> Salin Ringkasan (teks WhatsApp)
           </button>
 
           <button type="button" onClick={() => setShowRows((visible) => !visible)} aria-expanded={showRows}
             data-testid={ACTIVITIES.recapRowsToggle}
-            className="w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-4 py-3 text-left text-sm font-bold text-[#111827] hover:border-[#111114]">
+            className="w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-4 py-3 text-left text-sm font-bold text-[#111827] hover:border-[#2563EB]">
             {showRows ? "Sembunyikan rincian peserta" : `Lihat rincian peserta (${data.rows.length})`}
           </button>
           {showRows && (
@@ -185,7 +185,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
             <div className="p-3 bg-[#FAFAF8] flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-                <input data-testid="rekap-gabungan-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-10 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
+                <input data-testid="rekap-gabungan-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-10 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white" />
               </div>
             </div>
             <div className="overflow-x-auto max-h-[46vh] overflow-y-auto">
@@ -277,7 +277,7 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
     } finally { setSaving(false); }
   };
 
-  const chip = "h-9 px-3 rounded-full border-2 border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] hover:border-[#111114] hover:text-[#111114]";
+  const chip = "h-9 px-3 rounded-full border-2 border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] hover:border-[#2563EB] hover:text-[#1D4ED8]";
 
   return (
     <Shell title="Salin Jadwal ke Tanggal Lain" subtitle={`${first.base_name || first.name} · ${tanggalSingkat(first.date)}`} onClose={onClose} testid="modal-salin-jadwal" wide>
@@ -288,13 +288,13 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
             {items.length > 1 && (
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] inline-flex items-center gap-1"><Layers size={12} /> {items.length} Waktu / Sesi</span>
             )}
-            {(first.filter_labels || []).map((l) => <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FDF2F8] text-[#9D174D]">{l}</span>)}
+            {(first.filter_labels || []).map((l) => <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEF2F2] text-[#B91C1C]">{l}</span>)}
           </div>
           <div className="font-bold text-[#111827] mt-1.5">{first.base_name || first.name}</div>
           <div className="mt-3 grid gap-2 sm:grid-cols-2" data-testid="salin-preview-sesi">
             {items.map((k) => (
               <div key={k.id} className="rounded-xl bg-[#FAFAF8] p-3">
-                <div className="inline-flex items-center gap-1.5 text-sm font-bold text-[#111114]">
+                <div className="inline-flex items-center gap-1.5 text-sm font-bold text-[#1D4ED8]">
                   <Clock size={14} /> {k.session_label || "Jadwal"} · {k.start_time}–{k.end_time} WITA
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#6B7280]">
@@ -329,7 +329,7 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
                   <CalendarDays size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF] pointer-events-none" />
                   <input data-testid={`salin-date-${i}`} type="date" required value={d} onChange={(e) => setDate(i, e.target.value)}
                     aria-label={`Tanggal tujuan ke-${i + 1}`}
-                    className="w-full h-11 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#111114] bg-white" />
+                    className="w-full h-11 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white" />
                 </div>
                 <span className="hidden sm:block text-xs text-[#6B7280] w-[150px] truncate">{d ? tanggalPanjang(d) : ""}</span>
                 <button type="button" data-testid={`salin-date-remove-${i}`} onClick={() => removeDate(i)} disabled={dates.length <= 1}
@@ -338,12 +338,12 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
             ))}
           </div>
           <button type="button" data-testid="salin-date-add" onClick={addDate} disabled={dates.length >= 12}
-            className="mt-2 w-full h-10 rounded-xl border-2 border-dashed border-[#111114] text-[#111114] font-semibold text-xs inline-flex items-center justify-center gap-1.5 hover:bg-[#F1F1EE] disabled:opacity-40">
+            className="mt-2 w-full h-10 rounded-xl border-2 border-dashed border-[#2563EB] text-[#1D4ED8] font-semibold text-xs inline-flex items-center justify-center gap-1.5 hover:bg-[#EFF6FF] disabled:opacity-40">
             <Plus size={15} /> Tambah tanggal lain
           </button>
         </div>
 
-        <p className="rounded-xl bg-[#F1F1EE] px-3 py-2 text-sm font-semibold text-[#111114]" data-testid="salin-jumlah-ringkasan">
+        <p className="rounded-xl bg-[#EFF6FF] px-3 py-2 text-sm font-semibold text-[#1D4ED8]" data-testid="salin-jumlah-ringkasan">
           Akan dibuat {dates.filter(Boolean).length * items.length} jadwal baru untuk {dates.filter(Boolean).length} tanggal.
         </p>
 
@@ -354,7 +354,7 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
         </p>
 
         <button type="submit" data-testid="salin-submit" disabled={saving}
-          className="w-full h-12 rounded-xl bg-[#111114] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#000000] disabled:opacity-60">
+          className="w-full h-12 rounded-xl bg-[#2563EB] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60">
           {saving ? <Loader2 className="animate-spin" size={18} /> : <Copy size={18} />}
           Salin ke {dates.filter(Boolean).length} tanggal ({dates.filter(Boolean).length * items.length} jadwal)
         </button>

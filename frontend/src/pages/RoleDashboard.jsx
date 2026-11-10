@@ -84,7 +84,7 @@ export default function RoleDashboard() {
           <button
             data-testid="button-account-switcher"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#111114] hover:text-[#111114] transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#2563EB] hover:text-[#1D4ED8] transition-colors"
           >
             <RefreshCw size={18} /> Ganti Akun
           </button>
@@ -103,7 +103,7 @@ export default function RoleDashboard() {
             Pilih Peran Anda
           </h1>
           <p className="text-[#4B5563] text-lg mt-2">
-            Halo <span className="font-semibold text-[#111114]">{user.name}</span>, pilih area yang ingin Anda buka.
+            Halo <span className="font-semibold text-[#1D4ED8]">{user.name}</span>, pilih area yang ingin Anda buka.
           </p>
         </div>
 
@@ -169,7 +169,7 @@ export default function RoleDashboard() {
           <button
             data-testid="button-logout"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 text-[#6B7280] font-medium hover:text-[#111114]"
+            className="inline-flex items-center gap-2 text-[#6B7280] font-medium hover:text-[#1D4ED8]"
           >
             <LogOut size={18} /> Keluar
           </button>

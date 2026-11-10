@@ -5,11 +5,11 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 
 const CAT_CLS = {
-  curhat: "bg-[#F1F1EE] text-[#111114]",
+  curhat: "bg-[#EFF6FF] text-[#1D4ED8]",
   saran: "bg-[#EEF6F0] text-[#166534]",
   pengaduan: "bg-[#FEE2E2] text-[#991B1B]",
   kendala: "bg-[#FEF3C7] text-[#92400E]",
-  pertanyaan: "bg-[#E0F2FE] text-[#075985]",
+  pertanyaan: "bg-[#CFFAFE] text-[#155E75]",
 };
 
 function waktu(iso) {
@@ -58,8 +58,8 @@ export default function RuangTeduhView() {
     <div>
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-[#111114] flex items-center gap-2">
-            <HeartHandshake size={22} className="text-[#111114]" /> Laporan Masuk
+          <h1 className="font-heading text-2xl font-bold text-[#1D4ED8] flex items-center gap-2">
+            <HeartHandshake size={22} className="text-[#1D4ED8]" /> Laporan Masuk
           </h1>
           <p className="text-[#6B7280] text-sm mt-1">
             Pesan peserta: curhat, saran, pengaduan, kendala hadir, dan pertanyaan.
@@ -77,11 +77,11 @@ export default function RuangTeduhView() {
       {data && data !== false && (
         <div className="grid grid-cols-2 gap-4 my-6">
           <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5" data-testid="ruangteduh-total">
-            <div className="text-[28px] font-semibold text-[#111114] leading-none">{data.total}</div>
+            <div className="text-[28px] font-semibold text-[#1D4ED8] leading-none">{data.total}</div>
             <div className="text-[11px] uppercase tracking-wider text-[#9CA3AF] mt-2">Total pesan masuk</div>
           </div>
           <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5" data-testid="ruangteduh-belum">
-            <div className="text-[28px] font-semibold text-[#111114] leading-none">{data.belum_dibaca}</div>
+            <div className="text-[28px] font-semibold text-[#1D4ED8] leading-none">{data.belum_dibaca}</div>
             <div className="text-[11px] uppercase tracking-wider text-[#9CA3AF] mt-2">Belum dibaca</div>
           </div>
         </div>
@@ -94,12 +94,12 @@ export default function RuangTeduhView() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Cari isi pesan atau nama peserta…"
-          className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#E8E8E4] text-base outline-none focus:border-[#111114] bg-white"
+          className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white"
         />
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#111114]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
       ) : data === false ? (
         <div className="p-10 text-center text-[#6B7280]">Gagal memuat pesan.</div>
       ) : rows.length === 0 ? (
@@ -109,11 +109,11 @@ export default function RuangTeduhView() {
       ) : (
         <div className="space-y-3" data-testid="ruangteduh-list">
           {rows.map((r) => (
-            <div key={r.id} className={`bg-white rounded-2xl border p-5 ${r.dibaca ? "border-[#E8E8E4]" : "border-[#D5D5CE]"}`} data-testid={`ruangteduh-card-${r.id}`}>
+            <div key={r.id} className={`bg-white rounded-2xl border p-5 ${r.dibaca ? "border-[#E8E8E4]" : "border-[#D1D5DB]"}`} data-testid={`ruangteduh-card-${r.id}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${CAT_CLS[r.category] || CAT_CLS.curhat}`}>{r.category_label}</span>
-                  {!r.dibaca && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#F1F1EE] text-[#111114]">Baru</span>}
+                  {!r.dibaca && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">Baru</span>}
                   <span className="text-xs text-[#9CA3AF] inline-flex items-center gap-1"><Clock size={12} /> {waktu(r.at)}</span>
                 </div>
                 <button data-testid={`ruangteduh-hapus-${r.id}`} onClick={() => hapus(r.id)}
@@ -121,19 +121,19 @@ export default function RuangTeduhView() {
                   <Trash2 size={15} />
                 </button>
               </div>
-              <div className="mt-2.5 font-semibold text-[#111114] inline-flex items-center gap-1.5">
-                <UserRound size={15} className="text-[#111114]" /> {r.name}
+              <div className="mt-2.5 font-semibold text-[#1D4ED8] inline-flex items-center gap-1.5">
+                <UserRound size={15} className="text-[#1D4ED8]" /> {r.name}
                 {r.phone && <span className="text-xs font-normal text-[#6B7280]">· {r.phone}</span>}
               </div>
               <p className="text-sm text-[#374151] mt-1.5 whitespace-pre-wrap leading-relaxed">{r.message}</p>
               <div className="mt-4">
                 {r.dibaca ? (
-                  <span className="text-xs text-[#111114] font-semibold inline-flex items-center gap-1.5">
+                  <span className="text-xs text-[#1D4ED8] font-semibold inline-flex items-center gap-1.5">
                     <CheckCheck size={14} /> Sudah dibaca{r.dibaca_oleh ? ` oleh ${r.dibaca_oleh}` : ""}
                   </span>
                 ) : (
                   <button data-testid={`ruangteduh-baca-${r.id}`} onClick={() => tandaiBaca(r.id)}
-                    className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-[#111114] text-white font-semibold text-sm hover:bg-[#000000]">
+                    className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-[#2563EB] text-white font-semibold text-sm hover:bg-[#1D4ED8]">
                     <CheckCheck size={15} /> Tandai Sudah Dibaca
                   </button>
                 )}
