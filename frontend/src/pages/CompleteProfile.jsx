@@ -9,7 +9,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { PARTICIPANTS } from "@/constants/testIds";
 import { useAuth } from "@/context/AuthContext";
 import { resizeImageFile } from "@/lib/image";
-import { Logo } from "@/components/Logo";
+import { Logo, K1Mark } from "@/components/Logo";
 
 const inp = "w-full h-12 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white";
 
@@ -139,7 +139,7 @@ export default function CompleteProfile() {
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
-              <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
+              <K1Mark size={32} variant="light" />
             </div>
             <div className="leading-tight">
               <div className="font-bold font-heading">E-KERTALANGU</div>

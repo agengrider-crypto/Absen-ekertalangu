@@ -6,6 +6,7 @@ import {
 import { api } from "@/lib/api";
 import { tanggalSingkat, tanggalPanjang, TYPE_LABEL } from "./admin/kegiatanUtils";
 import TamuLaporanList from "@/components/TamuLaporanList";
+import { K1Mark } from "@/components/Logo";
 
 /**
  * Halaman laporan PUBLIK — dibuka lewat tautan permanen dari panel Admin.
@@ -27,7 +28,7 @@ export default function PublicLaporan() {
     return (
       <div className="min-h-screen bg-[#FAFAF8] flex flex-col items-center justify-center px-4 text-center">
         <div className="h-14 w-14 rounded-2xl overflow-hidden bg-white border border-[#E8E8E4] flex items-center justify-center p-1">
-          <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
+          <K1Mark size={32} variant="light" />
         </div>
         <p className="text-[#991B1B] font-semibold mt-6" data-testid="laporan-error">{err}</p>
       </div>
@@ -49,7 +50,7 @@ export default function PublicLaporan() {
       <header className="bg-[#2563EB] text-white">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
-            <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
+            <K1Mark size={32} variant="light" />
           </div>
           <div className="leading-tight">
             <div className="font-bold font-heading">E-KERTALANGU</div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CalendarDays, Clock, MapPin, User, BookOpen, Loader2, CheckCircle2 } from "lucide-react";
 import { api } from "@/lib/api";
-import { Logo } from "@/components/Logo";
+import { Logo, K1Mark } from "@/components/Logo";
 import PesertaRekapList from "@/components/PesertaRekapList";
 import { TYPE_LABEL, tanggalPanjang } from "./admin/kegiatanUtils";
 import { PercentBar } from "./PublicRekapGabungan";
@@ -41,7 +41,7 @@ export default function PublicRekap() {
     <div className="min-h-screen bg-[#FAFAF8] pb-12">
       <header className="bg-[#2563EB] text-white">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" /></div>
+          <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><K1Mark size={32} variant="light" /></div>
           <div className="leading-tight">
             <div className="font-bold font-heading">E-KERTALANGU</div>
             <div className="text-white/70 text-xs">Rekap Kehadiran</div>

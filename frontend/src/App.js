@@ -20,6 +20,8 @@ import PublicHadir from "@/pages/PublicHadir";
 import KodeAbsen from "@/pages/KodeAbsen";
 import CompleteProfile from "@/pages/CompleteProfile";
 import Maintenance, { isMaintenanceMode } from "@/pages/Maintenance";
+import SplashScreen from "@/components/SplashScreen";
+import InstallPrompt from "@/components/InstallPrompt";
 
 function CheckingSession() {
   return (
@@ -106,12 +108,14 @@ function App() {
   }
   return (
     <div className="App">
+      <SplashScreen />
       <AuthProvider>
         <BrowserRouter>
           <AppRoutes />
         </BrowserRouter>
         <Toaster position="top-center" richColors />
       </AuthProvider>
+      <InstallPrompt />
     </div>
   );
 }

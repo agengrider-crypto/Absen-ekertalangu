@@ -14,6 +14,7 @@ import QrSaya from "./peserta/QrSaya";
 import ProfilTab from "./peserta/ProfilTab";
 import RuangTeduh from "./peserta/RuangTeduh";
 import PenjagaAbsen from "./peserta/PenjagaAbsen";
+import { K1Mark } from "@/components/Logo";
 
 const BASE_TABS = [
   { key: "beranda", label: "Beranda", icon: Home },
@@ -70,7 +71,7 @@ export default function PesertaArea({ user }) {
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center overflow-hidden p-0.5">
-              <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
+              <K1Mark size={32} variant="light" />
             </div>
             <span className="font-heading font-bold text-sm">E-KERTALANGU</span>
           </div>

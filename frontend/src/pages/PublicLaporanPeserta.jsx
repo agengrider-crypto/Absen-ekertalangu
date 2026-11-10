@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CalendarDays, ClipboardList, Loader2 } from "lucide-react";
-import { Logo } from "@/components/Logo";
+import { Logo, K1Mark, K1Wordmark } from "@/components/Logo";
 import { api } from "@/lib/api";
 import { PARTICIPANT_REPORT } from "@/constants/testIds";
 
@@ -78,11 +78,9 @@ export default function PublicLaporanPeserta() {
     <div className="min-h-screen bg-[#FAFAF8] pb-12" data-testid={PARTICIPANT_REPORT.publicPage}>
       <header className="bg-[#2563EB] text-white">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white p-0.5">
-            <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
-          </div>
+          <K1Mark size={40} variant="dark" />
           <div className="leading-tight">
-            <div className="font-heading font-bold">E-KERTALANGU</div>
+            <K1Wordmark variant="dark" size="text-base" />
             <div className="text-sm text-white/75">Laporan Peserta</div>
           </div>
         </div>

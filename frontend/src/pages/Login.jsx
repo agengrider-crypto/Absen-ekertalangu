@@ -86,7 +86,7 @@ export default function Login() {  const navigate = useNavigate();
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10 bg-[#FAFAF8]">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
-          <Logo size={56} />
+          <Logo size={56} showTagline />
         </div>
 
         <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(17,17,24,0.14)] border border-[#E8E8E4]">

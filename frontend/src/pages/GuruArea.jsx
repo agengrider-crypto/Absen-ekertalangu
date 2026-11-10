@@ -5,6 +5,7 @@ import ProfileMenu from "@/components/ProfileMenu";
 import BantuanView from "@/components/BantuanView";
 import DemoBanner from "@/components/DemoBanner";
 import ProgramPembelajaran from "@/pages/admin/ProgramPembelajaran";
+import { K1Mark } from "@/components/Logo";
 
 const TABS = [
   { key: "beranda", label: "Beranda", icon: GraduationCap },
@@ -21,7 +22,7 @@ export default function GuruArea({ user }) {
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-xl bg-[#EFF6FF] flex items-center justify-center overflow-hidden p-1">
-              <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
+              <K1Mark size={32} variant="light" />
             </div>
             <div className="leading-tight">
               <div className="font-heading font-bold text-[#1D4ED8] text-sm">E-KERTALANGU</div>

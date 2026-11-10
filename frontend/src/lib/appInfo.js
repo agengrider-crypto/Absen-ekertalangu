@@ -5,7 +5,7 @@
 export const APP_INFO = {
   name: "E-KERTALANGU",
   tagline: "Absensi Pengajian",
-  version: "2.1.0",
+  version: "2.2.0",
   build: "2026.11.09",
   releaseYear: 2026,
   developer: "BrodyCorp",
@@ -18,6 +18,16 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    id: "2026-11-11-logo",
+    date: "2026-11-11",
+    title: "Logo Baru K1",
+    items: [
+      "Seluruh logo lama diganti logo K1 (SVG) dengan wordmark E-Kertalangu dan tagline Absensi Digitalisasi Pengajian.",
+      "Logo tampil di login, sidebar admin, menu geser HP, dan header laporan peserta (versi latar gelap).",
+      "Favicon, ikon PWA 192/512, dan maskable diperbarui; splash screen dan prompt pemasangan PWA memakai logo K1.",
+    ],
+  },
   {
     id: "2026-11-09-tema",
     date: "2026-11-09",

@@ -7,6 +7,7 @@ import {
 import { api } from "@/lib/api";
 import { PercentBar } from "@/pages/PublicRekapGabungan";
 import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "@/pages/admin/rekapUtils";
+import { K1Mark } from "@/components/Logo";
 
 const STATUS_CHIP = {
   hadir: { t: "Hadir", cls: "bg-[#DCFCE7] text-[#166534]" },
@@ -56,7 +57,7 @@ export default function PublicRekapHarian() {
       <header className="bg-white border-b border-[#E8E8E4]">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-2.5">
           <div className="h-9 w-9 rounded-xl bg-[#EFF6FF] flex items-center justify-center overflow-hidden p-1">
-            <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
+            <K1Mark size={32} variant="light" />
           </div>
           <div className="leading-tight">
             <div className="font-heading font-bold text-[#1D4ED8]">E-KERTALANGU</div>

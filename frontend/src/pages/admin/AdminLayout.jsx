@@ -9,7 +9,7 @@ import {
   PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { Logo } from "@/components/Logo";
+import { K1Mark, K1Wordmark } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
 import { ADMIN_SIDEBAR } from "@/constants/testIds";
 import NotificationBell from "@/components/NotificationBell";
@@ -148,12 +148,10 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
         <div className={`px-3 py-4 flex items-center ${collapsed ? "justify-center" : "justify-between"} gap-2.5 border-b border-[#E8E8E4]`}>
           {!collapsed && (
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-9 w-9 rounded-xl bg-[#EFF6FF] flex items-center justify-center overflow-hidden p-1">
-                <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
-              </div>
-              <div className="leading-tight">
-                <div className="text-[#1D4ED8] font-bold font-heading">E-KERTALANGU</div>
-                <div className="text-[#9CA3AF] text-xs">{role === "pengurus" ? "Panel Pengurus" : "Panel Adminator"}</div>
+              <K1Mark size={40} variant="light" />
+              <div className="leading-tight min-w-0">
+                <K1Wordmark size="text-base" />
+                <div className="text-[#9CA3AF] text-xs">{role === "pengurus" ? "Panel Pengurus" : "Panel Admin"}</div>
               </div>
             </div>
           )}
@@ -352,9 +350,7 @@ export default function AdminLayout({ user, role = "admin" }) {
         {/* Topbar */}
         <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-[#E8E8E4]">
           <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Logo size={32} />
-            </div>
+            <div className="flex items-center gap-3" />
             <div className="flex items-center gap-2">
               <NotificationBell onNavigate={(target) => {
                 const map = {

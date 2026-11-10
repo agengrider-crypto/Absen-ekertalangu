@@ -9,6 +9,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { SELF_ABSENCE } from "@/constants/testIds";
 import { TYPE_LABEL, tanggalPanjang, hhmm } from "./admin/kegiatanUtils";
+import { K1Mark } from "@/components/Logo";
 
 /**
  * Absen Mandiri TERFOKUS — 1 peserta saja.
@@ -438,7 +439,7 @@ function Shell({ children, subtitle = "Absen Mandiri" }) {
       <header className="bg-[#2563EB] text-white">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
-            <img src="/logo.png" alt="E-KERTALANGU" className="h-full w-full object-contain" />
+            <K1Mark size={32} variant="light" />
           </div>
           <div className="leading-tight">
             <div className="font-bold font-heading">E-KERTALANGU</div>

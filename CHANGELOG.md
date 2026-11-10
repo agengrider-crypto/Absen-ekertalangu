@@ -4,6 +4,18 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 11 November 2026 (Logo K1)
+
+- **Logo K1** (SVG) menjadi sumber tunggal di `components/Logo.jsx` — varian `light`
+  (kotak hijau `#0B6B52`) dan `dark` (kotak emas `#F2C14E`).
+- **Wordmark** "E-Kertalangu" (E- berat 500, Kertalangu berat 800, Plus Jakarta Sans)
+  dan **tagline** "Absensi Digitalisasi Pengajian".
+- Diterapkan di: login, sidebar admin (40px + "Panel Admin"), menu geser HP,
+  header laporan peserta (varian gelap). Header atas dashboard kini tanpa logo.
+- **Favicon, ikon PWA 192/512, dan maskable** dibuat ulang dari SVG K1.
+- **Splash screen PWA** dan **prompt pemasangan PWA** baru memakai logo K1.
+- File lama `logo.png` dan `logo-full.png` dihapus.
+
 ## Pembaruan 9 November 2026 (Standar Warna & Maintenance)
 
 - **Design token terpusat**: `frontend/src/lib/theme.js` (COLORS, ROLE_COLORS, ATTENDANCE_COLORS,

@@ -11,6 +11,7 @@ const STORAGE_KEY = "ekertalangu.updateSeen";
 // Tujuan tombol "Coba Sekarang" per entri changelog.
 // `nav` = key tab di AdminLayout (dibuka lewat /area/admin?tab=<nav>).
 const ACTION_BY_ID = {
+  "2026-11-11-logo": { label: "Coba Sekarang", nav: "dashboard" },
   "2026-11-09-tema": { label: "Coba Sekarang", nav: "dashboard" },
   "2026-11-09-profil": { label: "Coba Sekarang", nav: "peserta" },
   "2026-11-09-filter-fab": { label: "Coba Sekarang", nav: "peserta" },

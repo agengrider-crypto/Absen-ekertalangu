@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { ABOUT } from "@/constants/testIds";
 import { APP_INFO } from "@/lib/appInfo";
+import { K1Mark } from "@/components/Logo";
 
 const TOUR_STORAGE_KEY = "ekertalangu.tourSeen";
 
@@ -68,7 +69,7 @@ export default function AboutApp({ onClose, onStartTour }) {
         <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#ECECE8] bg-white px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] p-1">
-              <img src="/logo.png" alt="" className="h-full w-full object-contain" />
+              <K1Mark size={32} variant="light" />
             </span>
             <div className="min-w-0">
               <h2 id="about-app-title" className="font-heading text-lg font-bold leading-tight text-[#111827]">
@@ -96,7 +97,7 @@ export default function AboutApp({ onClose, onStartTour }) {
             <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4" data-testid={ABOUT.identity}>
               <div className="flex items-center gap-3">
                 <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#EFF6FF] p-1.5">
-                  <img src="/logo.png" alt={APP_INFO.name} className="h-full w-full object-contain" />
+                  <K1Mark size={32} variant="light" />
                 </span>
                 <div className="min-w-0">
                   <div className="font-heading text-base font-bold text-[#111827]">{APP_INFO.name}</div>
