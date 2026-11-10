@@ -33,20 +33,20 @@ export default function TutorialQr({ variant = "pribadi" }) {
   const cfg = STEPS[variant] || STEPS.pribadi;
   const Icon = cfg.icon;
   return (
-    <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid={`tutorial-qr-${variant}`}>
-      <div className="flex items-center gap-2 text-[#1D4ED8] font-heading font-bold">
+    <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4" data-testid={`tutorial-qr-${variant}`}>
+      <div className="flex items-center gap-2 text-[#0E4E31] font-heading font-bold">
         <Icon size={18} /> {cfg.title}
       </div>
       <ol className="mt-2.5 space-y-2">
         {cfg.steps.map((s, i) => (
-          <li key={s} className="flex gap-2.5 text-sm text-[#374151]">
-            <span className="h-6 w-6 shrink-0 rounded-full bg-[#EFF6FF] text-[#1D4ED8] text-xs font-bold flex items-center justify-center">{i + 1}</span>
+          <li key={s} className="flex gap-2.5 text-sm text-[#14201A]">
+            <span className="h-6 w-6 shrink-0 rounded-full bg-[#E3F3EA] text-[#0E4E31] text-xs font-bold flex items-center justify-center">{i + 1}</span>
             <span className="leading-relaxed">{s}</span>
           </li>
         ))}
       </ol>
-      <p className="mt-3 text-xs text-[#6B7280] flex gap-2">
-        <ShieldCheck size={14} className="shrink-0 mt-0.5 text-[#1D4ED8]" /> {cfg.note}
+      <p className="mt-3 text-xs text-[#5F6B63] flex gap-2">
+        <ShieldCheck size={14} className="shrink-0 mt-0.5 text-[#0E4E31]" /> {cfg.note}
       </p>
     </div>
   );

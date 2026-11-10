@@ -9,10 +9,10 @@ import QrScanner from "@/components/QrScanner";
 import { TYPE_LABEL, TYPE_COLOR, tanggalSingkat, hhmm } from "@/pages/admin/kegiatanUtils";
 
 const STATUS_BTN = {
-  hadir: { label: "Hadir", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
-  izin: { label: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#92400E]" },
-  sakit: { label: "Sakit", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
-  alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
+  hadir: { label: "Hadir", on: "bg-[#14633F] text-white", off: "text-[#0E4E31]" },
+  izin: { label: "Izin", on: "bg-[#8A5A00] text-white", off: "text-[#6B4500]" },
+  sakit: { label: "Sakit", on: "bg-[#1D4F91] text-white", off: "text-[#1D4F91]" },
+  alpha: { label: "Alpha", on: "bg-[#A32A2A] text-white", off: "text-[#A32A2A]" },
 };
 
 /**
@@ -41,26 +41,26 @@ export default function PenjagaAbsen() {
   return (
     <div className="space-y-4" data-testid="penjaga-absen-tab">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-          <ShieldCheck size={22} className="text-[#1D4ED8]" /> Penjaga Absen
+        <h1 className="font-heading text-2xl font-bold text-[#14201A] flex items-center gap-2">
+          <ShieldCheck size={22} className="text-[#14633F]" /> Penjaga Absen
         </h1>
-        <p className="text-sm text-[#6B7280] mt-1">
+        <p className="text-sm text-[#5F6B63] mt-1">
           Anda dipercaya mengisi absen kegiatan berikut. Tersedia <b>absen manual</b> dan <b>scan QR</b>.
         </p>
       </div>
 
       {delegs === null ? (
-        <div className="p-14 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>
+        <div className="p-14 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={28} /></div>
       ) : delegs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-8 text-center" data-testid="penjaga-empty">
-          <div className="h-14 w-14 rounded-2xl bg-[#F3F4F6] text-[#9CA3AF] flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-8 text-center" data-testid="penjaga-empty">
+          <div className="h-14 w-14 rounded-2xl bg-[#F0EEE6] text-[#5F6B63] flex items-center justify-center mx-auto">
             <ShieldCheck size={26} />
           </div>
-          <p className="text-sm text-[#6B7280] mt-3 leading-relaxed">
+          <p className="text-sm text-[#5F6B63] mt-3 leading-relaxed">
             Saat ini Anda belum diberi hak penjaga absen.<br />
             Hak ini diberikan pengurus saat beliau tidak berada di lokasi kegiatan.
           </p>
-          <button onClick={load} className="mt-4 inline-flex items-center gap-2 h-10 px-4 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm hover:bg-[#EFF6FF]">
+          <button onClick={load} className="mt-4 inline-flex items-center gap-2 h-10 px-4 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm hover:bg-[#E3F3EA]">
             <RefreshCw size={16} /> Muat Ulang
           </button>
         </div>
@@ -69,24 +69,24 @@ export default function PenjagaAbsen() {
           {delegs.map((d) => {
             const k = d.kegiatan || {};
             return (
-              <div key={d.id} className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid={`penjaga-deleg-${d.id}`}>
+              <div key={d.id} className="bg-white rounded-2xl border border-[#E7E3D8] p-4" data-testid={`penjaga-deleg-${d.id}`}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>
                     {TYPE_LABEL[k.type] || k.type}
                   </span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">Berlangsung</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E3F3EA] text-[#0E4E31]">Berlangsung</span>
                 </div>
-                <h3 className="font-heading font-bold text-[#111827] mt-1.5">{k.name}</h3>
-                <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                <h3 className="font-heading font-bold text-[#14201A] mt-1.5">{k.name}</h3>
+                <div className="text-sm text-[#5F6B63] mt-1 flex flex-wrap gap-x-4 gap-y-1">
                   <span className="inline-flex items-center gap-1.5"><CalendarDays size={14} /> {tanggalSingkat(k.date)}</span>
                   <span className="inline-flex items-center gap-1.5"><Clock size={14} /> {k.start_time}–{k.end_time} WITA</span>
                 </div>
-                {d.reason && <p className="text-xs text-[#9CA3AF] mt-1.5">Catatan: {d.reason}</p>}
-                <p className="text-xs text-[#9CA3AF] mt-0.5">Diberikan oleh {d.granted_by}</p>
+                {d.reason && <p className="text-xs text-[#5F6B63] mt-1.5">Catatan: {d.reason}</p>}
+                <p className="text-xs text-[#5F6B63] mt-0.5">Diberikan oleh {d.granted_by}</p>
                 <button
                   data-testid={`penjaga-open-${d.id}`}
                   onClick={() => setActive(d)}
-                  className="mt-3 w-full h-11 rounded-xl bg-[#2563EB] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8]"
+                  className="mt-3 w-full h-11 rounded-xl bg-[#14633F] text-white font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31]"
                 >
                   <ListChecks size={17} /> Mulai Mengabsen
                 </button>
@@ -173,36 +173,36 @@ function PenjagaKegiatan({ deleg, onBack }) {
       <button
         data-testid="penjaga-back"
         onClick={onBack}
-        className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#2563EB] hover:text-[#1D4ED8]"
+        className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-[#E7E3D8] bg-white text-[#5F6B63] font-semibold text-sm hover:border-[#14633F] hover:text-[#0E4E31]"
       >
         <ArrowLeft size={17} /> Kembali
       </button>
 
-      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
-        <h2 className="font-heading font-bold text-[#111827]">{k?.name || deleg.kegiatan_name}</h2>
+      <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4">
+        <h2 className="font-heading font-bold text-[#14201A]">{k?.name || deleg.kegiatan_name}</h2>
         {k && (
-          <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
+          <div className="text-sm text-[#5F6B63] mt-1 flex flex-wrap gap-x-4 gap-y-1">
             <span className="inline-flex items-center gap-1.5"><CalendarDays size={14} /> {tanggalSingkat(k.date)}</span>
             <span className="inline-flex items-center gap-1.5"><Clock size={14} /> {k.start_time}–{k.end_time} WITA</span>
           </div>
         )}
         <div className="grid grid-cols-2 gap-2 mt-3 sm:grid-cols-3">
-          <div className="rounded-xl bg-[#F3F4F6] p-2.5 text-center"><div className="text-lg font-bold text-[#111827]">{counts.total}</div><div className="text-[11px] text-[#6B7280]">Total</div></div>
-          <div className="rounded-xl bg-[#EFF6FF] p-2.5 text-center"><div className="text-lg font-bold text-[#1D4ED8]">{counts.hadir}</div><div className="text-[11px] text-[#6B7280]">Hadir</div></div>
-          <div className="rounded-xl bg-[#FEF3C7] p-2.5 text-center"><div className="text-lg font-bold text-[#92400E]">{counts.izin}</div><div className="text-[11px] text-[#6B7280]">Izin</div></div>
-          <div className="rounded-xl bg-[#DBEAFE] p-2.5 text-center"><div className="text-lg font-bold text-[#1D4ED8]">{counts.sakit}</div><div className="text-[11px] text-[#6B7280]">Sakit</div></div>
-          <div className="rounded-xl bg-[#FEE2E2] p-2.5 text-center"><div className="text-lg font-bold text-[#991B1B]">{counts.alpha}</div><div className="text-[11px] text-[#6B7280]">Alpha</div></div>
-          <div className="rounded-xl bg-[#F3F4F6] p-2.5 text-center"><div className="text-lg font-bold text-[#4B5563]">{counts.belum_diabsen}</div><div className="text-[11px] text-[#6B7280]">Belum diabsen</div></div>
+          <div className="rounded-xl bg-[#F0EEE6] p-2.5 text-center"><div className="text-lg font-bold text-[#14201A]">{counts.total}</div><div className="text-[11px] text-[#5F6B63]">Total</div></div>
+          <div className="rounded-xl bg-[#E3F3EA] p-2.5 text-center"><div className="text-lg font-bold text-[#0E4E31]">{counts.hadir}</div><div className="text-[11px] text-[#5F6B63]">Hadir</div></div>
+          <div className="rounded-xl bg-[#FBF1D6] p-2.5 text-center"><div className="text-lg font-bold text-[#6B4500]">{counts.izin}</div><div className="text-[11px] text-[#5F6B63]">Izin</div></div>
+          <div className="rounded-xl bg-[#E3EEFB] p-2.5 text-center"><div className="text-lg font-bold text-[#1D4F91]">{counts.sakit}</div><div className="text-[11px] text-[#5F6B63]">Sakit</div></div>
+          <div className="rounded-xl bg-[#FBE5E3] p-2.5 text-center"><div className="text-lg font-bold text-[#A32A2A]">{counts.alpha}</div><div className="text-[11px] text-[#5F6B63]">Alpha</div></div>
+          <div className="rounded-xl bg-[#F0EEE6] p-2.5 text-center"><div className="text-lg font-bold text-[#5F6B63]">{counts.belum_diabsen}</div><div className="text-[11px] text-[#5F6B63]">Belum diabsen</div></div>
         </div>
       </div>
 
       {/* Pilihan cara absen */}
-      <div className="grid grid-cols-2 gap-2 bg-white p-1.5 rounded-2xl border border-[#E8E8E4]">
+      <div className="grid grid-cols-2 gap-2 bg-white p-1.5 rounded-2xl border border-[#E7E3D8]">
         <button
           data-testid="penjaga-mode-manual"
           onClick={() => setMode("manual")}
           className={`h-12 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 transition-colors ${
-            mode === "manual" ? "bg-[#2563EB] text-white" : "text-[#4B5563] hover:bg-[#F3F4F6]"
+            mode === "manual" ? "bg-[#14633F] text-white" : "text-[#5F6B63] hover:bg-[#F0EEE6]"
           }`}
         >
           <ListChecks size={17} /> Absen Manual
@@ -211,7 +211,7 @@ function PenjagaKegiatan({ deleg, onBack }) {
           data-testid="penjaga-mode-scan"
           onClick={() => setMode("scan")}
           className={`h-12 rounded-xl font-semibold text-sm inline-flex items-center justify-center gap-2 transition-colors ${
-            mode === "scan" ? "bg-[#2563EB] text-white" : "text-[#4B5563] hover:bg-[#F3F4F6]"
+            mode === "scan" ? "bg-[#14633F] text-white" : "text-[#5F6B63] hover:bg-[#F0EEE6]"
           }`}
         >
           <ScanLine size={17} /> Scan QR
@@ -219,52 +219,52 @@ function PenjagaKegiatan({ deleg, onBack }) {
       </div>
 
       {data === null ? (
-        <div className="p-14 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>
+        <div className="p-14 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={28} /></div>
       ) : data === false ? (
-        <div className="bg-white rounded-2xl border border-[#FECACA] p-6 text-center text-sm text-[#991B1B]">
+        <div className="bg-white rounded-2xl border border-[#FBE5E3] p-6 text-center text-sm text-[#A32A2A]">
           Mohon maaf, hak penjaga absen untuk kegiatan ini sudah tidak aktif.
         </div>
       ) : mode === "scan" ? (
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 space-y-3" data-testid="penjaga-scan-panel">
-          <p className="text-sm text-[#6B7280] flex items-start gap-2">
-            <ScanLine size={16} className="text-[#1D4ED8] shrink-0 mt-0.5" />
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4 space-y-3" data-testid="penjaga-scan-panel">
+          <p className="text-sm text-[#5F6B63] flex items-start gap-2">
+            <ScanLine size={16} className="text-[#14633F] shrink-0 mt-0.5" />
             Arahkan kamera ke <b>QR pribadi peserta</b> (menu “QR Saya” pada akun peserta) untuk menandai hadir.
           </p>
           <QrScanner onDetected={onDetected} paused={scanBusy} />
           {lastScan && (
-            <div className="bg-[#F0FDF4] border border-[#E8E8E4] rounded-xl p-3 text-center" data-testid="penjaga-scan-result">
-              <CheckCircle2 className="mx-auto text-[#1D4ED8]" size={26} />
-              <div className="font-bold text-[#1D4ED8] mt-1">{lastScan.name}</div>
-              <div className="text-xs text-[#4B5563] mt-0.5">{lastScan.message}</div>
+            <div className="bg-[#E3F3EA] border border-[#E7E3D8] rounded-xl p-3 text-center" data-testid="penjaga-scan-result">
+              <CheckCircle2 className="mx-auto text-[#14633F]" size={26} />
+              <div className="font-bold text-[#0E4E31] mt-1">{lastScan.name}</div>
+              <div className="text-xs text-[#5F6B63] mt-0.5">{lastScan.message}</div>
             </div>
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="penjaga-manual-panel">
-          <div className="p-3 bg-[#FAFAF8] border-b border-[#E8E8E4]">
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] overflow-hidden" data-testid="penjaga-manual-panel">
+          <div className="p-3 bg-[#F6F4EE] border-b border-[#E7E3D8]">
             <div className="relative">
-              <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+              <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
               <input
                 data-testid="penjaga-search"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Cari nama peserta..."
-                className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] bg-white text-sm outline-none focus:border-[#2563EB]"
+                className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#8A948D] bg-white text-sm outline-none focus:border-[#14633F]"
               />
             </div>
           </div>
-          <ul className="divide-y divide-[#ECECE8] max-h-[58vh] overflow-y-auto">
+          <ul className="divide-y divide-[#E7E3D8] max-h-[58vh] overflow-y-auto">
             {rows.length === 0 ? (
-              <li className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Tidak ada peserta yang cocok.</li>
+              <li className="px-4 py-8 text-center text-sm text-[#5F6B63]">Tidak ada peserta yang cocok.</li>
             ) : rows.map((p) => (
               <li key={p.id} data-testid={`penjaga-row-${p.id}`} className="px-4 py-3">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="font-semibold text-[#111827] text-sm truncate">{p.name}</div>
-                    <div className="text-xs text-[#9CA3AF] flex items-center gap-1.5 mt-0.5">
+                    <div className="font-semibold text-[#14201A] text-sm truncate">{p.name}</div>
+                    <div className="text-xs text-[#5F6B63] flex items-center gap-1.5 mt-0.5">
                       {p.status === "hadir" && p.arrival_time ? `Datang ${hhmm(p.arrival_time)} WITA` : (p.kelompok_name || "—")}
                       {p.account_status === "pending" && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#92400E]">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6B4500]">
                           <AlertTriangle size={11} /> Belum aktivasi
                         </span>
                       )}
@@ -282,7 +282,7 @@ function PenjagaKegiatan({ deleg, onBack }) {
                           onClick={() => mark(p.id, s)}
                           title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.label}
                           className={`h-9 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors disabled:opacity-50 ${
-                            on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`
+                            on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E7E3D8] hover:border-current`
                           }`}
                         >
                           {cfg.label}

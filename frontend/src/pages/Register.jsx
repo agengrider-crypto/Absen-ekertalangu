@@ -49,12 +49,12 @@ export default function Register() {
   const showForm = !!tokenFromUrl;
 
   return (
-    <div className="min-h-screen px-4 py-8 bg-[#FAFAF8]">
+    <div className="min-h-screen px-4 py-8 bg-[#F6F4EE]">
       <div className="max-w-md mx-auto">
         <button
           data-testid="button-back-login"
           onClick={() => navigate("/login")}
-          className="inline-flex items-center gap-1.5 text-[#4B5563] font-medium mb-6 hover:text-[#1D4ED8]"
+          className="inline-flex items-center gap-1.5 text-[#5F6B63] font-medium mb-6 hover:text-[#0E4E31]"
         >
           <ArrowLeft size={20} /> Kembali ke Login
         </button>
@@ -64,12 +64,12 @@ export default function Register() {
         </div>
 
         {!showForm ? (
-          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(17,17,24,0.14)] border border-[#E8E8E4] text-center" data-testid="qr-panel">
-            <div className="inline-flex items-center gap-2 bg-[#EFF6FF] text-[#1D4ED8] px-3 py-1 rounded-full text-sm font-semibold mb-4">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(20,32,26,0.14)] border border-[#E7E3D8] text-center" data-testid="qr-panel">
+            <div className="inline-flex items-center gap-2 bg-[#E3F3EA] text-[#0E4E31] px-3 py-1 rounded-full text-sm font-semibold mb-4">
               <QrCode size={16} /> QR Pendaftaran
             </div>
-            <h1 className="font-heading text-2xl font-bold text-[#111827]">Scan untuk Daftar</h1>
-            <p className="text-[#6B7280] text-base mt-1 mb-6">
+            <h1 className="font-heading text-2xl font-bold text-[#14201A]">Scan untuk Daftar</h1>
+            <p className="text-[#5F6B63] text-base mt-1 mb-6">
               Arahkan kamera HP ke QR ini, atau tekan tombol di bawah untuk mengisi form langsung.
             </p>
             {qr ? (
@@ -77,27 +77,27 @@ export default function Register() {
                 data-testid="img-public-qr"
                 src={qr.image}
                 alt="QR Pendaftaran"
-                className="mx-auto w-56 h-56 rounded-xl border border-[#E8E8E4] p-2 bg-white"
+                className="mx-auto w-56 h-56 rounded-xl border border-[#E7E3D8] p-2 bg-white"
               />
             ) : (
-              <div className="mx-auto w-56 h-56 rounded-xl bg-[#F3F4F6] flex items-center justify-center">
-                <Loader2 className="animate-spin text-[#1D4ED8]" size={32} />
+              <div className="mx-auto w-56 h-56 rounded-xl bg-[#F0EEE6] flex items-center justify-center">
+                <Loader2 className="animate-spin text-[#0E4E31]" size={32} />
               </div>
             )}
             <button
               data-testid="button-open-register-form"
               onClick={() => window.location.assign(`/register?token=${token}`)}
               disabled={!token}
-              className="mt-6 w-full h-[52px] rounded-xl bg-[#2563EB] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#1D4ED8] transition-colors disabled:opacity-60"
+              className="mt-6 w-full h-[52px] rounded-xl bg-[#14633F] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#0E4E31] transition-colors disabled:opacity-60"
             >
               <UserPlus size={22} /> Isi Form Pendaftaran
             </button>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(17,17,24,0.14)] border border-[#E8E8E4]">
-            <h1 className="font-heading text-2xl font-bold text-[#111827]">Pendaftaran Peserta</h1>
-            <p className="text-[#6B7280] text-base mt-1 mb-2">Akun langsung aktif dengan peran Peserta.</p>
-            <div className="inline-flex items-center gap-1.5 text-xs text-[#1D4ED8] bg-[#EFF6FF] px-2.5 py-1 rounded-full mb-5">
+          <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(20,32,26,0.14)] border border-[#E7E3D8]">
+            <h1 className="font-heading text-2xl font-bold text-[#14201A]">Pendaftaran Peserta</h1>
+            <p className="text-[#5F6B63] text-base mt-1 mb-2">Akun langsung aktif dengan peran Peserta.</p>
+            <div className="inline-flex items-center gap-1.5 text-xs text-[#0E4E31] bg-[#E3F3EA] px-2.5 py-1 rounded-full mb-5">
               <ShieldCheck size={14} /> Data Anda terpantau administrator
             </div>
 
@@ -106,7 +106,7 @@ export default function Register() {
               <Field label="Nomor HP" testid="input-reg-phone" type="tel" value={form.phone} onChange={set("phone")} placeholder="cth: 08xxxx" />
               <Field label="Email" testid="input-reg-email" type="email" value={form.email} onChange={set("email")} placeholder="nama@email.com" />
               <div>
-                <label className="block text-base font-semibold text-[#111827] mb-1.5">Tanggal Lahir</label>
+                <label className="block text-base font-semibold text-[#14201A] mb-1.5">Tanggal Lahir</label>
                 <DateField testid="input-reg-dob" value={form.dob} onChange={(v) => setForm((f) => ({ ...f, dob: v }))} required />
               </div>
               <Field label="Alamat" testid="input-reg-address" value={form.address} onChange={set("address")} placeholder="Alamat tempat tinggal" />
@@ -116,7 +116,7 @@ export default function Register() {
                 data-testid="button-register-submit"
                 type="submit"
                 disabled={loading}
-                className="w-full h-[54px] rounded-xl bg-[#2563EB] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#1D4ED8] transition-colors disabled:opacity-60"
+                className="w-full h-[54px] rounded-xl bg-[#14633F] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#0E4E31] transition-colors disabled:opacity-60"
               >
                 {loading ? <Loader2 className="animate-spin" size={22} /> : <UserPlus size={22} />}
                 Daftar Sekarang
@@ -132,7 +132,7 @@ export default function Register() {
 function Field({ label, testid, type = "text", value, onChange, placeholder, minLength }) {
   return (
     <div>
-      <label className="block text-base font-semibold text-[#111827] mb-1.5">{label}</label>
+      <label className="block text-base font-semibold text-[#14201A] mb-1.5">{label}</label>
       <input
         data-testid={testid}
         type={type}
@@ -141,7 +141,7 @@ function Field({ label, testid, type = "text", value, onChange, placeholder, min
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full h-[52px] px-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none transition-colors focus:border-[#2563EB] bg-white"
+        className="w-full h-[52px] px-4 rounded-xl border border-[#8A948D] text-base outline-none transition-colors focus:border-[#14633F] bg-white"
       />
     </div>
   );

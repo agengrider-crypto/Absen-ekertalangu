@@ -101,13 +101,13 @@ export default function QrScanner({ onDetected, paused = false }) {
       {status !== "running" && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4 text-center">
           {status === "starting" && (
-            <div className="flex flex-col items-center gap-2 text-[#6B7280]">
-              <Loader2 className="animate-spin text-[#1D4ED8]" size={28} />
+            <div className="flex flex-col items-center gap-2 text-[#5F6B63]">
+              <Loader2 className="animate-spin text-[#0E4E31]" size={28} />
               <span className="text-sm">Menyalakan kamera…</span>
             </div>
           )}
           {status === "error" && (
-            <div className="flex flex-col items-center gap-2 text-[#DC2626]">
+            <div className="flex flex-col items-center gap-2 text-[#A32A2A]">
               <CameraOff size={26} />
               <span className="text-sm">{error}</span>
             </div>

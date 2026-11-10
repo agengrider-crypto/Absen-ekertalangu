@@ -76,7 +76,7 @@ const TEMPLATES = [
 function Field({ label, children }) {
   return (
     <div>
-      <label className="text-sm font-semibold text-[#374151]">{label}</label>
+      <label className="text-sm font-semibold text-[#14201A]">{label}</label>
       <div className="mt-1.5">{children}</div>
     </div>
   );
@@ -118,15 +118,15 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={onClose} />
       <div className="relative bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid="modal-pengumuman-form">
-        <div className="sticky top-0 bg-white border-b border-[#E8E8E4] px-5 py-4 flex items-center justify-between">
-          <h3 className="font-heading font-bold text-[#111827] text-lg">{editing ? "Edit Pengumuman" : "Pengumuman Baru"}</h3>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
+        <div className="sticky top-0 bg-white border-b border-[#E7E3D8] px-5 py-4 flex items-center justify-between">
+          <h3 className="font-heading font-bold text-[#14201A] text-lg">{editing ? "Edit Pengumuman" : "Pengumuman Baru"}</h3>
+          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
         </div>
         <div className="p-5 space-y-4">
           <Field label="Kegiatan terkait (untuk mengisi template)">
-            <select data-testid="peng-kegiatan" value={f.kegiatan_id} onChange={(e) => set("kegiatan_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white">
+            <select data-testid="peng-kegiatan" value={f.kegiatan_id} onChange={(e) => set("kegiatan_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white">
               <option value="">— Tidak terkait kegiatan —</option>
               {kegiatanOptions.map((k) => (
                 <option key={k.id} value={k.id}>
@@ -136,9 +136,9 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
             </select>
           </Field>
 
-          <div className="rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-3">
-            <div className="text-sm font-semibold text-[#1D4ED8] inline-flex items-center gap-1.5"><LayoutTemplate size={15} /> Template siap pakai</div>
-            <p className="text-xs text-[#4B5563] mt-0.5">Tap salah satu, judul &amp; isi langsung terisi rapi (masih bisa diedit).</p>
+          <div className="rounded-2xl border border-[#E7E3D8] bg-[#F6F4EE] p-3">
+            <div className="text-sm font-semibold text-[#0E4E31] inline-flex items-center gap-1.5"><LayoutTemplate size={15} /> Template siap pakai</div>
+            <p className="text-xs text-[#5F6B63] mt-0.5">Tap salah satu, judul &amp; isi langsung terisi rapi (masih bisa diedit).</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {TEMPLATES.map((t) => (
                 <button
@@ -151,7 +151,7 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
                     setF((p) => ({ ...p, title: res.title, body: res.body, pengajar: keg?.teacher || p.pengajar }));
                     toast.success(`Template "${t.label}" diterapkan`);
                   }}
-                  className="h-9 px-3 rounded-lg border-2 border-[#2563EB] bg-white text-[#1D4ED8] text-xs font-semibold hover:bg-[#EFF6FF]"
+                  className="h-9 px-3 rounded-lg border-2 border-[#14633F] bg-white text-[#0E4E31] text-xs font-semibold hover:bg-[#E3F3EA]"
                 >
                   {t.label}
                 </button>
@@ -160,26 +160,26 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
           </div>
 
           <Field label="Judul">
-            <input data-testid="peng-title" value={f.title} onChange={(e) => set("title", e.target.value)} className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB]" />
+            <input data-testid="peng-title" value={f.title} onChange={(e) => set("title", e.target.value)} className="w-full h-11 px-3.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F]" />
           </Field>
           <Field label="Isi Pengumuman">
-            <textarea data-testid="peng-body" value={f.body} onChange={(e) => set("body", e.target.value)} rows={9} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] resize-none leading-relaxed" />
+            <textarea data-testid="peng-body" value={f.body} onChange={(e) => set("body", e.target.value)} rows={9} className="w-full px-3.5 py-2.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] resize-none leading-relaxed" />
           </Field>
           <Field label="Pengajar">
-            <input data-testid="peng-pengajar" value={f.pengajar} onChange={(e) => set("pengajar", e.target.value)} className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB]" />
+            <input data-testid="peng-pengajar" value={f.pengajar} onChange={(e) => set("pengajar", e.target.value)} className="w-full h-11 px-3.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F]" />
           </Field>
 
           <label className="flex items-center gap-3 cursor-pointer">
-            <input data-testid="peng-important" type="checkbox" checked={f.important} onChange={(e) => set("important", e.target.checked)} className="h-4 w-4 accent-[#DC2626]" />
-            <span className="text-sm text-[#374151]">Tandai <b>Penting</b></span>
+            <input data-testid="peng-important" type="checkbox" checked={f.important} onChange={(e) => set("important", e.target.checked)} className="h-4 w-4 accent-[#A32A2A]" />
+            <span className="text-sm text-[#14201A]">Tandai <b>Penting</b></span>
           </label>
 
-          <div className="border border-[#E8E8E4] rounded-xl p-3 space-y-2.5">
+          <div className="border border-[#E7E3D8] rounded-xl p-3 space-y-2.5">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input data-testid="peng-pinned" type="checkbox" checked={f.pinned} disabled={pinLimitReached} onChange={(e) => set("pinned", e.target.checked)} className="h-4 w-4 accent-[#2563EB]" />
-              <span className="text-sm text-[#374151]">Pin ke dashboard role</span>
+              <input data-testid="peng-pinned" type="checkbox" checked={f.pinned} disabled={pinLimitReached} onChange={(e) => set("pinned", e.target.checked)} className="h-4 w-4 accent-[#14633F]" />
+              <span className="text-sm text-[#14201A]">Pin ke dashboard role</span>
             </label>
-            {pinLimitReached && <p className="text-xs text-[#DC2626]">Sudah ada {MAX_PINNED} pengumuman ter-pin (maksimal {MAX_PINNED}).</p>}
+            {pinLimitReached && <p className="text-xs text-[#A32A2A]">Sudah ada {MAX_PINNED} pengumuman ter-pin (maksimal {MAX_PINNED}).</p>}
             {f.pinned && (
               <div className="flex gap-2 flex-wrap pl-7">
                 {["admin", "pengurus", "peserta"].map((r) => (
@@ -188,7 +188,7 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
                     data-testid={`peng-role-${r}`}
                     type="button"
                     onClick={() => toggleRole(r)}
-                    className={`px-3 h-8 rounded-lg text-xs font-semibold border ${f.pin_roles.includes(r) ? "bg-[#2563EB] text-white border-[#2563EB]" : "bg-white text-[#4B5563] border-[#E8E8E4]"}`}
+                    className={`px-3 h-8 rounded-lg text-xs font-semibold border ${f.pin_roles.includes(r) ? "bg-[#14633F] text-white border-[#14633F]" : "bg-white text-[#5F6B63] border-[#E7E3D8]"}`}
                   >
                     {ROLE_LABEL[r]}
                   </button>
@@ -197,7 +197,7 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
             )}
           </div>
 
-          <button data-testid="peng-submit" onClick={submit} disabled={saving} className="w-full h-12 rounded-xl bg-[#2563EB] text-white font-semibold hover:bg-[#1D4ED8] disabled:opacity-60 inline-flex items-center justify-center gap-2">
+          <button data-testid="peng-submit" onClick={submit} disabled={saving} className="w-full h-12 rounded-xl bg-[#14633F] text-white font-semibold hover:bg-[#0E4E31] disabled:opacity-60 inline-flex items-center justify-center gap-2">
             {saving && <Loader2 className="animate-spin" size={18} />} {editing ? "Simpan Perubahan" : "Terbitkan"}
           </button>
         </div>
@@ -244,39 +244,39 @@ export default function PengumumanView() {
     <div>
       <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-[#111827]">Pengumuman</h1>
-          <p className="text-[#6B7280] text-sm">Yang di-pin tampil paling atas & di dashboard role terpilih (maks {MAX_PINNED}).</p>
+          <h1 className="font-heading text-2xl font-bold text-[#14201A]">Pengumuman</h1>
+          <p className="text-[#5F6B63] text-sm">Yang di-pin tampil paling atas & di dashboard role terpilih (maks {MAX_PINNED}).</p>
         </div>
-        <button data-testid="button-add-pengumuman" onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#2563EB] text-white font-semibold text-sm hover:bg-[#1D4ED8]"><Plus size={18} /> Pengumuman</button>
+        <button data-testid="button-add-pengumuman" onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#14633F] text-white font-semibold text-sm hover:bg-[#0E4E31]"><Plus size={18} /> Pengumuman</button>
       </div>
 
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center text-[#6B7280]"><Megaphone className="mx-auto mb-2 text-[#9CA3AF]" size={32} />Belum ada pengumuman.</div>
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-10 text-center text-[#5F6B63]"><Megaphone className="mx-auto mb-2 text-[#5F6B63]" size={32} />Belum ada pengumuman.</div>
       ) : (
         <div className="grid gap-3">
           {items.map((p) => (
-            <div key={p.id} className={`bg-white rounded-2xl border p-4 ${p.pinned ? "border-[#2563EB]" : "border-[#E8E8E4]"}`} data-testid={`pengumuman-card-${p.id}`}>
+            <div key={p.id} className={`bg-white rounded-2xl border p-4 ${p.pinned ? "border-[#14633F]" : "border-[#E7E3D8]"}`} data-testid={`pengumuman-card-${p.id}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    {p.pinned && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]"><Pin size={11} /> Ter-pin</span>}
-                    {p.important && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEE2E2] text-[#991B1B]"><AlertCircle size={11} /> Penting</span>}
-                    {p.pinned && p.pin_roles?.map((r) => <span key={r} className="text-xs px-2 py-0.5 rounded-full bg-[#F3F4F6] text-[#4B5563]">{ROLE_LABEL[r]}</span>)}
+                    {p.pinned && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E3F3EA] text-[#0E4E31]"><Pin size={11} /> Ter-pin</span>}
+                    {p.important && <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FBE5E3] text-[#A32A2A]"><AlertCircle size={11} /> Penting</span>}
+                    {p.pinned && p.pin_roles?.map((r) => <span key={r} className="text-xs px-2 py-0.5 rounded-full bg-[#F0EEE6] text-[#5F6B63]">{ROLE_LABEL[r]}</span>)}
                   </div>
-                  <h3 className="font-heading font-bold text-[#111827] mt-1.5">{p.title}</h3>
-                  {p.body && <p className="text-sm text-[#4B5563] mt-1 whitespace-pre-wrap">{p.body}</p>}
-                  <div className="text-xs text-[#9CA3AF] mt-2 flex flex-wrap gap-x-3">
+                  <h3 className="font-heading font-bold text-[#14201A] mt-1.5">{p.title}</h3>
+                  {p.body && <p className="text-sm text-[#5F6B63] mt-1 whitespace-pre-wrap">{p.body}</p>}
+                  <div className="text-xs text-[#5F6B63] mt-2 flex flex-wrap gap-x-3">
                     {p.kegiatan_name && <span>Kegiatan: {p.kegiatan_name}</span>}
                     {p.pengajar && <span>Pengajar: {p.pengajar}</span>}
                     <span>oleh {p.created_by}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <button data-testid={`peng-pin-${p.id}`} onClick={() => togglePin(p)} title={p.pinned ? "Lepas pin" : "Pin"} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#1D4ED8] hover:bg-[#EFF6FF]">{p.pinned ? <PinOff size={16} /> : <Pin size={16} />}</button>
-                  <button data-testid={`peng-edit-${p.id}`} onClick={() => setEditItem(p)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F3F4F6]"><Pencil size={16} /></button>
-                  <button data-testid={`peng-delete-${p.id}`} onClick={() => del(p.id)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#DC2626] hover:bg-red-50"><Trash2 size={16} /></button>
+                  <button data-testid={`peng-pin-${p.id}`} onClick={() => togglePin(p)} title={p.pinned ? "Lepas pin" : "Pin"} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#0E4E31] hover:bg-[#E3F3EA]">{p.pinned ? <PinOff size={16} /> : <Pin size={16} />}</button>
+                  <button data-testid={`peng-edit-${p.id}`} onClick={() => setEditItem(p)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><Pencil size={16} /></button>
+                  <button data-testid={`peng-delete-${p.id}`} onClick={() => del(p.id)} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#A32A2A] hover:bg-[#FBE5E3]"><Trash2 size={16} /></button>
                 </div>
               </div>
             </div>

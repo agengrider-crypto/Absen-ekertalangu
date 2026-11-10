@@ -60,28 +60,28 @@ export default function KalenderView() {
     <div data-testid="kalender-view">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div>
-          <div className="flex items-center gap-2 text-[#1D4ED8] font-bold text-lg">
+          <div className="flex items-center gap-2 text-[#0E4E31] font-bold text-lg">
             <CalendarRange size={20} /> Kalender Kegiatan
           </div>
-          <p className="text-sm text-[#6B7280] mt-0.5">
+          <p className="text-sm text-[#5F6B63] mt-0.5">
             Lihat seluruh jadwal pengajian dalam satu bulan, lalu tap tanggal untuk rinciannya.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button data-testid="kalender-prev" onClick={() => shift(-1)}
-            className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#2563EB]"><ChevronLeft size={18} /></button>
-          <div className="font-semibold text-[#111827] min-w-[140px] text-center">{MONTH_SHORT[m - 1]} {y}</div>
+            className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E7E3D8] bg-white hover:border-[#14633F]"><ChevronLeft size={18} /></button>
+          <div className="font-semibold text-[#14201A] min-w-[140px] text-center">{MONTH_SHORT[m - 1]} {y}</div>
           <button data-testid="kalender-next" onClick={() => shift(1)}
-            className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#2563EB]"><ChevronRight size={18} /></button>
+            className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E7E3D8] bg-white hover:border-[#14633F]"><ChevronRight size={18} /></button>
         </div>
       </div>
 
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr] items-start">
-          <div className="bg-white rounded-2xl border border-[#E8E8E4] p-3 sm:p-4" data-testid="kalender-grid">
-            <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF] mb-1">
+          <div className="bg-white rounded-2xl border border-[#E7E3D8] p-3 sm:p-4" data-testid="kalender-grid">
+            <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase tracking-wide text-[#5F6B63] mb-1">
               {DOW.map((d) => <div key={d} className="py-1">{d}</div>)}
             </div>
             <div className="grid grid-cols-7 gap-1">
@@ -96,14 +96,14 @@ export default function KalenderView() {
                     data-testid={`kalender-day-${ymd}`}
                     onClick={() => setPick(ymd)}
                     className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 text-sm transition-colors border-2 ${
-                      on ? "bg-[#2563EB] text-white border-transparent"
-                        : list.length ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold border-transparent hover:border-[#2563EB]"
-                        : `text-[#6B7280] border-transparent hover:bg-[#F7F7F5] ${isToday ? "ring-2 ring-[#2563EB]/20" : ""}`
+                      on ? "bg-[#14633F] text-white border-transparent"
+                        : list.length ? "bg-[#E3F3EA] text-[#0E4E31] font-semibold border-transparent hover:border-[#14633F]"
+                        : `text-[#5F6B63] border-transparent hover:bg-[#F6F4EE] ${isToday ? "ring-2 ring-[#14633F]/20" : ""}`
                     }`}
                   >
                     {parseInt(ymd.slice(-2), 10)}
                     {list.length > 0 && (
-                      <span className={`text-[10px] font-bold ${on ? "text-white/85" : "text-[#4B5563]"}`}>
+                      <span className={`text-[10px] font-bold ${on ? "text-white/85" : "text-[#5F6B63]"}`}>
                         {list.length} keg
                       </span>
                     )}
@@ -111,20 +111,20 @@ export default function KalenderView() {
                 );
               })}
             </div>
-            <p className="text-[11px] text-[#9CA3AF] mt-3">
-              Total <b className="text-[#1D4ED8]">{totalBulan}</b> jadwal pada {MONTH_SHORT[m - 1]} {y}.
+            <p className="text-[11px] text-[#5F6B63] mt-3">
+              Total <b className="text-[#0E4E31]">{totalBulan}</b> jadwal pada {MONTH_SHORT[m - 1]} {y}.
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid="kalender-detail">
-            <div className="font-bold text-[#111827]">{tanggalPanjang(pick)}</div>
+          <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4" data-testid="kalender-detail">
+            <div className="font-bold text-[#14201A]">{tanggalPanjang(pick)}</div>
             {dayItems.length === 0 ? (
-              <p className="text-sm text-[#6B7280] mt-2">Tidak ada kegiatan pada tanggal ini.</p>
+              <p className="text-sm text-[#5F6B63] mt-2">Tidak ada kegiatan pada tanggal ini.</p>
             ) : (
               <div className="mt-3 space-y-2">
                 {dayItems.map((k) => (
                   <div key={k.id} data-testid={`kalender-item-${k.id}`}
-                    className="rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-3">
+                    className="rounded-xl border-2 border-[#E7E3D8] bg-[#F6F4EE] p-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                         style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>
@@ -134,24 +134,24 @@ export default function KalenderView() {
                         {PHASE_META[phaseOf(k)].badge}
                       </span>
                       {(k.session_total || 1) > 1 && (
-                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] inline-flex items-center gap-1">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#FBF1D6] text-[#6B4500] inline-flex items-center gap-1">
                           <Layers size={11} /> {k.session_label}
                         </span>
                       )}
                     </div>
-                    <div className="font-semibold text-[#111827] text-sm mt-1.5">{k.name}</div>
-                    <div className="text-xs text-[#6B7280] mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                    <div className="font-semibold text-[#14201A] text-sm mt-1.5">{k.name}</div>
+                    <div className="text-xs text-[#5F6B63] mt-1 flex flex-wrap gap-x-3 gap-y-1">
                       <span className="inline-flex items-center gap-1"><Clock size={12} /> {k.start_time}–{k.end_time} WITA</span>
                       {k.location && <span className="inline-flex items-center gap-1"><MapPin size={12} /> {k.location}</span>}
                       {k.teacher && <span className="inline-flex items-center gap-1"><User size={12} /> {k.teacher}</span>}
                     </div>
-                    <div className="text-xs text-[#4B5563] mt-1.5">
-                      Hadir <b className="text-[#15803D]">{k.counts?.hadir ?? 0}</b> ·
-                      Izin <b className="text-[#92400E]"> {k.counts?.izin ?? 0}</b> ·
-                      Sakit <b className="text-[#1D4ED8]"> {k.counts?.sakit ?? 0}</b> ·
-                      Alpha <b className="text-[#991B1B]"> {k.counts?.alpha ?? 0}</b> ·
-                      Belum diabsen <b className="text-[#6B7280]"> {k.counts?.belum_diabsen ?? 0}</b> ·
-                      <b className="text-[#1D4ED8]"> {k.counts?.ratio ?? 0}%</b>
+                    <div className="text-xs text-[#5F6B63] mt-1.5">
+                      Hadir <b className="text-[#14633F]">{k.counts?.hadir ?? 0}</b> ·
+                      Izin <b className="text-[#6B4500]"> {k.counts?.izin ?? 0}</b> ·
+                      Sakit <b className="text-[#1D4F91]"> {k.counts?.sakit ?? 0}</b> ·
+                      Alpha <b className="text-[#A32A2A]"> {k.counts?.alpha ?? 0}</b> ·
+                      Belum diabsen <b className="text-[#5F6B63]"> {k.counts?.belum_diabsen ?? 0}</b> ·
+                      <b className="text-[#0E4E31]"> {k.counts?.ratio ?? 0}%</b>
                     </div>
                   </div>
                 ))}

@@ -29,17 +29,17 @@ export default function ContactButtons({ phone, whatsapp, name, testidPrefix = "
   };
   const waNow = () => {
     if (!wa) { toast.error("Nomor WhatsApp belum diisi."); return; }
-    const text = `Assalamu'alaikum${name ? ` ${name}` : ""}, `;
+    const text = name ? `Halo ${name}, ` : "Halo, ";
     window.open(`https://wa.me/${wa}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   return (
-    <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]" data-testid={`${testidPrefix}-section`}>
-      <div className="text-sm font-semibold text-[#111827] mb-2.5 flex items-center gap-1.5">
-        <Phone size={15} className="text-[#1D4ED8]" /> {label}
+    <div className="bg-white rounded-2xl p-4 border border-[#E7E3D8]" data-testid={`${testidPrefix}-section`}>
+      <div className="text-sm font-semibold text-[#14201A] mb-2.5 flex items-center gap-1.5">
+        <Phone size={15} className="text-[#14633F]" /> {label}
       </div>
       {kosong ? (
-        <p className="text-sm text-[#9CA3AF] flex items-center gap-1.5">
+        <p className="text-sm text-[#5F6B63] flex items-center gap-1.5">
           <PhoneOff size={14} /> Nomor telepon / WhatsApp belum diisi.
         </p>
       ) : (
@@ -49,7 +49,7 @@ export default function ContactButtons({ phone, whatsapp, name, testidPrefix = "
             data-testid={`${testidPrefix}-call`}
             onClick={callNow}
             disabled={!tel}
-            className="flex-1 h-11 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#EFF6FF] disabled:opacity-50"
+            className="flex-1 h-11 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#E3F3EA] disabled:opacity-50"
           >
             <Phone size={16} /> Telepon
           </button>
@@ -58,14 +58,14 @@ export default function ContactButtons({ phone, whatsapp, name, testidPrefix = "
             data-testid={`${testidPrefix}-wa`}
             onClick={waNow}
             disabled={!wa}
-            className="flex-1 h-11 rounded-xl bg-[#25D366] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:brightness-95 disabled:opacity-50"
+            className="flex-1 h-11 rounded-xl bg-[#14633F] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:brightness-95 disabled:opacity-50"
           >
             <MessageCircle size={16} /> WhatsApp
           </button>
         </div>
       )}
       {(tel || wa) && (
-        <p className="text-xs text-[#9CA3AF] mt-2">
+        <p className="text-xs text-[#5F6B63] mt-2">
           {tel ? `Telepon: ${tel}` : ""}{tel && wa ? " · " : ""}{wa ? `WA: +${wa}` : ""}
         </p>
       )}

@@ -14,7 +14,7 @@ import ListFab from "@/components/ListFab";
 import PesertaDetailModal from "./PesertaDetailModal";
 import { genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
 
-const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white";
+const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 
 /**
  * FASE 10 — KELENGKAPAN DATA: tanggal lahir & status pernikahan dipakai untuk
@@ -62,13 +62,13 @@ function PesertaAvatar({ user, size = "md" }) {
         alt={user.name}
         loading="lazy"
         onError={() => setErr(true)}
-        className={`${box} shrink-0 rounded-full object-cover border border-[#E8E8E4]`}
+        className={`${box} shrink-0 rounded-full object-cover border border-[#E7E3D8]`}
         data-testid={`peserta-photo-${user.id}`}
       />
     );
   }
   return (
-    <div className={`${box} shrink-0 rounded-full bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center font-bold`}>
+    <div className={`${box} shrink-0 rounded-full bg-[#E3F3EA] text-[#0E4E31] flex items-center justify-center font-bold`}>
       {initials}
     </div>
   );
@@ -226,9 +226,9 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2 text-[#1D4ED8] font-bold text-lg">
+      <div className="mb-4 flex items-center gap-2 text-[#0E4E31] font-bold text-lg">
         <Users size={20} /> Peserta &amp; Akun
-        {users && <span className="text-sm font-medium text-[#6B7280]">({users.length})</span>}
+        {users && <span className="text-sm font-medium text-[#5F6B63]">({users.length})</span>}
       </div>
 
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Kategori peran" data-testid={PARTICIPANTS.roleFilter}>
@@ -250,11 +250,11 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
               data-testid={`${PARTICIPANTS.roleTabPrefix}-${tab.key}`}
               onClick={() => setRoleFilter(tab.key)}
               className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border-2 px-4 text-sm font-semibold transition-colors ${
-                active ? "border-[#2563EB] bg-[#2563EB] text-white" : "border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#2563EB]"
+                active ? "border-[#14633F] bg-[#14633F] text-white" : "border-[#E7E3D8] bg-white text-[#5F6B63] hover:border-[#14633F]"
               }`}
             >
               {tab.label}
-              <span className={`rounded-full px-2 py-0.5 text-xs ${active ? "bg-white/20" : "bg-[#F3F4F6] text-[#374151]"}`}>{tab.count}</span>
+              <span className={`rounded-full px-2 py-0.5 text-xs ${active ? "bg-white/20" : "bg-[#F0EEE6] text-[#14201A]"}`}>{tab.count}</span>
             </button>
           );
         })}
@@ -262,29 +262,29 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[220px]">
-          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
           <input
             data-testid="input-search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari nama, nama pengguna, No HP..."
-            className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white"
+            className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white"
           />
         </div>
         {activatableSelected.length > 0 && (
           <button data-testid={PARTICIPANTS.bulkActivateButton} onClick={bulkActivate}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#2563EB] text-white font-semibold text-sm hover:bg-[#1D4ED8]">
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#14633F] text-white font-semibold text-sm hover:bg-[#0E4E31]">
             <CheckCircle2 size={16} /> Aktifkan Terpilih ({activatableSelected.length})
           </button>
         )}
         {deletableSelected.length > 0 && (
           <button data-testid="button-bulk-delete" onClick={bulkDelete}
-            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#DC2626] text-white font-semibold text-sm hover:bg-[#B91C1C]">
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#A32A2A] text-white font-semibold text-sm hover:bg-[#A32A2A]">
             <Trash2 size={16} /> Hapus Peserta ({deletableSelected.length})
           </button>
         )}
         {pendingWithoutDobSelected.length > 0 && (
-          <span data-testid={PARTICIPANTS.pendingNoDobNotice} className="text-sm font-medium text-[#92400E]">
+          <span data-testid={PARTICIPANTS.pendingNoDobNotice} className="text-sm font-medium text-[#6B4500]">
             {pendingWithoutDobSelected.length} akun perlu tanggal lahir valid sebelum diaktifkan.
           </span>
         )}
@@ -294,66 +294,66 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
       {/* FASE 10 — Kelengkapan data (tanggal lahir & status pernikahan) */}
       {users && roleFilter === "peserta" && counts.incomplete > 0 && (
-        <div className={`mb-4 rounded-2xl border-2 p-3.5 flex flex-wrap items-center gap-3 ${statusFilter === "incomplete" ? "border-[#DC2626] bg-[#FEF2F2]" : "border-[#FECACA] bg-[#FEF2F2]/60"}`} data-testid="kelengkapan-banner">
-          <span className="h-10 w-10 rounded-xl bg-[#DC2626] text-white flex items-center justify-center shrink-0"><ClipboardList size={18} /></span>
+        <div className={`mb-4 rounded-2xl border-2 p-3.5 flex flex-wrap items-center gap-3 ${statusFilter === "incomplete" ? "border-[#A32A2A] bg-[#FBE5E3]" : "border-[#FBE5E3] bg-[#FBE5E3]/60"}`} data-testid="kelengkapan-banner">
+          <span className="h-10 w-10 rounded-xl bg-[#A32A2A] text-white flex items-center justify-center shrink-0"><ClipboardList size={18} /></span>
           <div className="flex-1 min-w-[200px]">
-            <div className="text-sm font-bold text-[#991B1B]">
+            <div className="text-sm font-bold text-[#A32A2A]">
               {counts.incomplete} peserta datanya belum lengkap
             </div>
-            <div className="text-xs text-[#B91C1C] mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+            <div className="text-xs text-[#A32A2A] mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
               <span className="inline-flex items-center gap-1"><CalendarDays size={12} /> Tgl lahir kosong: <b>{counts.missingDob}</b></span>
               <span className="inline-flex items-center gap-1"><Heart size={12} /> Status nikah kosong: <b>{counts.missingMarital}</b></span>
             </div>
-            <p className="text-[11px] text-[#6B7280] mt-1 leading-relaxed">
+            <p className="text-[11px] text-[#5F6B63] mt-1 leading-relaxed">
               Data ini dipakai penyaringan kegiatan khusus (kelompok usia / status pernikahan). Peserta yang datanya
               kosong <b>tidak masuk</b> daftar absen kegiatan khusus tersebut. Klik <b>nama peserta</b> untuk melengkapi.
             </p>
           </div>
           {statusFilter !== "incomplete" ? (
             <button data-testid="kelengkapan-show" onClick={() => setStatusFilter("incomplete")}
-              className="h-10 px-4 rounded-xl bg-[#DC2626] text-white font-semibold text-sm hover:bg-[#B91C1C]">Tampilkan daftar</button>
+              className="h-10 px-4 rounded-xl bg-[#A32A2A] text-white font-semibold text-sm hover:bg-[#A32A2A]">Tampilkan daftar</button>
           ) : (
             <button data-testid="kelengkapan-hide" onClick={() => setStatusFilter("all")}
-              className="h-10 px-4 rounded-xl border-2 border-[#DC2626] text-[#B91C1C] font-semibold text-sm hover:bg-[#FEF2F2]">Tampilkan semua</button>
+              className="h-10 px-4 rounded-xl border-2 border-[#A32A2A] text-[#A32A2A] font-semibold text-sm hover:bg-[#FBE5E3]">Tampilkan semua</button>
           )}
         </div>
       )}
       {users && roleFilter === "peserta" && counts.incomplete === 0 && statusFilter === "incomplete" && (
-        <div className="mb-4 rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-3.5 text-sm text-[#1D4ED8] font-semibold" data-testid="kelengkapan-complete">
+        <div className="mb-4 rounded-2xl border border-[#E7E3D8] bg-[#F6F4EE] p-3.5 text-sm text-[#0E4E31] font-semibold" data-testid="kelengkapan-complete">
           Semua peserta sudah melengkapi tanggal lahir dan status pernikahan.
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-[#E8E8E4] bg-white" data-testid="peserta-table">
+      <div className="overflow-hidden rounded-2xl border border-[#E7E3D8] bg-white" data-testid="peserta-table">
         {users === null ? (
-          <div className="flex justify-center p-10"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>
+          <div className="flex justify-center p-10"><Loader2 className="animate-spin text-[#0E4E31]" size={28} /></div>
         ) : users === false ? (
           <div className="p-10 text-center">
-            <p className="text-[#6B7280]">Daftar akun gagal dimuat.</p>
-            <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#2563EB] px-4 font-semibold text-white">Coba lagi</button>
+            <p className="text-[#5F6B63]">Daftar akun gagal dimuat.</p>
+            <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#14633F] px-4 font-semibold text-white">Coba lagi</button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-10 text-center text-[#6B7280]">{q ? "Tidak ada akun yang cocok." : "Belum ada akun pada kategori ini."}</div>
+          <div className="p-10 text-center text-[#5F6B63]">{q ? "Tidak ada akun yang cocok." : "Belum ada akun pada kategori ini."}</div>
         ) : (
           <>
-            <div className="flex items-center justify-between gap-3 border-b border-[#ECECE8] bg-[#FAFAF8] px-4 py-2.5">
-              <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#4B5563]" title="Pilih semua peserta yang memenuhi syarat aktivasi">
+            <div className="flex items-center justify-between gap-3 border-b border-[#E7E3D8] bg-[#F6F4EE] px-4 py-2.5">
+              <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#5F6B63]" title="Pilih semua peserta yang memenuhi syarat aktivasi">
                 <input
                   aria-label={`Pilih semua peserta yang bisa diaktifkan (${activationEligible.length})`}
                   type="checkbox"
-                  className="h-4 w-4 accent-[#0D5C3A]"
+                  className="h-4 w-4 accent-[#14633F]"
                   checked={allChecked}
                   disabled={activationEligible.length === 0}
                   onChange={toggleAll}
                   data-testid={PARTICIPANTS.selectAllActivatable}
                 />
                 Pilih yang bisa diaktifkan
-                <span className="rounded-full bg-[#EFF6FF] px-1.5 py-0.5 text-[11px] font-bold text-[#374151]">{activationEligible.length}</span>
+                <span className="rounded-full bg-[#E3F3EA] px-1.5 py-0.5 text-[11px] font-bold text-[#14201A]">{activationEligible.length}</span>
               </label>
-              <span className="text-xs text-[#9CA3AF]">{filtered.length} akun</span>
+              <span className="text-xs text-[#5F6B63]">{filtered.length} akun</span>
             </div>
 
-            <ul className="divide-y divide-[#F1F1EE]">
+            <ul className="divide-y divide-[#F0EEE6]">
               {paged.map((u) => {
                 const b = statusBadge(u.status, u.needs_completion);
                 const miss = dataMissing(u);
@@ -369,8 +369,8 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                       }}
                       aria-label={`Buka detail ${u.name}`}
                       data-testid={`peserta-row-${u.id}`}
-                      className={`group flex cursor-pointer items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2563EB] sm:gap-4 sm:px-4 ${
-                        isSelected ? "bg-[#FAFAF8]" : ""
+                      className={`group flex cursor-pointer items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-[#F6F4EE] focus-visible:bg-[#F6F4EE] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#14633F] sm:gap-4 sm:px-4 ${
+                        isSelected ? "bg-[#F6F4EE]" : ""
                       }`}
                     >
                       <label
@@ -381,7 +381,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                         <input
                           aria-label={`Pilih ${u.name}`}
                           type="checkbox"
-                          className="h-4 w-4 accent-[#2563EB]"
+                          className="h-4 w-4 accent-[#14633F]"
                           checked={isSelected}
                           onChange={() => toggleOne(u.id)}
                           data-testid={`checkbox-${u.id}`}
@@ -394,17 +394,17 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <span data-testid={`button-detail-${u.id}`} className="truncate text-[15px] font-semibold text-[#111827]">
+                          <span data-testid={`button-detail-${u.id}`} className="truncate text-[15px] font-semibold text-[#14201A]">
                             {u.name}
                           </span>
-                          {u.needs_completion && <AlertTriangle size={13} className="shrink-0 text-[#9CA3AF]" aria-label="Perlu dilengkapi" />}
+                          {u.needs_completion && <AlertTriangle size={13} className="shrink-0 text-[#5F6B63]" aria-label="Perlu dilengkapi" />}
                         </div>
-                        <div className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-[#6B7280]">
+                        <div className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-[#5F6B63]">
                           <span className="truncate">{u.username ? `@${u.username}` : genderLabel(u.gender)}</span>
                           {u.phone && <span className="hidden shrink-0 sm:inline">· {u.phone}</span>}
                         </div>
                         {miss.length > 0 && (
-                          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#FEF2F2] px-2 py-0.5 text-[11px] font-semibold text-[#B91C1C]">
+                          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#FBE5E3] px-2 py-0.5 text-[11px] font-semibold text-[#A32A2A]">
                             <ClipboardList size={11} /> {miss.map((m) => MISSING_LABEL[m]).join(" & ")} belum diisi
                           </div>
                         )}
@@ -412,7 +412,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
                       <div className="hidden shrink-0 items-center gap-1 md:flex">
                         {(u.roles || []).map((r) => (
-                          <span key={r} className="rounded-full bg-[#EFF6FF] px-2 py-0.5 text-[11px] font-medium text-[#374151]">
+                          <span key={r} className="rounded-full bg-[#E3F3EA] px-2 py-0.5 text-[11px] font-medium text-[#14201A]">
                             {ROLE_NAMES[r] || r}
                           </span>
                         ))}
@@ -426,7 +426,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                         aria-label={`Aksi lain untuk ${u.name}`}
                         title="Aksi lainnya"
                         data-testid={`button-more-${u.id}`}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B7280] transition-colors hover:bg-[#EFF6FF] hover:text-[#1D4ED8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] transition-colors hover:bg-[#E3F3EA] hover:text-[#0E4E31] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14633F]"
                       >
                         <MoreHorizontal size={18} />
                       </button>
@@ -512,11 +512,11 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
 function ModalShell({ title, children, onClose, testid, wide = false }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
-      <div className={`bg-[#FAFAF8] w-full ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E8E8E4] px-5 py-3.5 flex items-center justify-between z-10">
-          <h2 className="font-heading font-bold text-[#111827]">{title}</h2>
-          <button type="button" onClick={onClose} aria-label={`Tutup ${title}`} data-testid={PARTICIPANTS.closeModal} className="h-11 w-11 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[rgba(20,32,26,0.5)] p-0 sm:p-4" onClick={onClose}>
+      <div className={`bg-[#F6F4EE] w-full ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
+        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E7E3D8] px-5 py-3.5 flex items-center justify-between z-10">
+          <h2 className="font-heading font-bold text-[#14201A]">{title}</h2>
+          <button type="button" onClick={onClose} aria-label={`Tutup ${title}`} data-testid={PARTICIPANTS.closeModal} className="h-11 w-11 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -579,7 +579,7 @@ function AddModal({ kelompok, onClose, onDone }) {
               aria-current={step === index ? "step" : undefined}
               data-testid={`${PARTICIPANTS.addWizardStepPrefix}-${index + 1}`}
               className={`min-h-10 rounded-lg px-1 text-xs font-semibold sm:text-sm ${
-                step === index ? "bg-[#2563EB] text-white" : step > index ? "bg-[#EFF6FF] text-[#1D4ED8]" : "bg-[#F7F7F5] text-[#9CA3AF]"
+                step === index ? "bg-[#14633F] text-white" : step > index ? "bg-[#E3F3EA] text-[#0E4E31]" : "bg-[#F6F4EE] text-[#5F6B63]"
               }`}>
               <span className="mr-1">{index + 1}.</span>{label}
             </button>
@@ -587,31 +587,31 @@ function AddModal({ kelompok, onClose, onDone }) {
         </div>
 
         {step === 0 && <>
-        <div className="flex items-start gap-3 rounded-2xl border border-[#B7E4CA] bg-[#EFF6FF] p-4">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#1D4ED8]"><UserPlus size={21} /></span>
+        <div className="flex items-start gap-3 rounded-2xl border border-[#E3F3EA] bg-[#E3F3EA] p-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#0E4E31]"><UserPlus size={21} /></span>
           <div>
-            <h3 className="font-bold text-[#166534]">Akun baru menunggu aktivasi</h3>
-            <p className="mt-1 text-sm leading-relaxed text-[#166534]">
+            <h3 className="font-bold text-[#0E4E31]">Akun baru menunggu aktivasi</h3>
+            <p className="mt-1 text-sm leading-relaxed text-[#0E4E31]">
               Nama wajib diisi. Data lainnya bisa dilengkapi sekarang atau nanti.
             </p>
           </div>
         </div>
 
-        <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addMainSection}>
+        <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addMainSection}>
           <div className="mb-4 flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#2563EB] text-sm font-bold text-white">1</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#14633F] text-sm font-bold text-white">1</span>
             <div>
-              <h3 className="font-bold text-[#111827]">Data utama peserta</h3>
-              <p className="text-sm text-[#6B7280]">Isi nama terlebih dahulu. Data lainnya bisa dilengkapi nanti.</p>
+              <h3 className="font-bold text-[#14201A]">Data utama peserta</h3>
+              <p className="text-sm text-[#5F6B63]">Isi nama terlebih dahulu. Data lainnya bisa dilengkapi nanti.</p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="sm:col-span-2">
-              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Nama lengkap <span className="text-[#DC2626]">*</span></span>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Nama lengkap <span className="text-[#A32A2A]">*</span></span>
               <input data-testid={PARTICIPANTS.addName} required autoFocus value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Masukkan nama peserta" className={inp} />
             </label>
             <label>
-              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Jenis kelamin</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Jenis kelamin</span>
               <select data-testid={PARTICIPANTS.addGender} value={f.gender} onChange={(e) => set("gender", e.target.value)} className={inp}>
                 <option value="">Pilih jenis kelamin</option>
                 <option value="L">Laki-laki</option>
@@ -619,63 +619,63 @@ function AddModal({ kelompok, onClose, onDone }) {
               </select>
             </label>
             <label>
-              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Status pernikahan</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Status pernikahan</span>
               <select data-testid={PARTICIPANTS.addMarital} value={f.marital} onChange={(e) => set("marital", e.target.value)} className={inp}>
                 <option value="">Pilih status</option>
                 {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </label>
             <label>
-              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Tempat lahir</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Tempat lahir</span>
               <input data-testid={PARTICIPANTS.addBirthplace} value={f.birthplace} onChange={(e) => set("birthplace", e.target.value)} placeholder="Contoh: Denpasar" className={inp} />
             </label>
             <label>
-              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Tanggal lahir</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Tanggal lahir</span>
               <DateField testid={PARTICIPANTS.addDob} value={f.dob} onChange={(v) => set("dob", v)} placeholder="Pilih tanggal lahir" className="h-[46px]" />
-              <span className="mt-1 block text-sm text-[#6B7280]">Diperlukan untuk aktivasi akun.</span>
+              <span className="mt-1 block text-sm text-[#5F6B63]">Diperlukan untuk aktivasi akun.</span>
             </label>
           </div>
         </section>
         </>}
 
-        {step === 1 && <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addContactSection}>
+        {step === 1 && <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addContactSection}>
           <div className="mb-4 flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EFF6FF] text-sm font-bold text-[#1D4ED8]">2</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E3F3EA] text-sm font-bold text-[#0E4E31]">2</span>
             <div>
-              <h3 className="font-bold text-[#111827]">Kontak dan kelompok</h3>
-              <p className="text-sm text-[#6B7280]">Semua isian pada bagian ini bersifat opsional</p>
+              <h3 className="font-bold text-[#14201A]">Kontak dan kelompok</h3>
+              <p className="text-sm text-[#5F6B63]">Semua isian pada bagian ini bersifat opsional</p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label>
-              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Nomor HP</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Nomor HP</span>
               <input data-testid={PARTICIPANTS.addPhone} value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="08xxxxxxxxxx" className={inp} />
             </label>
             <label>
-              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Nomor WhatsApp</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Nomor WhatsApp</span>
               <input data-testid={PARTICIPANTS.addWhatsapp} value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} placeholder="Opsional" className={inp} />
             </label>
             <label>
-              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Email</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Email</span>
               <input data-testid={PARTICIPANTS.addEmail} type="email" value={f.email} onChange={(e) => set("email", e.target.value)} placeholder="nama@email.com" className={inp} />
             </label>
             <label>
-              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Kelompok sambung</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Kelompok sambung</span>
               <select data-testid={PARTICIPANTS.addKelompok} value={f.kelompok_id} onChange={(e) => set("kelompok_id", e.target.value)} className={inp}>
                 <option value="">Tanpa kelompok</option>
                 {kelompok.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
               </select>
             </label>
             <label className="sm:col-span-2">
-              <span className="mb-1.5 block text-base font-semibold text-[#374151]">Alamat</span>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Alamat</span>
               <input data-testid={PARTICIPANTS.addAddress} value={f.address} onChange={(e) => set("address", e.target.value)} placeholder="Alamat tempat tinggal" className={inp} />
             </label>
           </div>
         </section>
         }
 
-        {step === 2 && <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addWizardReview}>
-          <h3 className="mb-3 font-bold text-[#111827]">Tinjau data peserta</h3>
+        {step === 2 && <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4 sm:p-5" data-testid={PARTICIPANTS.addWizardReview}>
+          <h3 className="mb-3 font-bold text-[#14201A]">Tinjau data peserta</h3>
           <dl className="grid gap-2 sm:grid-cols-2">
             {[
               ["Nama lengkap", f.name],
@@ -688,36 +688,36 @@ function AddModal({ kelompok, onClose, onDone }) {
               ["Kelompok", kelompok.find((item) => item.id === f.kelompok_id)?.name || "Tanpa kelompok"],
               ["Alamat", f.address || "Belum diisi"],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-xl bg-[#FAFAF8] p-3">
-                <dt className="text-xs font-semibold text-[#6B7280]">{label}</dt>
-                <dd className="mt-1 break-words text-sm font-medium text-[#111827]">{value}</dd>
+              <div key={label} className="rounded-xl bg-[#F6F4EE] p-3">
+                <dt className="text-xs font-semibold text-[#5F6B63]">{label}</dt>
+                <dd className="mt-1 break-words text-sm font-medium text-[#14201A]">{value}</dd>
               </div>
             ))}
           </dl>
-          <p className="mt-3 rounded-xl bg-[#EFF6FF] p-3 text-sm text-[#166534]">
+          <p className="mt-3 rounded-xl bg-[#E3F3EA] p-3 text-sm text-[#0E4E31]">
             Akun peserta akan menunggu aktivasi. Pastikan tanggal lahir benar agar peserta dapat mengaktifkan akunnya.
           </p>
-          <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2 text-sm font-semibold text-[#111827]">
+          <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border-2 border-[#E7E3D8] bg-white px-3 py-2 text-sm font-semibold text-[#14201A]">
             <input type="checkbox" data-testid={PARTICIPANTS.addWizardConfirm} checked={reviewConfirmed}
-              onChange={(event) => setReviewConfirmed(event.target.checked)} className="h-5 w-5 accent-[#2563EB]" />
+              onChange={(event) => setReviewConfirmed(event.target.checked)} className="h-5 w-5 accent-[#14633F]" />
             Saya sudah memeriksa data peserta.
           </label>
         </section>}
 
-        <div className="sticky bottom-0 -mx-5 -mb-5 flex gap-2 border-t border-[#E8E8E4] bg-[#FAFAF8]/95 p-4 backdrop-blur">
+        <div className="sticky bottom-0 -mx-5 -mb-5 flex gap-2 border-t border-[#E7E3D8] bg-[#F6F4EE]/95 p-4 backdrop-blur">
           <button data-testid={step === 0 ? PARTICIPANTS.addCancel : PARTICIPANTS.addWizardPrevious} type="button"
             onClick={() => step === 0 ? onClose() : setStep((current) => Math.max(current - 1, 0))}
-            className="min-h-12 flex-1 rounded-xl border-2 border-[#E8E8E4] bg-white text-base font-semibold text-[#374151] hover:bg-[#F3F4F6]">
+            className="min-h-12 flex-1 rounded-xl border-2 border-[#E7E3D8] bg-white text-base font-semibold text-[#14201A] hover:bg-[#F0EEE6]">
             {step === 0 ? "Batal" : <><ChevronLeft size={17} className="mr-1 inline" /> Kembali</>}
           </button>
           {step < 2 ? (
             <button data-testid={PARTICIPANTS.addWizardNext} type="button" onClick={nextStep}
-              className="min-h-12 flex-[2] rounded-xl bg-[#2563EB] text-base font-bold text-white hover:bg-[#1D4ED8]">
+              className="min-h-12 flex-[2] rounded-xl bg-[#14633F] text-base font-bold text-white hover:bg-[#0E4E31]">
               Lanjut <ChevronRight size={17} className="ml-1 inline" />
             </button>
           ) : (
             <button data-testid={PARTICIPANTS.addSubmit} type="submit" disabled={saving || !reviewConfirmed}
-              className="min-h-12 flex-[2] rounded-xl bg-[#2563EB] text-base font-bold text-white inline-flex items-center justify-center gap-2 hover:bg-[#09492E] disabled:opacity-60">
+              className="min-h-12 flex-[2] rounded-xl bg-[#14633F] text-base font-bold text-white inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60">
               {saving ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Simpan Peserta
             </button>
           )}
@@ -770,26 +770,26 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
     <div className="space-y-5" data-testid={PARTICIPANTS.nameTagPage}>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="inline-flex items-center gap-2 text-xl font-bold text-[#111827]">
+          <h1 className="inline-flex items-center gap-2 text-xl font-bold text-[#14201A]">
             <QrCode size={22} /> Kartu Nama Peserta
           </h1>
-          <p className="mt-1 text-sm text-[#6B7280]">Pilih peserta, tinjau kartu, lalu cetak name tag.</p>
+          <p className="mt-1 text-sm text-[#5F6B63]">Pilih peserta, tinjau kartu, lalu cetak name tag.</p>
         </div>
       </header>
       <div className="name-tag-screen-only space-y-4">
-        <div className="rounded-2xl border border-[#D1E7DD] bg-[#F0FDF4] p-4 text-sm leading-relaxed text-[#166534]">
+        <div className="rounded-2xl border border-[#E3F3EA] bg-[#E3F3EA] p-4 text-sm leading-relaxed text-[#0E4E31]">
           Barcode QR ini permanen untuk identifikasi nama tag. QR presensi peserta tetap memakai barcode berputar dari menu peserta.
         </div>
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px_190px]">
           <label className="relative">
             <span className="sr-only">Cari nama peserta</span>
-            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
             <input
               data-testid={PARTICIPANTS.nameTagSearch}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Cari nama peserta"
-              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-4 text-base outline-none focus:border-[#2563EB]"
+              className="h-11 w-full rounded-xl border border-[#8A948D] bg-white pl-11 pr-4 text-base outline-none focus:border-[#14633F]"
             />
           </label>
           <label>
@@ -798,7 +798,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
               data-testid={PARTICIPANTS.nameTagGroupFilter}
               value={groupFilter}
               onChange={(event) => setGroupFilter(event.target.value)}
-              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-base outline-none focus:border-[#2563EB]"
+              className="h-11 w-full rounded-xl border border-[#8A948D] bg-white px-3 text-base outline-none focus:border-[#14633F]"
             >
               <option value="all">Semua kelompok</option>
               {kelompok.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
@@ -810,7 +810,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
               data-testid={PARTICIPANTS.nameTagStatusFilter}
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value)}
-              className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-base outline-none focus:border-[#2563EB]"
+              className="h-11 w-full rounded-xl border border-[#8A948D] bg-white px-3 text-base outline-none focus:border-[#14633F]"
             >
               <option value="all">Semua status</option>
               <option value="active">Sudah aktif</option>
@@ -821,57 +821,57 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <label className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#374151]">
+          <label className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#14201A]">
             <input
               type="checkbox"
               checked={allVisibleSelected}
               onChange={toggleVisible}
               data-testid={PARTICIPANTS.nameTagSelectVisible}
-              className="h-5 w-5 accent-[#0D5C3A]"
+              className="h-5 w-5 accent-[#14633F]"
             />
             Pilih semua hasil ({filtered.length})
           </label>
           <div className="flex flex-wrap items-center gap-2">
             {selected.size > 0 && (
               <button type="button" onClick={() => setSelected(new Set())} data-testid={PARTICIPANTS.nameTagClearSelection}
-                className="min-h-11 rounded-lg border border-[#E8E8E4] bg-white px-3 text-sm font-semibold text-[#4B5563] hover:border-[#2563EB]">
+                className="min-h-11 rounded-lg border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#5F6B63] hover:border-[#14633F]">
                 Hapus pilihan
               </button>
             )}
             <button type="button" aria-pressed={orientation === "portrait"} onClick={() => setOrientation("portrait")}
               data-testid={PARTICIPANTS.nameTagPortrait}
-              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "portrait" ? "border-[#2563EB] bg-[#F0FDF4] text-[#1D4ED8]" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}>
+              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "portrait" ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]" : "border-[#E7E3D8] bg-white text-[#5F6B63]"}`}>
               Vertikal
             </button>
             <button type="button" aria-pressed={orientation === "landscape"} onClick={() => setOrientation("landscape")}
               data-testid={PARTICIPANTS.nameTagLandscape}
-              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "landscape" ? "border-[#2563EB] bg-[#F0FDF4] text-[#1D4ED8]" : "border-[#E8E8E4] bg-white text-[#4B5563]"}`}>
+              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "landscape" ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]" : "border-[#E7E3D8] bg-white text-[#5F6B63]"}`}>
               Horizontal
             </button>
             <button type="button" aria-expanded={previewOpen} onClick={() => setPreviewOpen((open) => !open)}
               data-testid={PARTICIPANTS.nameTagPreviewToggle} disabled={!visibleSelected.length}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#E8E8E4] bg-white px-3 text-sm font-semibold text-[#374151] hover:border-[#2563EB] disabled:opacity-50">
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-50">
               <Eye size={16} /> {previewOpen ? "Tutup pratinjau" : `Pratinjau cetak (${visibleSelected.length})`}
             </button>
             <button type="button" onClick={printTags} data-testid={PARTICIPANTS.nameTagPrint}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#2563EB] px-4 text-sm font-semibold text-white hover:bg-[#1D4ED8]">
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
               <Printer size={16} /> Cetak ({visibleSelected.length})
             </button>
           </div>
         </div>
 
         {previewOpen && (
-          <section className="name-tag-screen-only rounded-xl border border-[#E8E8E4] bg-[#F7F7F5] p-3 sm:p-4" data-testid={PARTICIPANTS.nameTagPreview}>
+          <section className="name-tag-screen-only rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] p-3 sm:p-4" data-testid={PARTICIPANTS.nameTagPreview}>
             <div className="mb-3">
-              <h3 className="font-bold text-[#111827]">Pratinjau siap cetak</h3>
-              <p className="text-sm text-[#6B7280]">{visibleSelected.length} kartu terpilih · {orientation === "portrait" ? "Vertikal" : "Horizontal"}</p>
+              <h3 className="font-bold text-[#14201A]">Pratinjau siap cetak</h3>
+              <p className="text-sm text-[#5F6B63]">{visibleSelected.length} kartu terpilih · {orientation === "portrait" ? "Vertikal" : "Horizontal"}</p>
             </div>
             {visibleSelected.length ? (
               <div className="grid grid-cols-1 justify-items-center gap-4 sm:grid-cols-2">
                 {visibleSelected.map((user) => <NameTagCard key={user.id} user={user} orientation={orientation} preview />)}
               </div>
             ) : (
-              <p className="rounded-lg border border-dashed border-[#D1D5DB] bg-white p-5 text-center text-sm text-[#6B7280]">
+              <p className="rounded-lg border border-dashed border-[#D9D4C5] bg-white p-5 text-center text-sm text-[#5F6B63]">
                 Pilih peserta untuk melihat kartu yang siap dicetak.
               </p>
             )}
@@ -879,22 +879,22 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 rounded-xl border border-[#E8E8E4] bg-white p-8 text-sm text-[#6B7280]">
+          <div className="flex items-center justify-center gap-2 rounded-xl border border-[#E7E3D8] bg-white p-8 text-sm text-[#5F6B63]">
             <Loader2 className="animate-spin" size={18} /> Memuat daftar peserta...
           </div>
         ) : loadError ? (
-          <div className="rounded-xl border border-[#FECACA] bg-white p-6 text-center">
-            <p className="text-sm text-[#6B7280]">Daftar peserta gagal dimuat.</p>
-            <button type="button" onClick={onRetry} data-testid={PARTICIPANTS.nameTagRetry} className="mt-3 min-h-11 rounded-xl bg-[#2563EB] px-4 font-semibold text-white">Coba lagi</button>
+          <div className="rounded-xl border border-[#FBE5E3] bg-white p-6 text-center">
+            <p className="text-sm text-[#5F6B63]">Daftar peserta gagal dimuat.</p>
+            <button type="button" onClick={onRetry} data-testid={PARTICIPANTS.nameTagRetry} className="mt-3 min-h-11 rounded-xl bg-[#14633F] px-4 font-semibold text-white">Coba lagi</button>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-white p-8 text-center text-sm text-[#6B7280]">
+          <div className="rounded-xl border border-dashed border-[#D9D4C5] bg-white p-8 text-center text-sm text-[#5F6B63]">
             Tidak ada peserta yang cocok dengan pencarian atau filter.
           </div>
         ) : (
           <div className={`name-tag-selection-list grid gap-3 ${orientation === "portrait" ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`} data-orientation={orientation}>
             {filtered.map((user) => (
-              <label key={user.id} className="flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border border-[#E8E8E4] bg-white px-3 py-2 text-sm font-medium text-[#374151] name-tag-screen-only">
+              <label key={user.id} className="flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 py-2 text-sm font-medium text-[#14201A] name-tag-screen-only">
                 <input
                   type="checkbox"
                   checked={selected.has(user.id)}
@@ -905,7 +905,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
                     return next;
                   })}
                   data-testid={`${PARTICIPANTS.nameTagCheckboxPrefix}-${user.id}`}
-                  className="h-5 w-5 accent-[#0D5C3A]"
+                  className="h-5 w-5 accent-[#14633F]"
                 />
                 <span className="truncate">{user.name}</span>
               </label>

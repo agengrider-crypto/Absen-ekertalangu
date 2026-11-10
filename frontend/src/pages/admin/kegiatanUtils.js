@@ -13,9 +13,16 @@ export const TYPE_LABEL = {
 };
 
 export const TYPE_COLOR = {
-  rutin: "#111114",
-  khusus: "#0284C7",
-  asad: "#9CA3AF",
+  rutin: "#0A5961",
+  khusus: "#4C2A9B",
+  asad: "#8F3008",
+};
+
+/** Jenis kegiatan → token chip (Layar 29). */
+export const JENIS_CHIP = {
+  rutin: { bg: "#D9F2F4", text: "#0A5961", dot: "#0F7C86" },
+  khusus: { bg: "#ECE4FB", text: "#4C2A9B", dot: "#6D3FC8" },
+  lain: { bg: "#FFE8DB", text: "#8F3008", dot: "#C2410C" },
 };
 
 /* ------------------------- FASE 8 ------------------------- */
@@ -119,11 +126,52 @@ export function groupSessions(items) {
 }
 
 // Fase waktu kegiatan → dipakai untuk urutan daftar
+// Layar 29: kelompok Terlaksana → Akan datang → Selesai.
 export const PHASE_META = {
-  akan_datang: { label: "Akan Datang", badge: "Akan Datang", cls: "bg-[#CFFAFE] text-[#155E75]" },
-  berlangsung: { label: "Berlangsung", badge: "Berlangsung", cls: "bg-[#EFF6FF] text-[#1D4ED8]" },
-  selesai: { label: "Selesai", badge: "Selesai", cls: "bg-[#F3F4F6] text-[#4B5563]" },
+  terlaksana: {
+    label: "Terlaksana",
+    badge: "Terlaksana",
+    cls: "bg-[#E3F3EA] text-[#0E4E31]",
+    solid: "#14633F",
+    iconColor: "#14633F",
+    iconBg: "#E3F3EA",
+    icon: "check",
+  },
+  akan_datang: {
+    label: "Akan datang",
+    badge: "Akan datang",
+    cls: "bg-[#E3EEFB] text-[#1D4F91]",
+    solid: "#1D4F91",
+    iconColor: "#1D4F91",
+    iconBg: "#E3EEFB",
+    icon: "clock",
+  },
+  selesai: {
+    label: "Selesai",
+    badge: "Selesai",
+    cls: "bg-[#E7E3D8] text-[#4A5650]",
+    solid: "#4A5650",
+    iconColor: "#4A5650",
+    iconBg: "#E7E3D8",
+    icon: "lock",
+  },
 };
+
+/** Fase kegiatan → kunci kelompok Layar 29 ("terlaksana" | "akan_datang" | "selesai"). */
+export function phaseGroup(k) {
+  const p = phaseOf(k);
+  if (p === "selesai") return "selesai";
+  if (p === "akan_datang") return "akan_datang";
+  return "terlaksana";
+}
+
+/** Jenis kegiatan → token chip (Layar 29). */
+export function jenisOf(type) {
+  if (type === "rutin") return "rutin";
+  if (type === "khusus") return "khusus";
+  return "lain";
+}
+
 
 export function todayYmd() {
   const n = new Date();
@@ -140,29 +188,29 @@ export function phaseOf(k) {
 }
 
 /**
- * FASE 8 — Urutan daftar kegiatan sesuai permintaan:
- *   1. AKAN DATANG  (paling atas, tanggal terdekat dulu)
- *   2. BERLANGSUNG  (hari ini / masih terbuka)
- *   3. SELESAI      (paling bawah, terbaru dulu)
+ * Layar 29 — Urutan daftar kegiatan:
+ *   1. TERLAKSANA  (sudah lewat / sedang berjalan, terbaru dulu)
+ *   2. AKAN DATANG (tanggal terdekat dulu)
+ *   3. SELESAI     (paling bawah, terbaru dulu)
  */
 export function groupKegiatan(items) {
+  const terlaksana = [];
   const akan = [];
-  const kini = [];
   const selesai = [];
   (items || []).forEach((k) => {
-    const p = phaseOf(k);
-    if (p === "akan_datang") akan.push(k);
-    else if (p === "selesai") selesai.push(k);
-    else kini.push(k);
+    const g = phaseGroup(k);
+    if (g === "akan_datang") akan.push(k);
+    else if (g === "selesai") selesai.push(k);
+    else terlaksana.push(k);
   });
   const byDateAsc = (a, b) => `${a.date}${a.start_time}`.localeCompare(`${b.date}${b.start_time}`);
   const byDateDesc = (a, b) => `${b.date}${b.start_time}`.localeCompare(`${a.date}${a.start_time}`);
   akan.sort(byDateAsc);
-  kini.sort(byDateAsc);
+  terlaksana.sort(byDateDesc);
   selesai.sort(byDateDesc);
   return [
+    { key: "terlaksana", ...PHASE_META.terlaksana, items: terlaksana },
     { key: "akan_datang", ...PHASE_META.akan_datang, items: akan },
-    { key: "berlangsung", ...PHASE_META.berlangsung, items: kini },
     { key: "selesai", ...PHASE_META.selesai, items: selesai },
   ];
 }

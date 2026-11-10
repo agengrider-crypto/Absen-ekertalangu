@@ -1,42 +1,62 @@
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Instrument+Sans:wght@500;600;700&family=Plus+Jakarta+Sans:wght@500;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Tema "Clean" - off-white lapang, garis hairline, aksen biru (primary). */
+/* Tema E-Kertalangu — palet "hijau tenang" (brand #14633F, kertas #F6F4EE).
+   Semua nilai di bawah selaras dengan src/lib/theme.js dan tailwind.config.js. */
 :root {
-    --bg-app: #FAFAF8;
+    --bg-app: #F6F4EE;
     --bg-surface: #FFFFFF;
-    --hairline: #E8E8E4;
-    --ink: #111827;
-    --ink-muted: #6B7280;
-    --accent: #2563EB;
-    --accent-soft: #EFF6FF;
+    --hairline: #E7E3D8;
+    --ink: #14201A;
+    --ink-muted: #5F6B63;
+    --accent: #14633F;
+    --accent-soft: #E3F3EA;
 
     /* Design token warna (selaras dengan src/lib/theme.js) */
-    --color-primary: #2563EB;
-    --color-primary-hover: #1D4ED8;
-    --color-primary-soft: #EFF6FF;
-    --color-success: #16A34A;
-    --color-success-soft: #DCFCE7;
-    --color-info: #0891B2;
-    --color-info-soft: #CFFAFE;
-    --color-warning: #D97706;
-    --color-warning-soft: #FEF3C7;
-    --color-danger: #DC2626;
-    --color-danger-soft: #FEE2E2;
-    --color-neutral: #6B7280;
-    --color-neutral-soft: #F3F4F6;
-    --color-border: #E8E8E4;
-    --color-text: #111827;
-    --color-text-muted: #6B7280;
+    --color-brand: #14633F;
+    --color-brand-dark: #0E4E31;
+    --color-mint: #E3F3EA;
+    --color-paper: #F6F4EE;
+    --color-surface: #FFFFFF;
+    --color-line: #E7E3D8;
+    --color-tile: #F0EEE6;
+    --color-ink: #14201A;
+    --color-muted: #5F6B63;
+    --color-field-line: #8A948D;
+    --color-handle: #D9D4C5;
+    --color-overlay: rgba(20, 32, 26, 0.5);
+
+    /* Status */
+    --color-status-hadir-bg: #E3F3EA;
+    --color-status-hadir-text: #0E4E31;
+    --color-status-hadir-solid: #14633F;
+    --color-status-izin-bg: #FBF1D6;
+    --color-status-izin-text: #6B4500;
+    --color-status-izin-solid: #8A5A00;
+    --color-status-izin-border: #EAD596;
+    --color-status-sakit-bg: #E3EEFB;
+    --color-status-sakit-text: #1D4F91;
+    --color-status-alpa-bg: #FBE5E3;
+    --color-status-alpa-text: #A32A2A;
+    --color-status-selesai-bg: #E7E3D8;
+    --color-status-selesai-text: #4A5650;
+
+    /* Aksi & pesan */
+    --color-aksi-hapus: #A32A2A;
+    --color-pesan-gagal: #A32A2A;
+
+    /* Fokus keyboard */
+    --focus-ring: #1D4F91;
+
     --qr-foreground: #000000;
     --qr-background: #FFFFFF;
 }
 
 body {
     margin: 0;
-    font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-color: var(--bg-app);
@@ -45,31 +65,31 @@ body {
 }
 
 .font-heading {
-    font-family: 'Instrument Sans', 'Hanken Grotesk', sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     letter-spacing: -0.02em;
 }
 
 @layer base {
     :root {
-        --background: 0 0% 100%;
-        --foreground: 220 26% 14%;
+        --background: 45 33% 95%;
+        --foreground: 150 22% 10%;
         --card: 0 0% 100%;
-        --card-foreground: 220 26% 14%;
+        --card-foreground: 150 22% 10%;
         --popover: 0 0% 100%;
-        --popover-foreground: 220 26% 14%;
-        --primary: 221 83% 53%;
+        --popover-foreground: 150 22% 10%;
+        --primary: 152 66% 24%;
         --primary-foreground: 0 0% 100%;
-        --secondary: 40 14% 96%;
-        --secondary-foreground: 220 26% 14%;
-        --muted: 40 14% 96%;
-        --muted-foreground: 220 9% 46%;
-        --accent: 60 9% 94%;
-        --accent-foreground: 220 26% 14%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 45 10% 90%;
-        --input: 45 10% 90%;
-        --ring: 221 83% 53%;
+        --secondary: 45 25% 92%;
+        --secondary-foreground: 150 22% 10%;
+        --muted: 45 25% 92%;
+        --muted-foreground: 145 6% 39%;
+        --accent: 45 25% 92%;
+        --accent-foreground: 150 22% 10%;
+        --destructive: 0 59% 40%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 45 24% 88%;
+        --input: 145 5% 56%;
+        --ring: 214 66% 34%;
         --radius: 0.875rem;
     }
 }
@@ -81,10 +101,15 @@ body {
     body {
         @apply bg-background text-foreground;
     }
+    /* Fokus keyboard terlihat: cincin 3px #1D4F91, offset 2px. */
+    :focus-visible {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 2px;
+    }
 }
 
 ::selection {
-    background: #2563EB;
+    background: #14633F;
     color: #fff;
 }
 
@@ -109,4 +134,15 @@ body {
 }
 main > * {
     animation: riseIn 0.32s ease-out both;
+}
+
+/* Skeleton: gradasi #ECE9DF → #F6F4EE → #ECE9DF */
+@keyframes skeletonShimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+.skeleton-shimmer {
+    background: linear-gradient(90deg, #ECE9DF 0%, #F6F4EE 50%, #ECE9DF 100%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.4s ease-in-out infinite;
 }

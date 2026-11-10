@@ -69,13 +69,13 @@ export default function RuangTeduh() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-bold text-[#1D4ED8] flex items-center gap-2">
-          <HeartHandshake size={22} className="text-[#1D4ED8]" /> Ruang Teduh
+        <h1 className="font-heading text-2xl font-bold text-[#0E4E31] flex items-center gap-2">
+          <HeartHandshake size={22} className="text-[#0E4E31]" /> Ruang Teduh
         </h1>
-        <p className="text-sm text-[#6B7280] mt-1">Tempat menyampaikan isi hati, pertanyaan, atau kendala Anda kepada pengurus.</p>
+        <p className="text-sm text-[#5F6B63] mt-1">Tempat menyampaikan isi hati, pertanyaan, atau kendala Anda kepada pengurus.</p>
       </div>
 
-      <div className="rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-4 text-sm text-[#1D4ED8] flex gap-2.5" data-testid="ruangteduh-kata-baik">
+      <div className="rounded-2xl border border-[#E7E3D8] bg-[#F6F4EE] p-4 text-sm text-[#0E4E31] flex gap-2.5" data-testid="ruangteduh-kata-baik">
         <HeartHandshake size={18} className="shrink-0 mt-0.5" />
         <span>
           Assalamu'alaikum warahmatullahi wabarakatuh. Silakan bercerita dengan tenang dan apa adanya.
@@ -83,9 +83,9 @@ export default function RuangTeduh() {
         </span>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 space-y-5">
+      <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 space-y-5">
         <div>
-          <label className="text-sm font-semibold text-[#374151]">Jenis pesan</label>
+          <label className="text-sm font-semibold text-[#14201A]">Jenis pesan</label>
           <div className="mt-2 flex gap-2 flex-wrap">
             {categories.map((c) => (
               <button
@@ -95,8 +95,8 @@ export default function RuangTeduh() {
                 onClick={() => setCategory(c.value)}
                 className={`h-10 px-3.5 rounded-full border text-sm font-semibold transition-colors ${
                   category === c.value
-                    ? "border-[#2563EB] bg-[#EFF6FF] text-[#1D4ED8]"
-                    : "border-[#E8E8E4] text-[#6B7280] hover:border-[#2563EB] hover:text-[#1D4ED8]"
+                    ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]"
+                    : "border-[#E7E3D8] text-[#5F6B63] hover:border-[#14633F] hover:text-[#0E4E31]"
                 }`}
               >
                 {c.label}
@@ -106,28 +106,28 @@ export default function RuangTeduh() {
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-[#374151]">Pesan Anda</label>
+          <label className="text-sm font-semibold text-[#14201A]">Pesan Anda</label>
           <textarea
             data-testid="ruangteduh-message"
             value={message}
             onChange={(e) => setMessage(e.target.value.slice(0, maxLength))}
             rows={8}
             placeholder="Tuliskan di sini… (contoh: kesulitan hadir sesi pagi karena jam kerja, pertanyaan tentang materi, atau hal yang ingin dicurahkan)"
-            className="mt-2 w-full px-3.5 py-2.5 rounded-xl border border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] resize-none leading-relaxed"
+            className="mt-2 w-full px-3.5 py-2.5 rounded-xl border border-[#E7E3D8] text-sm outline-none focus:border-[#14633F] resize-none leading-relaxed"
           />
-          <div className="text-xs text-[#9CA3AF] mt-1 text-right">{message.length} / {maxLength} huruf</div>
+          <div className="text-xs text-[#5F6B63] mt-1 text-right">{message.length} / {maxLength} huruf</div>
         </div>
 
         <label className="flex items-center gap-3 cursor-pointer">
-          <input data-testid="ruangteduh-anonim" type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="h-4 w-4 accent-[#2563EB]" />
-          <span className="text-sm text-[#374151]">Kirim <b>tanpa nama</b> (pengurus tidak melihat identitas Anda)</span>
+          <input data-testid="ruangteduh-anonim" type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} className="h-4 w-4 accent-[#14633F]" />
+          <span className="text-sm text-[#14201A]">Kirim <b>tanpa nama</b> (pengurus tidak melihat identitas Anda)</span>
         </label>
 
         <button
           data-testid="ruangteduh-kirim"
           onClick={kirim}
           disabled={saving}
-          className="w-full h-12 rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8] transition-colors disabled:opacity-60"
+          className="w-full h-12 rounded-xl bg-[#14633F] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] transition-colors disabled:opacity-60"
         >
           {saving ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />} Kirim ke Pengurus
         </button>
@@ -135,37 +135,37 @@ export default function RuangTeduh() {
 
       <div>
         <div className="flex items-center justify-between gap-3 mb-2">
-          <h2 className="font-heading font-bold text-[#1D4ED8]">Riwayat pesan Anda</h2>
+          <h2 className="font-heading font-bold text-[#0E4E31]">Riwayat pesan Anda</h2>
           {riwayat?.length > 0 && (
             <button data-testid="ruangteduh-hapus-semua" onClick={hapusSemua}
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#DC2626] font-semibold text-xs hover:bg-red-50">
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E7E3D8] text-[#A32A2A] font-semibold text-xs hover:bg-[#FBE5E3]">
               <Eraser size={14} /> Hapus semua
             </button>
           )}
         </div>
         {riwayat === null ? (
-          <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={22} /></div>
+          <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={22} /></div>
         ) : riwayat.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[#E8E8E4] p-6 text-center text-sm text-[#6B7280]" data-testid="ruangteduh-riwayat-empty">
+          <div className="bg-white rounded-2xl border border-[#E7E3D8] p-6 text-center text-sm text-[#5F6B63]" data-testid="ruangteduh-riwayat-empty">
             Belum ada pesan terkirim.
           </div>
         ) : (
           <div className="space-y-2" data-testid="ruangteduh-riwayat">
             {riwayat.map((r) => (
-              <div key={r.id} className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid={`ruangteduh-riwayat-${r.id}`}>
+              <div key={r.id} className="bg-white rounded-2xl border border-[#E7E3D8] p-4" data-testid={`ruangteduh-riwayat-${r.id}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap text-xs">
-                    <span className="font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">{r.category_label}</span>
-                    {r.anonymous && <span className="font-semibold px-2 py-0.5 rounded-full bg-[#F3F4F6] text-[#6B7280]">tanpa nama</span>}
-                    <span className="text-[#9CA3AF] inline-flex items-center gap-1"><Clock size={11} /> {String(r.at).slice(0, 16).replace("T", " ")} WITA</span>
-                    {r.dibaca && <span className="text-[#1D4ED8] font-semibold inline-flex items-center gap-1"><CheckCheck size={12} /> sudah dibaca pengurus</span>}
+                    <span className="font-semibold px-2 py-0.5 rounded-full bg-[#E3F3EA] text-[#0E4E31]">{r.category_label}</span>
+                    {r.anonymous && <span className="font-semibold px-2 py-0.5 rounded-full bg-[#F0EEE6] text-[#5F6B63]">tanpa nama</span>}
+                    <span className="text-[#5F6B63] inline-flex items-center gap-1"><Clock size={11} /> {String(r.at).slice(0, 16).replace("T", " ")} WITA</span>
+                    {r.dibaca && <span className="text-[#0E4E31] font-semibold inline-flex items-center gap-1"><CheckCheck size={12} /> sudah dibaca pengurus</span>}
                   </div>
                   <button data-testid={`ruangteduh-hapus-${r.id}`} onClick={() => hapus(r.id)}
-                    className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg text-[#DC2626] hover:bg-red-50" title="Hapus pesan ini">
+                    className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg text-[#A32A2A] hover:bg-[#FBE5E3]" title="Hapus pesan ini">
                     <Trash2 size={15} />
                   </button>
                 </div>
-                <p className="text-sm text-[#374151] mt-2 whitespace-pre-wrap leading-relaxed">{r.message}</p>
+                <p className="text-sm text-[#14201A] mt-2 whitespace-pre-wrap leading-relaxed">{r.message}</p>
               </div>
             ))}
           </div>

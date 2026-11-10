@@ -21,8 +21,8 @@ const DURATIONS = [
   { value: 90, label: "1,5 jam" },
   { value: 120, label: "2 jam" },
 ];
-const fld = "w-full h-12 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-[15px] outline-none focus:border-[#2563EB] bg-white transition-colors";
-const lbl = "block text-[13px] font-semibold text-[#111827] mb-1.5";
+const fld = "w-full h-12 px-3.5 rounded-xl border border-[#8A948D] text-[15px] outline-none focus:border-[#14633F] bg-white transition-colors";
+const lbl = "block text-[13px] font-semibold text-[#14201A] mb-1.5";
 
 function todayYmd() {
   const n = new Date();
@@ -52,14 +52,14 @@ function uniqueSuggestions(items, fields) {
 
 function Section({ icon: Icon, title, desc, children, testid }) {
   return (
-    <section className="rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={testid}>
+    <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4 sm:p-5" data-testid={testid}>
       <div className="flex items-start gap-3 mb-3.5">
-        <span className="h-9 w-9 shrink-0 rounded-xl bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center">
+        <span className="h-9 w-9 shrink-0 rounded-xl bg-[#E3F3EA] text-[#0E4E31] flex items-center justify-center">
           <Icon size={17} />
         </span>
         <div className="min-w-0">
-          <h3 className="font-heading font-bold text-[#111827] text-[15px] leading-tight">{title}</h3>
-          {desc && <p className="text-xs text-[#6B7280] mt-0.5 leading-relaxed">{desc}</p>}
+          <h3 className="font-heading font-bold text-[#14201A] text-[15px] leading-tight">{title}</h3>
+          {desc && <p className="text-xs text-[#5F6B63] mt-0.5 leading-relaxed">{desc}</p>}
         </div>
       </div>
       {children}
@@ -69,9 +69,9 @@ function Section({ icon: Icon, title, desc, children, testid }) {
 
 function ReviewItem({ label, value }) {
   return (
-    <div className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] px-3.5 py-3">
-      <dt className="text-xs font-semibold text-[#6B7280]">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-bold text-[#111827]">{value}</dd>
+    <div className="rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] px-3.5 py-3">
+      <dt className="text-xs font-semibold text-[#5F6B63]">{label}</dt>
+      <dd className="mt-1 break-words text-sm font-bold text-[#14201A]">{value}</dd>
     </div>
   );
 }
@@ -82,7 +82,7 @@ function Chip({ on, children, ...rest }) {
       type="button"
       {...rest}
       className={`h-11 rounded-xl border-2 font-semibold text-xs sm:text-sm transition-colors ${
-        on ? "bg-[#2563EB] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#2563EB] hover:text-[#1D4ED8]"
+        on ? "bg-[#14633F] text-white border-transparent" : "bg-white text-[#5F6B63] border-[#E7E3D8] hover:border-[#14633F] hover:text-[#0E4E31]"
       }`}
     >
       {children}
@@ -236,38 +236,38 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
 
   return createPortal((
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)] backdrop-blur-[2px]" onClick={onClose} />
       <div
         data-testid={editing ? "modal-edit-kegiatan" : "modal-add-kegiatan"}
-        className="relative bg-[#F7F7F5] w-full sm:max-w-3xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[94vh] sm:max-h-[90vh] flex flex-col overflow-hidden"
+        className="relative bg-[#F6F4EE] w-full sm:max-w-3xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[94vh] sm:max-h-[90vh] flex flex-col overflow-hidden"
       >
         <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-white">
-          <div className="h-1.5 w-11 rounded-full bg-[#E8E8E4]" />
+          <div className="h-1.5 w-11 rounded-full bg-[#E7E3D8]" />
         </div>
 
         {/* Header */}
-        <div className="bg-white px-5 py-3.5 border-b border-[#ECECE8] flex items-start justify-between gap-3">
+        <div className="bg-white px-5 py-3.5 border-b border-[#E7E3D8] flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="font-heading font-bold text-[#111827] text-lg leading-tight">
+            <h2 className="font-heading font-bold text-[#14201A] text-lg leading-tight">
               {editing ? "Edit Kegiatan" : "Tambah Kegiatan"}
             </h2>
-            <p className="text-xs text-[#6B7280] mt-0.5">
+            <p className="text-xs text-[#5F6B63] mt-0.5">
               {editing ? "Ubah jadwal, pengajar, dan penyaringan peserta." : "Isi jadwal pengajian lalu atur siapa saja pesertanya."}
             </p>
           </div>
           <button onClick={onClose} data-testid="kegiatan-form-close"
-            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F3F4F6]">
+            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]">
             <X size={19} />
           </button>
         </div>
 
-        <div className="grid grid-cols-4 gap-1 border-b border-[#ECECE8] bg-white px-4 pb-3 sm:px-5">
+        <div className="grid grid-cols-4 gap-1 border-b border-[#E7E3D8] bg-white px-4 pb-3 sm:px-5">
           {["Kegiatan", "Jadwal", "Peserta", "Tinjau"].map((label, index) => (
             <button key={label} type="button" onClick={() => index <= step && setStep(index)}
               aria-current={step === index ? "step" : undefined}
               data-testid={`${ACTIVITIES.wizardStepPrefix}-${index + 1}`}
-              className={`min-h-10 rounded-lg px-1 text-xs font-semibold sm:text-sm ${
-                step === index ? "bg-[#2563EB] text-white" : step > index ? "bg-[#EFF6FF] text-[#1D4ED8]" : "bg-[#F7F7F5] text-[#9CA3AF]"
+              className={`min-h-11 rounded-lg px-1 text-xs font-semibold sm:text-sm ${
+                step >= index ? "bg-[#14633F] text-white" : "bg-[#E7E3D8] text-[#5F6B63]"
               }`}>
               <span className="mr-1">{index + 1}.</span>{label}
             </button>
@@ -280,7 +280,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
             desc="Nama, jenis, pengajar, materi, dan lokasi kegiatan.">
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="sm:col-span-2">
-                <label className={lbl}>Nama kegiatan *</label>
+                <label className={lbl}>Nama kegiatan <span className="text-[#A32A2A]" aria-hidden="true">*</span></label>
                 <input data-testid="keg-name" required value={f.name} onChange={(e) => set("name", e.target.value)}
                   placeholder="cth: Pengajian Rutin Kertalangu" className={fld} />
               </div>
@@ -296,8 +296,8 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                       onClick={() => set("type", t.value)}
                       className={`min-h-12 rounded-xl border-2 px-2 text-sm font-semibold transition-colors ${
                         f.type === t.value
-                          ? "border-[#2563EB] bg-[#2563EB] text-white"
-                          : "border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#2563EB]"
+                          ? "border-[#14633F] bg-[#14633F] text-white"
+                          : "border-[#E7E3D8] bg-white text-[#5F6B63] hover:border-[#14633F]"
                       }`}
                     >
                       {t.label}
@@ -342,7 +342,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                 </datalist>
               </div>
             </div>
-            <p className="mt-2 text-xs text-[#6B7280]">Saran diambil dari jadwal tersimpan. Anda tetap bisa mengetik pilihan baru.</p>
+            <p className="mt-2 text-xs text-[#5F6B63]">Saran diambil dari jadwal tersimpan. Anda tetap bisa mengetik pilihan baru.</p>
           </Section>}
 
           {step === 1 && <Section icon={CalendarDays} title="Jadwal Kegiatan" testid="form-section-waktu"
@@ -354,7 +354,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                   onChange={(e) => set("date", e.target.value)} className={fld} />
               </div>
               {!editing && multi ? (
-                <div className="sm:col-span-2 rounded-xl border-2 border-dashed border-[#E8E8E4] bg-[#FAFAF8] px-3.5 py-3 text-xs text-[#4B5563] flex items-center">
+                <div className="sm:col-span-2 rounded-xl border-2 border-dashed border-[#E7E3D8] bg-[#F6F4EE] px-3.5 py-3 text-xs text-[#5F6B63] flex items-center">
                   Jam diatur pada daftar <b className="mx-1">Waktu / Sesi</b> di bawah.
                 </div>
               ) : (
@@ -402,14 +402,14 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
 
             {!editing && (
               <>
-                <label className="mt-3 flex items-start gap-2.5 rounded-xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-3.5 cursor-pointer hover:border-[#2563EB]">
-                  <input data-testid="keg-multi-session" type="checkbox" className="accent-[#2563EB] w-4 h-4 mt-0.5"
+                <label className="mt-3 flex items-start gap-2.5 rounded-xl border-2 border-[#E7E3D8] bg-[#F6F4EE] p-3.5 cursor-pointer hover:border-[#14633F]">
+                  <input data-testid="keg-multi-session" type="checkbox" className="accent-[#14633F] w-4 h-4 mt-0.5"
                     checked={multi} onChange={(e) => { setReviewConfirmed(false); setMulti(e.target.checked); }} />
                   <span>
-                    <span className="block text-sm font-bold text-[#111827] inline-flex items-center gap-1.5">
+                    <span className="block text-sm font-bold text-[#14201A] inline-flex items-center gap-1.5">
                       <Layers size={15} /> Beberapa waktu dalam 1 hari (pagi / sore / malam)
                     </span>
-                    <span className="block text-xs text-[#6B7280] mt-1 leading-relaxed">
+                    <span className="block text-xs text-[#5F6B63] mt-1 leading-relaxed">
                       Setiap waktu menjadi <b>sesi tersendiri</b>: absensi, rekap, kode akses, dan barcode
                       <b> terpisah</b>. Hadir sesi pagi tidak otomatis terhitung hadir di sesi sore/malam.
                     </span>
@@ -420,43 +420,43 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                   <div className="mt-3 space-y-2" data-testid="keg-session-list">
                     {sessions.map((s, i) => (
                       <div key={i} data-testid={`keg-session-row-${i}`}
-                        className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-3 space-y-2">
+                        className="rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] p-3 space-y-2">
                         <div className="grid grid-cols-2 sm:grid-cols-[1.2fr_1fr_1fr_auto] gap-2 items-end">
                           <div className="col-span-2 sm:col-span-1">
-                            <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Nama waktu</label>
+                            <label className="block text-[11px] font-semibold text-[#5F6B63] mb-1">Nama waktu</label>
                             <input data-testid={`keg-session-label-${i}`} list="session-presets" value={s.label}
                               onChange={(e) => setSession(i, "label", e.target.value)} placeholder="Pagi / Sore / Malam"
-                              className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white" />
+                              className="w-full h-11 px-3 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white" />
                           </div>
                           <div>
-                            <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Mulai</label>
+                            <label className="block text-[11px] font-semibold text-[#5F6B63] mb-1">Mulai</label>
                             <select data-testid={`keg-session-start-${i}`} value={s.start_time}
                               onChange={(e) => setSession(i, "start_time", e.target.value)}
-                              className="w-full h-11 px-2 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white">
+                              className="w-full h-11 px-2 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white">
                               {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
                             </select>
                           </div>
                           <div>
-                            <label className="block text-[11px] font-semibold text-[#6B7280] mb-1">Selesai</label>
+                            <label className="block text-[11px] font-semibold text-[#5F6B63] mb-1">Selesai</label>
                             <select data-testid={`keg-session-end-${i}`} value={s.end_time}
                               onChange={(e) => setSession(i, "end_time", e.target.value)}
-                              className="w-full h-11 px-2 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white">
+                              className="w-full h-11 px-2 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white">
                               {TIMES.map((t) => <option key={t} value={t}>{t}</option>)}
                             </select>
                           </div>
                           <button type="button" data-testid={`keg-session-remove-${i}`} onClick={() => removeSession(i)}
                             disabled={sessions.length <= 2}
-                            className="h-11 w-11 flex items-center justify-center rounded-xl border-2 border-[#E8E8E4] text-[#DC2626] hover:border-[#DC2626] disabled:opacity-40 bg-white">
+                            className="h-11 w-11 flex items-center justify-center rounded-xl border-2 border-[#E7E3D8] text-[#A32A2A] hover:border-[#A32A2A] disabled:opacity-40 bg-white">
                             <Trash2 size={16} />
                           </button>
                         </div>
                         <div className="grid sm:grid-cols-3 gap-2">
                           <input data-testid={`${ACTIVITIES.sessionLocationPrefix}${i}`} list="kegiatan-location-suggestions" value={s.location || ""}
                             onChange={(e) => setSession(i, "location", e.target.value)} placeholder="Lokasi sesi"
-                            className="w-full h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white" />
+                            className="w-full h-11 px-3 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white" />
                         </div>
-                        <div className="rounded-xl border border-[#E8E8E4] bg-white p-3">
-                          <label className="mb-2 block text-xs font-bold text-[#111827]">
+                        <div className="rounded-xl border border-[#E7E3D8] bg-white p-3">
+                          <label className="mb-2 block text-xs font-bold text-[#14201A]">
                             Peserta wajib sesi ini
                           </label>
                           <PesertaPicker
@@ -464,7 +464,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                             onChange={(ids) => setSession(i, "participant_ids", ids)}
                             testid={`${ACTIVITIES.sessionParticipantPickerPrefix}${i}`}
                           />
-                          <p className="mt-2 text-[11px] text-[#6B7280]">
+                          <p className="mt-2 text-[11px] text-[#5F6B63]">
                             Peserta lain tetap terlihat di daftar, tetapi tidak otomatis dihitung Alpha.
                             Jika tidak memilih siapa pun, peserta sesuai filter kegiatan menjadi wajib.
                           </p>
@@ -475,7 +475,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                       {SESSION_LABEL_PRESETS.map((l) => <option key={l} value={l} />)}
                     </datalist>
                     <button type="button" data-testid="keg-session-add" onClick={addSession} disabled={sessions.length >= 6}
-                      className="w-full h-11 rounded-xl border-2 border-dashed border-[#2563EB] text-[#1D4ED8] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#EFF6FF] disabled:opacity-40">
+                      className="w-full h-11 rounded-xl border-2 border-dashed border-[#14633F] text-[#0E4E31] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-[#E3F3EA] disabled:opacity-40">
                       <Plus size={16} /> Tambah Waktu / Sesi
                     </button>
                   </div>
@@ -503,7 +503,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                 <select data-testid="keg-audience" value={f.audience} onChange={(e) => set("audience", e.target.value)} className={fld}>
                   {AUDIENCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-                <p className="text-xs text-[#6B7280] mt-1.5 leading-relaxed">
+                <p className="text-xs text-[#5F6B63] mt-1.5 leading-relaxed">
                   {AUDIENCE_OPTIONS.find((o) => o.value === f.audience)?.desc}
                 </p>
               </div>
@@ -519,15 +519,15 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
               </div>
 
               {/* FASE 18 — MODE CEKLIS peserta tertentu */}
-              <div className="rounded-2xl border-2 border-[#2563EB] bg-white p-3.5" data-testid="keg-pick-mode-box">
+              <div className="rounded-2xl border-2 border-[#14633F] bg-white p-3.5" data-testid="keg-pick-mode-box">
                 <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input data-testid="keg-pick-mode" type="checkbox" className="accent-[#2563EB] w-4 h-4 mt-0.5"
+                  <input data-testid="keg-pick-mode" type="checkbox" className="accent-[#14633F] w-4 h-4 mt-0.5"
                     checked={pickMode} onChange={(e) => { setReviewConfirmed(false); setPickMode(e.target.checked); }} />
                   <span>
-                    <span className="block text-sm font-bold text-[#111827] inline-flex items-center gap-1.5">
+                    <span className="block text-sm font-bold text-[#14201A] inline-flex items-center gap-1.5">
                       <ListChecks size={15} /> Pilih peserta tertentu (mode ceklis)
                     </span>
-                    <span className="block text-xs text-[#6B7280] mt-1 leading-relaxed">
+                    <span className="block text-xs text-[#5F6B63] mt-1 leading-relaxed">
                       Dicentang = hanya peserta yang Anda pilih yang masuk daftar absen, halaman
                       absensi, dan laporan kegiatan ini. Penyaringan kelompok di bawah tetap berlaku
                       sebagai tambahan.
@@ -545,11 +545,11 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
               </div>
 
               {(!multi || editing) && (
-                <div className="rounded-2xl border-2 border-[#2563EB] bg-white p-3.5" data-testid={ACTIVITIES.attendanceParticipants}>
-                  <label className="mb-1 block text-sm font-bold text-[#111827]">
+                <div className="rounded-2xl border-2 border-[#14633F] bg-white p-3.5" data-testid={ACTIVITIES.attendanceParticipants}>
+                  <label className="mb-1 block text-sm font-bold text-[#14201A]">
                     Peserta wajib diabsen
                   </label>
-                  <p className="mb-3 text-xs leading-relaxed text-[#6B7280]">
+                  <p className="mb-3 text-xs leading-relaxed text-[#5F6B63]">
                     Peserta lain tetap muncul di daftar, tetapi tidak otomatis dihitung Alpha.
                     Jika tidak ada pilihan, semua peserta sesuai filter kegiatan menjadi wajib.
                   </p>
@@ -564,12 +564,12 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                 </div>
               )}
 
-              <div className="rounded-2xl border-2 border-[#E8E8E4] bg-[#FAFAF8] p-3.5" data-testid="keg-advanced-group">
-                <div className="flex items-center gap-2 text-sm font-bold text-[#1D4ED8]">
+              <div className="rounded-2xl border-2 border-[#E7E3D8] bg-[#F6F4EE] p-3.5" data-testid="keg-advanced-group">
+                <div className="flex items-center gap-2 text-sm font-bold text-[#0E4E31]">
                   <SlidersHorizontal size={15} /> Pengelompokan Lanjutan
                 </div>
                 <div className="mt-3">
-                  <label className="block text-xs font-bold text-[#111827] mb-1.5">Status pernikahan</label>
+                  <label className="block text-xs font-bold text-[#14201A] mb-1.5">Status pernikahan</label>
                   <div className="grid grid-cols-3 gap-2">
                     {MARITAL_FILTER_OPTIONS.map((o) => (
                       <Chip key={o.value} data-testid={`keg-marital-${o.value}`} on={f.marital_filter === o.value}
@@ -578,8 +578,8 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                   </div>
                 </div>
                 <div className="mt-3">
-                  <label className="block text-xs font-bold text-[#111827] mb-1.5">
-                    Kelompok usia <span className="font-normal text-[#6B7280]">(tidak dipilih = semua usia)</span>
+                  <label className="block text-xs font-bold text-[#14201A] mb-1.5">
+                    Kelompok usia <span className="font-normal text-[#5F6B63]">(tidak dipilih = semua usia)</span>
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {AGE_GROUP_OPTIONS.map((o) => {
@@ -587,21 +587,21 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                       return (
                         <button key={o.value} type="button" data-testid={`keg-age-${o.value}`} onClick={() => toggleAge(o.value)}
                           className={`h-12 rounded-xl border-2 font-semibold text-xs transition-colors flex flex-col items-center justify-center leading-tight ${
-                            on ? "bg-[#2563EB] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#2563EB] hover:text-[#1D4ED8]"
+                            on ? "bg-[#14633F] text-white border-transparent" : "bg-white text-[#5F6B63] border-[#E7E3D8] hover:border-[#14633F] hover:text-[#0E4E31]"
                           }`}>
                           <span>{o.label}</span>
-                          <span className={`text-[10px] font-medium ${on ? "text-white/80" : "text-[#9CA3AF]"}`}>{o.range}</span>
+                          <span className={`text-[10px] font-medium ${on ? "text-white/80" : "text-[#5F6B63]"}`}>{o.range}</span>
                         </button>
                       );
                     })}
                     {(f.age_filter || []).length > 0 && (
                       <button type="button" data-testid="keg-age-reset" onClick={() => set("age_filter", [])}
-                        className="h-12 rounded-xl border-2 border-dashed border-[#9CA3AF] text-[#6B7280] font-semibold text-xs hover:border-[#DC2626] hover:text-[#DC2626] bg-white">
+                        className="h-12 rounded-xl border-2 border-dashed border-[#5F6B63] text-[#5F6B63] font-semibold text-xs hover:border-[#A32A2A] hover:text-[#A32A2A] bg-white">
                         Semua Usia
                       </button>
                     )}
                   </div>
-                  <p className="text-[11px] text-[#92400E] mt-2 leading-relaxed bg-[#FEF3C7] rounded-lg px-2.5 py-2 flex items-start gap-1.5">
+                  <p className="text-[11px] text-[#6B4500] mt-2 leading-relaxed bg-[#FBF1D6] rounded-lg px-2.5 py-2 flex items-start gap-1.5">
                     <AlertTriangle size={13} className="mt-0.5 shrink-0" />
                     <span>
                       Usia dihitung dari <b>tanggal lahir</b> dan status dari profil peserta. Peserta
@@ -631,13 +631,13 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                 <ReviewItem label="Pengulangan" value={!editing && Number(f.recurring_months)
                   ? `Bulanan, ${f.recurring_months} jadwal` : "Tidak berulang"} />
               </dl>
-              <p className="mt-4 rounded-xl bg-[#F0FDF4] p-3 text-sm text-[#166534]">
+              <p className="mt-4 rounded-xl bg-[#E3F3EA] p-3 text-sm text-[#0E4E31]">
                 Periksa kembali semua informasi. Data belum disimpan sampai tombol Simpan ditekan.
               </p>
-              <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 py-2 text-sm font-semibold text-[#111827]">
+              <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border-2 border-[#E7E3D8] bg-white px-3 py-2 text-sm font-semibold text-[#14201A]">
                 <input type="checkbox" data-testid={ACTIVITIES.reviewConfirm} checked={reviewConfirmed}
                   onChange={(event) => setReviewConfirmed(event.target.checked)}
-                  className="h-5 w-5 accent-[#2563EB]" />
+                  className="h-5 w-5 accent-[#14633F]" />
                 Saya sudah memeriksa informasi kegiatan.
               </label>
             </Section>
@@ -645,7 +645,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
         </form>
 
         {/* Navigasi langkah dan aksi utama selalu terlihat */}
-        <div className="bg-white border-t border-[#ECECE8] px-4 sm:px-5 py-3 flex gap-2">
+        <div className="bg-white border-t border-[#E7E3D8] px-4 sm:px-5 py-3 flex gap-2">
           <button type="button" onClick={() => {
             if (step === 0) onClose();
             else {
@@ -654,17 +654,17 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
             }
           }}
             data-testid={step === 0 ? "kegiatan-form-cancel" : ACTIVITIES.wizardPrevious}
-            className="h-12 px-4 rounded-xl bg-[#F3F4F6] text-[#4B5563] font-semibold hover:bg-[#E8E8E4]">
+            className="h-12 px-4 rounded-xl bg-[#F0EEE6] text-[#5F6B63] font-semibold hover:bg-[#E7E3D8]">
             {step === 0 ? "Batal" : "Kembali"}
           </button>
           {step < 3 ? (
             <button type="button" onClick={nextStep} data-testid={ACTIVITIES.wizardNext}
-              className="flex-1 h-12 rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8]">
+              className="flex-1 h-12 rounded-xl bg-[#14633F] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31]">
               Lanjut
             </button>
           ) : (
           <button form="kegiatan-form" type="submit" data-testid="button-submit-kegiatan" disabled={saving || !reviewConfirmed}
-            className="flex-1 h-12 rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60">
+            className="flex-1 h-12 rounded-xl bg-[#14633F] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60">
             {saving ? <Loader2 className="animate-spin" size={18} /> : editing ? <Save size={18} /> : <Plus size={18} />}
             {editing ? "Simpan Perubahan" : "Simpan Kegiatan"}
           </button>

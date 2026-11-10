@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  Search, SlidersHorizontal, Plus, ChevronLeft, ChevronRight, X, Check,
+  Search, SlidersHorizontal, Plus, ChevronLeft, ChevronRight, X,
 } from "lucide-react";
 import { FAB } from "@/constants/testIds";
 
@@ -83,10 +83,10 @@ export default function ListFab({
         {panel && (
           <div
             data-testid={FAB.panel}
-            className="mb-2 rounded-2xl border border-[#E8E8E4] bg-white p-3 shadow-[0_-8px_32px_-8px_rgba(17,17,20,0.28)]"
+            className="mb-2 rounded-2xl border border-[#E7E3D8] bg-white p-3 shadow-[0_-8px_32px_-8px_rgba(20,32,26,0.28)]"
           >
             <div className="flex items-center justify-between gap-2 pb-2">
-              <span className="text-xs font-bold uppercase tracking-wide text-[#9CA3AF]">
+              <span className="text-xs font-bold uppercase tracking-wide text-[#5F6B63]">
                 {panel === "search" ? "Cari" : filterLabel}
               </span>
               <button
@@ -94,7 +94,7 @@ export default function ListFab({
                 data-testid={FAB.close}
                 onClick={() => setPanel(null)}
                 aria-label="Tutup panel"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"
               >
                 <X size={16} />
               </button>
@@ -102,21 +102,21 @@ export default function ListFab({
 
             {panel === "search" && (
               <div className="relative">
-                <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+                <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
                 <input
                   ref={inputRef}
                   data-testid={FAB.search}
                   value={search}
                   onChange={(e) => onSearch?.(e.target.value)}
                   placeholder={searchPlaceholder}
-                  className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-10 pr-9 text-sm outline-none focus:border-[#2563EB]"
+                  className="h-11 w-full rounded-xl border border-[#8A948D] bg-white pl-10 pr-9 text-sm outline-none focus:border-[#14633F]"
                 />
                 {search && (
                   <button
                     type="button"
                     onClick={() => onSearch?.("")}
                     aria-label="Hapus pencarian"
-                    className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#F3F4F6]"
+                    className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"
                   >
                     <X size={14} />
                   </button>
@@ -135,16 +135,22 @@ export default function ListFab({
                       data-testid={filterItemTestId ? `${filterItemTestId}-${f.key}` : FAB.filter}
                       onClick={() => onFilter?.(f.key)}
                       aria-pressed={on}
-                      className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border-2 px-3 text-xs font-semibold transition-colors ${
+                      className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors ${
                         on
-                          ? "border-[#2563EB] bg-[#2563EB] text-white"
-                          : "border-[#E8E8E4] bg-white text-[#4B5563] hover:border-[#2563EB]"
+                          ? "border-2 border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]"
+                          : "border border-[#D9D4C5] bg-white text-[#5F6B63] hover:border-[#14633F]"
                       }`}
                     >
-                      {on && <Check size={12} />}
+                      {f.dot && (
+                        <span
+                          className="h-3 w-3 shrink-0 rounded-full"
+                          style={{ backgroundColor: f.dot }}
+                          aria-hidden="true"
+                        />
+                      )}
                       {f.label}
                       {typeof f.count === "number" && (
-                        <span className={`rounded-full px-1.5 text-[10px] ${on ? "bg-white/25" : "bg-[#F3F4F6] text-[#374151]"}`}>
+                        <span className={`rounded-full px-1.5 text-[10px] ${on ? "bg-white/70 text-[#0E4E31]" : "bg-[#F0EEE6] text-[#14201A]"}`}>
                           {f.count}
                         </span>
                       )}
@@ -157,7 +163,7 @@ export default function ListFab({
         )}
 
         {/* Toolbar */}
-        <div className="relative flex items-center justify-between gap-1 rounded-2xl border border-[#E8E8E4] bg-white/95 px-2 py-1.5 shadow-[0_-6px_24px_-6px_rgba(17,17,20,0.22)] backdrop-blur">
+        <div className="relative flex items-center justify-between gap-1 rounded-2xl border border-[#E7E3D8] bg-white/95 px-2 py-1.5 shadow-[0_-6px_24px_-6px_rgba(20,32,26,0.22)] backdrop-blur">
           {/* Kiri: Search + Filter */}
           <div className="flex items-center gap-1">
             <button
@@ -167,12 +173,12 @@ export default function ListFab({
               aria-label="Cari"
               aria-expanded={panel === "search"}
               className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
-                panel === "search" ? "bg-[#2563EB] text-white" : "text-[#4B5563] hover:bg-[#F3F4F6]"
+                panel === "search" ? "bg-[#14633F] text-white" : "text-[#5F6B63] hover:bg-[#F0EEE6]"
               }`}
             >
               <Search size={19} />
               {search && panel !== "search" && (
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#2563EB]" aria-hidden="true" />
+                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#14633F]" aria-hidden="true" />
               )}
             </button>
             <button
@@ -182,12 +188,12 @@ export default function ListFab({
               aria-label={filterLabel}
               aria-expanded={panel === "filter"}
               className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
-                panel === "filter" ? "bg-[#2563EB] text-white" : "text-[#4B5563] hover:bg-[#F3F4F6]"
+                panel === "filter" ? "bg-[#14633F] text-white" : "text-[#5F6B63] hover:bg-[#F0EEE6]"
               }`}
             >
               <SlidersHorizontal size={19} />
               {hasFilter && panel !== "filter" && (
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#2563EB]" aria-hidden="true" />
+                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#14633F]" aria-hidden="true" />
               )}
             </button>
           </div>
@@ -200,7 +206,7 @@ export default function ListFab({
               onClick={onPrev}
               disabled={atFirst}
               aria-label="Halaman sebelumnya"
-              className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F3F4F6] disabled:opacity-30"
+              className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6] disabled:opacity-30"
             >
               <ChevronLeft size={19} />
             </button>
@@ -210,7 +216,7 @@ export default function ListFab({
               onClick={onNext}
               disabled={atLast}
               aria-label="Halaman berikutnya"
-              className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F3F4F6] disabled:opacity-30"
+              className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6] disabled:opacity-30"
             >
               <ChevronRight size={19} />
             </button>
@@ -230,7 +236,7 @@ export default function ListFab({
                   aria-pressed={a.active}
                   title={a.label}
                   className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
-                    a.active ? "bg-[#2563EB] text-white" : "text-[#4B5563] hover:bg-[#F3F4F6]"
+                    a.active ? "bg-[#14633F] text-white" : "text-[#5F6B63] hover:bg-[#F0EEE6]"
                   }`}
                 >
                   {Icon ? <Icon size={19} /> : a.label}
@@ -248,17 +254,17 @@ export default function ListFab({
             onClick={onAdd}
             aria-label={addLabel}
             title={addLabel}
-            className="absolute bottom-[calc(100%-1.75rem)] left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-[#2563EB] text-white shadow-[0_8px_20px_-4px_rgba(13,92,58,0.55)] ring-4 ring-white transition-transform active:scale-95"
+            className="absolute bottom-[calc(100%-1.75rem)] left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-[#14633F] text-white shadow-[0_8px_20px_-4px_rgba(20,99,63,0.55)] ring-4 ring-white transition-transform active:scale-95"
           >
             <Plus size={26} strokeWidth={2.6} />
           </button>
         )}
 
         {/* Indikator halaman + ringkasan data */}
-        <div className="mt-1 flex items-center justify-center gap-2 text-[10px] font-medium text-[#9CA3AF]">
+        <div className="mt-1 flex items-center justify-center gap-2 text-[10px] font-medium text-[#5F6B63]">
           <span
             data-testid={FAB.pageInfo}
-            className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#1D4ED8] shadow-sm"
+            className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#0E4E31] shadow-sm"
           >
             {page} / {pageCount}
           </span>

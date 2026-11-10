@@ -18,19 +18,19 @@ export default function PublicMusyawarah() {
 
   if (err) {
     return (
-      <div className="min-h-screen bg-[#FAFAF8] flex flex-col items-center justify-center px-4 text-center">
+      <div className="min-h-screen bg-[#F6F4EE] flex flex-col items-center justify-center px-4 text-center">
         <Logo size={48} />
-        <p className="text-[#991B1B] font-semibold mt-6" data-testid="musyawarah-public-error">{err}</p>
+        <p className="text-[#A32A2A] font-semibold mt-6" data-testid="musyawarah-public-error">{err}</p>
       </div>
     );
   }
   if (!data) {
-    return <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={32} /></div>;
+    return <div className="min-h-screen bg-[#F6F4EE] flex items-center justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={32} /></div>;
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] pb-14" data-testid="musyawarah-public">
-      <header className="bg-[#2563EB] text-white">
+    <div className="min-h-screen bg-[#F6F4EE] pb-14" data-testid="musyawarah-public">
+      <header className="bg-[#14633F] text-white">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><K1Mark size={32} variant="light" /></div>
           <div className="leading-tight">
@@ -41,21 +41,21 @@ export default function PublicMusyawarah() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 -mt-3">
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 shadow-sm">
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">{data.label}</span>
-          <h1 className="font-heading text-xl font-bold text-[#111827] mt-2 flex items-center gap-2"><CalendarDays size={18} className="text-[#1D4ED8]" /> {tanggalPanjang(data.date)}</h1>
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 shadow-sm">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E3F3EA] text-[#0E4E31]">{data.label}</span>
+          <h1 className="font-heading text-xl font-bold text-[#14201A] mt-2 flex items-center gap-2"><CalendarDays size={18} className="text-[#0E4E31]" /> {tanggalPanjang(data.date)}</h1>
           {data.created_by && (
-            <div className="text-sm text-[#6B7280] mt-1.5 inline-flex items-center gap-1.5"><UserRound size={14} /> Dicatat oleh {data.created_by}</div>
+            <div className="text-sm text-[#5F6B63] mt-1.5 inline-flex items-center gap-1.5"><UserRound size={14} /> Dicatat oleh {data.created_by}</div>
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4">
-          <p className="text-sm leading-7 text-[#374151] whitespace-pre-line" data-testid="musyawarah-public-content">
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 mt-4">
+          <p className="text-sm leading-7 text-[#14201A] whitespace-pre-line" data-testid="musyawarah-public-content">
             {data.content || "(belum ada isi catatan)"}
           </p>
         </div>
 
-        <p className="text-center text-xs text-[#9CA3AF] mt-6">© 2026 E-KERTALANGU · Absensi Pengajian</p>
+        <p className="text-center text-xs text-[#5F6B63] mt-6">© 2026 E-KERTALANGU · Absensi Pengajian</p>
       </main>
     </div>
   );

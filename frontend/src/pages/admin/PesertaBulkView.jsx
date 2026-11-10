@@ -4,8 +4,8 @@ import { ListPlus, Loader2, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 
-const cell = "h-10 px-2.5 rounded-lg border border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white w-full";
-const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white";
+const cell = "h-10 px-2.5 rounded-lg border border-[#E7E3D8] text-sm outline-none focus:border-[#14633F] bg-white w-full";
+const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 
 function normG(v) {
   const s = String(v || "").trim().toLowerCase();
@@ -81,10 +81,10 @@ export default function PesertaBulkView() {
     <div>
       <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-            <ListPlus size={22} className="text-[#1D4ED8]" /> Bulk Data Peserta
+          <h1 className="font-heading text-2xl font-bold text-[#14201A] flex items-center gap-2">
+            <ListPlus size={22} className="text-[#0E4E31]" /> Bulk Data Peserta
           </h1>
-          <p className="text-[#6B7280] text-sm mt-1">
+          <p className="text-[#5F6B63] text-sm mt-1">
             Isi seperti tabel Excel, atau salin dari Excel/Spreadsheet lalu tempel (Ctrl+V) di kolom <b>Nama</b>.
             Hanya nama yang wajib.
           </p>
@@ -92,18 +92,18 @@ export default function PesertaBulkView() {
       </div>
 
       {lastResult && (
-        <div className="mb-4 rounded-2xl border border-[#E8E8E4] bg-[#FAFAF8] p-4 text-sm text-[#1D4ED8]" data-testid="bulk-result">
+        <div className="mb-4 rounded-2xl border border-[#E7E3D8] bg-[#F6F4EE] p-4 text-sm text-[#0E4E31]" data-testid="bulk-result">
           <b>{lastResult.count}</b> peserta tersimpan.
           {lastResult.flagged?.length ? ` ${lastResult.flagged.length} nama kembar ditandai "perlu dilengkapi".` : ""}
           {lastResult.invalid_dates?.length ? ` ${lastResult.invalid_dates.length} tanggal tidak terbaca.` : ""}
         </div>
       )}
 
-      <form onSubmit={submit} className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
+      <form onSubmit={submit} className="bg-white rounded-2xl border border-[#E7E3D8] p-4">
         <div className="overflow-x-auto -mx-1 px-1">
           <table className="w-full border-separate border-spacing-y-1.5 min-w-[640px]">
             <thead>
-              <tr className="text-left text-xs font-semibold text-[#6B7280]">
+              <tr className="text-left text-xs font-semibold text-[#5F6B63]">
                 <th className="w-6" />
                 <th className="px-1 min-w-[150px]">Nama *</th>
                 <th className="px-1 w-[120px]">Jenis Kelamin</th>
@@ -116,7 +116,7 @@ export default function PesertaBulkView() {
             <tbody>
               {rows.map((r, i) => (
                 <tr key={i} data-testid={`bulk-row-${i}`}>
-                  <td className="text-center text-xs text-[#9CA3AF] font-medium">{i + 1}</td>
+                  <td className="text-center text-xs text-[#5F6B63] font-medium">{i + 1}</td>
                   <td className="px-1">
                     <input data-testid={`bulk-name-${i}`} className={cell} value={r.name}
                       onChange={(e) => setCell(i, "name", e.target.value)} onPaste={handlePaste(i)} placeholder="Nama lengkap" />
@@ -138,7 +138,7 @@ export default function PesertaBulkView() {
                     <input className={cell} value={r.phone} onChange={(e) => setCell(i, "phone", e.target.value)} placeholder="08xxxx" />
                   </td>
                   <td className="text-center">
-                    <button type="button" onClick={() => removeRow(i)} className="h-8 w-8 flex items-center justify-center rounded-lg text-[#DC2626] hover:bg-red-50"><Trash2 size={15} /></button>
+                    <button type="button" onClick={() => removeRow(i)} className="h-8 w-8 flex items-center justify-center rounded-lg text-[#A32A2A] hover:bg-[#FBE5E3]"><Trash2 size={15} /></button>
                   </td>
                 </tr>
               ))}
@@ -147,7 +147,7 @@ export default function PesertaBulkView() {
         </div>
 
         <button type="button" data-testid="button-add-row" onClick={addRow}
-          className="mt-1 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border-2 border-dashed border-[#D1D5DB] text-[#4B5563] font-semibold text-sm hover:border-[#2563EB] hover:text-[#1D4ED8]">
+          className="mt-1 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border-2 border-dashed border-[#D9D4C5] text-[#5F6B63] font-semibold text-sm hover:border-[#14633F] hover:text-[#0E4E31]">
           <Plus size={16} /> Tambah Baris
         </button>
 
@@ -156,7 +156,7 @@ export default function PesertaBulkView() {
           {kelompok.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
         </select>
         <button data-testid="button-submit-bulk" type="submit" disabled={saving}
-          className="mt-3 w-full h-12 rounded-xl bg-[#2563EB] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60">
+          className="mt-3 w-full h-12 rounded-xl bg-[#14633F] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60">
           {saving ? <Loader2 className="animate-spin" size={18} /> : <ListPlus size={18} />} Simpan Semua
         </button>
       </form>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   CalendarDays, Clock, MapPin, User, BookOpen, Loader2, CheckCircle2,
-  MessageSquareText, Send, PartyPopper, Lock, LogIn, ShieldAlert, UserCheck, UserX,
+  MessageSquareText, Send, Lock, LogIn, ShieldAlert, UserCheck, UserX,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -111,8 +111,8 @@ export default function SelfAbsen() {
   // Masih memeriksa sesi
   if (user === null) {
     return (
-      <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#1D4ED8]" size={32} />
+      <div className="min-h-screen bg-[#F6F4EE] flex items-center justify-center">
+        <Loader2 className="animate-spin text-[#0E4E31]" size={32} />
       </div>
     );
   }
@@ -121,27 +121,27 @@ export default function SelfAbsen() {
   if (user === false) {
     return (
       <Shell subtitle="Absen Mandiri">
-        <div className="bg-white rounded-2xl border-2 border-[#2563EB]/15 p-6 text-center shadow-sm" data-testid="absen-need-login">
-          <div className="h-16 w-16 rounded-2xl bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-2xl border-2 border-[#14633F]/15 p-6 text-center shadow-sm" data-testid="absen-need-login">
+          <div className="h-16 w-16 rounded-2xl bg-[#E3F3EA] text-[#14633F] flex items-center justify-center mx-auto">
             <ShieldAlert size={30} />
           </div>
-          <h1 className="font-heading text-lg font-bold text-[#111827] mt-4">Mohon masuk terlebih dahulu</h1>
-          <p className="text-sm text-[#4B5563] mt-2 leading-relaxed">
+          <h1 className="font-heading text-lg font-bold text-[#14201A] mt-4">Mohon masuk terlebih dahulu</h1>
+          <p className="text-sm text-[#5F6B63] mt-2 leading-relaxed">
             Absen mandiri hanya dapat dilakukan oleh <b>akun Anda sendiri</b>, supaya kehadiran
             tercatat atas nama yang benar dan tidak bisa dititipkan ke orang lain.
           </p>
           <button
             data-testid="absen-login-button"
             onClick={() => navigate(`/login?next=${encodeURIComponent(`/absen/${token}`)}`)}
-            className="mt-5 w-full h-[52px] rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8]"
+            className="mt-5 w-full h-[52px] rounded-xl bg-[#14633F] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31]"
           >
             <LogIn size={19} /> Masuk untuk Absen
           </button>
-          <p className="text-xs text-[#9CA3AF] mt-3">
+          <p className="text-xs text-[#5F6B63] mt-3">
             Belum punya akun? Silakan aktivasi akun Anda atau hubungi pengurus.
           </p>
         </div>
-        <p className="text-center text-xs text-[#9CA3AF] mt-6">© 2026 E-KERTALANGU · Absensi Pengajian</p>
+        <p className="text-center text-xs text-[#5F6B63] mt-6">© 2026 E-KERTALANGU · Absensi Pengajian</p>
       </Shell>
     );
   }
@@ -149,14 +149,14 @@ export default function SelfAbsen() {
   if (err) {
     return (
       <Shell>
-        <div className="bg-white rounded-2xl border border-[#FECACA] p-6 text-center" data-testid="absen-error">
-          <div className="h-14 w-14 rounded-full bg-[#FEE2E2] text-[#991B1B] flex items-center justify-center mx-auto">
+        <div className="bg-white rounded-2xl border border-[#FBE5E3] p-6 text-center" data-testid="absen-error">
+          <div className="h-14 w-14 rounded-full bg-[#FBE5E3] text-[#A32A2A] flex items-center justify-center mx-auto">
             <ShieldAlert size={26} />
           </div>
-          <p className="text-[#991B1B] font-semibold mt-4">{err}</p>
+          <p className="text-[#A32A2A] font-semibold mt-4">{err}</p>
           <button
             onClick={() => navigate("/roles")}
-            className="mt-5 h-11 px-5 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm hover:bg-[#EFF6FF]"
+            className="mt-5 h-11 px-5 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm hover:bg-[#E3F3EA]"
           >
             Kembali ke Beranda
           </button>
@@ -167,8 +167,8 @@ export default function SelfAbsen() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#1D4ED8]" size={32} />
+      <div className="min-h-screen bg-[#F6F4EE] flex items-center justify-center">
+        <Loader2 className="animate-spin text-[#0E4E31]" size={32} />
       </div>
     );
   }
@@ -182,10 +182,10 @@ export default function SelfAbsen() {
   return (
     <Shell>
       {/* Info kegiatan */}
-      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 shadow-sm" data-testid="absen-kegiatan-info">
-        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">{TYPE_LABEL[k.type] || k.type}</span>
-        <h1 className="font-heading text-xl font-bold text-[#111827] mt-2">{k.name}</h1>
-        <div className="text-sm text-[#6B7280] mt-2 space-y-1">
+      <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 shadow-sm" data-testid="absen-kegiatan-info">
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E3F3EA] text-[#0E4E31]">{TYPE_LABEL[k.type] || k.type}</span>
+        <h1 className="font-heading text-xl font-bold text-[#14201A] mt-2">{k.name}</h1>
+        <div className="text-sm text-[#5F6B63] mt-2 space-y-1">
           <div className="flex items-center gap-2"><CalendarDays size={15} /> {tanggalPanjang(k.date)}</div>
           <div className="flex items-center gap-2"><Clock size={15} /> {k.start_time}–{k.end_time} WITA</div>
           {k.location && <div className="flex items-center gap-2"><MapPin size={15} /> {k.location}</div>}
@@ -196,52 +196,52 @@ export default function SelfAbsen() {
 
       {/* Kartu absen — FOKUS 1 NAMA */}
       {result && !result.already ? (
-        <div className="bg-white rounded-2xl border-2 border-[#2563EB] p-6 mt-4 text-center" data-testid="absen-success">
-          <div className="h-16 w-16 rounded-full bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center mx-auto">
-            <PartyPopper size={30} />
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-6 mt-4 text-center" data-testid="absen-success">
+          <div className="h-20 w-20 rounded-full bg-[#E3F3EA] text-[#14633F] flex items-center justify-center mx-auto">
+            <CheckCircle2 size={44} strokeWidth={2.5} />
           </div>
-          <div className="text-lg font-bold text-[#111827] mt-3">Absen Berhasil</div>
-          <p className="text-[#4B5563] mt-1.5 leading-relaxed">{result.message}</p>
-          <div className="mt-4 inline-flex items-center gap-2 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl px-4 py-2.5">
-            <UserCheck size={18} className="text-[#1D4ED8]" />
-            <span className="font-bold text-[#1D4ED8]">{result.name}</span>
-            <span className="text-[#4B5563] text-sm">· Hadir {result.arrival_time ? `${hhmm(result.arrival_time)} WITA` : ""}</span>
+          <div className="text-lg font-bold text-[#14201A] mt-3">Absen Berhasil</div>
+          <p className="text-[#5F6B63] mt-1.5 leading-relaxed">{result.message}</p>
+          <div className="mt-4 inline-flex items-center gap-2 bg-[#F6F4EE] border border-[#E7E3D8] rounded-xl px-4 py-2.5">
+            <UserCheck size={18} className="text-[#14633F]" />
+            <span className="font-bold text-[#0E4E31]">{result.name}</span>
+            <span className="text-[#5F6B63] text-sm">· Hadir {result.arrival_time ? `${hhmm(result.arrival_time)} WITA` : ""}</span>
           </div>
         </div>
       ) : closed ? (
-        <div className="bg-white rounded-2xl border border-[#FECACA] p-6 mt-4 text-center" data-testid="absen-closed">
-          <div className="h-14 w-14 rounded-full bg-[#FEE2E2] text-[#991B1B] flex items-center justify-center mx-auto"><Lock size={26} /></div>
-          <div className="text-base font-bold text-[#991B1B] mt-3">Kegiatan sudah ditutup</div>
-          <p className="text-sm text-[#4B5563] mt-1.5 leading-relaxed">
+        <div className="bg-white rounded-2xl border border-[#FBE5E3] p-6 mt-4 text-center" data-testid="absen-closed">
+          <div className="h-14 w-14 rounded-full bg-[#FBE5E3] text-[#A32A2A] flex items-center justify-center mx-auto"><Lock size={26} /></div>
+          <div className="text-base font-bold text-[#A32A2A] mt-3">Kegiatan sudah ditutup</div>
+          <p className="text-sm text-[#5F6B63] mt-1.5 leading-relaxed">
             Mohon maaf, absen mandiri untuk kegiatan ini sudah tidak tersedia.
             Silakan menghubungi pengurus untuk absen susulan. Jazakumullahu khoiro.
           </p>
         </div>
       ) : !me.is_peserta ? (
-        <div className="bg-white rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-6 mt-4 text-center" data-testid="absen-not-peserta">
-          <div className="h-14 w-14 rounded-full bg-[#FEF3C7] text-[#92400E] flex items-center justify-center mx-auto"><ShieldAlert size={26} /></div>
-          <div className="text-base font-bold text-[#92400E] mt-3">Akun Anda bukan peserta pengajian</div>
-          <p className="text-sm text-[#92400E] mt-1.5">
+        <div className="bg-white rounded-2xl border border-[#EAD596] bg-[#FBF1D6] p-6 mt-4 text-center" data-testid="absen-not-peserta">
+          <div className="h-14 w-14 rounded-full bg-[#FBF1D6] text-[#6B4500] flex items-center justify-center mx-auto"><ShieldAlert size={26} /></div>
+          <div className="text-base font-bold text-[#6B4500] mt-3">Akun Anda bukan peserta pengajian</div>
+          <p className="text-sm text-[#6B4500] mt-1.5">
             Mohon maaf, absen mandiri hanya untuk akun dengan peran peserta.
             Silakan menghubungi pengurus untuk didaftarkan.
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4" data-testid="absen-self-card">
-          <div className="flex items-center gap-2 text-[#1D4ED8] font-bold">
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 mt-4" data-testid="absen-self-card">
+          <div className="flex items-center gap-2 text-[#0E4E31] font-bold">
             <UserCheck size={18} /> Kehadiran Anda
           </div>
-          <p className="text-sm text-[#6B7280] mt-1 leading-relaxed">
+          <p className="text-sm text-[#5F6B63] mt-1 leading-relaxed">
             Kehadiran langsung dicatat atas nama akun Anda sendiri dan tidak dapat dititipkan.
           </p>
 
-          <div className="mt-4 rounded-2xl border-2 border-[#2563EB]/15 bg-[#FAFAF8] p-4 flex items-center gap-3.5">
-            <div className="h-12 w-12 shrink-0 rounded-full bg-[#2563EB] text-white flex items-center justify-center font-bold">
+          <div className="mt-4 rounded-2xl border-2 border-[#14633F]/15 bg-[#F6F4EE] p-4 flex items-center gap-3.5">
+            <div className="h-12 w-12 shrink-0 rounded-full bg-[#14633F] text-white flex items-center justify-center font-bold">
               {(me.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
             </div>
             <div className="min-w-0">
-              <div className="font-bold text-[#111827] truncate" data-testid="absen-self-name">{me.name}</div>
-              <div className="text-xs text-[#6B7280] mt-0.5">
+              <div className="font-bold text-[#14201A] truncate" data-testid="absen-self-name">{me.name}</div>
+              <div className="text-xs text-[#5F6B63] mt-0.5">
                 {sudahHadir
                   ? `Sudah hadir${me.arrival_time ? ` · ${hhmm(me.arrival_time)} WITA` : ""}`
                   : "Belum tercatat hadir"}
@@ -250,17 +250,17 @@ export default function SelfAbsen() {
           </div>
 
           {sudahHadir ? (
-            <div className="mt-4 rounded-xl bg-[#EFF6FF] border border-[#D1D5DB] p-4 text-center" data-testid="absen-already">
-              <CheckCircle2 className="mx-auto text-[#1D4ED8]" size={26} />
-              <p className="text-sm font-semibold text-[#1D4ED8] mt-1.5">
+            <div className="mt-4 rounded-xl bg-[#E3F3EA] border border-[#E3F3EA] p-4 text-center" data-testid="absen-already">
+              <CheckCircle2 className="mx-auto text-[#14633F]" size={26} />
+              <p className="text-sm font-semibold text-[#0E4E31] mt-1.5">
                 Kehadiran Anda sudah tercatat. Terima kasih, jazakumullahu khoiro.
               </p>
             </div>
           ) : sudahLaporkan ? (
-            <div className="mt-4 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] p-4" data-testid={SELF_ABSENCE.absenceReported}>
-              <div className="font-bold text-[#92400E]">Laporan tidak hadir sudah dikirim</div>
-              <p className="text-sm text-[#92400E] mt-1">Alasan: {me.absence_reason}</p>
-              {me.absence_note && <p className="text-sm text-[#92400E] mt-1">Keterangan: {me.absence_note}</p>}
+            <div className="mt-4 rounded-xl bg-[#FBF1D6] border border-[#EAD596] p-4" data-testid={SELF_ABSENCE.absenceReported}>
+              <div className="font-bold text-[#6B4500]">Laporan tidak hadir sudah dikirim</div>
+              <p className="text-sm text-[#6B4500] mt-1">Alasan: {me.absence_reason}</p>
+              {me.absence_note && <p className="text-sm text-[#6B4500] mt-1">Keterangan: {me.absence_note}</p>}
               <button
                 type="button"
                 data-testid={SELF_ABSENCE.editAbsence}
@@ -269,7 +269,7 @@ export default function SelfAbsen() {
                   setAbsenceNote(me.absence_note || "");
                   setAbsenceFormOpen(true);
                 }}
-                className="mt-3 min-h-11 rounded-xl border-2 border-[#92400E] px-4 font-semibold text-[#92400E]"
+                className="mt-3 min-h-11 rounded-xl border-2 border-[#6B4500] px-4 font-semibold text-[#6B4500]"
               >
                 Perbarui Laporan
               </button>
@@ -281,14 +281,14 @@ export default function SelfAbsen() {
               />}
             </div>
           ) : (
-            <div className="mt-4 rounded-xl bg-[#FAFAF8] border border-[#E8E8E4] p-4" data-testid="absen-auto">
+            <div className="mt-4 rounded-xl bg-[#F6F4EE] border border-[#E7E3D8] p-4" data-testid="absen-auto">
               <div className="grid gap-2 sm:grid-cols-2">
                 <button
                   type="button"
                   data-testid={SELF_ABSENCE.markPresent}
                   onClick={doMark}
                   disabled={marking || absenceSending}
-                  className="min-h-[54px] rounded-xl bg-[#2563EB] px-3 text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60"
+                  className="min-h-[54px] rounded-xl bg-[#14633F] px-3 text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60"
                 >
                   {marking ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
                   Catat Kehadiran Saya
@@ -298,12 +298,12 @@ export default function SelfAbsen() {
                   data-testid={SELF_ABSENCE.cannotAttend}
                   onClick={() => setAbsenceFormOpen((open) => !open)}
                   disabled={marking || absenceSending}
-                  className="min-h-[54px] rounded-xl border-2 border-[#92400E] px-3 text-[#92400E] font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#FFFBEB] disabled:opacity-60"
+                  className="min-h-[54px] rounded-xl border-2 border-[#6B4500] px-3 text-[#6B4500] font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#FBF1D6] disabled:opacity-60"
                 >
                   <UserX size={20} /> Tidak Bisa Hadir
                 </button>
               </div>
-              {marking && <p className="text-center text-sm font-semibold text-[#4B5563] mt-2">Mencatat kehadiran Anda…</p>}
+              {marking && <p className="text-center text-sm font-semibold text-[#5F6B63] mt-2">Mencatat kehadiran Anda…</p>}
               {absenceFormOpen && <AbsenceForm
                 reason={absenceReason} setReason={setAbsenceReason}
                 note={absenceNote} setNote={setAbsenceNote}
@@ -316,20 +316,20 @@ export default function SelfAbsen() {
       )}
 
       {/* Kotak Pesan / Saran */}
-      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4">
-        <div className="flex items-center gap-2 text-[#1D4ED8] font-bold"><MessageSquareText size={18} /> Kotak Pesan / Saran</div>
+      <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 mt-4">
+        <div className="flex items-center gap-2 text-[#14201A] font-bold"><MessageSquareText size={18} /> Kotak Pesan / Saran</div>
         {fbDone ? (
-          <div className="mt-3 rounded-xl bg-[#EFF6FF] text-[#1D4ED8] p-4 text-center text-sm font-semibold" data-testid="feedback-done">
+          <div className="mt-3 rounded-xl bg-[#E3F3EA] text-[#0E4E31] p-4 text-center text-sm font-semibold" data-testid="feedback-done">
             Alhamdulillah, jazakumullahu khoiro 🤲
-            <button onClick={() => { setFbDone(false); setShowFb(false); }} className="block mx-auto mt-2 text-[#1D4ED8] underline text-xs font-normal">Kirim lagi</button>
+            <button onClick={() => { setFbDone(false); setShowFb(false); }} className="block mx-auto mt-2 text-[#0E4E31] underline text-xs font-normal">Kirim lagi</button>
           </div>
         ) : !showFb ? (
           <>
-            <p className="text-sm text-[#6B7280] mt-1">Ingin menyampaikan pesan atau saran untuk kegiatan ini? (opsional)</p>
+            <p className="text-sm text-[#5F6B63] mt-1">Ingin menyampaikan pesan atau saran untuk kegiatan ini? (opsional)</p>
             <button
               data-testid="button-open-feedback"
               onClick={() => setShowFb(true)}
-              className="mt-3 w-full h-12 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-bold flex items-center justify-center gap-2 hover:bg-[#EFF6FF]"
+              className="mt-3 w-full h-12 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-bold flex items-center justify-center gap-2 hover:bg-[#E3F3EA]"
             >
               <MessageSquareText size={18} /> Tulis Pesan / Saran
             </button>
@@ -341,7 +341,7 @@ export default function SelfAbsen() {
               value={fbName}
               onChange={(e) => setFbName(e.target.value)}
               placeholder={`Nama (opsional) — mis. ${user?.name || ""}`}
-              className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#2563EB] bg-white"
+              className="w-full h-11 px-3.5 rounded-xl border border-[#8A948D] outline-none focus:border-[#14633F] bg-white"
             />
             <textarea
               data-testid="feedback-message"
@@ -349,13 +349,13 @@ export default function SelfAbsen() {
               onChange={(e) => setFbMsg(e.target.value)}
               rows={3}
               placeholder="Tulis pesan / saran Anda..."
-              className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#2563EB] bg-white resize-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#8A948D] outline-none focus:border-[#14633F] bg-white resize-none"
             />
             <div className="flex gap-2">
               <button
                 data-testid="button-cancel-feedback"
                 onClick={() => setShowFb(false)}
-                className="h-12 px-4 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold hover:bg-[#F3F4F6]"
+                className="h-12 px-4 rounded-xl border-2 border-[#E7E3D8] text-[#5F6B63] font-semibold hover:bg-[#F0EEE6]"
               >
                 Batal
               </button>
@@ -363,7 +363,7 @@ export default function SelfAbsen() {
                 data-testid="button-send-feedback"
                 onClick={() => sendFeedback(false)}
                 disabled={fbSending}
-                className="flex-1 h-12 rounded-xl bg-[#2563EB] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60"
+                className="flex-1 h-12 rounded-xl bg-[#14633F] text-white font-bold flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60"
               >
                 {fbSending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />} Kirim
               </button>
@@ -372,18 +372,18 @@ export default function SelfAbsen() {
               data-testid="button-send-feedback-anonim"
               onClick={() => sendFeedback(true)}
               disabled={fbSending}
-              className="w-full h-12 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-bold flex items-center justify-center gap-2 hover:bg-[#EFF6FF] disabled:opacity-60"
+              className="w-full h-12 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-bold flex items-center justify-center gap-2 hover:bg-[#E3F3EA] disabled:opacity-60"
             >
               <UserX size={18} /> Kirim Tanpa Nama (Anonim)
             </button>
-            <p className="text-xs text-[#9CA3AF] text-center">
+            <p className="text-xs text-[#5F6B63] text-center">
               Pesan anonim tetap terkirim ke pengurus, hanya saja nama Anda tidak ditampilkan.
             </p>
           </div>
         )}
       </div>
 
-      <p className="text-center text-xs text-[#9CA3AF] mt-6">© 2026 E-KERTALANGU · Absensi Pengajian</p>
+      <p className="text-center text-xs text-[#5F6B63] mt-6">© 2026 E-KERTALANGU · Absensi Pengajian</p>
     </Shell>
   );
 }
@@ -395,19 +395,19 @@ export default function SelfAbsen() {
  */
 function AbsenceForm({ reason, setReason, note, setNote, sending, onSubmit, onCancel }) {
   return (
-    <div className="mt-4 space-y-3 border-t border-[#E8E8E4] pt-4" data-testid={SELF_ABSENCE.absenceForm}>
-      <label className="block text-left text-sm font-semibold text-[#374151]">
-        Alasan tidak dapat hadir *
+    <div className="mt-4 space-y-3 border-t border-[#E7E3D8] pt-4" data-testid={SELF_ABSENCE.absenceForm}>
+      <label className="block text-left text-sm font-semibold text-[#14201A]">
+        Alasan tidak dapat hadir <span className="text-[#A32A2A]" aria-hidden="true">*</span>
         <input
           data-testid={SELF_ABSENCE.absenceReason}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           maxLength={300}
-          className="mt-1.5 w-full min-h-11 rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 text-base outline-none focus:border-[#2563EB]"
+          className="mt-1.5 w-full min-h-11 rounded-xl border-2 border-[#8A948D] bg-white px-3.5 text-base outline-none focus:border-[#14633F]"
           placeholder="Contoh: sakit atau ada keperluan keluarga"
         />
       </label>
-      <label className="block text-left text-sm font-semibold text-[#374151]">
+      <label className="block text-left text-sm font-semibold text-[#14201A]">
         Keterangan (opsional)
         <textarea
           data-testid={SELF_ABSENCE.absenceNote}
@@ -415,17 +415,17 @@ function AbsenceForm({ reason, setReason, note, setNote, sending, onSubmit, onCa
           onChange={(e) => setNote(e.target.value)}
           maxLength={500}
           rows={2}
-          className="mt-1.5 w-full rounded-xl border-2 border-[#E8E8E4] bg-white px-3.5 py-2.5 text-base outline-none focus:border-[#2563EB]"
+          className="mt-1.5 w-full rounded-xl border-2 border-[#8A948D] bg-white px-3.5 py-2.5 text-base outline-none focus:border-[#14633F]"
           placeholder="Tambahkan keterangan bila diperlukan"
         />
       </label>
       <div className="flex gap-2">
         <button type="button" data-testid={SELF_ABSENCE.cancelAbsence} onClick={onCancel}
-          className="min-h-11 rounded-xl border-2 border-[#E8E8E4] px-4 font-semibold text-[#4B5563]">
+          className="min-h-11 rounded-xl border-2 border-[#E7E3D8] px-4 font-semibold text-[#5F6B63]">
           Batal
         </button>
         <button type="button" data-testid={SELF_ABSENCE.submitAbsence} onClick={onSubmit} disabled={sending}
-          className="min-h-11 flex-1 rounded-xl bg-[#92400E] px-4 font-bold text-white inline-flex items-center justify-center gap-2 disabled:opacity-60">
+          className="min-h-11 flex-1 rounded-xl bg-[#14633F] px-4 font-bold text-white inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60">
           {sending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />} Kirim Laporan
         </button>
       </div>
@@ -435,8 +435,8 @@ function AbsenceForm({ reason, setReason, note, setNote, sending, onSubmit, onCa
 
 function Shell({ children, subtitle = "Absen Mandiri" }) {
   return (
-    <div className="min-h-screen bg-[#FAFAF8] pb-16">
-      <header className="bg-[#2563EB] text-white">
+    <div className="min-h-screen bg-[#F6F4EE] pb-16">
+      <header className="bg-[#14633F] text-white">
         <div className="max-w-lg mx-auto px-4 py-4 flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
             <K1Mark size={32} variant="light" />

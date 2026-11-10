@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
   Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
-  Clock, MapPin, User, ScanLine, MessageSquareText,
+  Clock, MapPin, User, ScanLine, MessageSquareText, Lock,
   MoreHorizontal, Pencil, FileBarChart2, ChevronDown, AlertTriangle,
   KeyRound, RefreshCw, Send, Layers, SlidersHorizontal, Play,
 } from "lucide-react";
@@ -13,7 +13,7 @@ import {
   KEGIATAN_TYPES, TYPE_LABEL, TYPE_COLOR, timeOptions,
   tanggalPanjang, tanggalSingkat, hhmm, MONTH_SHORT,
   AUDIENCE_OPTIONS, GENDER_FILTER_OPTIONS, AUDIENCE_LABEL,
-  PHASE_META, phaseOf, groupKegiatan,
+  PHASE_META, phaseOf, phaseGroup, jenisOf, JENIS_CHIP, groupKegiatan,
   MARITAL_FILTER_OPTIONS, AGE_GROUP_OPTIONS, SESSION_LABEL_PRESETS,
   SESSION_DEFAULT_TIME, groupSessions,
 } from "./kegiatanUtils";
@@ -26,7 +26,7 @@ import ActionModal from "@/components/ActionModal";
 import ListFab from "@/components/ListFab";
 import { Send as SendIcon, ShieldCheck as ShieldIcon, ScanLine as ScanIcon } from "lucide-react";
 
-const inp = "w-full h-[46px] px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white";
+const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 const TIMES = timeOptions();
 
 function todayYmd() {
@@ -109,7 +109,7 @@ export default function KegiatanView({
       if (phaseFilter === "all" && !String(k.date || "").startsWith(month)) return false;
       if (typeFilter !== "all" && k.type !== typeFilter) return false;
       const phase = phaseOf(k);
-      if (phaseFilter === "today" && (k.date !== today || phase === "selesai")) return false;
+      if (phaseFilter === "today" && phaseGroup(k) !== "terlaksana") return false;
       if (phaseFilter === "upcoming" && phase !== "akan_datang") return false;
       if (phaseFilter === "completed" && phase !== "selesai") return false;
       if (!term) return true;
@@ -238,23 +238,23 @@ export default function KegiatanView({
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2 text-[#1D4ED8] font-bold text-lg">
+      <div className="mb-4 flex items-center gap-2 text-[#0E4E31] font-bold text-lg">
         <CalendarDays size={20} /> Kegiatan
       </div>
 
       <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <label className="relative">
           <span className="sr-only">Cari kegiatan</span>
-          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama, pengajar, atau lokasi kegiatan"
             data-testid={ACTIVITIES.search}
-            className="h-11 w-full rounded-xl border-2 border-[#E8E8E4] bg-white pl-11 pr-4 text-base outline-none focus:border-[#2563EB]" />
+            className="h-11 w-full rounded-xl border border-[#8A948D] bg-white pl-11 pr-4 text-base outline-none focus:border-[#14633F]" />
         </label>
         <div className="flex items-center gap-2">
           <label htmlFor="kegiatan-type-filter" className="sr-only">Filter jenis kegiatan</label>
           <select id="kegiatan-type-filter" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}
             data-testid={ACTIVITIES.typeFilter}
-            className="h-11 min-w-36 rounded-xl border-2 border-[#E8E8E4] bg-white px-3 text-sm font-semibold text-[#374151]">
+            className="h-11 min-w-36 rounded-xl border-2 border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A]">
             <option value="all">Semua jenis</option>
             {KEGIATAN_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
           </select>
@@ -266,13 +266,13 @@ export default function KegiatanView({
       {/* Month nav + view toggle */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <button data-testid="button-prev-month" onClick={() => shiftMonth(-1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#2563EB]"><ChevronLeft size={18} /></button>
-          <div className="font-semibold text-[#111827] min-w-[150px] text-center">{MONTH_SHORT[m - 1]} {y}</div>
-          <button data-testid="button-next-month" onClick={() => shiftMonth(1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E8E8E4] bg-white hover:border-[#2563EB]"><ChevronRight size={18} /></button>
+          <button data-testid="button-prev-month" onClick={() => shiftMonth(-1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E7E3D8] bg-white hover:border-[#14633F]"><ChevronLeft size={18} /></button>
+          <div className="font-semibold text-[#14201A] min-w-[150px] text-center">{MONTH_SHORT[m - 1]} {y}</div>
+          <button data-testid="button-next-month" onClick={() => shiftMonth(1)} className="h-10 w-10 flex items-center justify-center rounded-xl border border-[#E7E3D8] bg-white hover:border-[#14633F]"><ChevronRight size={18} /></button>
         </div>
-        <div className="hidden items-center gap-1 rounded-xl border border-[#E8E8E4] bg-white p-1 lg:flex">
-          <button data-testid="view-list" onClick={() => setView("list")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "list" ? "bg-[#EFF6FF] text-[#1D4ED8]" : "text-[#6B7280]"}`}><List size={16} /> Daftar</button>
-          <button data-testid="view-calendar" onClick={() => setView("calendar")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "calendar" ? "bg-[#EFF6FF] text-[#1D4ED8]" : "text-[#6B7280]"}`}><Grid3x3 size={16} /> Kalender</button>
+        <div className="hidden items-center gap-1 rounded-xl border border-[#E7E3D8] bg-white p-1 lg:flex">
+          <button data-testid="view-list" onClick={() => setView("list")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "list" ? "bg-[#E3F3EA] text-[#0E4E31]" : "text-[#5F6B63]"}`}><List size={16} /> Daftar</button>
+          <button data-testid="view-calendar" onClick={() => setView("calendar")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "calendar" ? "bg-[#E3F3EA] text-[#0E4E31]" : "text-[#5F6B63]"}`}><Grid3x3 size={16} /> Kalender</button>
         </div>
       </div>
 
@@ -282,39 +282,39 @@ export default function KegiatanView({
 
       {dayFilter && (
         <div className="mb-3 flex items-center gap-2 text-sm">
-          <span className="text-[#6B7280]">Menampilkan:</span>
-          <span className="font-semibold text-[#1D4ED8]">{tanggalPanjang(dayFilter)}</span>
-          <button onClick={() => setDayFilter("")} className="text-[#DC2626] font-semibold hover:underline">Tampilkan semua</button>
+          <span className="text-[#5F6B63]">Menampilkan:</span>
+          <span className="font-semibold text-[#0E4E31]">{tanggalPanjang(dayFilter)}</span>
+          <button onClick={() => setDayFilter("")} className="text-[#A32A2A] font-semibold hover:underline">Tampilkan semua</button>
         </div>
       )}
 
       {/* List */}
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>
       ) : items === false ? (
-        <div className="rounded-2xl border border-[#FECACA] bg-white p-8 text-center">
-          <p className="text-sm text-[#6B7280]">Daftar kegiatan gagal dimuat.</p>
-          <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#2563EB] px-4 font-semibold text-white">Coba lagi</button>
+        <div className="rounded-2xl border border-[#FBE5E3] bg-white p-8 text-center">
+          <p className="text-sm text-[#5F6B63]">Daftar kegiatan gagal dimuat.</p>
+          <button type="button" onClick={load} className="mt-3 min-h-11 rounded-xl bg-[#14633F] px-4 font-semibold text-white">Coba lagi</button>
         </div>
       ) : (
         <>
           {filtered.length > 0 && (
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E8E8E4] bg-white px-3 py-2.5">
-              <label className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#374151]">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#E7E3D8] bg-white px-3 py-2.5">
+              <label className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[#14201A]">
                 <input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleSelection}
-                  data-testid={ACTIVITIES.selectAll} className="h-5 w-5 accent-[#2563EB]" />
+                  data-testid={ACTIVITIES.selectAll} className="h-5 w-5 accent-[#14633F]" />
                 Pilih semua yang tampil ({filtered.length})
               </label>
               {selectedVisibleCount > 0 && (
                 <button type="button" onClick={() => setShowDeleteConfirm(true)} data-testid={ACTIVITIES.deleteSelected}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#DC2626] px-4 text-sm font-semibold text-white hover:bg-[#B91C1C]">
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#A32A2A] px-4 text-sm font-semibold text-white hover:bg-[#A32A2A]">
                   <Trash2 size={16} /> Hapus terpilih ({selectedVisibleCount})
                 </button>
               )}
             </div>
           )}
           {filtered.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center text-[#6B7280]">
+            <div className="bg-white rounded-2xl border border-[#E7E3D8] p-10 text-center text-[#5F6B63]">
               {search || typeFilter !== "all" || phaseFilter !== "all" || dayFilter
                 ? "Tidak ada kegiatan yang cocok dengan pencarian atau filter."
                 : "Belum ada kegiatan pada periode ini."}
@@ -323,9 +323,16 @@ export default function KegiatanView({
             <div className="space-y-6">
               {groups.filter((g) => g.items.length > 0).map((g) => (
                 <section key={g.key} data-testid={`kegiatan-group-${g.key}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${g.cls}`}>{g.label}</span>
-                    <span className="text-xs text-[#9CA3AF]">{g.items.length} kegiatan</span>
+                  <div className="mb-2 flex items-center gap-2">
+                    <span
+                      className="flex h-[18px] w-[18px] shrink-0 items-center justify-center"
+                      style={{ color: g.iconColor }}
+                      aria-hidden="true"
+                    >
+                      <StatusIcon group={g.key} size={18} />
+                    </span>
+                    <span className="text-[13px] font-bold text-[#14201A]">{g.label}</span>
+                    <span className="text-xs text-[#5F6B63]">{g.items.length} kegiatan</span>
                   </div>
                   <div className="grid gap-3">
                     {groupSessions(g.items).map((grp) => (
@@ -347,10 +354,10 @@ export default function KegiatanView({
         onSearch={setSearch}
         searchPlaceholder="Cari nama, pengajar, atau lokasi…"
         filters={[
-          { key: "all", label: "Semua", count: (items || []).filter((k) => String(k.date || "").startsWith(month)).length },
-          { key: "today", label: "Hari ini", count: (items || []).filter((k) => k.date === todayYmd() && phaseOf(k) !== "selesai").length },
-          { key: "upcoming", label: "Akan datang", count: (items || []).filter((k) => phaseOf(k) === "akan_datang").length },
-          { key: "completed", label: "Selesai", count: (items || []).filter((k) => phaseOf(k) === "selesai").length },
+          { key: "all", label: "Semua", dot: "#14201A", count: (items || []).filter((k) => String(k.date || "").startsWith(month)).length },
+          { key: "upcoming", label: "Akan datang", dot: "#1D4F91", count: (items || []).filter((k) => phaseOf(k) === "akan_datang").length },
+          { key: "today", label: "Terlaksana", dot: "#14633F", count: (items || []).filter((k) => phaseGroup(k) === "terlaksana").length },
+          { key: "completed", label: "Selesai", dot: "#4A5650", count: (items || []).filter((k) => phaseOf(k) === "selesai").length },
         ]}
         filterValue={phaseFilter}
         onFilter={setPhaseFilter}
@@ -404,17 +411,17 @@ export default function KegiatanView({
             key: "confirm-delete",
             label: deletingSelected ? "Menghapus…" : "Hapus",
             icon: Trash2,
-            danger: true,
+            hapus: true,
             disabled: deletingSelected,
             onClick: deleteSelected,
           }]}
         >
-          <p className="px-3 py-2 text-sm text-[#4B5563]">
+          <p className="px-3 py-2 text-sm text-[#5F6B63]">
             Kegiatan yang dihapus tidak bisa dikembalikan.
           </p>
-          <ul className="mx-3 mb-2 max-h-40 divide-y divide-[#E8E8E4] overflow-y-auto rounded-xl border border-[#E8E8E4]">
+          <ul className="mx-3 mb-2 max-h-40 divide-y divide-[#E7E3D8] overflow-y-auto rounded-xl border border-[#E7E3D8]">
             {selectedTargets.map((kegiatan) => (
-              <li key={kegiatan.id} className="px-3 py-2 text-sm text-[#111827]">
+              <li key={kegiatan.id} className="px-3 py-2 text-sm text-[#14201A]">
                 {kegiatan.date} · {kegiatan.name}
               </li>
             ))}
@@ -442,7 +449,7 @@ function FilterBadges({ k }) {
     <>
       {labels.map((l) => (
         <span key={l} data-testid="keg-filter-badge"
-          className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FEF2F2] text-[#B91C1C]">{l}</span>
+          className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FBE5E3] text-[#A32A2A]">{l}</span>
       ))}
     </>
   );
@@ -462,7 +469,7 @@ function LocationLink({ k, className = "" }) {
       onKeyDown={(e) => e.stopPropagation()}
       data-testid={`kegiatan-lokasi-${k.id}`}
       title="Buka lokasi di Google Maps"
-      className={`inline-flex min-w-0 items-center gap-1 rounded text-[#4B5563] underline decoration-[#D1D5DB] underline-offset-2 transition-colors hover:text-[#1D4ED8] hover:decoration-[#2563EB] ${className}`}
+      className={`inline-flex min-w-0 items-center gap-1 rounded text-[#5F6B63] underline decoration-[#D9D4C5] underline-offset-2 transition-colors hover:text-[#0E4E31] hover:decoration-[#14633F] ${className}`}
     >
       <MapPin size={13} className="shrink-0" />
       <span className="truncate">{k.location || k.maps_query}</span>
@@ -473,24 +480,48 @@ function LocationLink({ k, className = "" }) {
 function DateBlock({ k, muted = false }) {
   const [, mm, dd] = String(k.date || "").split("-");
   const month = MONTH_SHORT[(parseInt(mm, 10) || 1) - 1];
+  const meta = PHASE_META[phaseGroup(k)];
   return (
     <div
       data-testid={`${ACTIVITIES.datePrefix}-${k.id}`}
-      className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl text-center ${
-        muted ? "bg-[#F3F4F6] text-[#6B7280]" : "bg-[#F3F4F6] text-[#1D4ED8]"
-      }`}
+      className="flex h-[60px] w-[52px] shrink-0 flex-col items-center justify-center rounded-[14px] text-center text-white"
+      style={{ backgroundColor: muted ? "#4A5650" : meta.solid }}
     >
-      <span className="text-xl font-bold leading-none tabular-nums">{Number(dd) || "—"}</span>
-      <span className="mt-1 text-[10px] font-semibold uppercase tracking-wide">{month}</span>
+      <span className="text-[22px] font-bold leading-none tabular-nums">{Number(dd) || "—"}</span>
+      <span className="mt-1 text-[11px] font-semibold uppercase tracking-wide">{month}</span>
     </div>
   );
 }
 
+/** Ikon status Layar 30 — bentuk berbeda per status, selalu ditemani teks. */
+function StatusIcon({ group, size = 13 }) {
+  const common = { size, strokeWidth: 2, "aria-hidden": "true" };
+  if (group === "terlaksana") return <CheckCircle2 {...common} />;
+  if (group === "akan_datang") return <Clock {...common} />;
+  return <Lock {...common} />;
+}
+
+/** Chip jenis kegiatan: latar netral + titik warna jenis + nama jenis. */
+function JenisChip({ type }) {
+  const chip = JENIS_CHIP[jenisOf(type)];
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+      style={{ backgroundColor: "#F0EEE6", color: chip.text }}
+    >
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: chip.dot }} aria-hidden="true" />
+      {TYPE_LABEL[type] || "Jenis lain"}
+    </span>
+  );
+}
+
 function KegiatanCard({ k, selected, onSelect, onOpen }) {
-  const phase = phaseOf(k);
-  const meta = PHASE_META[phase];
-  const [, , day] = String(k.date || "").split("-");
+  const group = phaseGroup(k);
+  const meta = PHASE_META[group];
   const summary = [k.teacher, k.material].filter(Boolean).join(" · ");
+  const counts = k.counts || {};
+  const sudah = counts.hadir ?? 0;
+  const total = counts.total ?? 0;
   return (
     <div
       role="button"
@@ -501,10 +532,17 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
       }}
       aria-label={`Buka detail kegiatan ${k.name}`}
       data-testid={`kegiatan-card-${k.id}`}
-      className={`group flex cursor-pointer items-center gap-3 rounded-2xl border bg-white px-3 py-3 outline-none transition-colors hover:border-[#2563EB] hover:bg-[#FCFCFB] focus-visible:border-[#2563EB] focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:ring-offset-1 sm:gap-4 sm:px-4 ${
-        selected ? "border-[#2563EB] bg-[#FAFAF8]" : "border-[#E8E8E4]"
+      className={`group relative flex cursor-pointer items-center gap-3 overflow-hidden rounded-[18px] border bg-white py-3 pl-4 pr-3 outline-none transition-colors hover:border-[#14633F] focus-visible:border-[#14633F] focus-visible:ring-2 focus-visible:ring-[#14633F] focus-visible:ring-offset-1 sm:gap-4 sm:pr-4 ${
+        selected ? "border-[#14633F] bg-[#F6F4EE]" : "border-[#E7E3D8]"
       }`}
     >
+      {/* bar kiri 6px warna penuh status */}
+      <span
+        className="absolute inset-y-0 left-0 w-1.5"
+        style={{ backgroundColor: meta.solid }}
+        aria-hidden="true"
+      />
+
       <label
         className="flex h-10 w-6 shrink-0 items-center justify-center"
         onClick={(e) => e.stopPropagation()}
@@ -517,33 +555,48 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
           onChange={onSelect}
           aria-label={`Pilih kegiatan ${k.name}`}
           data-testid={`${ACTIVITIES.checkboxPrefix}-${k.id}`}
-          className="h-4 w-4 accent-[#2563EB]"
+          className="h-4 w-4 accent-[#14633F]"
         />
       </label>
 
-      <DateBlock k={k} muted={phase === "selesai"} />
+      <DateBlock k={k} muted={group === "selesai"} />
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className="truncate text-[15px] font-semibold text-[#111827]">{k.name}</span>
-          {k.auto_closed && <span className="shrink-0 text-[10px] text-[#9CA3AF]">(auto)</span>}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span
+            className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+            style={{ backgroundColor: meta.iconBg, color: meta.iconColor }}
+          >
+            <StatusIcon group={group} />
+            {meta.badge}
+          </span>
+          <JenisChip type={k.type} />
+          {k.gender_filter === "P" && (
+            <span className="inline-flex shrink-0 items-center rounded-full bg-[#FBE3EC] px-2 py-0.5 text-[11px] font-semibold text-[#8A1F4B]">
+              Khusus Perempuan
+            </span>
+          )}
+          {k.auto_closed && <span className="shrink-0 text-[10px] text-[#5F6B63]">(auto)</span>}
         </div>
-        <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#6B7280]">
+        <div className="mt-1 truncate text-[15px] font-bold text-[#14201A]">{k.name}</div>
+        <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#5F6B63]">
           <span className="inline-flex shrink-0 items-center gap-1">
             <Clock size={12} /> {k.start_time}–{k.end_time}
           </span>
-          <span className="hidden shrink-0 text-[#D1D5DB] sm:inline">·</span>
+          <span className="hidden shrink-0 text-[#D9D4C5] sm:inline">·</span>
           <LocationLink k={k} className="max-w-full" />
         </div>
-        {summary && <div className="mt-0.5 truncate text-xs text-[#9CA3AF]">{summary}</div>}
+        {summary && <div className="mt-0.5 truncate text-xs text-[#5F6B63]">{summary}</div>}
       </div>
 
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.cls}`}>{meta.badge}</span>
-        <span className="hidden text-[11px] text-[#9CA3AF] sm:inline">{TYPE_LABEL[k.type]}</span>
+      <div className="flex shrink-0 flex-col items-end gap-0.5">
+        <span className="text-[17px] font-bold leading-none tabular-nums text-[#14201A]">
+          {sudah}/{total}
+        </span>
+        <span className="text-[11px] text-[#5F6B63]">sudah absen</span>
       </div>
 
-      <ChevronRight size={18} className="shrink-0 text-[#C4C4C0] transition-colors group-hover:text-[#1D4ED8]" />
+      <ChevronRight size={18} className="shrink-0 text-[#D9D4C5] transition-colors group-hover:text-[#0E4E31]" />
     </div>
   );
 }
@@ -562,32 +615,32 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
   const range = times.length ? `${times[0]}–${group.items[group.items.length - 1].end_time}` : "";
   return (
     <div
-      className="rounded-2xl border border-[#E8E8E4] bg-white p-3 sm:p-4"
+      className="rounded-2xl border border-[#E7E3D8] bg-white p-3 sm:p-4"
       data-testid={`kegiatan-sesi-group-${first.session_group_id}`}
     >
       <div className="flex items-center gap-3 sm:gap-4">
         <DateBlock k={first} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-[15px] font-semibold text-[#111827]">{first.base_name || first.name}</span>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-semibold text-[#92400E]">
+            <span className="truncate text-[15px] font-semibold text-[#14201A]">{first.base_name || first.name}</span>
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#FBF1D6] px-2 py-0.5 text-[11px] font-semibold text-[#6B4500]">
               <Layers size={11} /> {group.items.length} sesi
             </span>
           </div>
-          <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#6B7280]">
+          <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#5F6B63]">
             {range && (
               <span className="inline-flex shrink-0 items-center gap-1">
                 <Clock size={12} /> {range}
               </span>
             )}
-            <span className="hidden shrink-0 text-[#D1D5DB] sm:inline">·</span>
+            <span className="hidden shrink-0 text-[#D9D4C5] sm:inline">·</span>
             <LocationLink k={first} className="max-w-full" />
           </div>
         </div>
-        <span className="hidden shrink-0 text-[11px] text-[#9CA3AF] sm:inline">{TYPE_LABEL[first.type]}</span>
+        <span className="hidden shrink-0 text-[11px] text-[#5F6B63] sm:inline">{TYPE_LABEL[first.type]}</span>
       </div>
 
-      <ul className="mt-2.5 divide-y divide-[#F1F1EE] border-t border-[#F1F1EE]">
+      <ul className="mt-2.5 divide-y divide-[#F0EEE6] border-t border-[#F0EEE6]">
         {group.items.map((k) => {
           const meta = PHASE_META[phaseOf(k)];
           return (
@@ -601,7 +654,7 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
                 }}
                 aria-label={`Buka detail sesi ${k.session_label || ""} ${first.base_name || first.name}`}
                 data-testid={`kegiatan-card-${k.id}`}
-                className="group flex cursor-pointer items-center gap-3 rounded-lg px-1 py-2 outline-none transition-colors hover:bg-[#FAFAF8] focus-visible:bg-[#FAFAF8] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2563EB]"
+                className="group flex cursor-pointer items-center gap-3 rounded-lg px-1 py-2 outline-none transition-colors hover:bg-[#F6F4EE] focus-visible:bg-[#F6F4EE] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#14633F]"
               >
                 <label
                   className="flex h-8 w-6 shrink-0 items-center justify-center"
@@ -615,16 +668,16 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
                     onChange={() => onToggle(k.id)}
                     aria-label={`Pilih sesi ${k.session_label || ""}`}
                     data-testid={`${ACTIVITIES.checkboxPrefix}-${k.id}`}
-                    className="h-4 w-4 accent-[#2563EB]"
+                    className="h-4 w-4 accent-[#14633F]"
                   />
                 </label>
-                <span className="w-14 shrink-0 text-sm font-semibold text-[#1D4ED8]">{k.session_label || "Sesi"}</span>
-                <span className="min-w-0 flex-1 truncate text-xs text-[#6B7280]">
+                <span className="w-14 shrink-0 text-sm font-semibold text-[#0E4E31]">{k.session_label || "Sesi"}</span>
+                <span className="min-w-0 flex-1 truncate text-xs text-[#5F6B63]">
                   {k.start_time}–{k.end_time}
                   {k.teacher ? ` · ${k.teacher}` : ""}
                 </span>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.cls}`}>{meta.badge}</span>
-                <ChevronRight size={16} className="shrink-0 text-[#C4C4C0] transition-colors group-hover:text-[#1D4ED8]" />
+                <ChevronRight size={16} className="shrink-0 text-[#D9D4C5] transition-colors group-hover:text-[#0E4E31]" />
               </div>
             </li>
           );
@@ -644,8 +697,8 @@ function CalendarMonth({ year, month, daysWithEvent, dayFilter, onPick }) {
   const pad = (d) => `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 mb-4" data-testid="calendar-month">
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-[#9CA3AF] mb-1">
+    <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4 mb-4" data-testid="calendar-month">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-[#5F6B63] mb-1">
         {["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"].map((h) => <div key={h} className="py-1">{h}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-1">
@@ -660,11 +713,11 @@ function CalendarMonth({ year, month, daysWithEvent, dayFilter, onPick }) {
               data-testid={`cal-day-${ymd}`}
               onClick={() => onPick(active ? "" : ymd)}
               className={`aspect-square rounded-xl flex flex-col items-center justify-center text-sm relative transition-colors ${
-                active ? "bg-[#2563EB] text-white" : count ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold hover:bg-[#d6efe0]" : "text-[#4B5563] hover:bg-[#F3F4F6]"
+                active ? "bg-[#14633F] text-white" : count ? "bg-[#E3F3EA] text-[#0E4E31] font-semibold hover:bg-[#E3F3EA]" : "text-[#5F6B63] hover:bg-[#F0EEE6]"
               }`}
             >
               {d}
-              {count > 0 && <span className={`mt-0.5 h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-[#2563EB]"}`} />}
+              {count > 0 && <span className={`mt-0.5 h-1.5 w-1.5 rounded-full ${active ? "bg-white" : "bg-[#14633F]"}`} />}
             </button>
           );
         })}
@@ -675,11 +728,11 @@ function CalendarMonth({ year, month, daysWithEvent, dayFilter, onPick }) {
 
 function ModalShell({ title, children, onClose, testid, wide }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
-      <div className={`bg-[#FAFAF8] w-full ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E8E8E4] px-5 py-3.5 flex items-center justify-between z-10">
-          <h2 className="font-heading font-bold text-[#111827]">{title}</h2>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[rgba(20,32,26,0.5)] p-0 sm:p-4" onClick={onClose}>
+      <div className={`bg-[#F6F4EE] w-full ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
+        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E7E3D8] px-5 py-3.5 flex items-center justify-between z-10">
+          <h2 className="font-heading font-bold text-[#14201A]">{title}</h2>
+          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -689,10 +742,10 @@ function ModalShell({ title, children, onClose, testid, wide }) {
 
 
 const STATUS_BTN = {
-  hadir: { label: "Hadir", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
-  izin: { label: "Izin", on: "bg-[#9CA3AF] text-white", off: "text-[#92400E]" },
-  sakit: { label: "Sakit", on: "bg-[#2563EB] text-white", off: "text-[#1D4ED8]" },
-  alpha: { label: "Alpha", on: "bg-[#DC2626] text-white", off: "text-[#991B1B]" },
+  hadir: { label: "Hadir", on: "bg-[#14633F] text-white", off: "text-[#0E4E31]" },
+  izin: { label: "Izin", on: "bg-[#5F6B63] text-white", off: "text-[#6B4500]" },
+  sakit: { label: "Sakit", on: "bg-[#1D4F91] text-white", off: "text-[#1D4F91]" },
+  alpha: { label: "Alpha", on: "bg-[#A32A2A] text-white", off: "text-[#A32A2A]" },
 };
 
 export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
@@ -738,59 +791,59 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
   return (
     <ModalShell title={k ? k.name : "Absensi"} onClose={onClose} testid="modal-absensi" wide>
       {!data ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={28} /></div>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            <div className="rounded-xl bg-[#F3F4F6] p-3 text-center"><div className="text-xl font-bold text-[#111827]">{c.total}</div><div className="text-xs text-[#6B7280]">Total</div></div>
-            <div className="rounded-xl bg-[#EFF6FF] p-3 text-center"><div className="text-xl font-bold text-[#1D4ED8]">{c.hadir}</div><div className="text-xs text-[#6B7280]">Hadir</div></div>
-            <div className="rounded-xl bg-[#FEF3C7] p-3 text-center"><div className="text-xl font-bold text-[#92400E]">{c.izin}</div><div className="text-xs text-[#6B7280]">Izin</div></div>
-            <div className="rounded-xl bg-[#DBEAFE] p-3 text-center"><div className="text-xl font-bold text-[#1D4ED8]">{c.sakit || 0}</div><div className="text-xs text-[#6B7280]">Sakit</div></div>
-            <div className="rounded-xl bg-[#FEE2E2] p-3 text-center"><div className="text-xl font-bold text-[#991B1B]">{c.alpha}</div><div className="text-xs text-[#6B7280]">Alpha</div></div>
+            <div className="rounded-xl bg-[#F0EEE6] p-3 text-center"><div className="text-xl font-bold text-[#14201A]">{c.total}</div><div className="text-xs text-[#5F6B63]">Total</div></div>
+            <div className="rounded-xl bg-[#E3F3EA] p-3 text-center"><div className="text-xl font-bold text-[#0E4E31]">{c.hadir}</div><div className="text-xs text-[#5F6B63]">Hadir</div></div>
+            <div className="rounded-xl bg-[#FBF1D6] p-3 text-center"><div className="text-xl font-bold text-[#6B4500]">{c.izin}</div><div className="text-xs text-[#5F6B63]">Izin</div></div>
+            <div className="rounded-xl bg-[#E3EEFB] p-3 text-center"><div className="text-xl font-bold text-[#1D4F91]">{c.sakit || 0}</div><div className="text-xs text-[#5F6B63]">Sakit</div></div>
+            <div className="rounded-xl bg-[#FBE5E3] p-3 text-center"><div className="text-xl font-bold text-[#A32A2A]">{c.alpha}</div><div className="text-xs text-[#5F6B63]">Alpha</div></div>
           </div>
 
           {/* Absen manual — bisa dibuka/tutup */}
-          <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="absen-manual-section">
+          <div className="bg-white rounded-2xl border border-[#E7E3D8] overflow-hidden" data-testid="absen-manual-section">
             <button
               data-testid="absen-manual-toggle"
               onClick={() => setOpenManual((v) => !v)}
-              className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8]"
+              className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#F6F4EE]"
             >
               <span className="flex items-center gap-2.5">
-                <span className="h-9 w-9 rounded-xl bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center"><CheckCircle2 size={18} /></span>
+                <span className="h-9 w-9 rounded-xl bg-[#E3F3EA] text-[#0E4E31] flex items-center justify-center"><CheckCircle2 size={18} /></span>
                 <span>
-                  <span className="block font-bold text-[#111827] text-[15px]">Absen Manual</span>
-                  <span className="block text-xs text-[#6B7280]">Tandai Hadir / Izin / Sakit / Alpha per peserta</span>
+                  <span className="block font-bold text-[#14201A] text-[15px]">Absen Manual</span>
+                  <span className="block text-xs text-[#5F6B63]">Tandai Hadir / Izin / Sakit / Alpha per peserta</span>
                 </span>
               </span>
-              <ChevronDown size={20} className={`text-[#6B7280] transition-transform ${openManual ? "rotate-180" : ""}`} />
+              <ChevronDown size={20} className={`text-[#5F6B63] transition-transform ${openManual ? "rotate-180" : ""}`} />
             </button>
 
             {openManual && (
-              <div className="border-t border-[#E8E8E4]">
-                <div className="p-3 bg-[#FAFAF8]">
+              <div className="border-t border-[#E7E3D8]">
+                <div className="p-3 bg-[#F6F4EE]">
                   <div className="relative">
-                    <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-                    <input data-testid="absensi-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#2563EB] bg-white" />
+                    <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
+                    <input data-testid="absensi-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..." className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#8A948D] outline-none focus:border-[#14633F] bg-white" />
                   </div>
                 </div>
-                <div className="divide-y divide-[#ECECE8] max-h-[46vh] overflow-y-auto">
+                <div className="divide-y divide-[#E7E3D8] max-h-[46vh] overflow-y-auto">
                   {rows.length === 0 ? (
-                    <div className="p-8 text-center text-[#6B7280] text-sm">Tidak ada peserta.</div>
+                    <div className="p-8 text-center text-[#5F6B63] text-sm">Tidak ada peserta.</div>
                   ) : rows.map((r) => (
                     <div key={r.user_id} data-testid={`absensi-row-${r.user_id}`} className="px-4 py-3 grid grid-cols-[1fr_auto_auto] items-center gap-4">
                       <div className="min-w-0">
-                        <div className="font-semibold text-[#111827] text-sm truncate">{r.name}</div>
-                        <div className="text-xs text-[#9CA3AF] flex items-center gap-1.5">
+                        <div className="font-semibold text-[#14201A] text-sm truncate">{r.name}</div>
+                        <div className="text-xs text-[#5F6B63] flex items-center gap-1.5">
                           {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—"}
                           {r.account_status === "pending" && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#92400E]">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6B4500]">
                               <AlertTriangle size={11} /> Belum aktivasi
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="w-14 text-center font-mono text-[13px] tabular-nums text-[#4B5563]">
+                      <div className="w-14 text-center font-mono text-[13px] tabular-nums text-[#5F6B63]">
                         {r.status === "hadir" && r.arrival_time ? hhmm(r.arrival_time) : "—"}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
@@ -804,7 +857,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
                               disabled={busy === r.user_id + s || (s === "alpha" && !alphaAllowed)}
                               onClick={() => mark(r.user_id, s)}
                               title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.label}
-                              className={`h-8 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors ${active ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E8E8E4] hover:border-current`}`}
+                              className={`h-8 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors ${active ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E7E3D8] hover:border-current`}`}
                             >
                               {cfg.label}
                             </button>
@@ -833,24 +886,24 @@ function FeedbackModal({ kegiatan, onClose }) {
 
   return (
     <ModalShell title="Kotak Pesan / Saran" onClose={onClose} testid="modal-feedback">
-      <div className="text-sm text-[#6B7280] mb-3">
-        Pesan &amp; saran dari peserta untuk <b className="text-[#111827]">{kegiatan.name}</b>.
+      <div className="text-sm text-[#5F6B63] mb-3">
+        Pesan &amp; saran dari peserta untuk <b className="text-[#14201A]">{kegiatan.name}</b>.
       </div>
       {items === null ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={28} /></div>
       ) : items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#E8E8E4] bg-[#FAFAF8] p-8 text-center text-sm text-[#9CA3AF]">
+        <div className="rounded-xl border border-dashed border-[#E7E3D8] bg-[#F6F4EE] p-8 text-center text-sm text-[#5F6B63]">
           Belum ada pesan / saran dari peserta.
         </div>
       ) : (
-        <div className="rounded-2xl border border-[#E8E8E4] bg-white divide-y divide-[#ECECE8] max-h-[60vh] overflow-y-auto" data-testid="feedback-list">
+        <div className="rounded-2xl border border-[#E7E3D8] bg-white divide-y divide-[#E7E3D8] max-h-[60vh] overflow-y-auto" data-testid="feedback-list">
           {items.map((f) => (
             <div key={f.id} className="px-4 py-3">
               <div className="flex items-center justify-between gap-2">
-                <div className="font-semibold text-[#111827] text-sm">{f.name}</div>
-                <div className="text-xs text-[#9CA3AF]">{f.created_at ? hhmm(f.created_at) : ""}</div>
+                <div className="font-semibold text-[#14201A] text-sm">{f.name}</div>
+                <div className="text-xs text-[#5F6B63]">{f.created_at ? hhmm(f.created_at) : ""}</div>
               </div>
-              <p className="text-sm text-[#4B5563] mt-0.5 whitespace-pre-wrap break-words">{f.message}</p>
+              <p className="text-sm text-[#5F6B63] mt-0.5 whitespace-pre-wrap break-words">{f.message}</p>
             </div>
           ))}
         </div>
@@ -895,38 +948,38 @@ function ShareAbsensiModal({ data, onClose }) {
   return (
     <ModalShell title="Bagikan Kegiatan + Kode Akses" onClose={onClose} testid="modal-akses">
       <div className="text-center">
-        <img src={info.image} alt="QR Absensi Kegiatan" className="mx-auto w-52 h-52 rounded-xl border border-[#E8E8E4] p-2" data-testid="akses-qr-image" />
+        <img src={info.image} alt="QR Absensi Kegiatan" className="mx-auto w-52 h-52 rounded-xl border border-[#E7E3D8] p-2" data-testid="akses-qr-image" />
 
-        <div className="mt-4 rounded-2xl border-2 border-dashed border-[#2563EB] bg-[#FAFAF8] p-4">
-          <div className="text-xs font-semibold text-[#1D4ED8] flex items-center justify-center gap-1.5">
+        <div className="mt-4 rounded-2xl border-2 border-dashed border-[#14633F] bg-[#F6F4EE] p-4">
+          <div className="text-xs font-semibold text-[#0E4E31] flex items-center justify-center gap-1.5">
             <KeyRound size={14} /> KODE AKSES ABSENSI
           </div>
-          <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#1D4ED8]" data-testid="akses-code">{info.code}</div>
-          <div className="text-xs text-[#4B5563] mt-1">
+          <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#0E4E31]" data-testid="akses-code">{info.code}</div>
+          <div className="text-xs text-[#5F6B63] mt-1">
             Berlaku sampai kegiatan <b>ditutup/selesai</b>
             {info.valid_until ? <> · jadwal selesai {tanggalSingkat(String(info.valid_until).slice(0, 10))} {String(info.valid_until).slice(11, 16)} WITA</> : null}
           </div>
           <div className="flex gap-2 mt-3">
-            <button onClick={copyCode} data-testid="akses-copy-code" className="flex-1 h-10 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#EFF6FF]"><Copy size={15} /> Salin Kode</button>
-            <button onClick={regenerate} disabled={busy} data-testid="akses-regenerate" className="flex-1 h-10 rounded-xl bg-[#2563EB] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60">
+            <button onClick={copyCode} data-testid="akses-copy-code" className="flex-1 h-10 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#E3F3EA]"><Copy size={15} /> Salin Kode</button>
+            <button onClick={regenerate} disabled={busy} data-testid="akses-regenerate" className="flex-1 h-10 rounded-xl bg-[#14633F] text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60">
               {busy ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />} Perbarui Kode
             </button>
           </div>
         </div>
 
-        <div className="mt-3 bg-white border border-[#E8E8E4] rounded-xl p-3 text-left">
-          <p className="text-xs text-[#4B5563] leading-relaxed">
+        <div className="mt-3 bg-white border border-[#E7E3D8] rounded-xl p-3 text-left">
+          <p className="text-xs text-[#5F6B63] leading-relaxed">
             Buka tautan, masukkan kode akses, lalu pilih status peserta.
           </p>
         </div>
 
-        <p className="text-xs text-[#9CA3AF] mt-2 break-all px-2">{info.link}</p>
+        <p className="text-xs text-[#5F6B63] mt-2 break-all px-2">{info.link}</p>
 
         <div className="flex gap-2 mt-3">
-          <button onClick={copyLink} data-testid="akses-copy-link" className="flex-1 h-11 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold flex items-center justify-center gap-2 hover:bg-[#EFF6FF]"><Copy size={16} /> Salin Link</button>
-          <button onClick={download} data-testid="akses-download" className="flex-1 h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold flex items-center justify-center gap-2 hover:border-[#2563EB] hover:text-[#1D4ED8]"><Download size={16} /> Unduh QR</button>
+          <button onClick={copyLink} data-testid="akses-copy-link" className="flex-1 h-11 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold flex items-center justify-center gap-2 hover:bg-[#E3F3EA]"><Copy size={16} /> Salin Link</button>
+          <button onClick={download} data-testid="akses-download" className="flex-1 h-11 rounded-xl border-2 border-[#E7E3D8] text-[#5F6B63] font-semibold flex items-center justify-center gap-2 hover:border-[#14633F] hover:text-[#0E4E31]"><Download size={16} /> Unduh QR</button>
         </div>
-        <button onClick={shareWa} data-testid="akses-share-wa" className="mt-2 w-full h-11 rounded-xl bg-[#25D366] text-white font-semibold flex items-center justify-center gap-2 hover:brightness-95"><Send size={16} /> Bagikan lewat WhatsApp</button>
+        <button onClick={shareWa} data-testid="akses-share-wa" className="mt-2 w-full h-11 rounded-xl bg-[#14633F] text-white font-semibold flex items-center justify-center gap-2 hover:brightness-95"><Send size={16} /> Bagikan lewat WhatsApp</button>
       </div>
     </ModalShell>
   );

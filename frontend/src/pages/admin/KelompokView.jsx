@@ -29,37 +29,37 @@ export default function KelompokView() {
     <div data-testid="kelompok-view">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-[#111827]">Kelompok Sambung</h1>
-          <p className="text-sm text-[#6B7280] mt-0.5">Kelola daftar kelompok sambung peserta.</p>
+          <h1 className="font-heading text-2xl font-bold text-[#14201A]">Kelompok Sambung</h1>
+          <p className="text-sm text-[#5F6B63] mt-0.5">Kelola daftar kelompok sambung peserta.</p>
         </div>
         <button
           data-testid="button-add-kelompok"
           onClick={() => setShowAdd(true)}
-          className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#2563EB] text-white font-semibold hover:bg-[#1D4ED8]"
+          className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#14633F] text-white font-semibold hover:bg-[#0E4E31]"
         >
           <Plus size={18} /> Tambah Kelompok
         </button>
       </div>
 
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center text-[#6B7280]">
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-10 text-center text-[#5F6B63]">
           Belum ada kelompok sambung.
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {items.map((k) => (
-            <div key={k.id} data-testid={`kelompok-card-${k.id}`} className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
+            <div key={k.id} data-testid={`kelompok-card-${k.id}`} className="bg-white rounded-2xl border border-[#E7E3D8] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0">
-                  <span className="h-10 w-10 rounded-xl bg-[#EDE9FE] text-[#5B21B6] flex items-center justify-center shrink-0">
+                  <span className="h-10 w-10 rounded-xl bg-[#ECE4FB] text-[#4C2A9B] flex items-center justify-center shrink-0">
                     <Layers size={20} />
                   </span>
                   <div className="min-w-0">
-                    <div className="font-bold text-[#111827] truncate">{k.name}</div>
-                    <div className="text-xs text-[#6B7280] mt-0.5">{k.description || "Tanpa keterangan"}</div>
-                    <div className="text-xs text-[#1D4ED8] font-semibold mt-1.5 inline-flex items-center gap-1">
+                    <div className="font-bold text-[#14201A] truncate">{k.name}</div>
+                    <div className="text-xs text-[#5F6B63] mt-0.5">{k.description || "Tanpa keterangan"}</div>
+                    <div className="text-xs text-[#0E4E31] font-semibold mt-1.5 inline-flex items-center gap-1">
                       <Users size={13} /> {k.member_count || 0} anggota
                     </div>
                   </div>
@@ -68,7 +68,7 @@ export default function KelompokView() {
                   <button
                     data-testid={`button-edit-kelompok-${k.id}`}
                     onClick={() => setEditItem(k)}
-                    className="h-9 w-9 rounded-lg border border-[#E8E8E4] text-[#4B5563] flex items-center justify-center hover:border-[#2563EB] hover:text-[#1D4ED8]"
+                    className="h-9 w-9 rounded-lg border border-[#E7E3D8] text-[#5F6B63] flex items-center justify-center hover:border-[#14633F] hover:text-[#0E4E31]"
                     title="Ubah nama"
                   >
                     <Pencil size={16} />
@@ -76,7 +76,7 @@ export default function KelompokView() {
                   <button
                     data-testid={`button-delete-kelompok-${k.id}`}
                     onClick={() => setDelItem(k)}
-                    className="h-9 w-9 rounded-lg border border-[#FECACA] text-[#DC2626] flex items-center justify-center hover:bg-[#FEF2F2]"
+                    className="h-9 w-9 rounded-lg border border-[#FBE5E3] text-[#A32A2A] flex items-center justify-center hover:bg-[#FBE5E3]"
                     title="Hapus kelompok"
                   >
                     <Trash2 size={16} />
@@ -123,29 +123,29 @@ function FormModal({ initial, onClose, onDone }) {
     <Overlay onClose={onClose} title={editing ? "Ubah Kelompok" : "Tambah Kelompok"} testid="modal-kelompok-form">
       <form onSubmit={submit} className="p-5 space-y-3">
         <div>
-          <label className="text-xs font-semibold text-[#4B5563]">Nama Kelompok</label>
+          <label className="text-xs font-semibold text-[#5F6B63]">Nama Kelompok</label>
           <input
             data-testid="kelompok-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="cth: Bali / Luar Bali"
-            className="mt-1 w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#2563EB]"
+            className="mt-1 w-full h-11 px-3.5 rounded-xl border border-[#8A948D] outline-none focus:border-[#14633F]"
           />
         </div>
         <div>
-          <label className="text-xs font-semibold text-[#4B5563]">Keterangan (opsional)</label>
+          <label className="text-xs font-semibold text-[#5F6B63]">Keterangan (opsional)</label>
           <input
             data-testid="kelompok-desc"
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
-            className="mt-1 w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#2563EB]"
+            className="mt-1 w-full h-11 px-3.5 rounded-xl border border-[#8A948D] outline-none focus:border-[#14633F]"
           />
         </div>
         <button
           type="submit"
           data-testid="kelompok-submit"
           disabled={busy}
-          className="w-full h-11 rounded-xl bg-[#2563EB] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60"
+          className="w-full h-11 rounded-xl bg-[#14633F] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60"
         >
           {busy ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />} Simpan
         </button>
@@ -172,9 +172,9 @@ function DeleteModal({ item, onClose, onDone }) {
   return (
     <Overlay onClose={onClose} title="Konfirmasi Hapus Kelompok" testid="modal-kelompok-delete">
       <div className="p-5">
-        <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl p-4 flex gap-2.5">
-          <AlertTriangle size={20} className="text-[#DC2626] shrink-0 mt-0.5" />
-          <div className="text-sm text-[#991B1B]">
+        <div className="bg-[#FBE5E3] border border-[#FBE5E3] rounded-xl p-4 flex gap-2.5">
+          <AlertTriangle size={20} className="text-[#A32A2A] shrink-0 mt-0.5" />
+          <div className="text-sm text-[#A32A2A]">
             Hapus kelompok <b>{item.name}</b>?
             {item.member_count > 0 && (
               <> <b>{item.member_count} anggota</b> di dalamnya akan menjadi <b>tanpa kelompok</b> dan perlu dipindah-sambung ulang.</>
@@ -183,21 +183,21 @@ function DeleteModal({ item, onClose, onDone }) {
           </div>
         </div>
 
-        <label className="block text-xs font-semibold text-[#4B5563] mt-4">Keterangan (alasan penghapusan)</label>
+        <label className="block text-xs font-semibold text-[#5F6B63] mt-4">Keterangan (alasan penghapusan)</label>
         <textarea
           data-testid="kelompok-delete-keterangan"
           value={ket}
           onChange={(e) => setKet(e.target.value)}
           rows={3}
           placeholder="cth: kelompok digabung ke Bali, sudah tidak dipakai, dsb."
-          className="mt-1 w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#2563EB] text-sm"
+          className="mt-1 w-full px-3.5 py-2.5 rounded-xl border border-[#8A948D] outline-none focus:border-[#14633F] text-sm"
         />
 
         <div className="flex gap-2 mt-4">
           <button
             data-testid="kelompok-delete-no"
             onClick={onClose}
-            className="flex-1 h-11 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold hover:border-[#2563EB] hover:text-[#1D4ED8]"
+            className="flex-1 h-11 rounded-xl border-2 border-[#E7E3D8] text-[#5F6B63] font-semibold hover:border-[#14633F] hover:text-[#0E4E31]"
           >
             Tidak
           </button>
@@ -205,7 +205,7 @@ function DeleteModal({ item, onClose, onDone }) {
             data-testid="kelompok-delete-yes"
             onClick={hapus}
             disabled={busy}
-            className="flex-1 h-11 rounded-xl bg-[#DC2626] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#B91C1C] disabled:opacity-60"
+            className="flex-1 h-11 rounded-xl bg-[#A32A2A] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#A32A2A] disabled:opacity-60"
           >
             {busy ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />} Ya, Hapus
           </button>
@@ -218,11 +218,11 @@ function DeleteModal({ item, onClose, onDone }) {
 function Overlay({ children, onClose, title, testid }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/45" onClick={onClose} />
+      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={onClose} />
       <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid={testid}>
-        <div className="sticky top-0 bg-white border-b border-[#E8E8E4] px-5 py-4 flex items-center justify-between">
-          <h3 className="font-heading font-bold text-[#111827]">{title}</h3>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]">
+        <div className="sticky top-0 bg-white border-b border-[#E7E3D8] px-5 py-4 flex items-center justify-between">
+          <h3 className="font-heading font-bold text-[#14201A]">{title}</h3>
+          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]">
             <X size={20} />
           </button>
         </div>

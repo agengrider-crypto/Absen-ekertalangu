@@ -168,15 +168,15 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
       <div
         ref={cardRef}
         data-testid={TOUR.step}
-        className="absolute rounded-2xl border border-[#E8E8E4] bg-white p-4 shadow-2xl transition-all duration-200"
+        className="absolute rounded-2xl border border-[#E7E3D8] bg-white p-4 shadow-2xl transition-all duration-200"
         style={{ left: cardPos.left, top: cardPos.top, width: cardPos.width }}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#2563EB] text-white">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#14633F] text-white">
               <Sparkles size={14} />
             </span>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-[#5F6B63]">
               Langkah {index + 1} dari {steps.length}
             </span>
           </div>
@@ -184,20 +184,20 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
             type="button"
             onClick={skip}
             aria-label="Tutup panduan"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#9CA3AF] hover:bg-[#F3F4F6] hover:text-[#1D4ED8]"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6] hover:text-[#0E4E31]"
           >
             <X size={16} />
           </button>
         </div>
 
-        <h3 className="mt-2 font-heading text-base font-bold leading-tight text-[#111827]">{step?.title}</h3>
-        <p className="mt-1 text-[13px] leading-relaxed text-[#4B5563]">{step?.body}</p>
+        <h3 className="mt-2 font-heading text-base font-bold leading-tight text-[#14201A]">{step?.title}</h3>
+        <p className="mt-1 text-[13px] leading-relaxed text-[#5F6B63]">{step?.body}</p>
 
         <div className="mt-3 flex items-center gap-1.5">
           {steps.map((s, i) => (
             <span
               key={s.id}
-              className={`h-1.5 rounded-full transition-all ${i === index ? "w-5 bg-[#2563EB]" : "w-1.5 bg-[#D1D5DB]"}`}
+              className={`h-1.5 rounded-full transition-all ${i === index ? "w-5 bg-[#14633F]" : "w-1.5 bg-[#D9D4C5]"}`}
             />
           ))}
         </div>
@@ -207,7 +207,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
             type="button"
             data-testid={TOUR.skip}
             onClick={skip}
-            className="h-9 rounded-lg px-2 text-xs font-semibold text-[#6B7280] hover:bg-[#F3F4F6]"
+            className="h-9 rounded-lg px-2 text-xs font-semibold text-[#5F6B63] hover:bg-[#F0EEE6]"
           >
             Lewati
           </button>
@@ -217,7 +217,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
               data-testid={TOUR.prev}
               onClick={prev}
               disabled={index === 0}
-              className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#E8E8E4] px-3 text-xs font-semibold text-[#4B5563] hover:border-[#2563EB] disabled:opacity-40"
+              className="inline-flex h-9 items-center gap-1 rounded-lg border border-[#E7E3D8] px-3 text-xs font-semibold text-[#5F6B63] hover:border-[#14633F] disabled:opacity-40"
             >
               <ChevronLeft size={14} /> Sebelumnya
             </button>
@@ -225,7 +225,7 @@ export default function GuidedTour({ onClose, onFinish, steps = TOUR_STEPS }) {
               type="button"
               data-testid={TOUR.next}
               onClick={next}
-              className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#2563EB] px-3 text-xs font-semibold text-white hover:bg-[#1D4ED8]"
+              className="inline-flex h-9 items-center gap-1 rounded-lg bg-[#14633F] px-3 text-xs font-semibold text-white hover:bg-[#0E4E31]"
             >
               {isLast ? <>Selesai <Check size={14} /></> : <>Berikutnya <ChevronRight size={14} /></>}
             </button>

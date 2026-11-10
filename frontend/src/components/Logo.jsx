@@ -78,12 +78,12 @@ export const Logo = ({
         <K1Wordmark variant={variant} size={size >= 48 ? "text-xl" : "text-lg"} />
         {showTagline ? (
           <div
-            className={`text-xs font-medium ${variant === "dark" ? "text-white/75" : "text-[#6B7280]"}`}
+            className={`text-xs font-medium ${variant === "dark" ? "text-white/75" : "text-[#5F6B63]"}`}
           >
             {TAGLINE}
           </div>
         ) : subtitle ? (
-          <div className={`text-xs font-medium ${variant === "dark" ? "text-white/75" : "text-[#6B7280]"}`}>
+          <div className={`text-xs font-medium ${variant === "dark" ? "text-white/75" : "text-[#5F6B63]"}`}>
             {subtitle}
           </div>
         ) : null}

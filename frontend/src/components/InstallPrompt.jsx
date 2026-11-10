@@ -42,7 +42,7 @@ export default function InstallPrompt() {
   return (
     <div
       data-testid="pwa-install-prompt"
-      className="fixed inset-x-3 bottom-3 z-[70] mx-auto max-w-md rounded-2xl border border-[#E8E8E4] bg-white p-4 shadow-[0_12px_40px_-8px_rgba(17,24,39,0.28)] sm:inset-x-auto sm:right-4"
+      className="fixed inset-x-3 bottom-3 z-[70] mx-auto max-w-md rounded-2xl border border-[#E7E3D8] bg-white p-4 shadow-[0_12px_40px_-8px_rgba(20,32,26,0.28)] sm:inset-x-auto sm:right-4"
     >
       <div className="flex items-start gap-3">
         <K1Mark size={44} variant="light" />
@@ -50,25 +50,25 @@ export default function InstallPrompt() {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <K1Wordmark size="text-base" />
-              <p className="mt-0.5 text-xs text-[#6B7280]">{TAGLINE}</p>
+              <p className="mt-0.5 text-xs text-[#5F6B63]">{TAGLINE}</p>
             </div>
             <button
               type="button"
               onClick={close}
               aria-label="Tutup"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"
             >
               <X size={16} />
             </button>
           </div>
-          <p className="mt-2 text-[13px] leading-relaxed text-[#4B5563]">
+          <p className="mt-2 text-[13px] leading-relaxed text-[#5F6B63]">
             Pasang aplikasi di layar utama agar lebih cepat dibuka.
           </p>
           <div className="mt-3 flex gap-2">
             <button
               type="button"
               onClick={close}
-              className="h-10 flex-1 rounded-xl border-2 border-[#E8E8E4] text-sm font-semibold text-[#4B5563] hover:border-[#2563EB]"
+              className="h-10 flex-1 rounded-xl border-2 border-[#E7E3D8] text-sm font-semibold text-[#5F6B63] hover:border-[#14633F]"
             >
               Nanti
             </button>
@@ -76,7 +76,7 @@ export default function InstallPrompt() {
               type="button"
               data-testid="pwa-install-button"
               onClick={install}
-              className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#0B6B52] text-sm font-bold text-white hover:bg-[#08503D]"
+              className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#14633F] text-sm font-bold text-white hover:bg-[#0E4E31]"
             >
               <Download size={15} /> Pasang
             </button>

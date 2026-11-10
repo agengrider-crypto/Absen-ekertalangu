@@ -1,77 +1,106 @@
-// Halaman Maintenance: tampil saat aplikasi sedang dalam perawatan.
-// Murni UI — tidak memanggil API dan tidak mengubah logika apa pun.
+// Halaman Pemeliharaan (Layar 32) — dipakai peserta saat pemeliharaan berlangsung.
+// Tanpa merah: pemeliharaan bukan kesalahan.
 import { useEffect, useState } from "react";
-import { Wrench, RefreshCw, Server, Clock } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Lock, RefreshCw } from "lucide-react";
 import { APP_INFO } from "@/lib/appInfo";
+import { useMaintenance, jamWita } from "@/lib/maintenance";
 
-const MAINTENANCE_KEY = "ekertalangu.maintenance";
+const RELOAD_MS = 60_000;
 
-/** True bila mode maintenance diaktifkan (localStorage atau ?maintenance=1). */
-export function isMaintenanceMode() {
-  try {
-    if (new URLSearchParams(window.location.search).get("maintenance") === "1") return true;
-    return localStorage.getItem(MAINTENANCE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
+export default function Maintenance() {
+  const { ongoing, endAt, message, refresh } = useMaintenance();
+  const [busy, setBusy] = useState(false);
 
-/** Nyalakan / matikan mode maintenance (dipakai untuk pratinjau). */
-export function setMaintenanceMode(on) {
-  try {
-    if (on) localStorage.setItem(MAINTENANCE_KEY, "1");
-    else localStorage.removeItem(MAINTENANCE_KEY);
-  } catch { /* abaikan */ }
-}
-
-export default function Maintenance({ onRetry }) {
-  const [now, setNow] = useState(() => new Date());
-
+  // Muat ulang otomatis tiap 60 detik; bila pemeliharaan selesai, kembali.
   useEffect(() => {
-    const iv = setInterval(() => setNow(new Date()), 30000);
+    const iv = setInterval(async () => {
+      const next = await refresh();
+      if (next && next.state !== "ongoing") {
+        const back = sessionStorage.getItem("ekertalangu.maintenanceBack") || "/roles";
+        sessionStorage.removeItem("ekertalangu.maintenanceBack");
+        window.location.replace(back);
+      }
+    }, RELOAD_MS);
     return () => clearInterval(iv);
-  }, []);
+  }, [refresh]);
 
-  const jam = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  const onReload = async () => {
+    setBusy(true);
+    const next = await refresh();
+    setBusy(false);
+    if (next && next.state !== "ongoing") {
+      const back = sessionStorage.getItem("ekertalangu.maintenanceBack") || "/roles";
+      sessionStorage.removeItem("ekertalangu.maintenanceBack");
+      window.location.replace(back);
+    }
+  };
 
   return (
     <main
       data-testid="maintenance-page"
-      className="flex min-h-screen items-center justify-center bg-[#FAFAF8] px-4 py-10"
+      className="flex min-h-screen flex-col items-center justify-center bg-[#F6F4EE] px-7 py-10 text-center"
     >
       <div className="w-full max-w-md">
-        <div className="rounded-3xl border border-[#E8E8E4] bg-white p-7 text-center shadow-[0_10px_40px_-12px_rgba(17,24,39,0.18)] sm:p-9">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-[#EFF6FF] text-[#2563EB]">
-            <Wrench size={38} strokeWidth={2.2} />
+        {/* Lingkaran ikon kunci inggris */}
+        <div
+          className="mx-auto flex h-[132px] w-[132px] items-center justify-center rounded-full"
+          style={{ backgroundColor: "#E7E3D8" }}
+          aria-hidden="true"
+        >
+          <Lock size={64} strokeWidth={1.8} style={{ color: "#4A5650" }} />
+        </div>
+
+        <h1 className="mt-6 font-heading text-[26px] font-bold leading-tight text-[#14201A]">
+          Lagi dirapikan dulu ya 🛠️
+        </h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-[#5F6B63]">
+          {message || "E-Kertalangu sedang dipelihara supaya absen makin lancar. Mohon ditunggu sebentar ya 🙏"}
+        </p>
+
+        {/* Kartu keterangan */}
+        <div className="mt-6 overflow-hidden rounded-[18px] border bg-white text-left" style={{ borderColor: "#E7E3D8" }}>
+          <div className="flex items-start gap-3 px-4 py-3.5">
+            <span aria-hidden="true" className="text-base leading-6">⏰</span>
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold text-[#14201A]">Perkiraan selesai</div>
+              <div className="text-[13px] text-[#5F6B63]">
+                {endAt ? `Pukul ${jamWita(endAt)} WITA` : "Belum ditentukan"}
+              </div>
+            </div>
           </div>
-
-          <h1 className="mt-5 font-heading text-2xl font-bold leading-tight text-[#111827]">
-            Sedang Dalam Perawatan
-          </h1>
-          <p className="mt-2 text-[15px] leading-relaxed text-[#4B5563]">
-            Aplikasi sedang dalam perawatan. Silakan tunggu beberapa saat lalu coba kembali.
-            Terima kasih atas pengertiannya.
-          </p>
-
-          <div className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-[#F3F4F6] px-3 py-2 text-xs font-medium text-[#6B7280]">
-            <Clock size={14} /> Dicek pukul {jam} WITA
-          </div>
-
-          <button
-            type="button"
-            data-testid="maintenance-retry"
-            onClick={() => (onRetry ? onRetry() : window.location.reload())}
-            className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] text-sm font-bold text-white transition-colors hover:bg-[#1D4ED8]"
-          >
-            <RefreshCw size={17} /> Coba Lagi
-          </button>
-
-          <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-[#9CA3AF]">
-            <Server size={12} /> {APP_INFO.name} · v{APP_INFO.version}
+          <div className="h-px w-full" style={{ backgroundColor: "#E7E3D8" }} aria-hidden="true" />
+          <div className="flex items-start gap-3 px-4 py-3.5">
+            <span aria-hidden="true" className="text-base leading-6">✅</span>
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold text-[#14201A]">Data kamu aman</div>
+              <div className="text-[13px] text-[#5F6B63]">Absen yang sudah tercatat tidak hilang</div>
+            </div>
           </div>
         </div>
 
-        <p className="mt-4 text-center text-[11px] leading-relaxed text-[#9CA3AF]">
+        {/* Satu-satunya blok hijau penuh di halaman */}
+        <button
+          type="button"
+          data-testid="maintenance-retry"
+          onClick={onReload}
+          disabled={busy}
+          className="mt-5 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#14633F] text-[15px] font-bold text-white transition-colors hover:bg-[#0E4E31] disabled:opacity-60"
+        >
+          <RefreshCw size={18} className={busy ? "animate-spin" : undefined} />
+          Muat ulang
+        </button>
+
+        <Link
+          to="/bantuan"
+          className="mt-3 inline-flex min-h-11 items-center justify-center px-3 text-[13px] font-bold text-[#0E4E31] underline underline-offset-4"
+        >
+          Hubungi pengurus
+        </Link>
+
+        <p className="mt-6 text-[11px] leading-relaxed text-[#5F6B63]">
+          {APP_INFO.name} · v{APP_INFO.version}
+          <br />
           {APP_INFO.copyright}
         </p>
       </div>

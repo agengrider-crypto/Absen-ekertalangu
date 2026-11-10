@@ -6,17 +6,17 @@ import { todayIndo } from "./adminUtils";
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
-    <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]" data-testid={`stat-${label}`}>
+    <div className="bg-white rounded-2xl p-5 border border-[#E7E3D8]" data-testid={`stat-${label}`}>
       <div className="flex items-center gap-3">
         <div className="h-11 w-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${color}1a`, color }}>
           <Icon size={22} />
         </div>
         <div>
-          <div className="text-2xl font-bold text-[#111827] leading-none">{value}</div>
-          <div className="text-sm text-[#6B7280] mt-1">{label}</div>
+          <div className="text-2xl font-bold text-[#14201A] leading-none">{value}</div>
+          <div className="text-sm text-[#5F6B63] mt-1">{label}</div>
         </div>
       </div>
-      {sub && <div className="mt-3 text-sm text-[#6B7280]">{sub}</div>}
+      {sub && <div className="mt-3 text-sm text-[#5F6B63]">{sub}</div>}
     </div>
   );
 }
@@ -31,7 +31,7 @@ export default function Dashboard({ user }) {
   }, []);
 
   if (!users) {
-    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={32} /></div>;
+    return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={32} /></div>;
   }
 
   const peserta = users.filter((u) => u.roles?.includes("peserta"));
@@ -43,32 +43,32 @@ export default function Dashboard({ user }) {
   const pending = users.filter((u) => u.status === "pending").length;
 
   const pieData = [
-    { name: "Laki-laki", value: lakiCount, color: "#111114" },
-    { name: "Perempuan", value: perempuanCount, color: "#9CA3AF" },
-    { name: "Belum diisi", value: totalPeserta - lakiCount - perempuanCount, color: "#CBD5E1" },
+    { name: "Laki-laki", value: lakiCount, color: "#14201A" },
+    { name: "Perempuan", value: perempuanCount, color: "#5F6B63" },
+    { name: "Belum diisi", value: totalPeserta - lakiCount - perempuanCount, color: "#D9D4C5" },
   ].filter((d) => d.value > 0);
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-heading text-2xl font-bold text-[#111827]">Selamat Datang, {user?.name?.split(" ")[0] || "Admin"}</h1>
-        <p className="text-[#6B7280] flex items-center gap-1.5 mt-1"><CalendarDays size={16} /> {todayIndo()}</p>
+        <h1 className="font-heading text-2xl font-bold text-[#14201A]">Selamat Datang, {user?.name?.split(" ")[0] || "Admin"}</h1>
+        <p className="text-[#5F6B63] flex items-center gap-1.5 mt-1"><CalendarDays size={16} /> {todayIndo()}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-        <StatCard icon={Users} label="Total Peserta" value={totalPeserta} color="#111114"
+        <StatCard icon={Users} label="Total Peserta" value={totalPeserta} color="#14201A"
           sub={`${lakiCount} Laki-laki · ${perempuanCount} Perempuan`} />
-        <StatCard icon={UserCheck} label="Akun Aktif" value={aktif} color="#0284C7"
+        <StatCard icon={UserCheck} label="Akun Aktif" value={aktif} color="#1D4F91"
           sub={`${pending} menunggu aktivasi`} />
-        <StatCard icon={UserX} label="Akun Nonaktif" value={nonaktif} color="#DC2626" />
-        <StatCard icon={Layers} label="Kelompok / Majelis" value={kelompok.length} color="#7C3AED" />
+        <StatCard icon={UserX} label="Akun Nonaktif" value={nonaktif} color="#A32A2A" />
+        <StatCard icon={Layers} label="Kelompok / Majelis" value={kelompok.length} color="#6D3FC8" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="bg-white rounded-2xl p-6 border border-[#E8E8E4]" data-testid="chart-gender">
-          <h2 className="font-heading font-bold text-[#111827] mb-2">Komposisi Jenis Kelamin</h2>
+        <div className="bg-white rounded-2xl p-6 border border-[#E7E3D8]" data-testid="chart-gender">
+          <h2 className="font-heading font-bold text-[#14201A] mb-2">Komposisi Jenis Kelamin</h2>
           {pieData.length === 0 ? (
-            <p className="text-[#6B7280] py-10 text-center">Belum ada data peserta.</p>
+            <p className="text-[#5F6B63] py-10 text-center">Belum ada data peserta.</p>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
@@ -81,11 +81,11 @@ export default function Dashboard({ user }) {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-[#E8E8E4]" data-testid="upcoming-activities">
-          <h2 className="font-heading font-bold text-[#111827] mb-3">Kegiatan Mendatang</h2>
-          <div className="rounded-xl bg-[#FAFAF8] border border-dashed border-[#D1D5DB] p-6 text-center">
-            <CalendarDays size={28} className="mx-auto text-[#9CA3AF] mb-2" />
-            <p className="text-[#6B7280] text-sm">Modul Kegiatan & Absensi akan aktif pada tahap berikutnya (2C). Statistik kehadiran akan muncul di sini.</p>
+        <div className="bg-white rounded-2xl p-6 border border-[#E7E3D8]" data-testid="upcoming-activities">
+          <h2 className="font-heading font-bold text-[#14201A] mb-3">Kegiatan Mendatang</h2>
+          <div className="rounded-xl bg-[#F6F4EE] border border-dashed border-[#D9D4C5] p-6 text-center">
+            <CalendarDays size={28} className="mx-auto text-[#5F6B63] mb-2" />
+            <p className="text-[#5F6B63] text-sm">Modul Kegiatan & Absensi akan aktif pada tahap berikutnya (2C). Statistik kehadiran akan muncul di sini.</p>
           </div>
         </div>
       </div>

@@ -40,8 +40,8 @@ export default function KodeAbsen() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] flex flex-col">
-      <header className="bg-white border-b border-[#E8E8E4]">
+    <div className="min-h-screen bg-[#F6F4EE] flex flex-col">
+      <header className="bg-white border-b border-[#E7E3D8]">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-center">
           <Logo />
         </div>
@@ -51,17 +51,17 @@ export default function KodeAbsen() {
         <button
           data-testid="kode-absen-back"
           onClick={() => navigate("/login")}
-          className="inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#2563EB] hover:text-[#1D4ED8]"
+          className="inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-[#E7E3D8] bg-white text-[#5F6B63] font-semibold text-sm hover:border-[#14633F] hover:text-[#0E4E31]"
         >
           <ArrowLeft size={16} /> Kembali ke Masuk
         </button>
 
-        <form onSubmit={submit} className="mt-4 bg-white rounded-2xl border border-[#E8E8E4] p-6" data-testid="kode-absen-form">
-          <div className="h-12 w-12 rounded-2xl bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center mx-auto">
+        <form onSubmit={submit} className="mt-4 bg-white rounded-2xl border border-[#E7E3D8] p-6" data-testid="kode-absen-form">
+          <div className="h-12 w-12 rounded-2xl bg-[#E3F3EA] text-[#14633F] flex items-center justify-center mx-auto">
             <KeyRound size={24} />
           </div>
-          <h1 className="font-heading text-xl font-bold text-[#111827] text-center mt-3">Absen dengan Kode</h1>
-          <p className="text-sm text-[#6B7280] text-center mt-1">
+          <h1 className="font-heading text-xl font-bold text-[#14201A] text-center mt-3">Absen dengan Kode</h1>
+          <p className="text-sm text-[#5F6B63] text-center mt-1">
             Masukkan <b>6 digit kode akses</b> kegiatan dari pengurus. Tidak perlu masuk akun.
           </p>
 
@@ -72,21 +72,21 @@ export default function KodeAbsen() {
             inputMode="numeric"
             autoComplete="one-time-code"
             placeholder="------"
-            className="mt-5 w-full h-14 text-center tracking-[0.6em] text-2xl font-bold rounded-xl border-2 border-[#E8E8E4] outline-none focus:border-[#2563EB]"
+            className="mt-5 w-full h-14 text-center tracking-[0.6em] text-2xl font-bold rounded-xl border-2 border-[#14633F] outline-none focus:border-[#14633F]"
           />
-          {err && <p className="mt-2 text-sm text-[#DC2626] text-center" data-testid="kode-absen-error">{err}</p>}
+          {err && <p className="mt-2 text-sm text-[#A32A2A] text-center" data-testid="kode-absen-error">{err}</p>}
 
           <button
             type="submit"
             data-testid="kode-absen-submit"
             disabled={busy}
-            className="mt-4 w-full h-12 rounded-xl bg-[#2563EB] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60"
+            className="mt-4 w-full h-12 rounded-xl bg-[#14633F] text-white font-semibold flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60"
           >
             {busy ? <Loader2 className="animate-spin" size={18} /> : <ScanLine size={18} />} Buka Daftar Peserta
           </button>
         </form>
 
-        <div className="mt-3 bg-[#FAFAF8] border border-[#E8E8E4] rounded-2xl p-4 text-sm text-[#1D4ED8] flex gap-2.5">
+        <div className="mt-3 bg-[#F6F4EE] border border-[#E7E3D8] rounded-2xl p-4 text-sm text-[#0E4E31] flex gap-2.5">
           <Info size={18} className="shrink-0 mt-0.5" />
           <span>
             Kode hanya berlaku selama kegiatan <b>masih berlangsung</b>. Setelah kegiatan

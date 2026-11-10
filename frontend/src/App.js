@@ -19,16 +19,65 @@ import PublicAbsensi from "@/pages/PublicAbsensi";
 import PublicHadir from "@/pages/PublicHadir";
 import KodeAbsen from "@/pages/KodeAbsen";
 import CompleteProfile from "@/pages/CompleteProfile";
-import Maintenance, { isMaintenanceMode } from "@/pages/Maintenance";
+import Maintenance from "@/pages/Maintenance";
 import SplashScreen from "@/components/SplashScreen";
 import InstallPrompt from "@/components/InstallPrompt";
+import { useMaintenance } from "@/lib/maintenance";
 
 function CheckingSession() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#FAFAF8] px-4" role="status">
-      <span className="text-base text-[#4B5563]">Memeriksa sesi akun…</span>
+    <main className="flex min-h-screen items-center justify-center bg-[#F6F4EE] px-4" role="status">
+      <span className="text-base text-[#5F6B63]">Memeriksa sesi akun…</span>
     </main>
   );
+}
+
+/**
+ * Gerbang pemeliharaan (Layar 32).
+ * Peserta diarahkan ke /pemeliharaan saat pemeliharaan berlangsung.
+ * Admin & Pengurus tetap bisa masuk. Halaman login, /pemeliharaan, dan
+ * halaman publik (rekap/laporan/absen) dikecualikan.
+ */
+const MAINTENANCE_EXEMPT = [
+  "/pemeliharaan",
+  "/maintenance",
+  "/login",
+  "/register",
+  "/activate",
+  "/lengkapi-akun",
+  "/rekap",
+  "/rekap-gabungan",
+  "/rekap-bulanan",
+  "/rekap-harian",
+  "/musyawarah",
+  "/laporan",
+  "/laporan-peserta",
+  "/absen",
+  "/absensi",
+  "/hadir",
+  "/absen-kode",
+];
+
+function MaintenanceGate({ children }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  const { ongoing } = useMaintenance();
+
+  if (!ongoing) return children;
+  if (MAINTENANCE_EXEMPT.some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`))) {
+    return children;
+  }
+  const roles = user?.roles || [];
+  if (roles.includes("admin") || roles.includes("pengurus")) return children;
+
+  try {
+    sessionStorage.setItem(
+      "ekertalangu.maintenanceBack",
+      `${location.pathname}${location.search}`,
+    );
+  } catch { /* abaikan */ }
+
+  return <Navigate to="/pemeliharaan" replace />;
 }
 
 /**
@@ -91,6 +140,7 @@ function AppRoutes() {
       <Route path="/absen-kode" element={<KodeAbsen />} />
       <Route path="/roles" element={<Protected><RoleDashboard /></Protected>} />
       <Route path="/area/:role" element={<Protected><RoleArea /></Protected>} />
+      <Route path="/pemeliharaan" element={<Maintenance />} />
       <Route path="/maintenance" element={<Maintenance />} />
       <Route path="*" element={<Navigate to="/roles" replace />} />
     </Routes>
@@ -98,20 +148,14 @@ function AppRoutes() {
 }
 
 function App() {
-  // Mode maintenance: aktif lewat ?maintenance=1 atau localStorage.
-  if (isMaintenanceMode()) {
-    return (
-      <div className="App">
-        <Maintenance />
-      </div>
-    );
-  }
   return (
     <div className="App">
       <SplashScreen />
       <AuthProvider>
         <BrowserRouter>
-          <AppRoutes />
+          <MaintenanceGate>
+            <AppRoutes />
+          </MaintenanceGate>
         </BrowserRouter>
         <Toaster position="top-center" richColors />
       </AuthProvider>

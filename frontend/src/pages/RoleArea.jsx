@@ -9,9 +9,9 @@ import PesertaArea from "@/pages/PesertaArea";
 import { setActiveRole } from "@/lib/roles";
 
 const META = {
-  admin: { icon: Shield, title: "Area Adminator", color: "#9CA3AF" },
-  pengurus: { icon: Users, title: "Area Pengurus", color: "#0284C7" },
-  peserta: { icon: UserCheck, title: "Area Peserta", color: "#111114" },
+  admin: { icon: Shield, title: "Area Administrator", color: "#5F6B63" },
+  pengurus: { icon: Users, title: "Area Pengurus", color: "#1D4F91" },
+  peserta: { icon: UserCheck, title: "Area Peserta", color: "#14201A" },
 };
 
 export default function RoleArea() {
@@ -47,13 +47,13 @@ export default function RoleArea() {
   const Icon = meta.icon;
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8]">
-      <header className="sticky top-0 z-40 bg-[#FAFAF8]/90 backdrop-blur-md border-b border-[#E8E8E4]">
+    <div className="min-h-screen bg-[#F6F4EE]">
+      <header className="sticky top-0 z-40 bg-[#F6F4EE]/90 backdrop-blur-md border-b border-[#E7E3D8]">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
             data-testid="button-back-roles"
             onClick={() => navigate("/roles")}
-            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#2563EB] hover:text-[#1D4ED8] transition-colors"
+            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E7E3D8] bg-white text-[#5F6B63] font-semibold text-sm hover:border-[#14633F] hover:text-[#0E4E31] transition-colors"
           >
             <ArrowLeft size={18} /> Pilih Peran
           </button>
@@ -67,16 +67,16 @@ export default function RoleArea() {
             <Icon size={26} />
           </div>
           <div>
-            <h1 className="font-heading text-2xl font-bold text-[#111827]">{meta.title}</h1>
-            <p className="text-[#6B7280] text-sm">Masuk sebagai {user.name}</p>
+            <h1 className="font-heading text-2xl font-bold text-[#14201A]">{meta.title}</h1>
+            <p className="text-[#5F6B63] text-sm">Masuk sebagai {user.name}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-8 border border-[#E8E8E4] text-center" data-testid="area-placeholder">
-          <div className="inline-flex items-center gap-2 bg-[#EFF6FF] text-[#1D4ED8] px-3 py-1 rounded-full text-sm font-semibold mb-4">
+        <div className="bg-white rounded-2xl p-8 border border-[#E7E3D8] text-center" data-testid="area-placeholder">
+          <div className="inline-flex items-center gap-2 bg-[#E3F3EA] text-[#0E4E31] px-3 py-1 rounded-full text-sm font-semibold mb-4">
             Segera Hadir
           </div>
-          <p className="text-[#4B5563] text-lg max-w-xl mx-auto">
+          <p className="text-[#5F6B63] text-lg max-w-xl mx-auto">
             {role === "pengurus"
               ? "Fitur buka sesi presensi, verifikasi kehadiran, dan rekap harian akan hadir pada fase berikutnya."
               : "Fitur presensi via QR, jadwal pengajian, dan riwayat kehadiran akan hadir pada fase berikutnya."}

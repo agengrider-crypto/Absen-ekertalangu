@@ -8,7 +8,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { tanggalSingkat, TYPE_LABEL } from "./kegiatanUtils";
 import TamuLaporanList from "@/components/TamuLaporanList";
 
-const inp = "h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white";
+const inp = "h-11 px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 
 function todayYmd() {
   const n = new Date();
@@ -78,82 +78,82 @@ export default function LaporanView() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-[#1D4ED8] font-bold text-lg">
+        <div className="flex items-center gap-2 text-[#0E4E31] font-bold text-lg">
           <FileBarChart2 size={20} /> Laporan Kehadiran
         </div>
         <div className="flex items-center gap-2">
           <button data-testid="button-buat-link-laporan" onClick={buatLink} disabled={sharing}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#2563EB] text-white font-semibold text-sm hover:bg-[#1D4ED8] disabled:opacity-60">
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl bg-[#14633F] text-white font-semibold text-sm hover:bg-[#0E4E31] disabled:opacity-60">
             {sharing ? <Loader2 className="animate-spin" size={16} /> : <LinkIcon size={16} />} Buat Link Laporan
           </button>
           <button data-testid="button-export-excel" onClick={() => doExport("excel")} disabled={!!exporting}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm hover:bg-[#EFF6FF] disabled:opacity-50">
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm hover:bg-[#E3F3EA] disabled:opacity-50">
             {exporting === "excel" ? <Loader2 className="animate-spin" size={16} /> : <FileSpreadsheet size={16} />} Excel
           </button>
           <button data-testid="button-export-pdf" onClick={() => doExport("pdf")} disabled={!!exporting}
-            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm hover:bg-[#EFF6FF] disabled:opacity-50">
+            className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm hover:bg-[#E3F3EA] disabled:opacity-50">
             {exporting === "pdf" ? <Loader2 className="animate-spin" size={16} /> : <FileText size={16} />} PDF
           </button>
         </div>
       </div>
 
       {/* Tabs + range */}
-      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4 mb-5">
-        <div className="flex items-center gap-1 bg-[#F3F4F6] rounded-xl p-1 w-fit mb-3">
+      <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4 mb-5">
+        <div className="flex items-center gap-1 bg-[#F0EEE6] rounded-xl p-1 w-fit mb-3">
           {[["harian", "Harian"], ["bulanan", "Bulanan"], ["custom", "Rentang"]].map(([v, l]) => (
             <button key={v} data-testid={`tab-${v}`} onClick={() => setPreset(v)}
-              className={`h-9 px-4 rounded-lg text-sm font-semibold ${tab === v ? "bg-white text-[#1D4ED8] shadow-sm" : "text-[#6B7280]"}`}>{l}</button>
+              className={`h-9 px-4 rounded-lg text-sm font-semibold ${tab === v ? "bg-white text-[#0E4E31] shadow-sm" : "text-[#5F6B63]"}`}>{l}</button>
           ))}
         </div>
         <div className="flex items-end gap-3 flex-wrap">
           <div>
-            <label className="block text-xs font-semibold text-[#6B7280] mb-1">Dari</label>
+            <label className="block text-xs font-semibold text-[#5F6B63] mb-1">Dari</label>
             <input data-testid="laporan-from" type="date" value={from} onChange={(e) => { setFrom(e.target.value); setTab("custom"); }} className={inp} />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#6B7280] mb-1">Sampai</label>
+            <label className="block text-xs font-semibold text-[#5F6B63] mb-1">Sampai</label>
             <input data-testid="laporan-to" type="date" value={to} onChange={(e) => { setTo(e.target.value); setTab("custom"); }} className={inp} />
           </div>
         </div>
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>
       ) : data === false ? (
-        <div className="p-10 text-center text-[#6B7280]">Gagal memuat laporan.</div>
+        <div className="p-10 text-center text-[#5F6B63]">Gagal memuat laporan.</div>
       ) : (
         <div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-5">
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#1D4ED8]">{s.ratio}%</div><div className="text-sm text-[#6B7280] mt-1">Kehadiran</div></div>
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#1D4ED8]">{s.hadir}</div><div className="text-sm text-[#6B7280] mt-1">Total Hadir</div></div>
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#92400E]">{s.izin}</div><div className="text-sm text-[#6B7280] mt-1">Total Izin</div></div>
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#1D4ED8]">{s.sakit}</div><div className="text-sm text-[#6B7280] mt-1">Total Sakit</div></div>
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#991B1B]">{s.alpha}</div><div className="text-sm text-[#6B7280] mt-1">Total Alpha</div></div>
-            <div className="bg-white rounded-2xl p-5 border border-[#E8E8E4]"><div className="text-2xl font-bold text-[#6B7280]">{s.belum_diabsen}</div><div className="text-sm text-[#6B7280] mt-1">Belum Diabsen</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E7E3D8]"><div className="text-2xl font-bold text-[#0E4E31]">{s.ratio}%</div><div className="text-sm text-[#5F6B63] mt-1">Kehadiran</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E7E3D8]"><div className="text-2xl font-bold text-[#0E4E31]">{s.hadir}</div><div className="text-sm text-[#5F6B63] mt-1">Total Hadir</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E7E3D8]"><div className="text-2xl font-bold text-[#6B4500]">{s.izin}</div><div className="text-sm text-[#5F6B63] mt-1">Total Izin</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E7E3D8]"><div className="text-2xl font-bold text-[#1D4F91]">{s.sakit}</div><div className="text-sm text-[#5F6B63] mt-1">Total Sakit</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E7E3D8]"><div className="text-2xl font-bold text-[#A32A2A]">{s.alpha}</div><div className="text-sm text-[#5F6B63] mt-1">Total Alpha</div></div>
+            <div className="bg-white rounded-2xl p-5 border border-[#E7E3D8]"><div className="text-2xl font-bold text-[#5F6B63]">{s.belum_diabsen}</div><div className="text-sm text-[#5F6B63] mt-1">Belum Diabsen</div></div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 mb-5">
-            <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]">
-              <div className="text-sm font-semibold text-[#111827] mb-1">Kehadiran per Jenis Kelamin</div>
-              <div className="flex gap-4 text-sm text-[#4B5563]">
-                <span>Laki-laki: <b className="text-[#1D4ED8]">{data.gender_hadir?.L ?? 0}</b></span>
-                <span>Perempuan: <b className="text-[#9CA3AF]">{data.gender_hadir?.P ?? 0}</b></span>
+            <div className="bg-white rounded-2xl p-4 border border-[#E7E3D8]">
+              <div className="text-sm font-semibold text-[#14201A] mb-1">Kehadiran per Jenis Kelamin</div>
+              <div className="flex gap-4 text-sm text-[#5F6B63]">
+                <span>Laki-laki: <b className="text-[#0E4E31]">{data.gender_hadir?.L ?? 0}</b></span>
+                <span>Perempuan: <b className="text-[#5F6B63]">{data.gender_hadir?.P ?? 0}</b></span>
               </div>
             </div>
-            <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]">
-              <div className="text-sm text-[#6B7280]">Periode <b className="text-[#111827]">{tanggalSingkat(data.date_from)}</b> s/d <b className="text-[#111827]">{tanggalSingkat(data.date_to)}</b> · {data.total_kegiatan} kegiatan · {data.total_peserta} peserta · <b className="text-[#B45309]">{data.total_tamu ?? 0} tamu</b></div>
+            <div className="bg-white rounded-2xl p-4 border border-[#E7E3D8]">
+              <div className="text-sm text-[#5F6B63]">Periode <b className="text-[#14201A]">{tanggalSingkat(data.date_from)}</b> s/d <b className="text-[#14201A]">{tanggalSingkat(data.date_to)}</b> · {data.total_kegiatan} kegiatan · {data.total_peserta} peserta · <b className="text-[#8A5A00]">{data.total_tamu ?? 0} tamu</b></div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid="laporan-table">
-            <div className="px-5 py-3.5 border-b border-[#E8E8E4] flex items-center gap-2 font-bold text-[#111827]"><TrendingUp size={17} /> Rincian per Kegiatan</div>
+          <div className="bg-white rounded-2xl border border-[#E7E3D8] overflow-hidden" data-testid="laporan-table">
+            <div className="px-5 py-3.5 border-b border-[#E7E3D8] flex items-center gap-2 font-bold text-[#14201A]"><TrendingUp size={17} /> Rincian per Kegiatan</div>
             {(!data.per_kegiatan || data.per_kegiatan.length === 0) ? (
-              <div className="p-8 text-center text-[#6B7280] text-sm">Tidak ada kegiatan pada periode ini.</div>
+              <div className="p-8 text-center text-[#5F6B63] text-sm">Tidak ada kegiatan pada periode ini.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-[#FAFAF8] text-[#6B7280] text-left">
+                    <tr className="bg-[#F6F4EE] text-[#5F6B63] text-left">
                       <th className="px-4 py-3 font-semibold">Tanggal</th>
                       <th className="px-4 py-3 font-semibold">Kegiatan</th>
                       <th className="px-4 py-3 font-semibold text-center">Hadir</th>
@@ -164,20 +164,20 @@ export default function LaporanView() {
                       <th className="px-4 py-3 font-semibold text-center">%</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E8E8E4]">
+                  <tbody className="divide-y divide-[#E7E3D8]">
                     {data.per_kegiatan.map((r) => (
                       <tr key={r.id}>
-                        <td className="px-4 py-3 text-[#4B5563] whitespace-nowrap">{tanggalSingkat(r.date)}</td>
+                        <td className="px-4 py-3 text-[#5F6B63] whitespace-nowrap">{tanggalSingkat(r.date)}</td>
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-[#111827]">{r.name}</div>
-                          <div className="text-xs text-[#9CA3AF]">{TYPE_LABEL[r.type]}</div>
+                          <div className="font-semibold text-[#14201A]">{r.name}</div>
+                          <div className="text-xs text-[#5F6B63]">{TYPE_LABEL[r.type]}</div>
                         </td>
-                        <td className="px-4 py-3 text-center text-[#1D4ED8] font-semibold">{r.hadir}</td>
-                        <td className="px-4 py-3 text-center text-[#92400E]">{r.izin}</td>
-                        <td className="px-4 py-3 text-center text-[#1D4ED8]">{r.sakit}</td>
-                        <td className="px-4 py-3 text-center text-[#991B1B]">{r.alpha}</td>
-                        <td className="px-4 py-3 text-center text-[#6B7280]">{r.belum_diabsen}</td>
-                        <td className="px-4 py-3 text-center font-bold text-[#1D4ED8]">{r.ratio}%</td>
+                        <td className="px-4 py-3 text-center text-[#0E4E31] font-semibold">{r.hadir}</td>
+                        <td className="px-4 py-3 text-center text-[#6B4500]">{r.izin}</td>
+                        <td className="px-4 py-3 text-center text-[#1D4F91]">{r.sakit}</td>
+                        <td className="px-4 py-3 text-center text-[#A32A2A]">{r.alpha}</td>
+                        <td className="px-4 py-3 text-center text-[#5F6B63]">{r.belum_diabsen}</td>
+                        <td className="px-4 py-3 text-center font-bold text-[#0E4E31]">{r.ratio}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -216,32 +216,32 @@ function PesertaLaporanList({ rows }) {
     return acc;
   }, {});
   const FILTERS = [
-    { key: "semua", label: "Semua", desc: "seluruh peserta", cls: "bg-[#2563EB] text-white" },
-    { key: "rajin", label: "Rajin Kegiatan", desc: "kehadiran ≥ 80%", cls: "bg-[#047857] text-white" },
-    { key: "cukup", label: "Cukup", desc: "kehadiran 50–79%", cls: "bg-[#B45309] text-white" },
-    { key: "jarang", label: "Jarang", desc: "kehadiran < 50%", cls: "bg-[#DC2626] text-white" },
-    { key: "belum", label: "Belum Pernah Hadir", desc: "0 kehadiran", cls: "bg-[#4B5563] text-white" },
+    { key: "semua", label: "Semua", desc: "seluruh peserta", cls: "bg-[#14633F] text-white" },
+    { key: "rajin", label: "Rajin Kegiatan", desc: "kehadiran ≥ 80%", cls: "bg-[#14633F] text-white" },
+    { key: "cukup", label: "Cukup", desc: "kehadiran 50–79%", cls: "bg-[#8A5A00] text-white" },
+    { key: "jarang", label: "Jarang", desc: "kehadiran < 50%", cls: "bg-[#A32A2A] text-white" },
+    { key: "belum", label: "Belum Pernah Hadir", desc: "0 kehadiran", cls: "bg-[#5F6B63] text-white" },
   ];
   const list = filter === "semua" ? rows : rows.filter((p) => bucket(p) === filter);
   const active = FILTERS.find((x) => x.key === filter);
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden mt-5" data-testid="laporan-per-peserta">
+    <div className="bg-white rounded-2xl border border-[#E7E3D8] overflow-hidden mt-5" data-testid="laporan-per-peserta">
       <button
         data-testid="laporan-peserta-toggle"
         onClick={() => setOpen((v) => !v)}
-        className="w-full px-5 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8]"
+        className="w-full px-5 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#F6F4EE]"
       >
-        <span className="flex items-center gap-2 font-bold text-[#111827]">
-          <Users size={17} className="text-[#1D4ED8]" /> Rekap per Peserta
-          <span className="text-xs font-medium text-[#6B7280]">({rows.length})</span>
+        <span className="flex items-center gap-2 font-bold text-[#14201A]">
+          <Users size={17} className="text-[#0E4E31]" /> Rekap per Peserta
+          <span className="text-xs font-medium text-[#5F6B63]">({rows.length})</span>
         </span>
-        <span className="text-sm font-semibold text-[#1D4ED8]">{open ? "Tutup" : "Lihat"}</span>
+        <span className="text-sm font-semibold text-[#0E4E31]">{open ? "Tutup" : "Lihat"}</span>
       </button>
       {open && (
-        <div className="border-t border-[#E8E8E4]">
-          <div className="p-4 bg-[#FAFAF8] border-b border-[#E8E8E4]" data-testid="laporan-filter-keaktifan">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#9CA3AF] mb-2">Filter keaktifan</div>
+        <div className="border-t border-[#E7E3D8]">
+          <div className="p-4 bg-[#F6F4EE] border-b border-[#E7E3D8]" data-testid="laporan-filter-keaktifan">
+            <div className="text-xs font-bold uppercase tracking-wide text-[#5F6B63] mb-2">Filter keaktifan</div>
             <div className="flex flex-wrap gap-2">
               {FILTERS.map((ft) => {
                 const on = filter === ft.key;
@@ -252,15 +252,15 @@ function PesertaLaporanList({ rows }) {
                     data-testid={`laporan-filter-${ft.key}`}
                     onClick={() => setFilter(ft.key)}
                     className={`h-10 px-3.5 rounded-xl border-2 text-xs sm:text-sm font-semibold transition-colors ${
-                      on ? `${ft.cls} border-transparent` : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#2563EB] hover:text-[#1D4ED8]"
+                      on ? `${ft.cls} border-transparent` : "bg-white text-[#5F6B63] border-[#E7E3D8] hover:border-[#14633F] hover:text-[#0E4E31]"
                     }`}
                   >
-                    {ft.label} <span className={on ? "text-white/85" : "text-[#9CA3AF]"}>({n})</span>
+                    {ft.label} <span className={on ? "text-white/85" : "text-[#5F6B63]"}>({n})</span>
                   </button>
                 );
               })}
             </div>
-            <p className="text-[11px] text-[#6B7280] mt-2">
+            <p className="text-[11px] text-[#5F6B63] mt-2">
               Menampilkan <b>{list.length}</b> peserta · kategori <b>{active?.label}</b> ({active?.desc}).
               Persen dihitung dari kehadiran dibagi jumlah pertemuan yang wajib diikuti peserta tersebut.
             </p>
@@ -268,7 +268,7 @@ function PesertaLaporanList({ rows }) {
           <div className="overflow-x-auto max-h-[52vh] overflow-y-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0">
-              <tr className="bg-[#FAFAF8] text-[#9CA3AF] text-left text-[11px] uppercase tracking-wide">
+              <tr className="bg-[#F6F4EE] text-[#5F6B63] text-left text-[11px] uppercase tracking-wide">
                 <th className="px-4 py-2.5 font-bold">Nama</th>
                 <th className="px-4 py-2.5 font-bold text-center w-20">Hadir</th>
                 <th className="px-4 py-2.5 font-bold text-center w-20">Izin</th>
@@ -278,27 +278,27 @@ function PesertaLaporanList({ rows }) {
                 <th className="px-4 py-2.5 font-bold text-right w-20">%</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#ECECE8]">
+            <tbody className="divide-y divide-[#E7E3D8]">
               {list.map((p, i) => (
                 <tr key={i} data-testid={`laporan-peserta-row-${i}`}>
                   <td className="px-4 py-2.5">
-                    <div className="font-medium text-[#111827]">{p.name}</div>
+                    <div className="font-medium text-[#14201A]">{p.name}</div>
                     {p.account_status === "pending" && (
-                      <div className="text-[11px] font-semibold text-[#92400E] inline-flex items-center gap-1 mt-0.5">
+                      <div className="text-[11px] font-semibold text-[#6B4500] inline-flex items-center gap-1 mt-0.5">
                         <AlertTriangle size={11} /> Belum aktivasi
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#1D4ED8] font-semibold">{p.hadir}</td>
-                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#92400E]">{p.izin}</td>
-                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#1D4ED8]">{p.sakit}</td>
-                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#991B1B]">{p.alpha}</td>
-                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#6B7280]">{p.belum_diabsen}</td>
-                  <td className="px-4 py-2.5 text-right font-bold text-[#1D4ED8]">{p.ratio}%</td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#0E4E31] font-semibold">{p.hadir}</td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#6B4500]">{p.izin}</td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#1D4F91]">{p.sakit}</td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#A32A2A]">{p.alpha}</td>
+                  <td className="px-4 py-2.5 text-center font-mono tabular-nums text-[#5F6B63]">{p.belum_diabsen}</td>
+                  <td className="px-4 py-2.5 text-right font-bold text-[#0E4E31]">{p.ratio}%</td>
                 </tr>
               ))}
               {list.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Tidak ada peserta pada kategori ini.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-[#5F6B63]">Tidak ada peserta pada kategori ini.</td></tr>
               )}
             </tbody>
           </table>
@@ -315,22 +315,22 @@ function LaporanLinkModal({ data, onClose }) {
     // Fase 7: template WhatsApp BAKU dikirim dari backend (wa_text).
     const judul = (data.title || "Laporan Kehadiran").replace(/^laporan\s+/i, "").toLowerCase();
     const text = data.wa_text
-      || `Assalamu'alaikum warahmatullahi wabarakatuh\n\nBerikut laporan ${judul}\n${data.link}\n\nAlhamdulillah, jazakumullahu khoiro.`;
+      || `Berikut laporan ${judul}\n${data.link}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/45" onClick={onClose} />
+      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={onClose} />
       <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid="modal-laporan-link">
-        <div className="sticky top-0 bg-white border-b border-[#E8E8E4] px-5 py-4 flex items-center justify-between">
-          <h3 className="font-heading font-bold text-[#111827]">Tautan Laporan Publik</h3>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
+        <div className="sticky top-0 bg-white border-b border-[#E7E3D8] px-5 py-4 flex items-center justify-between">
+          <h3 className="font-heading font-bold text-[#14201A]">Tautan Laporan Publik</h3>
+          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
         </div>
         <div className="p-5">
-          <div className="mt-3 bg-[#FAFAF8] border border-[#E8E8E4] rounded-xl p-3 text-left">
-            <p className="text-sm font-semibold text-[#1D4ED8]">{data.title}</p>
-            <p className="text-xs text-[#4B5563] mt-1 leading-relaxed">
+          <div className="mt-3 bg-[#F6F4EE] border border-[#E7E3D8] rounded-xl p-3 text-left">
+            <p className="text-sm font-semibold text-[#0E4E31]">{data.title}</p>
+            <p className="text-xs text-[#5F6B63] mt-1 leading-relaxed">
               Siapa pun yang membuka tautan ini <b>langsung melihat laporannya tanpa perlu login</b>.
               Tautan bersifat <b>permanen</b> untuk periode {tanggalSingkat(data.date_from)} s/d {tanggalSingkat(data.date_to)}.
             </p>
@@ -340,13 +340,13 @@ function LaporanLinkModal({ data, onClose }) {
             target="_blank"
             rel="noreferrer"
             data-testid="laporan-link-open"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#1D4ED8] hover:underline break-all"
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E4E31] hover:underline break-all"
           >
             <ExternalLink size={14} className="shrink-0" /> {data.link}
           </a>
           <div className="grid grid-cols-2 gap-2 mt-4">
-            <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#EFF6FF]"><Copy size={16} /> Salin Tautan</button>
-            <button data-testid="laporan-link-wa" onClick={shareWa} className="h-11 rounded-xl bg-[#25D366] text-white font-bold flex items-center justify-center gap-2 hover:brightness-95">
+            <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#E3F3EA]"><Copy size={16} /> Salin Tautan</button>
+            <button data-testid="laporan-link-wa" onClick={shareWa} className="h-11 rounded-xl bg-[#14633F] text-white font-bold flex items-center justify-center gap-2 hover:brightness-95">
               <Send size={18} /> Bagikan Tautan via WhatsApp
             </button>
           </div>

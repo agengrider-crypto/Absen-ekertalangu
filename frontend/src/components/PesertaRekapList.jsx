@@ -3,12 +3,12 @@ import { ChevronDown, Search, UserRound, AlertTriangle } from "lucide-react";
 import { hhmm } from "@/pages/admin/kegiatanUtils";
 
 const STATUS_META = {
-  hadir: { label: "Hadir", cls: "bg-[#EFF6FF] text-[#1D4ED8] border-[#D1D5DB]" },
-  izin: { label: "Izin", cls: "bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]" },
-  sakit: { label: "Sakit", cls: "bg-[#DBEAFE] text-[#1D4ED8] border-[#BFDBFE]" },
-  alpha: { label: "Alpha", cls: "bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]" },
-  belum_diabsen: { label: "Belum diabsen", cls: "bg-[#F3F4F6] text-[#4B5563] border-[#E5E7EB]" },
-  optional: { label: "Tidak wajib", cls: "bg-[#ECFEFF] text-[#6366F1] border-[#C7D2FE]" },
+  hadir: { label: "Hadir", cls: "bg-[#E3F3EA] text-[#0E4E31] border-[#D9D4C5]" },
+  izin: { label: "Izin", cls: "bg-[#FBF1D6] text-[#6B4500] border-[#EAD596]" },
+  sakit: { label: "Sakit", cls: "bg-[#E3EEFB] text-[#1D4F91] border-[#E3EEFB]" },
+  alpha: { label: "Alpha", cls: "bg-[#FBE5E3] text-[#A32A2A] border-[#FBE5E3]" },
+  belum_diabsen: { label: "Belum diabsen", cls: "bg-[#F0EEE6] text-[#5F6B63] border-[#E7E3D8]" },
+  optional: { label: "Tidak wajib", cls: "bg-[#D9F2F4] text-[#6D3FC8] border-[#ECE4FB]" },
 };
 
 function statusOf(row) {
@@ -52,42 +52,42 @@ export default function PesertaRekapList({
   const shown = counts || { total: rows.length, ...tally };
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden" data-testid={testid}>
+    <div className="bg-white rounded-2xl border border-[#E7E3D8] overflow-hidden" data-testid={testid}>
       {/* Header dropdown */}
       <button
         data-testid={`${testid}-toggle`}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#FAFAF8] transition-colors"
+        className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#F6F4EE] transition-colors"
       >
         <span className="flex items-center gap-2.5 min-w-0">
-          <span className="h-9 w-9 shrink-0 rounded-xl bg-[#EFF6FF] text-[#1D4ED8] flex items-center justify-center">
+          <span className="h-9 w-9 shrink-0 rounded-xl bg-[#E3F3EA] text-[#0E4E31] flex items-center justify-center">
             <UserRound size={18} />
           </span>
           <span className="min-w-0">
-            <span className="block font-bold text-[#111827] text-[15px]">{title}</span>
-            <span className="block text-xs text-[#6B7280]">
+            <span className="block font-bold text-[#14201A] text-[15px]">{title}</span>
+            <span className="block text-xs text-[#5F6B63]">
               {shown.total} peserta · Hadir {shown.hadir} · Izin {shown.izin} · Sakit {shown.sakit || 0}
               {" · "}Alpha {shown.alpha} · Belum diabsen {shown.belum_diabsen || 0}
             </span>
           </span>
         </span>
-        <ChevronDown size={20} className={`shrink-0 text-[#6B7280] transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={20} className={`shrink-0 text-[#5F6B63] transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
-        <div className="border-t border-[#E8E8E4]" data-testid={`${testid}-body`}>
+        <div className="border-t border-[#E7E3D8]" data-testid={`${testid}-body`}>
           {/* Filter + cari */}
-          <div className="p-3 space-y-2.5 bg-[#FAFAF8]">
+          <div className="p-3 space-y-2.5 bg-[#F6F4EE]">
             {searchable && (
               <div className="relative">
-                <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+                <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
                 <input
                   data-testid={`${testid}-search`}
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari nama peserta..."
-                  className="w-full h-11 pl-11 pr-4 rounded-xl border-2 border-[#E8E8E4] bg-white text-sm outline-none focus:border-[#2563EB]"
+                  className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#8A948D] bg-white text-sm outline-none focus:border-[#14633F]"
                 />
               </div>
             )}
@@ -106,8 +106,8 @@ export default function PesertaRekapList({
                   onClick={() => setFilter(k)}
                   className={`h-8 px-3 rounded-full text-xs font-semibold border transition-colors ${
                     filter === k
-                      ? "bg-[#2563EB] text-white border-[#2563EB]"
-                      : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#2563EB]"
+                      ? "bg-[#14633F] text-white border-[#14633F]"
+                      : "bg-white text-[#5F6B63] border-[#E7E3D8] hover:border-[#14633F]"
                   }`}
                 >
                   {label}
@@ -117,15 +117,15 @@ export default function PesertaRekapList({
           </div>
 
           {/* Judul kolom */}
-          <div className="px-4 py-2 grid grid-cols-[1fr_auto_auto] items-center gap-4 bg-[#FAFAF8] border-y border-[#E8E8E4] text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
+          <div className="px-4 py-2 grid grid-cols-[1fr_auto_auto] items-center gap-4 bg-[#F6F4EE] border-y border-[#E7E3D8] text-[11px] font-bold uppercase tracking-wide text-[#5F6B63]">
             <span>Nama</span>
             <span className="w-14 text-center">Jam</span>
             <span className="w-20 text-right">Status</span>
           </div>
 
-          <ul className="divide-y divide-[#ECECE8] max-h-[52vh] overflow-y-auto">
+          <ul className="divide-y divide-[#E7E3D8] max-h-[52vh] overflow-y-auto">
             {filtered.length === 0 ? (
-              <li className="px-4 py-8 text-center text-sm text-[#9CA3AF]">Tidak ada peserta yang cocok.</li>
+              <li className="px-4 py-8 text-center text-sm text-[#5F6B63]">Tidak ada peserta yang cocok.</li>
             ) : filtered.map((r, i) => {
               const status = statusOf(r);
               const st = STATUS_META[status] || STATUS_META.belum_diabsen;
@@ -137,14 +137,14 @@ export default function PesertaRekapList({
                   className="px-4 py-2.5 grid grid-cols-[1fr_auto_auto] items-center gap-4"
                 >
                   <span className="min-w-0">
-                    <span className="block font-medium text-[#111827] text-sm truncate">{r.name}</span>
+                    <span className="block font-medium text-[#14201A] text-sm truncate">{r.name}</span>
                     {pending && (
-                      <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[#92400E]">
+                      <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[#6B4500]">
                         <AlertTriangle size={11} /> Belum aktivasi
                       </span>
                     )}
                   </span>
-                  <span className="w-14 text-center font-mono text-[13px] tabular-nums text-[#4B5563]">
+                  <span className="w-14 text-center font-mono text-[13px] tabular-nums text-[#5F6B63]">
                     {r.status === "hadir" && r.arrival_time ? hhmm(r.arrival_time) : "—"}
                   </span>
                   <span className="w-20 flex justify-end">

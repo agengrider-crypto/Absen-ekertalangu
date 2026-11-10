@@ -38,10 +38,10 @@ export function DeviceIcon({ kind, size = 16, className = "" }) {
 }
 
 export function RoleBadges({ roles }) {
-  const meta = { admin: "bg-[#FEF3C7] text-[#92400E]", pengurus: "bg-[#CFFAFE] text-[#155E75]", peserta: "bg-[#EFF6FF] text-[#1D4ED8]" };
+  const meta = { admin: "bg-[#FBF1D6] text-[#6B4500]", pengurus: "bg-[#D9F2F4] text-[#1D4F91]", peserta: "bg-[#E3F3EA] text-[#0E4E31]" };
   return (
     <span className="inline-flex gap-1 flex-wrap">
-      {(roles || []).map((r) => <span key={r} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${meta[r] || "bg-[#F3F4F6] text-[#4B5563]"}`}>{r}</span>)}
+      {(roles || []).map((r) => <span key={r} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${meta[r] || "bg-[#F0EEE6] text-[#5F6B63]"}`}>{r}</span>)}
     </span>
   );
 }
@@ -112,48 +112,48 @@ export default function PantauLoginView() {
   return (
     <div data-testid="pantau-login-view">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-        <div className="flex items-center gap-2 text-[#1D4ED8] font-bold text-lg">
+        <div className="flex items-center gap-2 text-[#0E4E31] font-bold text-lg">
           <MonitorSmartphone size={20} /> Pantau Login
         </div>
         <button data-testid="pantau-refresh" onClick={() => load(true)} disabled={refreshing}
-          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#E8E8E4] bg-white text-[#4B5563] font-semibold text-sm hover:border-[#2563EB] hover:text-[#1D4ED8] disabled:opacity-60">
+          className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border-2 border-[#E7E3D8] bg-white text-[#5F6B63] font-semibold text-sm hover:border-[#14633F] hover:text-[#0E4E31] disabled:opacity-60">
           <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} /> Muat ulang
         </button>
       </div>
 
       {data === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>
       ) : data === false ? (
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-10 text-center">
-          <p className="text-sm text-[#DC2626] mb-3" data-testid="pantau-error">{err}</p>
-          <button onClick={() => load()} className="h-10 px-4 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm">Coba lagi</button>
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-10 text-center">
+          <p className="text-sm text-[#A32A2A] mb-3" data-testid="pantau-error">{err}</p>
+          <button onClick={() => load()} className="h-10 px-4 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm">Coba lagi</button>
         </div>
       ) : (
         <>
           {/* Ringkasan */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4" data-testid="pantau-summary">
-            <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
-              <div className="flex items-center gap-2 text-[#6B7280] text-xs font-semibold"><LogIn size={14} /> Login hari ini</div>
-              <div className="text-2xl font-bold text-[#111827] mt-1">{s.today_logins}</div>
-              <div className="text-xs text-[#6B7280]">{s.today_users} akun berbeda</div>
+            <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4">
+              <div className="flex items-center gap-2 text-[#5F6B63] text-xs font-semibold"><LogIn size={14} /> Login hari ini</div>
+              <div className="text-2xl font-bold text-[#14201A] mt-1">{s.today_logins}</div>
+              <div className="text-xs text-[#5F6B63]">{s.today_users} akun berbeda</div>
             </div>
-            <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
-              <div className="flex items-center gap-2 text-[#6B7280] text-xs font-semibold"><Users size={14} /> Peserta pernah login</div>
-              <div className="text-2xl font-bold text-[#1D4ED8] mt-1">{s.sudah_login} <span className="text-sm font-semibold text-[#6B7280]">/ {s.total_peserta}</span></div>
-              <div className="text-xs text-[#6B7280]">{s.ratio_login}% dari seluruh peserta</div>
+            <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4">
+              <div className="flex items-center gap-2 text-[#5F6B63] text-xs font-semibold"><Users size={14} /> Peserta pernah login</div>
+              <div className="text-2xl font-bold text-[#0E4E31] mt-1">{s.sudah_login} <span className="text-sm font-semibold text-[#5F6B63]">/ {s.total_peserta}</span></div>
+              <div className="text-xs text-[#5F6B63]">{s.ratio_login}% dari seluruh peserta</div>
             </div>
-            <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
-              <div className="flex items-center gap-2 text-[#6B7280] text-xs font-semibold"><UserX size={14} /> Belum pernah login</div>
-              <div className="text-2xl font-bold text-[#B45309] mt-1">{s.belum_login}</div>
-              <div className="text-xs text-[#6B7280]">perlu didampingi masuk aplikasi</div>
+            <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4">
+              <div className="flex items-center gap-2 text-[#5F6B63] text-xs font-semibold"><UserX size={14} /> Belum pernah login</div>
+              <div className="text-2xl font-bold text-[#8A5A00] mt-1">{s.belum_login}</div>
+              <div className="text-xs text-[#5F6B63]">perlu didampingi masuk aplikasi</div>
             </div>
-            <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
-              <div className="flex items-center gap-2 text-[#6B7280] text-xs font-semibold"><CalendarDays size={14} /> 7 hari terakhir (akun/hari)</div>
+            <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4">
+              <div className="flex items-center gap-2 text-[#5F6B63] text-xs font-semibold"><CalendarDays size={14} /> 7 hari terakhir (akun/hari)</div>
               <div className="flex items-end gap-1 h-12 mt-2" data-testid="pantau-tren">
                 {(data.tren || []).map((x) => (
                   <div key={x.date} className="flex-1 flex flex-col items-center gap-0.5" title={`${x.date}: ${x.users} akun, ${x.logins} login`}>
-                    <div className="w-full rounded-t bg-[#2563EB]/80" style={{ height: `${Math.max(6, (x.users / maxTren) * 40)}px` }} />
-                    <span className="text-[9px] text-[#9CA3AF]">{x.date.slice(8)}</span>
+                    <div className="w-full rounded-t bg-[#14633F]/80" style={{ height: `${Math.max(6, (x.users / maxTren) * 40)}px` }} />
+                    <span className="text-[9px] text-[#5F6B63]">{x.date.slice(8)}</span>
                   </div>
                 ))}
               </div>
@@ -161,21 +161,21 @@ export default function PantauLoginView() {
           </div>
 
           {/* Filter */}
-          <div className="bg-white rounded-2xl border border-[#E8E8E4] p-3 mb-4 flex flex-col lg:flex-row gap-2 lg:items-center">
+          <div className="bg-white rounded-2xl border border-[#E7E3D8] p-3 mb-4 flex flex-col lg:flex-row gap-2 lg:items-center">
             <div className="relative flex-1 min-w-[220px]">
-              <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+              <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
               <input data-testid="pantau-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama peserta..."
-                className="w-full h-11 pl-10 pr-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white" />
+                className="w-full h-11 pl-10 pr-3 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white" />
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <input data-testid="pantau-date-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                className="h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white" />
-              <span className="text-xs text-[#9CA3AF]">s/d</span>
+                className="h-11 px-3 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white" />
+              <span className="text-xs text-[#5F6B63]">s/d</span>
               <input data-testid="pantau-date-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                className="h-11 px-3 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white" />
+                className="h-11 px-3 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white" />
               {[["hari-ini", "Hari ini"], ["7-hari", "7 hari"], ["semua", "Semua"]].map(([k, l]) => (
                 <button key={k} type="button" data-testid={`pantau-quick-${k}`} onClick={() => quick(k)}
-                  className="h-9 px-3 rounded-full border-2 border-[#E8E8E4] bg-white text-xs font-semibold text-[#4B5563] hover:border-[#2563EB] hover:text-[#1D4ED8]">{l}</button>
+                  className="h-9 px-3 rounded-full border-2 border-[#E7E3D8] bg-white text-xs font-semibold text-[#5F6B63] hover:border-[#14633F] hover:text-[#0E4E31]">{l}</button>
               ))}
             </div>
           </div>
@@ -183,24 +183,24 @@ export default function PantauLoginView() {
           {/* Tabs */}
           <div className="flex gap-2 mb-3">
             <button data-testid="pantau-tab-terbaru" onClick={() => setTab("terbaru")}
-              className={`h-10 px-4 rounded-xl font-semibold text-sm border-2 inline-flex items-center gap-2 ${tab === "terbaru" ? "bg-[#2563EB] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#2563EB]"}`}>
-              <LogIn size={15} /> Login Terbaru <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === "terbaru" ? "bg-white/25" : "bg-[#F3F4F6]"}`}>{data.events.length}</span>
+              className={`h-10 px-4 rounded-xl font-semibold text-sm border-2 inline-flex items-center gap-2 ${tab === "terbaru" ? "bg-[#14633F] text-white border-transparent" : "bg-white text-[#5F6B63] border-[#E7E3D8] hover:border-[#14633F]"}`}>
+              <LogIn size={15} /> Login Terbaru <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === "terbaru" ? "bg-white/25" : "bg-[#F0EEE6]"}`}>{data.events.length}</span>
             </button>
             <button data-testid="pantau-tab-belum" onClick={() => setTab("belum")}
-              className={`h-10 px-4 rounded-xl font-semibold text-sm border-2 inline-flex items-center gap-2 ${tab === "belum" ? "bg-[#B45309] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#B45309]"}`}>
-              <UserX size={15} /> Belum Pernah Login <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === "belum" ? "bg-white/25" : "bg-[#F3F4F6]"}`}>{never.length}</span>
+              className={`h-10 px-4 rounded-xl font-semibold text-sm border-2 inline-flex items-center gap-2 ${tab === "belum" ? "bg-[#8A5A00] text-white border-transparent" : "bg-white text-[#5F6B63] border-[#E7E3D8] hover:border-[#8A5A00]"}`}>
+              <UserX size={15} /> Belum Pernah Login <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === "belum" ? "bg-white/25" : "bg-[#F0EEE6]"}`}>{never.length}</span>
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#E7E3D8] overflow-hidden">
             {tab === "terbaru" ? (
               data.events.length === 0 ? (
-                <div className="p-10 text-center text-[#6B7280] text-sm">Belum ada login pada periode / pencarian ini.</div>
+                <div className="p-10 text-center text-[#5F6B63] text-sm">Belum ada login pada periode / pencarian ini.</div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm" data-testid="pantau-table">
                     <thead>
-                      <tr className="bg-[#FAFAF8] text-[#6B7280] text-left">
+                      <tr className="bg-[#F6F4EE] text-[#5F6B63] text-left">
                         <th className="px-4 py-3 font-semibold">Nama</th>
                         <th className="px-4 py-3 font-semibold">Waktu (WITA)</th>
                         <th className="px-4 py-3 font-semibold hidden sm:table-cell">Perangkat</th>
@@ -209,28 +209,28 @@ export default function PantauLoginView() {
                         <th className="px-4 py-3" />
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E8E8E4]">
+                    <tbody className="divide-y divide-[#E7E3D8]">
                       {data.events.map((e) => (
-                        <tr key={e.id} data-testid={`login-event-${e.id}`} className="hover:bg-[#FAFAF8]">
+                        <tr key={e.id} data-testid={`login-event-${e.id}`} className="hover:bg-[#F6F4EE]">
                           <td className="px-4 py-3">
-                            <div className="font-semibold text-[#111827] flex items-center gap-1.5">
+                            <div className="font-semibold text-[#14201A] flex items-center gap-1.5">
                               {e.name}
-                              {e.is_new_device && <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E]"><AlertTriangle size={10} /> perangkat baru</span>}
+                              {e.is_new_device && <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FBF1D6] text-[#6B4500]"><AlertTriangle size={10} /> perangkat baru</span>}
                             </div>
-                            <div className="text-xs text-[#9CA3AF] sm:hidden inline-flex items-center gap-1"><DeviceIcon kind={e.device?.kind} size={12} /> {e.device?.label || "-"}</div>
+                            <div className="text-xs text-[#5F6B63] sm:hidden inline-flex items-center gap-1"><DeviceIcon kind={e.device?.kind} size={12} /> {e.device?.label || "-"}</div>
                           </td>
-                          <td className="px-4 py-3 text-[#4B5563] whitespace-nowrap">
+                          <td className="px-4 py-3 text-[#5F6B63] whitespace-nowrap">
                             <div className="font-mono text-[13px]">{fmtLoginTime(e.at)}</div>
-                            <div className="text-[11px] text-[#9CA3AF]">{relTime(e.at)}</div>
+                            <div className="text-[11px] text-[#5F6B63]">{relTime(e.at)}</div>
                           </td>
-                          <td className="px-4 py-3 hidden sm:table-cell text-[#4B5563]">
-                            <span className="inline-flex items-center gap-1.5"><DeviceIcon kind={e.device?.kind} size={14} className="text-[#1D4ED8]" /> {e.device?.label || "-"}</span>
+                          <td className="px-4 py-3 hidden sm:table-cell text-[#5F6B63]">
+                            <span className="inline-flex items-center gap-1.5"><DeviceIcon kind={e.device?.kind} size={14} className="text-[#0E4E31]" /> {e.device?.label || "-"}</span>
                           </td>
-                          <td className="px-4 py-3 hidden lg:table-cell text-[#6B7280] font-mono text-xs">{e.ip || "-"}</td>
+                          <td className="px-4 py-3 hidden lg:table-cell text-[#5F6B63] font-mono text-xs">{e.ip || "-"}</td>
                           <td className="px-4 py-3 hidden md:table-cell"><RoleBadges roles={e.roles} /></td>
                           <td className="px-4 py-3 text-right">
                             <button data-testid={`login-detail-${e.user_id}`} onClick={() => setDetailId(e.user_id)}
-                              className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#1D4ED8] font-semibold text-xs hover:border-[#2563EB] hover:bg-[#EFF6FF]">
+                              className="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-[#E7E3D8] text-[#0E4E31] font-semibold text-xs hover:border-[#14633F] hover:bg-[#E3F3EA]">
                               Riwayat <ChevronRight size={14} />
                             </button>
                           </td>
@@ -241,20 +241,20 @@ export default function PantauLoginView() {
                 </div>
               )
             ) : never.length === 0 ? (
-              <div className="p-10 text-center text-[#1D4ED8] text-sm font-semibold" data-testid="pantau-belum-kosong">Semua peserta sudah pernah login.</div>
+              <div className="p-10 text-center text-[#0E4E31] text-sm font-semibold" data-testid="pantau-belum-kosong">Semua peserta sudah pernah login.</div>
             ) : (
               <div>
-                <div className="px-4 py-3 bg-[#FFFBEB] text-xs text-[#92400E] border-b border-[#FDE68A]">
+                <div className="px-4 py-3 bg-[#FBF1D6] text-xs text-[#6B4500] border-b border-[#EAD596]">
                   Peserta berikut belum pernah masuk aplikasi. Bantu mereka lewat <b>Aktivasi Akun</b> atau bagikan <b>QR Aktivasi</b> dari Dashboard.
                 </div>
-                <div className="divide-y divide-[#E8E8E4]" data-testid="pantau-belum-list">
+                <div className="divide-y divide-[#E7E3D8]" data-testid="pantau-belum-list">
                   {never.map((u) => (
                     <div key={u.id} data-testid={`never-login-${u.id}`} className="px-4 py-3 flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="font-semibold text-[#111827] truncate">{u.name}</div>
-                        <div className="text-xs text-[#9CA3AF]">{genderLabel(u.gender)} · {u.phone || "-"}</div>
+                        <div className="font-semibold text-[#14201A] truncate">{u.name}</div>
+                        <div className="text-xs text-[#5F6B63]">{genderLabel(u.gender)} · {u.phone || "-"}</div>
                       </div>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${u.status === "pending" ? "bg-[#FEF3C7] text-[#92400E]" : "bg-[#F3F4F6] text-[#4B5563]"}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${u.status === "pending" ? "bg-[#FBF1D6] text-[#6B4500]" : "bg-[#F0EEE6] text-[#5F6B63]"}`}>
                         {u.status === "pending" ? "Belum aktivasi" : "Aktif, belum login"}
                       </span>
                     </div>
@@ -283,46 +283,46 @@ export function LoginDetailModal({ userId, onClose }) {
   }, [userId]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-[#FAFAF8] w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="modal-login-detail">
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E8E8E4] px-5 py-3.5 flex items-center justify-between z-10">
-          <h2 className="font-heading font-bold text-[#111827]">Riwayat Login</h2>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]" data-testid="modal-login-detail-close"><X size={20} /></button>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[rgba(20,32,26,0.5)] p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-[#F6F4EE] w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="modal-login-detail">
+        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E7E3D8] px-5 py-3.5 flex items-center justify-between z-10">
+          <h2 className="font-heading font-bold text-[#14201A]">Riwayat Login</h2>
+          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]" data-testid="modal-login-detail-close"><X size={20} /></button>
         </div>
         <div className="p-5">
-          {err ? <p className="text-sm text-[#DC2626]">{err}</p> : !d ? (
-            <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={26} /></div>
+          {err ? <p className="text-sm text-[#A32A2A]">{err}</p> : !d ? (
+            <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={26} /></div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-white rounded-2xl border border-[#E8E8E4] p-4">
-                <div className="font-bold text-[#111827] text-lg">{d.user.name}</div>
-                <div className="text-xs text-[#6B7280] mt-0.5 flex items-center gap-2 flex-wrap">{d.user.phone || "-"} <RoleBadges roles={d.user.roles} /></div>
+              <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4">
+                <div className="font-bold text-[#14201A] text-lg">{d.user.name}</div>
+                <div className="text-xs text-[#5F6B63] mt-0.5 flex items-center gap-2 flex-wrap">{d.user.phone || "-"} <RoleBadges roles={d.user.roles} /></div>
                 <div className="grid grid-cols-2 gap-2 mt-3">
-                  <div className="rounded-xl bg-[#EFF6FF] p-3"><div className="text-xl font-bold text-[#1D4ED8]">{d.user.login_count}</div><div className="text-xs text-[#6B7280]">Total login</div></div>
-                  <div className="rounded-xl bg-[#F3F4F6] p-3"><div className="text-sm font-bold text-[#111827]">{relTime(d.user.last_login_at)}</div><div className="text-xs text-[#6B7280]">Login terakhir · {d.user.last_login_device || "-"}</div></div>
+                  <div className="rounded-xl bg-[#E3F3EA] p-3"><div className="text-xl font-bold text-[#0E4E31]">{d.user.login_count}</div><div className="text-xs text-[#5F6B63]">Total login</div></div>
+                  <div className="rounded-xl bg-[#F0EEE6] p-3"><div className="text-sm font-bold text-[#14201A]">{relTime(d.user.last_login_at)}</div><div className="text-xs text-[#5F6B63]">Login terakhir · {d.user.last_login_device || "-"}</div></div>
                 </div>
                 {d.devices.length > 0 && (
                   <div className="mt-3">
-                    <div className="text-xs font-semibold text-[#6B7280] mb-1.5">Perangkat yang dipakai</div>
+                    <div className="text-xs font-semibold text-[#5F6B63] mb-1.5">Perangkat yang dipakai</div>
                     <div className="flex flex-wrap gap-1.5">
-                      {d.devices.map((x) => <span key={x.label} className="text-xs font-semibold px-2 py-1 rounded-full bg-[#F3F4F6] text-[#374151]">{x.label} · {x.count}x</span>)}
+                      {d.devices.map((x) => <span key={x.label} className="text-xs font-semibold px-2 py-1 rounded-full bg-[#F0EEE6] text-[#14201A]">{x.label} · {x.count}x</span>)}
                     </div>
                   </div>
                 )}
               </div>
-              <div className="bg-white rounded-2xl border border-[#E8E8E4] overflow-hidden">
-                <div className="px-4 py-2.5 text-xs font-semibold text-[#6B7280] bg-[#FAFAF8] inline-flex items-center gap-1.5 w-full"><Clock size={13} /> {d.events.length} login terakhir</div>
-                <div className="divide-y divide-[#ECECE8] max-h-[40vh] overflow-y-auto">
-                  {d.events.length === 0 ? <div className="p-6 text-center text-sm text-[#6B7280]">Belum pernah login.</div> : d.events.map((e) => (
+              <div className="bg-white rounded-2xl border border-[#E7E3D8] overflow-hidden">
+                <div className="px-4 py-2.5 text-xs font-semibold text-[#5F6B63] bg-[#F6F4EE] inline-flex items-center gap-1.5 w-full"><Clock size={13} /> {d.events.length} login terakhir</div>
+                <div className="divide-y divide-[#E7E3D8] max-h-[40vh] overflow-y-auto">
+                  {d.events.length === 0 ? <div className="p-6 text-center text-sm text-[#5F6B63]">Belum pernah login.</div> : d.events.map((e) => (
                     <div key={e.id} className="px-4 py-2.5 flex items-center justify-between gap-3 text-sm">
-                      <div className="inline-flex items-center gap-2 text-[#4B5563] min-w-0">
-                        <DeviceIcon kind={e.device?.kind} size={15} className="text-[#1D4ED8] shrink-0" />
+                      <div className="inline-flex items-center gap-2 text-[#5F6B63] min-w-0">
+                        <DeviceIcon kind={e.device?.kind} size={15} className="text-[#0E4E31] shrink-0" />
                         <span className="truncate">{e.device?.label || "-"}</span>
-                        {e.is_new_device && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] shrink-0">baru</span>}
+                        {e.is_new_device && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#FBF1D6] text-[#6B4500] shrink-0">baru</span>}
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="font-mono text-[13px] text-[#111827]">{fmtLoginTime(e.at)}</div>
-                        <div className="text-[10px] text-[#9CA3AF] font-mono">{e.ip || ""}</div>
+                        <div className="font-mono text-[13px] text-[#14201A]">{fmtLoginTime(e.at)}</div>
+                        <div className="text-[10px] text-[#5F6B63] font-mono">{e.ip || ""}</div>
                       </div>
                     </div>
                   ))}

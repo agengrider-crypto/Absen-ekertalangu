@@ -6,7 +6,7 @@ import {
   ShieldCheck, Menu, X, LogOut, MessagesSquare, Megaphone, UserCog, Layers,
   MonitorSmartphone, CalendarRange, ListPlus, CopyCheck, KeyRound, ScanLine,
   ClipboardList, CalendarCheck, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
-  PanelLeftClose, PanelLeftOpen,
+  PanelLeftClose, PanelLeftOpen, Wrench,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { K1Mark, K1Wordmark } from "@/components/Logo";
@@ -36,6 +36,7 @@ import KelompokView from "./KelompokView";
 import PantauLoginView from "./PantauLoginView";
 import RekapBulananView from "./RekapBulananView";
 import RekapHarianView from "./RekapHarianView";
+import MaintenanceSettings from "./MaintenanceSettings";
 
 const MENU = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "pengurus"] },
@@ -73,6 +74,7 @@ const MENU = [
     group: "grup-pengaturan", label: "Pengaturan", icon: ShieldCheck, roles: ["admin"],
     items: [
       { key: "bantuan", label: "Bantuan", icon: LifeBuoy, roles: ["admin"] },
+      { key: "pemeliharaan", label: "Pemeliharaan", icon: Wrench, roles: ["admin"] },
       { key: "pantau-login", label: "Aktivitas Login", icon: MonitorSmartphone, roles: ["admin"] },
       { key: "log", label: "Log Aktivitas", icon: ScrollText, roles: ["admin"] },
       { key: "hakakses", label: "Hak Akses", icon: ShieldCheck, roles: ["admin"] },
@@ -95,8 +97,8 @@ function NavButton({ item, active, onNav, collapsed, mobile = false }) {
     ? ADMIN_SIDEBAR.participantReport
     : item.key === "kartu-nama" ? ADMIN_SIDEBAR.nameTags : `nav-${item.key}`;
   const activeClass = mobile
-    ? (on ? "text-[#1D4ED8] font-semibold" : "text-[#4B5563] hover:bg-[#F7F7F5]")
-    : (on ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold" : "text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#1D4ED8]");
+    ? (on ? "text-[#0E4E31] font-semibold" : "text-[#5F6B63] hover:bg-[#F6F4EE]")
+    : (on ? "bg-[#E3F3EA] text-[#0E4E31] font-semibold" : "text-[#5F6B63] hover:bg-[#F0EEE6] hover:text-[#0E4E31]");
   return (
     <button
       data-testid={testId}
@@ -111,17 +113,17 @@ function NavButton({ item, active, onNav, collapsed, mobile = false }) {
         mobile
           ? "flex min-h-[104px] flex-col items-center justify-start gap-1.5 px-1 py-2 text-center text-xs"
           : `flex items-center ${collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 text-sm`
-      } rounded-xl font-medium transition-colors ${item.comingSoon ? "cursor-not-allowed text-[#9CA3AF]" : activeClass}`}
+      } rounded-xl font-medium transition-colors ${item.comingSoon ? "cursor-not-allowed text-[#5F6B63]" : activeClass}`}
     >
       {mobile ? (
-        <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${on ? "bg-[#0D9B6C] text-white" : "bg-[#F3F4F6] text-[#4B5563]"}`}>
+        <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${on ? "bg-[#14633F] text-white" : "bg-[#F0EEE6] text-[#14201A]"}`}>
           <Icon size={24} />
         </span>
-      ) : <Icon size={19} />}
+      ) : <Icon size={19} className={on ? "text-[#14633F]" : undefined} />}
       {(!collapsed || mobile) && (
         <span className={mobile ? "flex min-h-10 w-full flex-col items-center justify-start break-words leading-5" : "min-w-0 flex-1 text-left"}>
           <span>{item.label}</span>
-          {item.comingSoon && <span className="text-xs font-semibold text-[#9CA3AF]">Segera hadir</span>}
+          {item.comingSoon && <span className="text-xs font-semibold text-[#5F6B63]">Segera hadir</span>}
         </span>
       )}
     </button>
@@ -132,26 +134,26 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
   return (
     <div className="flex flex-col h-full">
       {mobile ? (
-        <div className="relative shrink-0 border-b border-[#E8E8E4] px-4 pb-4 pt-3">
-          <div className="mx-auto mb-2 h-1 w-12 rounded-full bg-[#D1D5DB]" />
-          <h2 id="admin-mobile-menu-title" className="text-center text-lg font-bold text-[#111827]">Semua Menu</h2>
+        <div className="relative shrink-0 border-b border-[#E7E3D8] px-4 pb-4 pt-3">
+          <div className="mx-auto mb-2 h-1 w-12 rounded-full bg-[#D9D4C5]" />
+          <h2 id="admin-mobile-menu-title" className="text-center text-lg font-bold text-[#14201A]">Semua Menu</h2>
           <button
             data-testid={ADMIN_SIDEBAR.closeButton}
             onClick={onClose}
             aria-label="Tutup menu"
-            className="absolute right-3 top-5 flex h-10 w-10 items-center justify-center rounded-lg text-[#4B5563] hover:bg-[#F3F4F6]"
+            className="absolute right-3 top-5 flex h-10 w-10 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"
           >
             <X size={20} />
           </button>
         </div>
       ) : (
-        <div className={`px-3 py-4 flex items-center ${collapsed ? "justify-center" : "justify-between"} gap-2.5 border-b border-[#E8E8E4]`}>
+        <div className={`px-3 py-4 flex items-center ${collapsed ? "justify-center" : "justify-between"} gap-2.5 border-b border-[#E7E3D8]`}>
           {!collapsed && (
             <div className="flex items-center gap-2.5 min-w-0">
               <K1Mark size={40} variant="light" />
               <div className="leading-tight min-w-0">
                 <K1Wordmark size="text-base" />
-                <div className="text-[#9CA3AF] text-xs">{role === "pengurus" ? "Panel Pengurus" : "Panel Admin"}</div>
+                <div className="text-[#5F6B63] text-xs">{role === "pengurus" ? "Panel Pengurus" : "Panel Admin"}</div>
               </div>
             </div>
           )}
@@ -161,7 +163,7 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
             onClick={onToggleCollapse}
             aria-label={collapsed ? "Buka sidebar" : "Ciutkan sidebar"}
             title={collapsed ? "Buka sidebar" : "Ciutkan sidebar"}
-            className="hidden lg:flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"
+            className="hidden lg:flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"
           >
             {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
           </button>
@@ -179,7 +181,7 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
           return (
             <div key={m.group} className={mobile ? "pt-5" : "pt-3"} data-testid={`submenu-${m.group}`}>
               {!collapsed && (
-                <div className={`pb-2 text-xs font-semibold text-[#9CA3AF] ${mobile ? "px-1 uppercase tracking-wide" : "px-3.5"}`}>
+                <div className={`pb-2 text-xs font-semibold text-[#5F6B63] ${mobile ? "px-1 uppercase tracking-wide" : "px-3.5"}`}>
                   {m.label}
                 </div>
               )}
@@ -192,13 +194,13 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
           );
         })}
       </nav>
-      <div className="p-3 border-t border-[#E8E8E4]">
+      <div className="p-3 border-t border-[#E7E3D8]">
         <button
           data-testid="button-logout"
           onClick={onLogout}
           title={collapsed ? "Keluar" : undefined}
           aria-label="Keluar"
-          className={`w-full flex items-center ${mobile ? "gap-3 px-4" : collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 rounded-xl text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#DC2626] font-medium text-sm transition-colors`}
+          className={`w-full flex items-center ${mobile ? "gap-3 px-4" : collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6] hover:text-[#A32A2A] font-medium text-sm transition-colors`}
         >
           <LogOut size={18} /> {!collapsed && "Keluar"}
         </button>
@@ -226,7 +228,7 @@ function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
   return (
     <nav
       aria-label="Navigasi utama"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E8E8E4] bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(17,17,20,0.06)] backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E7E3D8] bg-white/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(20,32,26,0.06)] backdrop-blur lg:hidden"
     >
       <div className="mx-auto grid h-16 max-w-lg grid-cols-5">
         {items.map((item) => {
@@ -243,7 +245,7 @@ function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
               aria-expanded={item.key === "menu" ? menuOpen : undefined}
               aria-controls={item.key === "menu" ? "admin-mobile-menu" : undefined}
               className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-xs font-medium leading-none transition-colors ${
-                isActive ? "text-[#1D4ED8]" : "text-[#6B7280] hover:text-[#1D4ED8]"
+                isActive ? "text-[#0E4E31]" : "text-[#5F6B63] hover:text-[#0E4E31]"
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
@@ -316,10 +318,10 @@ export default function AdminLayout({ user, role = "admin" }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F7F5]">
+    <div className="min-h-screen bg-[#F6F4EE]">
       <UpdateModal onNavigate={go} />
       {/* Sidebar desktop */}
-      <aside className={`hidden lg:flex fixed inset-y-0 left-0 ${collapsed ? "w-[76px]" : "w-[264px]"} bg-white border-r border-[#E8E8E4] flex-col z-30 transition-[width] duration-200`}>
+      <aside className={`hidden lg:flex fixed inset-y-0 left-0 ${collapsed ? "w-[76px]" : "w-[264px]"} bg-white border-r border-[#E7E3D8] flex-col z-30 transition-[width] duration-200`}>
         <SidebarInner active={active} onNav={go} onLogout={doLogout} role={role} menu={menu} collapsed={collapsed} onToggleCollapse={() => setCollapsed((value) => !value)} />
       </aside>
 
@@ -331,7 +333,7 @@ export default function AdminLayout({ user, role = "admin" }) {
             data-testid={ADMIN_SIDEBAR.overlayBackdrop}
             aria-label="Tutup menu"
             onClick={() => setDrawer(false)}
-            className="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-[rgba(20,32,26,0.5)] backdrop-blur-[2px]"
           />
           <aside
             id="admin-mobile-menu"
@@ -348,7 +350,7 @@ export default function AdminLayout({ user, role = "admin" }) {
 
       <div className={collapsed ? "lg:pl-[76px]" : "lg:pl-[264px]"}>
         {/* Topbar */}
-        <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-[#E8E8E4]">
+        <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-[#E7E3D8]">
           <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3" />
             <div className="flex items-center gap-2">
@@ -405,6 +407,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           )}
           {active === "kalender" && <KalenderView />}
           {active === "bantuan" && <BantuanView />}
+          {active === "pemeliharaan" && role === "admin" && <MaintenanceSettings />}
           {active === "kode-akses" && <KodeAksesView onLeave={leaveGuard} />}
           {active === "scan-presensi" && <ScanPresensiView />}
           {active === "musyawarah" && <MusyawarahView />}

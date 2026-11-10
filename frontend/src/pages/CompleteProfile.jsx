@@ -11,18 +11,18 @@ import { useAuth } from "@/context/AuthContext";
 import { resizeImageFile } from "@/lib/image";
 import { Logo, K1Mark } from "@/components/Logo";
 
-const inp = "w-full h-12 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] bg-white";
+const inp = "w-full h-12 px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 
 function Field({ label, required, filled, children, hint }) {
   return (
     <div>
-      <label className="flex items-center gap-1.5 text-sm font-semibold text-[#374151] mb-1.5">
+      <label className="flex items-center gap-1.5 text-sm font-semibold text-[#14201A] mb-1.5">
         {label}
-        {required && <span className="text-[#DC2626]">*</span>}
-        {required && filled && <CheckCircle2 size={14} className="text-[#059669]" />}
+        {required && <span className="text-[#A32A2A]">*</span>}
+        {required && filled && <CheckCircle2 size={14} className="text-[#14633F]" />}
       </label>
       {children}
-      {hint && <p className="text-xs text-[#9CA3AF] mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-[#5F6B63] mt-1">{hint}</p>}
     </div>
   );
 }
@@ -134,8 +134,8 @@ export default function CompleteProfile() {
   const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] pb-12" data-testid="page-complete-profile">
-      <header className="bg-[#2563EB] text-white">
+    <div className="min-h-screen bg-[#F6F4EE] pb-12" data-testid="page-complete-profile">
+      <header className="bg-[#14633F] text-white">
         <div className="max-w-xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
@@ -157,21 +157,21 @@ export default function CompleteProfile() {
       </header>
 
       <main className="max-w-xl mx-auto px-4 -mt-3">
-        <div className="bg-white rounded-2xl border-2 border-[#FDE68A] bg-[#FFFBEB] p-5 shadow-sm">
+        <div className="bg-white rounded-2xl border-2 border-[#EAD596] bg-[#FBF1D6] p-5 shadow-sm">
           <div className="flex items-start gap-3">
-            <span className="h-11 w-11 shrink-0 rounded-xl bg-[#FEF3C7] text-[#92400E] flex items-center justify-center">
+            <span className="h-11 w-11 shrink-0 rounded-xl bg-[#FBF1D6] text-[#6B4500] flex items-center justify-center">
               <AlertCircle size={22} />
             </span>
             <div>
-              <h1 className="font-heading text-lg font-bold text-[#92400E]">Assalamualaikum, {user?.name}</h1>
-              <p className="text-sm text-[#92400E] mt-1 leading-relaxed">
+              <h1 className="font-heading text-lg font-bold text-[#6B4500]">Assalamualaikum, {user?.name}</h1>
+              <p className="text-sm text-[#6B4500] mt-1 leading-relaxed">
                 Sebelum memakai aplikasi, mohon lengkapi data akun Anda terlebih dahulu.
                 Data ini dipakai pengurus untuk verifikasi kehadiran pengajian.
               </p>
               {missing.length > 0 && (
                 <div className="mt-2.5 flex flex-wrap gap-1.5" data-testid="missing-fields">
                   {missing.map((m) => (
-                    <span key={m} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white text-[#92400E] border border-[#FDE68A]">
+                    <span key={m} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white text-[#6B4500] border border-[#EAD596]">
                       {m}
                     </span>
                   ))}
@@ -182,9 +182,9 @@ export default function CompleteProfile() {
         </div>
 
         {user?.must_change_password && (
-          <div className="mt-4 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-4" data-testid={PARTICIPANTS.temporaryPasswordWarning}>
-            <h2 className="font-bold text-[#92400E]">Ganti kata sandi sementara</h2>
-            <p className="mt-1 text-sm leading-relaxed text-[#92400E]">
+          <div className="mt-4 rounded-2xl border border-[#EAD596] bg-[#FBF1D6] p-4" data-testid={PARTICIPANTS.temporaryPasswordWarning}>
+            <h2 className="font-bold text-[#6B4500]">Ganti kata sandi sementara</h2>
+            <p className="mt-1 text-sm leading-relaxed text-[#6B4500]">
               Kata sandi awal memakai tanggal lahir. Buat kata sandi baru yang tidak mudah ditebak;
               Anda harus menggantinya sebelum memakai aplikasi.
             </p>
@@ -192,32 +192,32 @@ export default function CompleteProfile() {
         )}
 
         {/* Foto profil */}
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4 flex flex-col items-center">
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 mt-4 flex flex-col items-center">
           <div className="relative">
-            <div className="h-24 w-24 rounded-full overflow-hidden bg-[#EFF6FF] flex items-center justify-center border-2 border-[#2563EB]/20 text-[#1D4ED8] font-bold text-2xl">
+            <div className="h-24 w-24 rounded-full overflow-hidden bg-[#E3F3EA] flex items-center justify-center border-2 border-[#14633F]/20 text-[#0E4E31] font-bold text-2xl">
               {photo ? <img src={photo} alt="Foto" className="h-full w-full object-cover" data-testid="complete-photo" /> : (initials || <UserIcon size={38} />)}
             </div>
             <button
               data-testid="complete-photo-pick"
               onClick={() => fileRef.current?.click()}
-              className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-[#2563EB] text-white flex items-center justify-center shadow-md hover:bg-[#1D4ED8]"
+              className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-[#14633F] text-white flex items-center justify-center shadow-md hover:bg-[#0E4E31]"
             >
               <Camera size={16} />
             </button>
             <input ref={fileRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={onPickPhoto} />
           </div>
-          <p className="text-xs text-[#6B7280] mt-3">Foto profil (opsional)</p>
+          <p className="text-xs text-[#5F6B63] mt-3">Foto profil (opsional)</p>
           {photo && (
-            <button data-testid="complete-photo-remove" onClick={removePhoto} className="mt-1.5 text-xs text-[#DC2626] font-semibold inline-flex items-center gap-1">
+            <button data-testid="complete-photo-remove" onClick={removePhoto} className="mt-1.5 text-xs text-[#A32A2A] font-semibold inline-flex items-center gap-1">
               <Trash2 size={12} /> Hapus foto
             </button>
           )}
         </div>
 
-        <form onSubmit={submit} className="bg-white rounded-2xl border border-[#E8E8E4] p-5 mt-4 space-y-4">
+        <form onSubmit={submit} className="bg-white rounded-2xl border border-[#E7E3D8] p-5 mt-4 space-y-4">
           {user?.must_change_password && (
-            <div className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-4 space-y-3">
-              <h2 className="font-bold text-[#111827]">Buat kata sandi baru</h2>
+            <div className="rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] p-4 space-y-3">
+              <h2 className="font-bold text-[#14201A]">Buat kata sandi baru</h2>
               <Field label="Kata Sandi Baru" required filled={newPassword.length >= 8} hint="Minimal 8 karakter dan jangan gunakan tanggal lahir.">
                 <input
                   data-testid={PARTICIPANTS.setupNewPassword}
@@ -287,7 +287,7 @@ export default function CompleteProfile() {
               onChange={(e) => set("address", e.target.value)}
               rows={3}
               placeholder="Alamat tempat tinggal saat ini"
-              className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-base outline-none focus:border-[#2563EB] resize-none bg-white"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] resize-none bg-white"
             />
           </Field>
 
@@ -295,18 +295,18 @@ export default function CompleteProfile() {
             data-testid="complete-submit"
             type="submit"
             disabled={saving}
-            className="w-full h-[52px] rounded-xl bg-[#2563EB] text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60"
+            className="w-full h-[52px] rounded-xl bg-[#14633F] text-white font-bold text-base inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60"
           >
             {saving ? <Loader2 className="animate-spin" size={19} /> : <ShieldCheck size={19} />}
             {user?.must_change_password ? "Ganti Kata Sandi & Lengkapi Akun" : "Simpan & Verifikasi Akun"}
           </button>
-          <p className="text-center text-xs text-[#9CA3AF]">
-            Tanda <span className="text-[#DC2626] font-bold">*</span> wajib diisi
+          <p className="text-center text-xs text-[#5F6B63]">
+            Tanda <span className="text-[#A32A2A] font-bold">*</span> wajib diisi
           </p>
         </form>
 
         <div className="flex justify-center mt-8"><Logo size={34} /></div>
-        <p className="text-center text-xs text-[#9CA3AF] mt-3">© 2026 E-KERTALANGU · Absensi Pengajian</p>
+        <p className="text-center text-xs text-[#5F6B63] mt-3">© 2026 E-KERTALANGU · Absensi Pengajian</p>
       </main>
     </div>
   );

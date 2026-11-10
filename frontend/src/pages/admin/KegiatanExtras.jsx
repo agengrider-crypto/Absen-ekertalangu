@@ -10,14 +10,14 @@ import QrScanner from "@/components/QrScanner";
 function ModalShell({ title, children, onClose, testid, wide }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={onClose} />
       <div
         className={`relative bg-white w-full ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"} rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto`}
         data-testid={testid}
       >
-        <div className="sticky top-0 bg-white border-b border-[#E8E8E4] px-5 py-4 flex items-center justify-between">
-          <h3 className="font-heading font-bold text-[#111827] text-lg">{title}</h3>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
+        <div className="sticky top-0 bg-white border-b border-[#E7E3D8] px-5 py-4 flex items-center justify-between">
+          <h3 className="font-heading font-bold text-[#14201A] text-lg">{title}</h3>
+          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
         </div>
         <div className="p-5">{children}</div>
       </div>
@@ -59,41 +59,41 @@ export function ReminderModal({ kegiatan, onClose }) {
   return (
     <ModalShell title="Pengingat via WhatsApp" onClose={onClose} testid="modal-reminder-wa" wide>
       {data === null ? (
-        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={28} /></div>
+        <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={28} /></div>
       ) : (
         <div className="space-y-4">
-          <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-3 text-sm text-[#92400E] flex gap-2">
+          <div className="bg-[#FBF1D6] border border-[#EAD596] rounded-xl p-3 text-sm text-[#6B4500] flex gap-2">
             <AlertTriangle size={18} className="shrink-0 mt-0.5" />
             <span>Jalur gratis lewat <b>wa.me</b>. Pilih hingga {MAX} penerima, teks otomatis terisi, lalu tap kirim di tiap chat. Pengiriman massal otomatis butuh WhatsApp Business API berbayar (belum dipakai).</span>
           </div>
 
           <div>
-            <label className="text-sm font-semibold text-[#374151]">Teks pesan</label>
+            <label className="text-sm font-semibold text-[#14201A]">Teks pesan</label>
             <textarea
               data-testid="reminder-text"
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={7}
-              className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] resize-none"
+              className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] resize-none"
             />
-            <button onClick={copyText} className="mt-2 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E8E8E4] text-[#4B5563] font-semibold text-sm hover:border-[#2563EB] hover:text-[#1D4ED8]"><Copy size={15} /> Salin Teks</button>
+            <button onClick={copyText} className="mt-2 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#E7E3D8] text-[#5F6B63] font-semibold text-sm hover:border-[#14633F] hover:text-[#0E4E31]"><Copy size={15} /> Salin Teks</button>
           </div>
 
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold text-[#374151]">Penerima ({selected.length}/{MAX})</label>
-              <span className="text-xs text-[#9CA3AF]">{recipients.length} peserta punya nomor</span>
+              <label className="text-sm font-semibold text-[#14201A]">Penerima ({selected.length}/{MAX})</label>
+              <span className="text-xs text-[#5F6B63]">{recipients.length} peserta punya nomor</span>
             </div>
             {recipients.length === 0 ? (
-              <p className="text-sm text-[#6B7280] mt-2">Belum ada peserta dengan nomor WhatsApp/HP.</p>
+              <p className="text-sm text-[#5F6B63] mt-2">Belum ada peserta dengan nomor WhatsApp/HP.</p>
             ) : (
-              <div className="mt-1.5 max-h-52 overflow-y-auto border border-[#E8E8E4] rounded-xl divide-y divide-[#F3F4F6]">
+              <div className="mt-1.5 max-h-52 overflow-y-auto border border-[#E7E3D8] rounded-xl divide-y divide-[#F0EEE6]">
                 {recipients.map((r) => (
-                  <label key={r.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-[#F9FAFB]">
-                    <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4 accent-[#2563EB]" />
+                  <label key={r.id} className="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-[#F6F4EE]">
+                    <input type="checkbox" checked={selected.includes(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4 accent-[#14633F]" />
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-[#111827] truncate">{r.name}</div>
-                      <div className="text-xs text-[#6B7280]">{r.phone}</div>
+                      <div className="text-sm font-medium text-[#14201A] truncate">{r.name}</div>
+                      <div className="text-xs text-[#5F6B63]">{r.phone}</div>
                     </div>
                   </label>
                 ))}
@@ -103,7 +103,7 @@ export function ReminderModal({ kegiatan, onClose }) {
 
           {chosen.length > 0 && (
             <div className="space-y-2">
-              <div className="text-sm font-semibold text-[#374151]">Kirim per chat:</div>
+              <div className="text-sm font-semibold text-[#14201A]">Kirim per chat:</div>
               {chosen.map((r) => (
                 <a
                   key={r.id}
@@ -111,7 +111,7 @@ export function ReminderModal({ kegiatan, onClose }) {
                   href={waLink(r.wa)}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full flex items-center justify-between gap-2 h-11 px-4 rounded-xl bg-[#2563EB] text-white font-semibold text-sm hover:bg-[#1D4ED8]"
+                  className="w-full flex items-center justify-between gap-2 h-11 px-4 rounded-xl bg-[#14633F] text-white font-semibold text-sm hover:bg-[#0E4E31]"
                 >
                   <span className="truncate">Kirim ke {r.name}</span>
                   <Send size={16} />
@@ -173,56 +173,56 @@ export function DelegasiModal({ kegiatan, onClose }) {
   return (
     <ModalShell title="Delegasi Penjaga Absensi" onClose={onClose} testid="modal-delegasi" wide>
       <div className="space-y-5">
-        <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl p-3 text-sm text-[#1E40AF]">
+        <div className="bg-[#E3F3EA] border border-[#E3EEFB] rounded-xl p-3 text-sm text-[#1D4F91]">
           Serahkan hak pengisian absen ke orang terpilih saat Anda tidak di lokasi. Hak berlaku sementara & <b>otomatis dicabut saat kegiatan ditutup/selesai</b>. Semua tercatat di Log audit.
         </div>
 
         {kegiatan.status !== "open" ? (
-          <div className="text-sm text-[#991B1B] bg-[#FEE2E2] rounded-xl p-3">Kegiatan sudah ditutup — delegasi baru dinonaktifkan.</div>
+          <div className="text-sm text-[#A32A2A] bg-[#FBE5E3] rounded-xl p-3">Kegiatan sudah ditutup — delegasi baru dinonaktifkan.</div>
         ) : (
-          <div className="border border-[#E8E8E4] rounded-2xl p-4 space-y-3">
-            <div className="font-semibold text-[#111827] text-sm flex items-center gap-2"><Users size={16} className="text-[#1D4ED8]" /> Beri delegasi baru</div>
+          <div className="border border-[#E7E3D8] rounded-2xl p-4 space-y-3">
+            <div className="font-semibold text-[#14201A] text-sm flex items-center gap-2"><Users size={16} className="text-[#0E4E31]" /> Beri delegasi baru</div>
             <input
               data-testid="delegasi-search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Cari nama peserta…"
-              className="w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB]"
+              className="w-full h-11 px-3.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F]"
             />
             {peserta === null ? (
-              <div className="py-6 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={22} /></div>
+              <div className="py-6 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={22} /></div>
             ) : (
-              <div className="max-h-40 overflow-y-auto border border-[#E8E8E4] rounded-xl divide-y divide-[#F3F4F6]">
+              <div className="max-h-40 overflow-y-auto border border-[#E7E3D8] rounded-xl divide-y divide-[#F0EEE6]">
                 {filtered.map((p) => (
                   <button
                     key={p.user_id}
                     data-testid={`delegasi-pick-${p.user_id}`}
                     onClick={() => setGranteeId(p.user_id)}
-                    className={`w-full text-left px-3 py-2.5 text-sm flex items-center justify-between ${granteeId === p.user_id ? "bg-[#EFF6FF] text-[#1D4ED8] font-semibold" : "hover:bg-[#F9FAFB] text-[#111827]"}`}
+                    className={`w-full text-left px-3 py-2.5 text-sm flex items-center justify-between ${granteeId === p.user_id ? "bg-[#E3F3EA] text-[#0E4E31] font-semibold" : "hover:bg-[#F6F4EE] text-[#14201A]"}`}
                   >
                     {p.name}
-                    {granteeId === p.user_id && <CheckCircle2 size={16} className="text-[#1D4ED8]" />}
+                    {granteeId === p.user_id && <CheckCircle2 size={16} className="text-[#0E4E31]" />}
                   </button>
                 ))}
-                {filtered.length === 0 && <div className="px-3 py-4 text-sm text-[#6B7280] text-center">Tidak ada hasil.</div>}
+                {filtered.length === 0 && <div className="px-3 py-4 text-sm text-[#5F6B63] text-center">Tidak ada hasil.</div>}
               </div>
             )}
             <div>
-              <label className="text-sm font-semibold text-[#374151]">Catatan alasan (opsional)</label>
+              <label className="text-sm font-semibold text-[#14201A]">Catatan alasan (opsional)</label>
               <textarea
                 data-testid="delegasi-reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 rows={2}
                 placeholder="Mis. Pengurus sedang tidak di lokasi kegiatan."
-                className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] resize-none"
+                className="mt-1.5 w-full px-3.5 py-2.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] resize-none"
               />
             </div>
             <button
               data-testid="delegasi-submit"
               onClick={submit}
               disabled={saving}
-              className="w-full h-11 rounded-xl bg-[#2563EB] text-white font-semibold text-sm hover:bg-[#1D4ED8] disabled:opacity-60 inline-flex items-center justify-center gap-2"
+              className="w-full h-11 rounded-xl bg-[#14633F] text-white font-semibold text-sm hover:bg-[#0E4E31] disabled:opacity-60 inline-flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />} Berikan Delegasi
             </button>
@@ -231,16 +231,16 @@ export function DelegasiModal({ kegiatan, onClose }) {
 
         {active.length > 0 && (
           <div>
-            <div className="font-semibold text-[#111827] text-sm mb-2">Delegasi aktif</div>
+            <div className="font-semibold text-[#14201A] text-sm mb-2">Delegasi aktif</div>
             <div className="space-y-2">
               {active.map((d) => (
-                <div key={d.id} className="border border-[#E8E8E4] bg-[#F0FDF4] rounded-xl p-3 flex items-start justify-between gap-3">
+                <div key={d.id} className="border border-[#E7E3D8] bg-[#E3F3EA] rounded-xl p-3 flex items-start justify-between gap-3">
                   <div className="min-w-0 text-sm">
-                    <div className="font-semibold text-[#1D4ED8]">{d.grantee_name}</div>
-                    <div className="text-[#4B5563]">Alasan: {d.reason}</div>
-                    <div className="text-xs text-[#9CA3AF] mt-0.5">Oleh {d.granted_by} · {d.created_at?.slice(0, 16).replace("T", " ")}</div>
+                    <div className="font-semibold text-[#0E4E31]">{d.grantee_name}</div>
+                    <div className="text-[#5F6B63]">Alasan: {d.reason}</div>
+                    <div className="text-xs text-[#5F6B63] mt-0.5">Oleh {d.granted_by} · {d.created_at?.slice(0, 16).replace("T", " ")}</div>
                   </div>
-                  <button data-testid={`delegasi-revoke-${d.id}`} onClick={() => revoke(d.id)} className="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#DC2626] text-[#DC2626] font-semibold text-xs hover:bg-red-50"><Trash2 size={14} /> Cabut</button>
+                  <button data-testid={`delegasi-revoke-${d.id}`} onClick={() => revoke(d.id)} className="shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#A32A2A] text-[#A32A2A] font-semibold text-xs hover:bg-[#FBE5E3]"><Trash2 size={14} /> Cabut</button>
                 </div>
               ))}
             </div>
@@ -249,11 +249,11 @@ export function DelegasiModal({ kegiatan, onClose }) {
 
         {history.length > 0 && (
           <div>
-            <div className="font-semibold text-[#111827] text-sm mb-2">Riwayat (audit)</div>
+            <div className="font-semibold text-[#14201A] text-sm mb-2">Riwayat (audit)</div>
             <div className="space-y-1.5">
               {history.map((d) => (
-                <div key={d.id} className="border border-[#E8E8E4] rounded-lg p-2.5 text-xs text-[#6B7280]">
-                  <span className="font-medium text-[#374151]">{d.grantee_name}</span> — {d.reason}. Diberi oleh {d.granted_by}. Dicabut: {d.revoked_reason || "-"}
+                <div key={d.id} className="border border-[#E7E3D8] rounded-lg p-2.5 text-xs text-[#5F6B63]">
+                  <span className="font-medium text-[#14201A]">{d.grantee_name}</span> — {d.reason}. Diberi oleh {d.granted_by}. Dicabut: {d.revoked_reason || "-"}
                 </div>
               ))}
             </div>
@@ -289,21 +289,21 @@ export function ScanPesertaModal({ kegiatan, onClose, onChanged }) {
   return (
     <ModalShell title="Absen Scan Barcode" onClose={onClose} testid="modal-scan-peserta">
       {kegiatan.status !== "open" ? (
-        <div className="text-sm text-[#991B1B] bg-[#FEE2E2] rounded-xl p-3">
+        <div className="text-sm text-[#A32A2A] bg-[#FBE5E3] rounded-xl p-3">
           Mohon maaf, kegiatan ini sudah ditutup sehingga scan absen dinonaktifkan.
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-[#6B7280] flex items-start gap-2">
-            <ScanLine size={16} className="text-[#1D4ED8] shrink-0 mt-0.5" />
+          <p className="text-sm text-[#5F6B63] flex items-start gap-2">
+            <ScanLine size={16} className="text-[#0E4E31] shrink-0 mt-0.5" />
             Arahkan kamera ke <b>QR pribadi peserta</b> (menu “QR Saya” pada akun peserta) untuk menandai hadir.
           </p>
           <QrScanner onDetected={onDetected} paused={busy} />
           {last && (
-            <div className="bg-[#F0FDF4] border border-[#E8E8E4] rounded-xl p-3 text-center" data-testid="scan-result">
-              <CheckCircle2 className="mx-auto text-[#1D4ED8]" size={26} />
-              <div className="font-bold text-[#1D4ED8] mt-1">{last.name}</div>
-              <div className="text-xs text-[#4B5563] mt-0.5">
+            <div className="bg-[#E3F3EA] border border-[#E7E3D8] rounded-xl p-3 text-center" data-testid="scan-result">
+              <CheckCircle2 className="mx-auto text-[#0E4E31]" size={26} />
+              <div className="font-bold text-[#0E4E31] mt-1">{last.name}</div>
+              <div className="text-xs text-[#5F6B63] mt-0.5">
                 {last.message || (last.already ? "Sudah hadir sebelumnya" : "Hadir dicatat")}
               </div>
             </div>

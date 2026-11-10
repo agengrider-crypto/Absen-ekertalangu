@@ -16,21 +16,21 @@ export default function UndanganSaya() {
     <div className="mb-4 space-y-2" data-testid="peserta-undangan">
       {items.map((u) => (
         <div key={u.kegiatan_id} data-testid={`peserta-undangan-${u.kegiatan_id}`}
-          className="rounded-2xl border-2 border-[#FECACA] bg-[#FEF2F2] p-4">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-[#991B1B] inline-flex items-center gap-1.5">
+          className="rounded-2xl border-2 border-[#FBE5E3] bg-[#FBE5E3] p-4">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-[#A32A2A] inline-flex items-center gap-1.5">
             <MailWarning size={13} /> Undangan Penting
           </div>
-          <div className="font-heading font-bold text-[#111827] mt-1">{u.kegiatan?.name}</div>
-          <div className="text-xs text-[#4B5563] mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+          <div className="font-heading font-bold text-[#14201A] mt-1">{u.kegiatan?.name}</div>
+          <div className="text-xs text-[#5F6B63] mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
             <span className="inline-flex items-center gap-1"><CalendarDays size={12} /> {u.kegiatan?.date}</span>
             <span className="inline-flex items-center gap-1"><Clock size={12} /> {u.kegiatan?.start_time}–{u.kegiatan?.end_time} WITA</span>
             {u.kegiatan?.location && <span className="inline-flex items-center gap-1"><MapPin size={12} /> {u.kegiatan.location}</span>}
             {u.kegiatan?.teacher && <span className="inline-flex items-center gap-1"><User size={12} /> {u.kegiatan.teacher}</span>}
           </div>
           {u.message && (
-            <p className="text-sm text-[#991B1B] mt-2 leading-relaxed whitespace-pre-wrap">{u.message}</p>
+            <p className="text-sm text-[#A32A2A] mt-2 leading-relaxed whitespace-pre-wrap">{u.message}</p>
           )}
-          <p className="text-[11px] text-[#9CA3AF] mt-2">
+          <p className="text-[11px] text-[#5F6B63] mt-2">
             Diundang oleh {u.created_by_name || "pengurus"} — mohon diusahakan hadir. Jazakumullahu khoiro.
           </p>
         </div>

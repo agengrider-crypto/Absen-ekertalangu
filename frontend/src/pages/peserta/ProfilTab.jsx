@@ -11,15 +11,15 @@ import { MARITAL_OPTIONS } from "@/pages/admin/adminUtils";
 function Field({ label, required, children }) {
   return (
     <div>
-      <label className="text-sm font-semibold text-[#374151]">
-        {label} {required && <span className="text-[#DC2626]">*</span>}
+      <label className="text-sm font-semibold text-[#14201A]">
+        {label} {required && <span className="text-[#A32A2A]">*</span>}
       </label>
       <div className="mt-1.5">{children}</div>
     </div>
   );
 }
 
-const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white";
+const inp = "w-full h-11 px-3.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white";
 
 export default function ProfilTab({ user }) {
   const { refresh } = useAuth();
@@ -75,26 +75,26 @@ export default function ProfilTab({ user }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="font-heading text-2xl font-bold text-[#111827]">Profil Saya</h1>
+      <h1 className="font-heading text-2xl font-bold text-[#14201A]">Profil Saya</h1>
 
       {missing.length > 0 && (
-        <div className="rounded-2xl border-2 border-[#FDE68A] bg-[#FFFBEB] p-4 flex items-start gap-3" data-testid="profil-missing-warning">
-          <AlertCircle size={19} className="text-[#92400E] shrink-0 mt-0.5" />
-          <div className="text-sm text-[#92400E]">
+        <div className="rounded-2xl border-2 border-[#EAD596] bg-[#FBF1D6] p-4 flex items-start gap-3" data-testid="profil-missing-warning">
+          <AlertCircle size={19} className="text-[#6B4500] shrink-0 mt-0.5" />
+          <div className="text-sm text-[#6B4500]">
             Data berikut masih kosong: <b>{missing.join(", ")}</b>. Mohon dilengkapi agar kehadiran Anda dapat diverifikasi.
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 flex flex-col items-center">
+      <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 flex flex-col items-center">
         <div className="relative">
-          <div className="h-24 w-24 rounded-full overflow-hidden bg-[#EFF6FF] flex items-center justify-center border-2 border-[#2563EB]/20">
-            {photo ? <img src={photo} alt="Foto" className="h-full w-full object-cover" data-testid="profil-photo" /> : <UserIcon size={40} className="text-[#1D4ED8]" />}
+          <div className="h-24 w-24 rounded-full overflow-hidden bg-[#E3F3EA] flex items-center justify-center border-2 border-[#14633F]/20">
+            {photo ? <img src={photo} alt="Foto" className="h-full w-full object-cover" data-testid="profil-photo" /> : <UserIcon size={40} className="text-[#0E4E31]" />}
           </div>
-          <button data-testid="profil-photo-pick" onClick={() => fileRef.current?.click()} className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-[#2563EB] text-white flex items-center justify-center shadow-md"><Camera size={16} /></button>
+          <button data-testid="profil-photo-pick" onClick={() => fileRef.current?.click()} className="absolute -bottom-1 -right-1 h-9 w-9 rounded-full bg-[#14633F] text-white flex items-center justify-center shadow-md"><Camera size={16} /></button>
           <input ref={fileRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={onPickPhoto} />
         </div>
-        {photo && <button data-testid="profil-photo-remove" onClick={removePhoto} className="mt-3 text-xs text-[#DC2626] font-semibold inline-flex items-center gap-1"><Trash2 size={12} /> Hapus foto</button>}
+        {photo && <button data-testid="profil-photo-remove" onClick={removePhoto} className="mt-3 text-xs text-[#A32A2A] font-semibold inline-flex items-center gap-1"><Trash2 size={12} /> Hapus foto</button>}
       </div>
 
       {/* Fase 7 — Tombol Telepon & WhatsApp untuk nomor pada profil ini */}
@@ -106,7 +106,7 @@ export default function ProfilTab({ user }) {
         label="Kontak Saya"
       />
 
-      <div className="bg-white rounded-2xl border border-[#E8E8E4] p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 space-y-4">
         <Field label="Nama Lengkap" required><input data-testid="profil-name" value={f.name} onChange={(e) => set("name", e.target.value)} className={inp} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="No. HP" required><input data-testid="profil-phone" value={f.phone} onChange={(e) => set("phone", e.target.value)} className={inp} /></Field>
@@ -132,9 +132,9 @@ export default function ProfilTab({ user }) {
             {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
-        <Field label="Alamat" required><textarea data-testid="profil-address" value={f.address} onChange={(e) => set("address", e.target.value)} rows={2} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] resize-none" /></Field>
+        <Field label="Alamat" required><textarea data-testid="profil-address" value={f.address} onChange={(e) => set("address", e.target.value)} rows={2} className="w-full px-3.5 py-2.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] resize-none" /></Field>
 
-        <button data-testid="profil-save" onClick={save} disabled={saving} className="w-full h-12 rounded-xl bg-[#2563EB] text-white font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60">
+        <button data-testid="profil-save" onClick={save} disabled={saving} className="w-full h-12 rounded-xl bg-[#14633F] text-white font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60">
           {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Simpan Profil
         </button>
       </div>
@@ -143,10 +143,10 @@ export default function ProfilTab({ user }) {
         type="button"
         data-testid="profil-about-open"
         onClick={() => setShowAbout(true)}
-        className="w-full rounded-2xl border-2 border-[#E8E8E4] bg-white p-4 text-left hover:border-[#2563EB]"
+        className="w-full rounded-2xl border-2 border-[#E7E3D8] bg-white p-4 text-left hover:border-[#14633F]"
       >
-        <span className="flex items-center gap-2 font-bold text-[#111827]"><Info size={16} /> Tentang Aplikasi</span>
-        <span className="mt-1 block text-sm text-[#6B7280]">Versi, pengembang, update terbaru, dan tour panduan.</span>
+        <span className="flex items-center gap-2 font-bold text-[#14201A]"><Info size={16} /> Tentang Aplikasi</span>
+        <span className="mt-1 block text-sm text-[#5F6B63]">Versi, pengembang, update terbaru, dan tour panduan.</span>
       </button>
 
       {showAbout && <AboutApp onClose={() => setShowAbout(false)} />}

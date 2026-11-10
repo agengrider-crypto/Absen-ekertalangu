@@ -12,15 +12,15 @@ import { formatTanggal, MARITAL_OPTIONS, maritalLabel } from "@/pages/admin/admi
 import UpdateModal from "@/components/UpdateModal";
 
 const ROLE_LABEL = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta" };
-const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white";
+const inp = "w-full h-11 px-3.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white";
 
 function Row({ icon: Icon, label, value }) {
   return (
-    <div className="flex items-start gap-3 py-2.5 border-b border-[#ECECE8] last:border-0">
-      <Icon size={16} className="text-[#9CA3AF] mt-0.5 shrink-0" />
+    <div className="flex items-start gap-3 py-2.5 border-b border-[#E7E3D8] last:border-0">
+      <Icon size={16} className="text-[#5F6B63] mt-0.5 shrink-0" />
       <div className="min-w-0">
-        <div className="text-xs text-[#9CA3AF]">{label}</div>
-        <div className="text-sm font-medium text-[#111827] break-words">{value || "-"}</div>
+        <div className="text-xs text-[#5F6B63]">{label}</div>
+        <div className="text-sm font-medium text-[#14201A] break-words">{value || "-"}</div>
       </div>
     </div>
   );
@@ -29,8 +29,8 @@ function Row({ icon: Icon, label, value }) {
 function Field({ label, required, children }) {
   return (
     <div>
-      <label className="block text-sm font-semibold text-[#374151] mb-1.5">
-        {label} {required && <span className="text-[#DC2626]">*</span>}
+      <label className="block text-sm font-semibold text-[#14201A] mb-1.5">
+        {label} {required && <span className="text-[#A32A2A]">*</span>}
       </label>
       {children}
     </div>
@@ -136,24 +136,24 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
   return createPortal(
     (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)] backdrop-blur-[2px]" onClick={onClose} />
       <div
-        className="relative bg-[#FAFAF8] w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto shadow-2xl"
+        className="relative bg-[#F6F4EE] w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto shadow-2xl"
         data-testid="profile-modal"
       >
         <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-white">
-          <div className="h-1.5 w-11 rounded-full bg-[#E8E8E4]" />
+          <div className="h-1.5 w-11 rounded-full bg-[#E7E3D8]" />
         </div>
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E8E8E4] px-5 py-3.5 flex items-center justify-between z-10">
-          <h2 className="font-heading font-bold text-[#111827]">Profil Saya</h2>
-          <button data-testid="button-close-profile" onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#6B7280] hover:bg-[#F3F4F6]"><X size={20} /></button>
+        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E7E3D8] px-5 py-3.5 flex items-center justify-between z-10">
+          <h2 className="font-heading font-bold text-[#14201A]">Profil Saya</h2>
+          <button data-testid="button-close-profile" onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
         </div>
 
         <div className="p-5 space-y-4">
           {missing.length > 0 && (
-            <div className="rounded-2xl border-2 border-[#FDE68A] bg-[#FFFBEB] p-3.5 flex items-start gap-2.5" data-testid="profile-missing-warning">
-              <AlertCircle size={18} className="text-[#92400E] shrink-0 mt-0.5" />
-              <div className="text-sm text-[#92400E]">
+            <div className="rounded-2xl border-2 border-[#EAD596] bg-[#FBF1D6] p-3.5 flex items-start gap-2.5" data-testid="profile-missing-warning">
+              <AlertCircle size={18} className="text-[#6B4500] shrink-0 mt-0.5" />
+              <div className="text-sm text-[#6B4500]">
                 Data berikut masih kosong: <b>{missing.join(", ")}</b>. Mohon dilengkapi.
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
 
           {/* Foto */}
           <div className="flex flex-col items-center gap-3">
-            <div className="h-28 w-28 rounded-full overflow-hidden bg-[#2563EB] text-white flex items-center justify-center text-3xl font-bold border-4 border-white shadow">
+            <div className="h-28 w-28 rounded-full overflow-hidden bg-[#14633F] text-white flex items-center justify-center text-3xl font-bold border-4 border-white shadow">
               {preview ? (
                 <img src={preview} alt="Foto profil" className="h-full w-full object-cover" data-testid="profile-photo" />
               ) : initials}
@@ -171,7 +171,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                 data-testid="button-upload-photo"
                 onClick={() => fileRef.current?.click()}
                 disabled={busy}
-                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[#2563EB] text-white font-semibold text-sm hover:bg-[#1D4ED8] disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-[#14633F] text-white font-semibold text-sm hover:bg-[#0E4E31] disabled:opacity-60"
               >
                 {busy ? <Loader2 className="animate-spin" size={16} /> : <Camera size={16} />} {preview ? "Ganti Foto" : "Unggah Foto"}
               </button>
@@ -180,25 +180,25 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                   data-testid="button-remove-photo"
                   onClick={removePhoto}
                   disabled={busy}
-                  className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl border-2 border-[#DC2626] text-[#DC2626] font-semibold text-sm hover:bg-red-50 disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl border-2 border-[#A32A2A] text-[#A32A2A] font-semibold text-sm hover:bg-[#FBE5E3] disabled:opacity-60"
                 >
                   <Trash2 size={16} />
                 </button>
               )}
             </div>
-            <p className="text-xs text-[#9CA3AF] text-center">Format JPG/PNG, otomatis diperkecil ke 320px.</p>
+            <p className="text-xs text-[#5F6B63] text-center">Format JPG/PNG, otomatis diperkecil ke 320px.</p>
             <input ref={fileRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={onFile} data-testid="input-photo-file" />
           </div>
 
           {/* Peran */}
           <div className="flex flex-wrap gap-1.5 justify-center">
             {(user?.roles || []).map((r) => (
-              <span key={r} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#EFF6FF] text-[#1D4ED8]">{ROLE_LABEL[r] || r}</span>
+              <span key={r} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#E3F3EA] text-[#0E4E31]">{ROLE_LABEL[r] || r}</span>
             ))}
           </div>
 
           {editing ? (
-            <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4] space-y-3.5" data-testid="profile-edit-form">
+            <div className="bg-white rounded-2xl p-4 border border-[#E7E3D8] space-y-3.5" data-testid="profile-edit-form">
               <Field label="Nama Lengkap" required>
                 <input data-testid="profile-edit-name" value={f.name} onChange={(e) => set("name", e.target.value)} className={inp} />
               </Field>
@@ -242,14 +242,14 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                   value={f.address}
                   onChange={(e) => set("address", e.target.value)}
                   rows={2}
-                  className="w-full px-3.5 py-2.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] resize-none bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] resize-none bg-white"
                 />
               </Field>
               <div className="flex gap-2 pt-1">
                 <button
                   data-testid="profile-edit-cancel"
                   onClick={() => setEditing(false)}
-                  className="h-12 px-4 rounded-xl border-2 border-[#E8E8E4] text-[#4B5563] font-semibold hover:bg-[#F3F4F6]"
+                  className="h-12 px-4 rounded-xl border-2 border-[#E7E3D8] text-[#5F6B63] font-semibold hover:bg-[#F0EEE6]"
                 >
                   Batal
                 </button>
@@ -257,7 +257,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                   data-testid="profile-edit-save"
                   onClick={save}
                   disabled={saving}
-                  className="flex-1 h-12 rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8] disabled:opacity-60"
+                  className="flex-1 h-12 rounded-xl bg-[#14633F] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60"
                 >
                   {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Simpan Profil
                 </button>
@@ -265,8 +265,8 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
             </div>
           ) : (
             <>
-              <div className="bg-white rounded-2xl p-4 border border-[#E8E8E4]" data-testid="profile-view">
-                <div className="text-base font-bold text-[#111827] mb-2">{user?.name}</div>
+              <div className="bg-white rounded-2xl p-4 border border-[#E7E3D8]" data-testid="profile-view">
+                <div className="text-base font-bold text-[#14201A] mb-2">{user?.name}</div>
                 <Row icon={UserIcon} label="Username" value={user?.username} />
                 <Row icon={UserIcon} label="Jenis Kelamin" value={user?.gender === "L" ? "Laki-laki" : user?.gender === "P" ? "Perempuan" : null} />
                 <Row icon={CalendarDays} label="Tanggal Lahir" value={user?.dob ? formatTanggal(user.dob) : null} />
@@ -283,10 +283,10 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                 type="button"
                 data-testid="profile-release-notes-open"
                 onClick={() => setShowReleaseNotes(true)}
-                className="w-full rounded-2xl border-2 border-[#D1D5DB] bg-white p-4 text-left hover:border-[#2563EB]"
+                className="w-full rounded-2xl border-2 border-[#D9D4C5] bg-white p-4 text-left hover:border-[#14633F]"
               >
-                <span className="block font-bold text-[#111827]">Pembaruan Terbaru</span>
-                <span className="mt-1 block text-sm text-[#6B7280]">Lihat fitur dan perbaikan terbaru aplikasi.</span>
+                <span className="block font-bold text-[#14201A]">Pembaruan Terbaru</span>
+                <span className="mt-1 block text-sm text-[#5F6B63]">Lihat fitur dan perbaikan terbaru aplikasi.</span>
               </button>
               <button
                 data-testid="profile-edit-open"
@@ -299,7 +299,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                   });
                   setEditing(true);
                 }}
-                className="w-full h-12 rounded-xl bg-[#2563EB] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#1D4ED8]"
+                className="w-full h-12 rounded-xl bg-[#14633F] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31]"
               >
                 <Pencil size={18} /> Ubah Data Profil
               </button>

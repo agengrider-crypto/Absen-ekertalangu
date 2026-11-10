@@ -1,6 +1,6 @@
 // Label peran yang ditampilkan ke pengguna.
 export const ROLE_LABEL = {
-  admin: "Adminator",
+  admin: "Administrator",
   pengurus: "Pengurus",
   guru: "Guru / Pengajar",
   peserta: "Peserta",

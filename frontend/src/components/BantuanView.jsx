@@ -33,7 +33,7 @@ const GUIDES = {
     ],
   },
   admin: {
-    label: "Adminator",
+    label: "Administrator",
     icon: ShieldCheck,
     steps: [
       { icon: UserPlus, title: "Kelola peserta", desc: "Menu User untuk menambah/mengubah data. Lengkapi tanggal lahir, jenis kelamin, dan status agar penyaringan kegiatan akurat.", img: "admin-1-peserta" },
@@ -71,19 +71,19 @@ export default function BantuanView() {
 
   return (
     <div className="space-y-4" data-testid="bantuan-view">
-      <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5 sm:p-6">
-        <div className="font-heading text-xl sm:text-2xl font-bold text-[#111827] inline-flex items-center gap-2">
+      <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5 sm:p-6">
+        <div className="font-heading text-xl sm:text-2xl font-bold text-[#14201A] inline-flex items-center gap-2">
           <LifeBuoy size={22} /> Pusat Bantuan
         </div>
-        <p className="text-sm text-[#4B5563] mt-1.5 leading-relaxed max-w-2xl">
+        <p className="text-sm text-[#5F6B63] mt-1.5 leading-relaxed max-w-2xl">
           Panduan langkah demi langkah, jawaban pertanyaan yang sering muncul, dan kontak pengurus
           bila masih ada kendala.
         </p>
       </div>
 
       {/* Panduan langkah */}
-      <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5" data-testid="bantuan-panduan">
-        <div className="font-bold text-[#111827] inline-flex items-center gap-2">
+      <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5" data-testid="bantuan-panduan">
+        <div className="font-bold text-[#14201A] inline-flex items-center gap-2">
           <BookOpen size={17} /> Panduan Pemakaian
         </div>
         <div className="flex flex-wrap gap-2 mt-3">
@@ -96,7 +96,7 @@ export default function BantuanView() {
                 data-testid={`bantuan-panduan-${key}`}
                 onClick={() => setRole(key)}
                 className={`h-10 px-3.5 rounded-xl border-2 text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
-                  on ? "bg-[#2563EB] text-white border-transparent" : "bg-white text-[#4B5563] border-[#E8E8E4] hover:border-[#2563EB] hover:text-[#1D4ED8]"
+                  on ? "bg-[#14633F] text-white border-transparent" : "bg-white text-[#5F6B63] border-[#E7E3D8] hover:border-[#14633F] hover:text-[#0E4E31]"
                 }`}
               >
                 <Icon size={15} /> {g.label}
@@ -109,16 +109,16 @@ export default function BantuanView() {
             const Icon = s.icon;
             return (
               <li key={s.title} data-testid={`bantuan-step-${role}-${i}`}
-                className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-3.5">
+                className="rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] p-3.5">
                 <div className="flex gap-3">
-                  <span className="h-9 w-9 shrink-0 rounded-xl bg-[#2563EB] text-white flex items-center justify-center font-bold text-sm">
+                  <span className="h-9 w-9 shrink-0 rounded-xl bg-[#14633F] text-white flex items-center justify-center font-bold text-sm">
                     {i + 1}
                   </span>
                   <span className="min-w-0">
-                    <span className="font-semibold text-[#111827] text-sm inline-flex items-center gap-1.5">
-                      <Icon size={14} className="text-[#4B5563]" /> {s.title}
+                    <span className="font-semibold text-[#14201A] text-sm inline-flex items-center gap-1.5">
+                      <Icon size={14} className="text-[#5F6B63]" /> {s.title}
                     </span>
-                    <span className="block text-xs text-[#4B5563] mt-1 leading-relaxed">{s.desc}</span>
+                    <span className="block text-xs text-[#5F6B63] mt-1 leading-relaxed">{s.desc}</span>
                   </span>
                 </div>
                 {s.img && (
@@ -126,7 +126,7 @@ export default function BantuanView() {
                     type="button"
                     data-testid={`bantuan-step-img-${role}-${i}`}
                     onClick={() => setZoom(`/panduan/${s.img}.jpg`)}
-                    className="mt-3 block w-full rounded-xl overflow-hidden border border-[#E8E8E4] bg-[#F3F4F6] group"
+                    className="mt-3 block w-full rounded-xl overflow-hidden border border-[#E7E3D8] bg-[#F0EEE6] group"
                     title="Klik untuk memperbesar"
                   >
                     <span className={`block mx-auto ${role === "peserta" ? "max-w-[300px]" : "max-w-full"}`}>
@@ -137,7 +137,7 @@ export default function BantuanView() {
                         className="w-full h-auto object-contain transition-transform duration-500 group-hover:scale-[1.01]"
                       />
                     </span>
-                    <span className="block text-[11px] text-[#6B7280] bg-white px-3 py-1.5 text-left border-t border-[#ECECE8]">
+                    <span className="block text-[11px] text-[#5F6B63] bg-white px-3 py-1.5 text-left border-t border-[#E7E3D8]">
                       <Maximize2 size={11} className="inline mr-1 -mt-0.5" />
                       Tangkapan layar asli aplikasi — klik untuk memperbesar
                     </span>
@@ -150,11 +150,11 @@ export default function BantuanView() {
       </div>
 
       {/* Tanya jawab */}
-      <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5" data-testid="bantuan-faq">
-        <div className="font-bold text-[#111827] inline-flex items-center gap-2">
+      <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5" data-testid="bantuan-faq">
+        <div className="font-bold text-[#14201A] inline-flex items-center gap-2">
           <MessageCircleQuestion size={17} /> Tanya Jawab
         </div>
-        <div className="mt-3 divide-y divide-[#ECECE8] border border-[#E8E8E4] rounded-xl overflow-hidden">
+        <div className="mt-3 divide-y divide-[#E7E3D8] border border-[#E7E3D8] rounded-xl overflow-hidden">
           {FAQ.map((f, i) => {
             const on = openFaq === i;
             return (
@@ -162,13 +162,13 @@ export default function BantuanView() {
                 <button
                   data-testid={`bantuan-faq-${i}`}
                   onClick={() => setOpenFaq(on ? null : i)}
-                  className={`w-full text-left px-4 py-3 flex items-start justify-between gap-3 ${on ? "bg-[#F3F4F6]" : "hover:bg-[#FAFAF8]"}`}
+                  className={`w-full text-left px-4 py-3 flex items-start justify-between gap-3 ${on ? "bg-[#F0EEE6]" : "hover:bg-[#F6F4EE]"}`}
                 >
-                  <span className="font-semibold text-sm text-[#111827]">{f.q}</span>
-                  <ChevronDown size={17} className={`shrink-0 mt-0.5 text-[#6B7280] transition-transform ${on ? "rotate-180" : ""}`} />
+                  <span className="font-semibold text-sm text-[#14201A]">{f.q}</span>
+                  <ChevronDown size={17} className={`shrink-0 mt-0.5 text-[#5F6B63] transition-transform ${on ? "rotate-180" : ""}`} />
                 </button>
                 {on && (
-                  <p data-testid={`bantuan-faq-answer-${i}`} className="px-4 pb-3.5 text-sm text-[#4B5563] leading-relaxed">
+                  <p data-testid={`bantuan-faq-answer-${i}`} className="px-4 pb-3.5 text-sm text-[#5F6B63] leading-relaxed">
                     {f.a}
                   </p>
                 )}
@@ -179,44 +179,44 @@ export default function BantuanView() {
       </div>
 
       {/* Kontak pengurus */}
-      <div className="rounded-2xl border border-[#E8E8E4] bg-white p-5" data-testid="bantuan-kontak">
-        <div className="font-bold text-[#111827] inline-flex items-center gap-2">
+      <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5" data-testid="bantuan-kontak">
+        <div className="font-bold text-[#14201A] inline-flex items-center gap-2">
           <PhoneCall size={17} /> Hubungi Pengurus
         </div>
-        <p className="text-xs text-[#6B7280] mt-1">
+        <p className="text-xs text-[#5F6B63] mt-1">
           Daftar diambil otomatis dari akun admin &amp; pengurus yang aktif.
         </p>
         {kontak === null ? (
-          <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={22} /></div>
+          <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={22} /></div>
         ) : kontak.length === 0 ? (
-          <p className="text-sm text-[#6B7280] mt-3">Belum ada kontak pengurus yang tercatat.</p>
+          <p className="text-sm text-[#5F6B63] mt-3">Belum ada kontak pengurus yang tercatat.</p>
         ) : (
           <div className="mt-3 grid sm:grid-cols-2 gap-2">
             {kontak.map((k) => (
               <div key={k.id} data-testid={`bantuan-kontak-${k.id}`}
-                className="rounded-xl border border-[#E8E8E4] bg-[#FAFAF8] p-3.5">
+                className="rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] p-3.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">{k.role}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wide text-[#5F6B63]">{k.role}</span>
                 </div>
-                <div className="font-semibold text-[#111827] text-sm mt-0.5">{k.name}</div>
-                <div className="text-xs text-[#6B7280] mt-0.5">{k.phone || k.whatsapp || "Nomor belum diisi"}</div>
+                <div className="font-semibold text-[#14201A] text-sm mt-0.5">{k.name}</div>
+                <div className="text-xs text-[#5F6B63] mt-0.5">{k.phone || k.whatsapp || "Nomor belum diisi"}</div>
                 <div className="flex gap-2 mt-2.5">
                   {k.wa_link && (
                     <a href={k.wa_link} target="_blank" rel="noreferrer"
                       data-testid={`bantuan-kontak-wa-${k.id}`}
-                      className="h-9 px-3 rounded-lg bg-[#25D366] text-white text-xs font-semibold inline-flex items-center gap-1.5 hover:brightness-95">
+                      className="h-9 px-3 rounded-lg bg-[#14633F] text-white text-xs font-semibold inline-flex items-center gap-1.5 hover:brightness-95">
                       <Send size={13} /> WhatsApp
                     </a>
                   )}
                   {k.phone && (
                     <a href={`tel:${k.phone}`} data-testid={`bantuan-kontak-tel-${k.id}`}
-                      className="h-9 px-3 rounded-lg border-2 border-[#2563EB] text-[#1D4ED8] text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-[#EFF6FF]">
+                      className="h-9 px-3 rounded-lg border-2 border-[#14633F] text-[#0E4E31] text-xs font-semibold inline-flex items-center gap-1.5 hover:bg-[#E3F3EA]">
                       <PhoneCall size={13} /> Telepon
                     </a>
                   )}
                   {k.email && (
                     <a href={`mailto:${k.email}`} data-testid={`bantuan-kontak-mail-${k.id}`}
-                      className="h-9 w-9 rounded-lg border-2 border-[#E8E8E4] text-[#4B5563] inline-flex items-center justify-center hover:border-[#2563EB] hover:text-[#1D4ED8]">
+                      className="h-9 w-9 rounded-lg border-2 border-[#E7E3D8] text-[#5F6B63] inline-flex items-center justify-center hover:border-[#14633F] hover:text-[#0E4E31]">
                       <Mail size={14} />
                     </a>
                   )}

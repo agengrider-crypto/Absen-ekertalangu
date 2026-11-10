@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { ACTIVATION_QR } from "@/constants/testIds";
 
-const inp = "w-full h-11 px-3.5 rounded-xl border-2 border-[#E8E8E4] text-sm outline-none focus:border-[#2563EB] bg-white";
+const inp = "w-full h-11 px-3.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white";
 
 function errText(e) {
   return formatApiErrorDetail(e?.response?.data?.detail) || e?.message || "Terjadi kesalahan.";
@@ -32,15 +32,15 @@ export function ActivationQrCard({ onOpen }) {
 
   return (
     <section
-      className="rounded-2xl border border-[#E8E8E4] bg-white p-5 sm:p-6"
+      className="rounded-2xl border border-[#E7E3D8] bg-white p-5 sm:p-6"
       data-testid={ACTIVATION_QR.card}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-heading font-bold text-[#111827] flex items-center gap-2">
+          <h2 className="font-heading font-bold text-[#14201A] flex items-center gap-2">
             <QrCode size={18} /> QR Aktivasi Akun
           </h2>
-          <p className="mt-1 text-xs leading-relaxed text-[#6B7280]">
+          <p className="mt-1 text-xs leading-relaxed text-[#5F6B63]">
             Cetak atau tampilkan QR ini. Jamaah memindai lalu mengaktifkan akunnya sendiri.
           </p>
         </div>
@@ -48,7 +48,7 @@ export function ActivationQrCard({ onOpen }) {
           type="button"
           data-testid={ACTIVATION_QR.open}
           onClick={onOpen}
-          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[#2563EB] px-3.5 text-sm font-semibold text-white hover:bg-[#1D4ED8]"
+          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[#14633F] px-3.5 text-sm font-semibold text-white hover:bg-[#0E4E31]"
         >
           <Maximize2 size={15} /> Buka
         </button>
@@ -59,18 +59,18 @@ export function ActivationQrCard({ onOpen }) {
           type="button"
           onClick={onOpen}
           aria-label="Perbesar QR aktivasi"
-          className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border border-[#E8E8E4] bg-white p-1.5 hover:border-[#2563EB]"
+          className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border border-[#E7E3D8] bg-white p-1.5 hover:border-[#14633F]"
         >
           {qr?.image ? (
             <img src={qr.image} alt="QR Aktivasi Akun" className="h-full w-full object-contain" />
           ) : failed ? (
-            <AlertTriangle size={22} className="text-[#9CA3AF]" />
+            <AlertTriangle size={22} className="text-[#5F6B63]" />
           ) : (
-            <Loader2 size={22} className="animate-spin text-[#9CA3AF]" />
+            <Loader2 size={22} className="animate-spin text-[#5F6B63]" />
           )}
         </button>
-        <div className="min-w-0 text-xs text-[#6B7280]">
-          <div className="font-semibold text-[#374151]">Cara pakai</div>
+        <div className="min-w-0 text-xs text-[#5F6B63]">
+          <div className="font-semibold text-[#14201A]">Cara pakai</div>
           <ol className="mt-1 list-decimal space-y-0.5 pl-4">
             <li>Pindai QR dengan kamera HP.</li>
             <li>Cari nama Anda, lalu lengkapi data.</li>
@@ -219,24 +219,24 @@ export default function ActivationQrModal({ onClose }) {
 
   const content = (
     <div className="fixed inset-0 z-[85] flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)] backdrop-blur-[2px]" onClick={onClose} />
       <div
         data-testid={ACTIVATION_QR.modal}
         role="dialog"
         aria-modal="true"
         aria-labelledby="activation-qr-title"
-        className="relative flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#F7F7F5] shadow-2xl sm:max-h-[90vh] sm:max-w-2xl sm:rounded-3xl"
+        className="relative flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#F6F4EE] shadow-2xl sm:max-h-[90vh] sm:max-w-2xl sm:rounded-3xl"
       >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#ECECE8] bg-white px-5 py-4">
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#E7E3D8] bg-white px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#EFF6FF] text-[#1D4ED8]">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E3F3EA] text-[#0E4E31]">
               <QrCode size={20} />
             </span>
             <div className="min-w-0">
-              <h2 id="activation-qr-title" className="font-heading text-lg font-bold leading-tight text-[#111827]">
+              <h2 id="activation-qr-title" className="font-heading text-lg font-bold leading-tight text-[#14201A]">
                 QR Aktivasi Akun
               </h2>
-              <p className="mt-0.5 truncate text-xs text-[#6B7280]">Pindai, atau aktifkan manual di bawah.</p>
+              <p className="mt-0.5 truncate text-xs text-[#5F6B63]">Pindai, atau aktifkan manual di bawah.</p>
             </div>
           </div>
           <button
@@ -244,7 +244,7 @@ export default function ActivationQrModal({ onClose }) {
             data-testid={ACTIVATION_QR.close}
             onClick={onClose}
             aria-label="Tutup"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#6B7280] hover:bg-[#F3F4F6]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]"
           >
             <X size={20} />
           </button>
@@ -253,14 +253,14 @@ export default function ActivationQrModal({ onClose }) {
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
           <div className="space-y-3.5">
             {/* QR besar */}
-            <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4">
+            <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4">
               <div className="flex flex-col items-center gap-3">
                 <button
                   type="button"
                   data-testid={ACTIVATION_QR.zoom}
                   onClick={() => qr?.image && setZoom(true)}
                   aria-label="Perbesar QR"
-                  className="group relative flex h-56 w-56 items-center justify-center rounded-2xl border border-[#E8E8E4] bg-white p-2 hover:border-[#2563EB]"
+                  className="group relative flex h-56 w-56 items-center justify-center rounded-2xl border border-[#E7E3D8] bg-white p-2 hover:border-[#14633F]"
                 >
                   {qr?.image ? (
                     <img
@@ -270,17 +270,17 @@ export default function ActivationQrModal({ onClose }) {
                       className="h-full w-full object-contain"
                     />
                   ) : failed ? (
-                    <span className="text-sm text-[#991B1B]">Gagal memuat QR.</span>
+                    <span className="text-sm text-[#A32A2A]">Gagal memuat QR.</span>
                   ) : (
-                    <Loader2 size={26} className="animate-spin text-[#9CA3AF]" />
+                    <Loader2 size={26} className="animate-spin text-[#5F6B63]" />
                   )}
                   {qr?.image && (
-                    <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#2563EB]/85 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-lg bg-[#14633F]/85 text-white opacity-0 transition-opacity group-hover:opacity-100">
                       <Maximize2 size={15} />
                     </span>
                   )}
                 </button>
-                <p className="text-center text-xs text-[#6B7280]">
+                <p className="text-center text-xs text-[#5F6B63]">
                   Ketuk QR untuk memperbesar. Jamaah memindai lalu mencari namanya.
                 </p>
                 <div className="grid w-full grid-cols-1 gap-2">
@@ -289,13 +289,13 @@ export default function ActivationQrModal({ onClose }) {
                     data-testid={ACTIVATION_QR.print}
                     onClick={printQr}
                     disabled={!qr?.image}
-                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8] disabled:opacity-50"
+                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[#14633F] text-sm font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-50"
                   >
                     <Printer size={15} /> Cetak QR
                   </button>
                 </div>
                 {qr?.url && (
-                  <p className="w-full break-all rounded-lg bg-[#FAFAF8] px-3 py-2 text-[11px] text-[#6B7280]">
+                  <p className="w-full break-all rounded-lg bg-[#F6F4EE] px-3 py-2 text-[11px] text-[#5F6B63]">
                     {qr.url}
                   </p>
                 )}
@@ -303,15 +303,15 @@ export default function ActivationQrModal({ onClose }) {
             </div>
 
             {/* Aktivasi manual — cari nama */}
-            <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-[#111827]">
+            <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#14201A]">
                 <UserCheck size={15} /> Aktifkan Akun yang Sudah Terdaftar
               </div>
-              <p className="mt-1 text-xs text-[#6B7280]">
+              <p className="mt-1 text-xs text-[#5F6B63]">
                 Ketik nama peserta yang belum aktivasi, lalu tekan Aktifkan.
               </p>
               <div className="relative mt-3">
-                <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+                <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
                 <input
                   ref={searchRef}
                   data-testid={ACTIVATION_QR.search}
@@ -324,12 +324,12 @@ export default function ActivationQrModal({ onClose }) {
 
               <div className="mt-2" data-testid={ACTIVATION_QR.results}>
                 {searching && (
-                  <div className="flex items-center gap-2 py-2 text-xs text-[#6B7280]">
+                  <div className="flex items-center gap-2 py-2 text-xs text-[#5F6B63]">
                     <Loader2 size={14} className="animate-spin" /> Mencari…
                   </div>
                 )}
                 {!searching && query.trim().length >= 2 && results.length === 0 && (
-                  <p className="py-2 text-xs text-[#6B7280]">
+                  <p className="py-2 text-xs text-[#5F6B63]">
                     Tidak ada akun menunggu aktivasi dengan nama itu. Buat akun baru di bawah.
                   </p>
                 )}
@@ -338,11 +338,11 @@ export default function ActivationQrModal({ onClose }) {
                     <li
                       key={r.id}
                       data-testid={`${ACTIVATION_QR.resultPrefix}-${r.id}`}
-                      className="flex items-center justify-between gap-2 rounded-xl border border-[#E8E8E4] px-3 py-2"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-[#E7E3D8] px-3 py-2"
                     >
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-[#111827]">{r.name}</div>
-                        <div className="text-[11px] text-[#9CA3AF]">
+                        <div className="truncate text-sm font-semibold text-[#14201A]">{r.name}</div>
+                        <div className="text-[11px] text-[#5F6B63]">
                           {r.requires_dob ? "Tanggal lahir tersedia" : "Tanggal lahir belum diisi"}
                         </div>
                       </div>
@@ -351,7 +351,7 @@ export default function ActivationQrModal({ onClose }) {
                         data-testid={`${ACTIVATION_QR.activatePrefix}-${r.id}`}
                         onClick={() => activateExisting(r)}
                         disabled={busyId === r.id}
-                        className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[#16A34A] px-3 text-xs font-semibold text-white hover:bg-[#15803D] disabled:opacity-60"
+                        className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[#14633F] px-3 text-xs font-semibold text-white hover:bg-[#14633F] disabled:opacity-60"
                       >
                         {busyId === r.id ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
                         Aktifkan
@@ -363,11 +363,11 @@ export default function ActivationQrModal({ onClose }) {
             </div>
 
             {/* Aktivasi manual — ketik nama baru */}
-            <form onSubmit={createAndActivate} className="rounded-2xl border border-[#E8E8E4] bg-white p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-[#111827]">
+            <form onSubmit={createAndActivate} className="rounded-2xl border border-[#E7E3D8] bg-white p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-[#14201A]">
                 <UserPlus size={15} /> Buat &amp; Aktifkan Akun Baru
               </div>
-              <p className="mt-1 text-xs text-[#6B7280]">
+              <p className="mt-1 text-xs text-[#5F6B63]">
                 Untuk jamaah yang belum terdaftar. Isi tanggal lahir agar sandi awal bisa dipakai.
               </p>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -391,7 +391,7 @@ export default function ActivationQrModal({ onClose }) {
                 type="submit"
                 data-testid={ACTIVATION_QR.manualSubmit}
                 disabled={manualBusy}
-                className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#2563EB] text-sm font-semibold text-white hover:bg-[#1D4ED8] disabled:opacity-60"
+                className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#14633F] text-sm font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-60"
               >
                 {manualBusy ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
                 Buat &amp; Aktifkan
@@ -400,7 +400,7 @@ export default function ActivationQrModal({ onClose }) {
               {manualResult && (
                 <div
                   data-testid={ACTIVATION_QR.manualResult}
-                  className="mt-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-sm text-[#166534]"
+                  className="mt-3 rounded-xl border border-[#E3F3EA] bg-[#E3F3EA] p-3 text-sm text-[#0E4E31]"
                 >
                   <div className="flex items-center gap-1.5 font-semibold">
                     <CheckCircle2 size={15} /> Akun aktif
@@ -414,8 +414,8 @@ export default function ActivationQrModal({ onClose }) {
               )}
             </form>
 
-            <div className="flex items-start gap-2 rounded-2xl border border-[#E8E8E4] bg-white p-3.5 text-xs leading-relaxed text-[#6B7280]">
-              <ChevronRight size={15} className="mt-0.5 shrink-0 text-[#9CA3AF]" />
+            <div className="flex items-start gap-2 rounded-2xl border border-[#E7E3D8] bg-white p-3.5 text-xs leading-relaxed text-[#5F6B63]">
+              <ChevronRight size={15} className="mt-0.5 shrink-0 text-[#5F6B63]" />
               <span>
                 Aktivasi manual memakai aturan yang sama dengan Aktivasi Massal: hanya akun berperan
                 tunggal <b>Peserta</b> yang berstatus belum aktivasi, dan tanggal lahir harus valid.
@@ -424,11 +424,11 @@ export default function ActivationQrModal({ onClose }) {
           </div>
         </div>
 
-        <div className="shrink-0 border-t border-[#ECECE8] bg-white px-4 py-3">
+        <div className="shrink-0 border-t border-[#E7E3D8] bg-white px-4 py-3">
           <button
             type="button"
             onClick={onClose}
-            className="h-11 w-full rounded-xl bg-[#F3F4F6] text-sm font-semibold text-[#4B5563] hover:bg-[#E8E8E4]"
+            className="h-11 w-full rounded-xl bg-[#F0EEE6] text-sm font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]"
           >
             Tutup
           </button>

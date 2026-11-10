@@ -36,37 +36,37 @@ export default function PenjagaAbsenView() {
   return (
     <div>
       <div className="mb-5">
-        <h1 className="font-heading text-2xl font-bold text-[#111827] flex items-center gap-2">
-          <ShieldCheck size={22} className="text-[#1D4ED8]" /> Penjaga Absen
+        <h1 className="font-heading text-2xl font-bold text-[#14201A] flex items-center gap-2">
+          <ShieldCheck size={22} className="text-[#0E4E31]" /> Penjaga Absen
         </h1>
-        <p className="text-[#6B7280] text-sm">
+        <p className="text-[#5F6B63] text-sm">
           Tersedia <b>absen manual</b> dan <b>absen scan barcode</b>. Anda juga dapat menyerahkan hak
           pengisian absen ke orang terpilih saat tidak berada di lokasi — hak otomatis dicabut saat kegiatan ditutup.
         </p>
       </div>
 
-      <div className="flex items-center justify-between bg-white rounded-xl border border-[#E8E8E4] p-2 mb-4 max-w-xs">
-        <button onClick={() => shift(-1)} className="h-9 px-3 rounded-lg text-[#4B5563] hover:bg-[#F3F4F6] font-semibold">‹</button>
-        <span className="text-sm font-semibold text-[#111827]">{monthLabel}</span>
-        <button onClick={() => shift(1)} className="h-9 px-3 rounded-lg text-[#4B5563] hover:bg-[#F3F4F6] font-semibold">›</button>
+      <div className="flex items-center justify-between bg-white rounded-xl border border-[#E7E3D8] p-2 mb-4 max-w-xs">
+        <button onClick={() => shift(-1)} className="h-9 px-3 rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6] font-semibold">‹</button>
+        <span className="text-sm font-semibold text-[#14201A]">{monthLabel}</span>
+        <button onClick={() => shift(1)} className="h-9 px-3 rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6] font-semibold">›</button>
       </div>
 
       {items === null ? (
-        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#1D4ED8]" size={30} /></div>
+        <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E8E8E4] p-8 text-center text-[#6B7280] text-sm">Tidak ada kegiatan bulan ini.</div>
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-8 text-center text-[#5F6B63] text-sm">Tidak ada kegiatan bulan ini.</div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {items.map((k) => {
             const open = (k.status || "open") === "open";
             return (
-              <div key={k.id} className="bg-white rounded-2xl border border-[#E8E8E4] p-4" data-testid={`penjaga-keg-${k.id}`}>
+              <div key={k.id} className="bg-white rounded-2xl border border-[#E7E3D8] p-4" data-testid={`penjaga-keg-${k.id}`}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${open ? "bg-[#EFF6FF] text-[#1D4ED8]" : "bg-[#F3F4F6] text-[#6B7280]"}`}>{open ? "Aktif" : "Ditutup"}</span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${open ? "bg-[#E3F3EA] text-[#0E4E31]" : "bg-[#F0EEE6] text-[#5F6B63]"}`}>{open ? "Aktif" : "Ditutup"}</span>
                 </div>
-                <h3 className="font-heading font-bold text-[#111827] mt-1.5">{k.name}</h3>
-                <div className="text-sm text-[#6B7280] mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                <h3 className="font-heading font-bold text-[#14201A] mt-1.5">{k.name}</h3>
+                <div className="text-sm text-[#5F6B63] mt-1 flex flex-wrap gap-x-4 gap-y-1">
                   <span className="inline-flex items-center gap-1.5"><CalendarDays size={14} /> {tanggalSingkat(k.date)}</span>
                   <span className="inline-flex items-center gap-1.5"><Clock size={14} /> {k.start_time}–{k.end_time} WITA</span>
                 </div>
@@ -75,14 +75,14 @@ export default function PenjagaAbsenView() {
                   <button
                     data-testid={`penjaga-manual-${k.id}`}
                     onClick={() => setManual(k)}
-                    className="h-10 rounded-xl bg-[#2563EB] text-white font-semibold text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#1D4ED8]"
+                    className="h-10 rounded-xl bg-[#14633F] text-white font-semibold text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#0E4E31]"
                   >
                     <ListChecks size={16} /> Absen Manual
                   </button>
                   <button
                     data-testid={`penjaga-scan-${k.id}`}
                     onClick={() => setScan(k)}
-                    className="h-10 rounded-xl border-2 border-[#2563EB] text-[#1D4ED8] font-semibold text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#EFF6FF]"
+                    className="h-10 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#E3F3EA]"
                   >
                     <ScanLine size={16} /> Scan Barcode
                   </button>
@@ -90,7 +90,7 @@ export default function PenjagaAbsenView() {
                 <button
                   data-testid={`penjaga-manage-${k.id}`}
                   onClick={() => setActionFor(k)}
-                  className="mt-2 w-full h-10 rounded-xl border border-[#E8E8E4] text-[#4B5563] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:border-[#2563EB] hover:text-[#1D4ED8]"
+                  className="mt-2 w-full h-10 rounded-xl border border-[#E7E3D8] text-[#5F6B63] font-semibold text-sm inline-flex items-center justify-center gap-2 hover:border-[#14633F] hover:text-[#0E4E31]"
                 >
                   <MoreHorizontal size={16} /> Aksi Lain
                 </button>

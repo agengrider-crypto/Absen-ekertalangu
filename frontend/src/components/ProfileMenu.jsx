@@ -61,7 +61,7 @@ export default function ProfileMenu({ subtitle }) {
             onClick={() => setShowSwitcher(true)}
             aria-label="Ganti Peran"
             title="Ganti Peran"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E8E8E4] text-[#6B7280] transition-colors hover:border-[#2563EB] hover:text-[#1D4ED8]"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E7E3D8] text-[#5F6B63] transition-colors hover:border-[#14633F] hover:text-[#0E4E31]"
           >
             <RefreshCw size={14} />
           </button>
@@ -69,20 +69,20 @@ export default function ProfileMenu({ subtitle }) {
         <button
           data-testid="button-profile-menu"
           onClick={() => setOpenMenu(true)}
-          className="relative flex items-center gap-2.5 rounded-full pl-1 pr-2 py-1 hover:bg-[#F3F4F6] transition-colors"
+          className="relative flex items-center gap-2.5 rounded-full pl-1 pr-2 py-1 hover:bg-[#F0EEE6] transition-colors"
         >
           <div className="text-right hidden sm:block leading-tight">
-            <div className="font-semibold text-[#111827] text-sm">{user?.name}</div>
-            {subtitle && <div className="text-xs text-[#6B7280]">{subtitle}</div>}
+            <div className="font-semibold text-[#14201A] text-sm">{user?.name}</div>
+            {subtitle && <div className="text-xs text-[#5F6B63]">{subtitle}</div>}
           </div>
           <Avatar size={40} photo={photo} initials={initials} />
           {incomplete && (
-            <span data-testid="profile-incomplete-dot" className="absolute -top-0.5 right-6 h-3 w-3 rounded-full bg-[#9CA3AF] ring-2 ring-white" />
+            <span data-testid="profile-incomplete-dot" className="absolute -top-0.5 right-6 h-3 w-3 rounded-full bg-[#5F6B63] ring-2 ring-white" />
           )}
           {unreadUpdate && (
-            <span data-testid="profile-update-dot" className="absolute top-0.5 right-5 h-2.5 w-2.5 rounded-full bg-[#DC2626] ring-2 ring-white" />
+            <span data-testid="profile-update-dot" className="absolute top-0.5 right-5 h-2.5 w-2.5 rounded-full bg-[#A32A2A] ring-2 ring-white" />
           )}
-          <ChevronDown size={16} className="text-[#6B7280]" />
+          <ChevronDown size={16} className="text-[#5F6B63]" />
         </button>
       </div>
 
@@ -131,16 +131,16 @@ export default function ProfileMenu({ subtitle }) {
               label: "Keluar",
               desc: "Akhiri sesi akun ini",
               icon: LogOut,
-              danger: true,
+              hapus: true,
               onClick: async () => { await logout(); navigate("/login"); },
             },
           ]}
         >
-          <div className="px-3.5 py-3 mb-1 flex items-center gap-3.5 rounded-2xl bg-[#FAFAF8] border border-[#ECECE8]">
+          <div className="px-3.5 py-3 mb-1 flex items-center gap-3.5 rounded-2xl bg-[#F6F4EE] border border-[#E7E3D8]">
             <Avatar size={52} photo={photo} initials={initials} />
             <div className="min-w-0">
-              <div className="font-bold text-[#111827] text-sm truncate">{user?.name}</div>
-              <div className="text-xs text-[#6B7280] truncate">{user?.username || user?.phone}</div>
+              <div className="font-bold text-[#14201A] text-sm truncate">{user?.name}</div>
+              <div className="text-xs text-[#5F6B63] truncate">{user?.username || user?.phone}</div>
             </div>
           </div>
         </ActionModal>
@@ -188,7 +188,7 @@ export default function ProfileMenu({ subtitle }) {
 function Avatar({ size = 40, photo, initials }) {
   return (
     <div
-      className="rounded-full overflow-hidden bg-[#2563EB] text-white flex items-center justify-center font-bold shrink-0 border-2 border-white shadow-sm"
+      className="rounded-full overflow-hidden bg-[#14633F] text-white flex items-center justify-center font-bold shrink-0 border-2 border-white shadow-sm"
       style={{ height: size, width: size, fontSize: size * 0.34 }}
     >
       {photo ? <img src={photo} alt="Foto profil" className="h-full w-full object-cover" /> : initials}

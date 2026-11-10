@@ -26,7 +26,7 @@ from bson import ObjectId
 from fastapi import FastAPI, APIRouter, Request, Response, HTTPException, Depends, UploadFile, File
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from fastapi.responses import StreamingResponse, Response as FastResponse
+from fastapi.responses import StreamingResponse, Response as FastResponse, JSONResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
 from pymongo import UpdateOne
@@ -6581,6 +6581,120 @@ async def health():
     return out
 
 
+# ---------------------------------------------------------------------------
+# PEMELIHARAAN (Layar 32)
+# Satu dokumen di collection `app_settings` dengan _id "maintenance":
+#   { enabled, startAt, endAt, message, updated_at, updated_by }
+# - Peserta & halaman login boleh MEMBACA (read-only).
+# - Hanya admin yang boleh MENGUBAH.
+# ---------------------------------------------------------------------------
+MAINTENANCE_ID = "maintenance"
+MAINTENANCE_DEFAULT_MESSAGE = (
+    "Aplikasi sedang dalam perawatan. Silakan tunggu beberapa saat lalu coba kembali. "
+    "Terima kasih atas pengertiannya."
+)
+
+
+class MaintenanceInput(BaseModel):
+    enabled: Optional[bool] = None
+    startAt: Optional[str] = None
+    endAt: Optional[str] = None
+    message: Optional[str] = None
+
+
+def _parse_wita(value: Optional[str]) -> Optional[datetime]:
+    """Terima ISO 8601 (dengan/tanpa zona) atau 'YYYY-MM-DD HH:MM'. Anggap WITA."""
+    if not value:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    try:
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+    except ValueError:
+        for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M", "%Y-%m-%d"):
+            try:
+                dt = datetime.strptime(s, fmt)
+                break
+            except ValueError:
+                continue
+        else:
+            return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=WITA)
+    return dt
+
+
+def maintenance_state(doc: Optional[dict]) -> dict:
+    """Hitung keadaan pemeliharaan: none | scheduled | ongoing."""
+    doc = doc or {}
+    enabled = bool(doc.get("enabled"))
+    start = _parse_wita(doc.get("startAt"))
+    end = _parse_wita(doc.get("endAt"))
+    now = now_wita()
+
+    if enabled:
+        state = "ongoing"
+    elif start and end and start <= now < end:
+        state = "ongoing"
+    elif start and now < start:
+        state = "scheduled"
+    else:
+        state = "none"
+
+    return {
+        "state": state,
+        "enabled": enabled,
+        "startAt": start.isoformat() if start else None,
+        "endAt": end.isoformat() if end else None,
+        "message": doc.get("message") or MAINTENANCE_DEFAULT_MESSAGE,
+        "updated_at": doc.get("updated_at"),
+        "server_time": now.isoformat(),
+    }
+
+
+async def get_maintenance_doc() -> Optional[dict]:
+    try:
+        return await db.app_settings.find_one({"_id": MAINTENANCE_ID})
+    except Exception as exc:  # pragma: no cover
+        logger.warning("Baca pengaturan pemeliharaan gagal: %s", exc)
+        return None
+
+
+async def is_maintenance_ongoing() -> bool:
+    return maintenance_state(await get_maintenance_doc())["state"] == "ongoing"
+
+
+@api_router.get("/maintenance")
+async def maintenance_public():
+    """Keadaan pemeliharaan — boleh dibaca tanpa login (dipakai halaman login)."""
+    return maintenance_state(await get_maintenance_doc())
+
+
+@api_router.get("/admin/maintenance")
+async def maintenance_admin(user: dict = Depends(require_admin)):
+    return maintenance_state(await get_maintenance_doc())
+
+
+@api_router.put("/admin/maintenance")
+async def maintenance_update(body: MaintenanceInput, user: dict = Depends(require_admin)):
+    current = await get_maintenance_doc() or {}
+    upd = {}
+    if body.enabled is not None:
+        upd["enabled"] = bool(body.enabled)
+    if body.startAt is not None:
+        upd["startAt"] = body.startAt.strip() or None
+    if body.endAt is not None:
+        upd["endAt"] = body.endAt.strip() or None
+    if body.message is not None:
+        upd["message"] = body.message.strip() or MAINTENANCE_DEFAULT_MESSAGE
+    upd["updated_at"] = now_wita().isoformat()
+    upd["updated_by"] = user.get("name") or str(user.get("_id"))
+    await db.app_settings.update_one({"_id": MAINTENANCE_ID}, {"$set": upd}, upsert=True)
+    doc = {**current, **upd}
+    return maintenance_state(doc)
+
+
 app.include_router(api_router)
 
 _allowed_origins = {FRONTEND_URL, "http://localhost:3000"}
@@ -6826,6 +6940,65 @@ async def bootstrap_middleware(request: Request, call_next):
     path = request.url.path
     if path.startswith("/api") and not path.startswith("/api/cron"):
         await maybe_auto_close()
+    return await call_next(request)
+
+
+# ---------------------------------------------------------------------------
+# Gerbang pemeliharaan (Layar 32)
+# Saat pemeliharaan BERLANGSUNG, operasi tulis (POST/PUT/PATCH/DELETE) ditolak
+# untuk peserta dengan 503. Admin & Pengurus tetap boleh menulis. Operasi baca
+# selalu boleh. Ini pengaman sisi server, bukan pengganti tombol nonaktif.
+# ---------------------------------------------------------------------------
+MAINTENANCE_WRITE_EXEMPT = (
+    "/api/auth/login",
+    "/api/auth/logout",
+    "/api/auth/register",
+    "/api/auth/refresh",
+    "/api/admin/maintenance",
+    "/api/cron",
+)
+
+
+async def _roles_from_request(request: Request) -> list:
+    """Baca peran pengguna dari token + database (tanpa melempar error)."""
+    token = request.cookies.get("access_token")
+    if not token:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            token = auth[7:]
+    if not token:
+        return []
+    try:
+        payload = jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "access":
+            return []
+        use_demo_db(bool(payload.get("demo")))
+        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
+        return list((user or {}).get("roles") or [])
+    except Exception:
+        return []
+
+
+@app.middleware("http")
+async def maintenance_gate(request: Request, call_next):
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        path = request.url.path
+        if path.startswith("/api") and not any(path.startswith(p) for p in MAINTENANCE_WRITE_EXEMPT):
+            try:
+                ongoing = await is_maintenance_ongoing()
+            except Exception:
+                ongoing = False
+            if ongoing:
+                roles = await _roles_from_request(request)
+                if not ({"admin", "pengurus"} & set(roles)):
+                    return JSONResponse(
+                        status_code=503,
+                        content={
+                            "detail": "Aplikasi sedang dalam perawatan. "
+                                      "Silakan coba lagi setelah perawatan selesai.",
+                            "maintenance": True,
+                        },
+                    )
     return await call_next(request)
 
 

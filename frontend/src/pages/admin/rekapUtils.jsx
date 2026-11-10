@@ -1,19 +1,19 @@
 // FASE 17 — Palet khusus halaman REKAP (tetap berwarna, beda dari tema monokrom aplikasi).
 export const REKAP = {
-  hadir: "#15803D",
-  hadirSoft: "#DCFCE7",
-  hadirInk: "#166534",
-  izin: "#D97706",
-  izinSoft: "#FEF3C7",
-  izinInk: "#92400E",
-  alpha: "#DC2626",
-  alphaSoft: "#FEE2E2",
-  alphaInk: "#991B1B",
-  main: "#0F766E",
-  mainSoft: "#CCFBF1",
-  mainInk: "#115E59",
-  lk: "#2563EB",
-  pr: "#DB2777",
+  hadir: "#14633F",
+  hadirSoft: "#E3F3EA",
+  hadirInk: "#0E4E31",
+  izin: "#8A5A00",
+  izinSoft: "#FBF1D6",
+  izinInk: "#6B4500",
+  alpha: "#A32A2A",
+  alphaSoft: "#FBE5E3",
+  alphaInk: "#A32A2A",
+  main: "#0A5961",
+  mainSoft: "#D9F2F4",
+  mainInk: "#0A5961",
+  lk: "#14633F",
+  pr: "#8A1F4B",
 };
 
 /** Warna persen kehadiran: hijau (rajin) → kuning (cukup) → merah (jarang). */
@@ -24,9 +24,9 @@ export function ratioColor(ratio) {
 }
 
 export function ratioChipCls(ratio) {
-  if (ratio >= 80) return "bg-[#DCFCE7] text-[#166534]";
-  if (ratio >= 50) return "bg-[#FEF3C7] text-[#92400E]";
-  return "bg-[#FEE2E2] text-[#991B1B]";
+  if (ratio >= 80) return "bg-[#E3F3EA] text-[#0E4E31]";
+  if (ratio >= 50) return "bg-[#FBF1D6] text-[#6B4500]";
+  return "bg-[#FBE5E3] text-[#A32A2A]";
 }
 
 /** Keterangan hitungan: H/I/A dalam kali + persen masing-masing yang totalnya 100%. */

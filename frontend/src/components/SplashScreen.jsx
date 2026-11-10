@@ -40,7 +40,7 @@ export default function SplashScreen() {
   return (
     <div
       data-testid="pwa-splash"
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0B6B52] px-6 text-center"
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#14633F] px-6 text-center"
     >
       <K1Mark size={96} variant="dark" />
       <div className="mt-5">

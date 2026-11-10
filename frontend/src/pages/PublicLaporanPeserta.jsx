@@ -10,11 +10,11 @@ const MONTHS = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
 const STATUSES = [
-  ["hadir", "Hadir", "text-[#166534]", "bg-[#EFF6FF]"],
-  ["izin", "Izin", "text-[#92400E]", "bg-[#FEF3C7]"],
-  ["sakit", "Sakit", "text-[#1D4ED8]", "bg-[#DBEAFE]"],
-  ["alpha", "Alpha", "text-[#991B1B]", "bg-[#FEE2E2]"],
-  ["belum_diabsen", "Belum diabsen", "text-[#4B5563]", "bg-[#F3F4F6]"],
+  ["hadir", "Hadir", "text-[#0E4E31]", "bg-[#E3F3EA]"],
+  ["izin", "Izin", "text-[#6B4500]", "bg-[#FBF1D6]"],
+  ["sakit", "Sakit", "text-[#1D4F91]", "bg-[#E3EEFB]"],
+  ["alpha", "Alpha", "text-[#A32A2A]", "bg-[#FBE5E3]"],
+  ["belum_diabsen", "Belum diabsen", "text-[#5F6B63]", "bg-[#F0EEE6]"],
 ];
 
 function dateLabel(value) {
@@ -27,11 +27,11 @@ function monthLabel(value) {
   return `${MONTHS[month - 1]} ${year}`;
 }
 
-function Metric({ label, value, color = "text-[#111827]" }) {
+function Metric({ label, value, color = "text-[#14201A]" }) {
   return (
-    <div className="rounded-2xl border border-[#E8E8E4] bg-white p-4">
+    <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4">
       <div className={`text-2xl font-bold ${color}`}>{value}</div>
-      <div className="mt-1 text-base text-[#6B7280]">{label}</div>
+      <div className="mt-1 text-base text-[#5F6B63]">{label}</div>
     </div>
   );
 }
@@ -57,26 +57,26 @@ export default function PublicLaporanPeserta() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#FAFAF8] px-4 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#F6F4EE] px-4 text-center">
         <Logo size={48} />
-        <h1 className="mt-5 font-heading text-xl font-bold text-[#111827]">Laporan Peserta</h1>
-        <p className="mt-2 text-base text-[#991B1B]" data-testid={PARTICIPANT_REPORT.publicError}>{error}</p>
+        <h1 className="mt-5 font-heading text-xl font-bold text-[#14201A]">Laporan Peserta</h1>
+        <p className="mt-2 text-base text-[#A32A2A]" data-testid={PARTICIPANT_REPORT.publicError}>{error}</p>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FAFAF8]" role="status">
-        <Loader2 className="animate-spin text-[#1D4ED8]" size={32} aria-label="Memuat laporan peserta" />
+      <div className="flex min-h-screen items-center justify-center bg-[#F6F4EE]" role="status">
+        <Loader2 className="animate-spin text-[#0E4E31]" size={32} aria-label="Memuat laporan peserta" />
       </div>
     );
   }
 
   const summary = data.summary;
   return (
-    <div className="min-h-screen bg-[#FAFAF8] pb-12" data-testid={PARTICIPANT_REPORT.publicPage}>
-      <header className="bg-[#2563EB] text-white">
+    <div className="min-h-screen bg-[#F6F4EE] pb-12" data-testid={PARTICIPANT_REPORT.publicPage}>
+      <header className="bg-[#14633F] text-white">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
           <K1Mark size={40} variant="dark" />
           <div className="leading-tight">
@@ -87,10 +87,10 @@ export default function PublicLaporanPeserta() {
       </header>
 
       <main className="mx-auto -mt-2 max-w-2xl space-y-4 px-4">
-        <section className="rounded-2xl border border-[#E8E8E4] bg-white p-5 shadow-sm">
-          <h1 className="font-heading text-xl font-bold text-[#111827]">Laporan Peserta</h1>
-          <p className="mt-2 text-lg font-semibold text-[#111827]">{data.participant.name}</p>
-          <p className="mt-2 flex items-center gap-2 text-base text-[#6B7280]">
+        <section className="rounded-2xl border border-[#E7E3D8] bg-white p-5 shadow-sm">
+          <h1 className="font-heading text-xl font-bold text-[#14201A]">Laporan Peserta</h1>
+          <p className="mt-2 text-lg font-semibold text-[#14201A]">{data.participant.name}</p>
+          <p className="mt-2 flex items-center gap-2 text-base text-[#5F6B63]">
             <CalendarDays size={17} />
             {data.week === "bulanan"
               ? monthLabel(data.month)
@@ -99,7 +99,7 @@ export default function PublicLaporanPeserta() {
         </section>
 
         <section className="grid gap-3 sm:grid-cols-2" data-testid={PARTICIPANT_REPORT.periodSummary}>
-          <Metric label="Persentase kehadiran" value={`${summary.ratio}%`} color="text-[#1D4ED8]" />
+          <Metric label="Persentase kehadiran" value={`${summary.ratio}%`} color="text-[#0E4E31]" />
           <Metric label="Total pertemuan" value={summary.total_pertemuan} />
         </section>
 
@@ -109,47 +109,47 @@ export default function PublicLaporanPeserta() {
           ))}
         </section>
 
-        <section className="space-y-4 rounded-2xl border border-[#E8E8E4] bg-white p-4 sm:p-5" data-testid={PARTICIPANT_REPORT.sixMonthChart}>
+        <section className="space-y-4 rounded-2xl border border-[#E7E3D8] bg-white p-4 sm:p-5" data-testid={PARTICIPANT_REPORT.sixMonthChart}>
           <div>
-            <h2 className="font-bold text-[#111827]">Kehadiran 6 bulan terakhir</h2>
-            <p className="mt-1 text-base text-[#6B7280]">
+            <h2 className="font-bold text-[#14201A]">Kehadiran 6 bulan terakhir</h2>
+            <p className="mt-1 text-base text-[#5F6B63]">
               {data.six_months.summary.ratio}% · {data.six_months.summary.hadir} hadir dari {data.six_months.summary.total_pertemuan} pertemuan
             </p>
           </div>
           {data.six_months.months.map((item) => (
             <div key={item.month} className="grid grid-cols-[5.5rem_1fr_3rem] items-center gap-3">
-              <span className="text-base font-semibold text-[#4B5563]">{item.label}</span>
-              <div className="h-3 overflow-hidden rounded-full bg-[#EFF6FF]">
-                <div className="h-full origin-left rounded-full bg-[#2563EB] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
+              <span className="text-base font-semibold text-[#5F6B63]">{item.label}</span>
+              <div className="h-3 overflow-hidden rounded-full bg-[#E3F3EA]">
+                <div className="h-full origin-left rounded-full bg-[#14633F] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
                   style={{ width: `${Math.min(Math.max(item.ratio || 0, 0), 100)}%` }} />
               </div>
-              <span className="text-right text-base font-bold text-[#111827]">{item.ratio}%</span>
+              <span className="text-right text-base font-bold text-[#14201A]">{item.ratio}%</span>
             </div>
           ))}
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-[#E8E8E4] bg-white" data-testid={PARTICIPANT_REPORT.activityList}>
-          <div className="flex items-center justify-between border-b border-[#E8E8E4] px-4 py-3">
-            <h2 className="inline-flex items-center gap-2 font-bold text-[#111827]">
+        <section className="overflow-hidden rounded-2xl border border-[#E7E3D8] bg-white" data-testid={PARTICIPANT_REPORT.activityList}>
+          <div className="flex items-center justify-between border-b border-[#E7E3D8] px-4 py-3">
+            <h2 className="inline-flex items-center gap-2 font-bold text-[#14201A]">
               <ClipboardList size={18} /> Kegiatan yang diikuti
             </h2>
-            <span className="text-base text-[#6B7280]">{data.activities.length} pertemuan</span>
+            <span className="text-base text-[#5F6B63]">{data.activities.length} pertemuan</span>
           </div>
           {data.activities.length ? (
-            <ul className="divide-y divide-[#ECECE8]">
+            <ul className="divide-y divide-[#E7E3D8]">
               {data.activities.map((activity) => {
                 const status = STATUSES.find(([key]) => key === activity.status);
                 return (
                   <li key={activity.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-[#111827]">
+                      <p className="truncate font-semibold text-[#14201A]">
                         {activity.name}{activity.session_label ? ` · ${activity.session_label}` : ""}
                       </p>
-                      <p className="mt-1 text-base text-[#6B7280]">
+                      <p className="mt-1 text-base text-[#5F6B63]">
                         {dateLabel(activity.date)}{activity.start_time ? ` · ${activity.start_time}${activity.end_time ? `–${activity.end_time}` : ""}` : ""}
                       </p>
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-base font-semibold ${status?.[3] || "bg-[#F3F4F6]"} ${status?.[2] || "text-[#4B5563]"}`}>
+                    <span className={`rounded-full px-3 py-1 text-base font-semibold ${status?.[3] || "bg-[#F0EEE6]"} ${status?.[2] || "text-[#5F6B63]"}`}>
                       {status?.[1] || activity.status}
                     </span>
                   </li>
@@ -157,11 +157,11 @@ export default function PublicLaporanPeserta() {
               })}
             </ul>
           ) : (
-            <p className="p-8 text-center text-base text-[#6B7280]">Belum ada kegiatan pada periode ini.</p>
+            <p className="p-8 text-center text-base text-[#5F6B63]">Belum ada kegiatan pada periode ini.</p>
           )}
         </section>
 
-        <p className="text-center text-sm text-[#6B7280]">
+        <p className="text-center text-sm text-[#5F6B63]">
           Tautan berlaku sampai {new Date(data.expires_at).toLocaleDateString("id-ID")}.
         </p>
       </main>
