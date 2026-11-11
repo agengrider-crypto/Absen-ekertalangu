@@ -4,7 +4,7 @@ import { Eye, EyeOff, UserPlus, LogIn, KeyRound, X, Loader2 } from "lucide-react
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { Logo } from "@/components/Logo";
+import { K1Mark, K1Wordmark } from "@/components/Logo";
 import { DateField } from "@/components/DateField";
 
 function fmtWaktu(iso) {
@@ -84,20 +84,26 @@ export default function Login() {  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-10 bg-[#F6F4EE]">
-      <div className="w-full max-w-md">
-        <div className="flex justify-center mb-8">
-          <Logo size={56} showTagline />
+      <div className="w-full max-w-[420px]">
+        <div className="flex flex-col items-center mb-7">
+          <K1Mark size={64} variant="light" />
+          <div className="mt-3 text-center">
+            <K1Wordmark size="text-[26px]" />
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5F6B63]">
+              Absensi Digitalisasi Pengajian
+            </p>
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-[0_4px_28px_-6px_rgba(20,32,26,0.14)] border border-[#E7E3D8]">
-          <h1 className="font-heading text-2xl font-bold text-[#14201A]">Masuk Akun</h1>
-          <p className="text-[#5F6B63] text-base mt-1 mb-6">
+        <div className="bg-white rounded-[20px] p-6 sm:p-7 shadow-[0_4px_28px_-6px_rgba(20,32,26,0.14)] border border-[#E7E3D8]">
+          <h1 className="font-heading text-[26px] font-bold leading-tight text-[#14201A]">Masuk Akun</h1>
+          <p className="text-[#5F6B63] text-[15px] mt-1 mb-6">
             Gunakan Nomor HP, Email, atau Username Anda.
           </p>
 
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-base font-semibold text-[#14201A] mb-1.5">
+              <label className="block text-[15px] font-semibold text-[#14201A] mb-1.5">
                 Nomor HP / Email / Username
               </label>
               <input
@@ -108,12 +114,12 @@ export default function Login() {  const navigate = useNavigate();
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="cth: 0813xxxx atau nama@email.com"
-                className="w-full h-[52px] px-4 rounded-xl border border-[#8A948D] text-base outline-none transition-colors focus:border-[#14633F] bg-white"
+                className="w-full h-[52px] px-4 rounded-[14px] border border-[#8A948D] text-base outline-none transition-colors focus:border-[#14633F] focus:ring-2 focus:ring-[#14633F]/20 bg-white"
               />
             </div>
 
             <div>
-              <label className="block text-base font-semibold text-[#14201A] mb-1.5">
+              <label className="block text-[15px] font-semibold text-[#14201A] mb-1.5">
                 Kata Sandi
               </label>
               <div className="relative">
@@ -125,7 +131,7 @@ export default function Login() {  const navigate = useNavigate();
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan kata sandi"
-                  className="w-full h-[52px] pl-4 pr-14 rounded-xl border border-[#8A948D] text-base outline-none transition-colors focus:border-[#14633F] bg-white"
+                  className="w-full h-[52px] pl-4 pr-14 rounded-[14px] border border-[#8A948D] text-base outline-none transition-colors focus:border-[#14633F] focus:ring-2 focus:ring-[#14633F]/20 bg-white"
                 />
                 <button
                   type="button"
@@ -134,7 +140,7 @@ export default function Login() {  const navigate = useNavigate();
                   aria-label={showPw ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-11 w-11 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6] transition-colors"
                 >
-                  {showPw ? <EyeOff size={22} /> : <Eye size={22} />}
+                  {showPw ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
@@ -143,24 +149,24 @@ export default function Login() {  const navigate = useNavigate();
               data-testid="button-login-submit"
               type="submit"
               disabled={loading}
-              className="w-full h-[54px] rounded-xl bg-[#14633F] text-white text-lg font-bold tracking-wide flex items-center justify-center gap-2 hover:bg-[#0E4E31] active:scale-[0.99] transition-all disabled:opacity-60"
+              className="w-full h-[52px] rounded-[14px] bg-[#14633F] text-white text-base font-bold flex items-center justify-center gap-2 hover:bg-[#0E4E31] active:scale-[0.99] transition-all disabled:opacity-60"
             >
-              {loading ? <Loader2 className="animate-spin" size={22} /> : <LogIn size={22} />}
+              {loading ? <Loader2 className="animate-spin" size={20} /> : <LogIn size={20} />}
               Masuk
             </button>
           </form>
 
-          <div className="mt-5 flex flex-col gap-2 text-center">
+          <div className="mt-4 flex flex-col gap-2 text-center">
             <button
               data-testid="button-forgot-password"
               onClick={() => setShowReset(true)}
-              className="text-[#0E4E31] font-semibold text-base hover:underline inline-flex items-center justify-center gap-1.5"
+              className="text-[#0E4E31] font-semibold text-[15px] underline underline-offset-4 hover:text-[#14633F] inline-flex items-center justify-center gap-1.5"
             >
-              <KeyRound size={18} /> Lupa kata sandi?
+              Lupa kata sandi?
             </button>
           </div>
 
-          <div className="relative my-6">
+          <div className="relative my-5">
             <div className="border-t border-[#E7E3D8]" />
             <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-white px-3 text-sm text-[#5F6B63]">
               atau
@@ -171,14 +177,14 @@ export default function Login() {  const navigate = useNavigate();
             <button
               data-testid="button-activate-qr"
               onClick={() => navigate("/activate")}
-              className="w-full h-[52px] rounded-xl border-2 border-[#E7E3D8] text-[#5F6B63] text-base font-bold flex items-center justify-center gap-2 hover:bg-[#F0EEE6] transition-colors"
+              className="w-full h-[52px] rounded-[14px] border-2 border-[#E7E3D8] text-[#14201A] text-[15px] font-bold flex items-center justify-center gap-2 hover:border-[#14633F] hover:bg-[#F6F4EE] transition-colors"
             >
-              <UserPlus size={22} /> Aktivasi Akun (Cari Nama)
+              <UserPlus size={20} /> Aktivasi Akun (Cari Nama)
             </button>
           </div>
         </div>
 
-        <p className="text-center text-sm text-[#5F6B63] mt-6">
+        <p className="text-center text-[13px] text-[#5F6B63] mt-6">
           © 2026 E-KERTALANGU · Absensi Pengajian
         </p>
       </div>

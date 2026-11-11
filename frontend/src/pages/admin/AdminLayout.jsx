@@ -13,6 +13,7 @@ import { K1Mark, K1Wordmark } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
 import { ADMIN_SIDEBAR } from "@/constants/testIds";
 import NotificationBell from "@/components/NotificationBell";
+import PageTrail from "@/components/PageTrail";
 import UpdateModal from "@/components/UpdateModal";
 import DemoBanner from "@/components/DemoBanner";
 import BantuanView from "@/components/BantuanView";
@@ -89,6 +90,47 @@ function buildMenu(role) {
     .map((m) => (m.items ? { ...m, items: m.items.filter((i) => i.roles.includes(role)) } : m))
     .filter((m) => !m.items || m.items.length > 0);
 }
+
+/** Label jejak halaman per menu (Layar: "Jejak halaman di header"). */
+const TRAIL_LABEL = {
+  dashboard: "Dashboard",
+  peserta: "User",
+  "kartu-nama": "Kartu Nama",
+  "peserta-bulk": "Bulk Data",
+  "peserta-duplikat": "Cek Duplikat",
+  kelompok: "Kelompok Sambung",
+  kegiatan: "Kegiatan",
+  kalender: "Kalender Kegiatan",
+  "kode-akses": "Kode Akses",
+  "scan-presensi": "Scan Presensi",
+  pengumuman: "Pengumuman",
+  "laporan-peserta": "Laporan per Peserta",
+  "rekap-bulanan": "Rekap Bulanan",
+  "rekap-harian": "Rekap Harian",
+  musyawarah: "Musyawarah",
+  pengaduan: "Laporan Masuk",
+  bantuan: "Bantuan",
+  pemeliharaan: "Pemeliharaan",
+  "pantau-login": "Aktivitas Login",
+  log: "Log Aktivitas",
+  hakakses: "Hak Akses",
+};
+
+/** Menu induk untuk jejak tiga tingkat (mis. Kegiatan / Tambah Kegiatan). */
+const TRAIL_PARENT = {
+  kalender: "kegiatan",
+  "kode-akses": "kegiatan",
+  "scan-presensi": "kegiatan",
+  pengumuman: "kegiatan",
+  "kartu-nama": "peserta",
+  "peserta-bulk": "peserta",
+  "peserta-duplikat": "peserta",
+  kelompok: "peserta",
+  "rekap-bulanan": "laporan-peserta",
+  "rekap-harian": "laporan-peserta",
+  musyawarah: "laporan-peserta",
+  pengaduan: "laporan-peserta",
+};
 
 function NavButton({ item, active, onNav, collapsed, mobile = false }) {
   const Icon = item.icon;
@@ -276,6 +318,7 @@ export default function AdminLayout({ user, role = "admin" }) {
   const [addKegiatanRequest, setAddKegiatanRequest] = useState(0);
   const [kegiatanIdToOpen, setKegiatanIdToOpen] = useState(null);
   const [monthlyRecapFilter, setMonthlyRecapFilter] = useState("semua");
+  const [kegiatanSubPage, setKegiatanSubPage] = useState(null);
   const leaveGuard = useRef(null);
 
   const allKeys = menu.flatMap((m) => (m.items ? m.items.map((i) => i.key) : [m.key]));
@@ -317,6 +360,19 @@ export default function AdminLayout({ user, role = "admin" }) {
     navigate("/login");
   };
 
+  // Jejak halaman: "E-Kertalangu / <menu>" atau tiga tingkat saat ada sub-halaman.
+  const trailItems = (() => {
+    const label = TRAIL_LABEL[active] || "Dashboard";
+    const parentKey = TRAIL_PARENT[active];
+    const base = parentKey && TRAIL_LABEL[parentKey]
+      ? [{ label: TRAIL_LABEL[parentKey], onClick: () => go(parentKey) }, { label }]
+      : [{ label }];
+    if (active === "kegiatan" && kegiatanSubPage) {
+      return [...base, { label: kegiatanSubPage }];
+    }
+    return base;
+  })();
+
   return (
     <div className="min-h-screen bg-[#F6F4EE]">
       <UpdateModal onNavigate={go} />
@@ -351,9 +407,9 @@ export default function AdminLayout({ user, role = "admin" }) {
       <div className={collapsed ? "lg:pl-[76px]" : "lg:pl-[264px]"}>
         {/* Topbar */}
         <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-[#E7E3D8]">
-          <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3" />
-            <div className="flex items-center gap-2">
+          <div className="px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+            <PageTrail items={trailItems} role={role} name={user?.name} />
+            <div className="flex shrink-0 items-center gap-2">
               <NotificationBell onNavigate={(target) => {
                 const map = {
                   kegiatan: "kegiatan", pengumuman: "pengumuman",
@@ -403,6 +459,7 @@ export default function AdminLayout({ user, role = "admin" }) {
               initialDetailId={kegiatanIdToOpen}
               onAddRequestHandled={() => setAddKegiatanRequest(0)}
               onInitialDetailHandled={() => setKegiatanIdToOpen(null)}
+              onSubPageChange={setKegiatanSubPage}
             />
           )}
           {active === "kalender" && <KalenderView />}

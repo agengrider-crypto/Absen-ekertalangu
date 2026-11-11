@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
-  Share2, CheckCircle2, RotateCcw, Trash2, Search, Copy, Download,
-  Clock, MapPin, User, ScanLine, MessageSquareText, Lock,
-  MoreHorizontal, Pencil, FileBarChart2, ChevronDown, AlertTriangle,
-  KeyRound, RefreshCw, Send, Layers, SlidersHorizontal, Play,
+  CheckCircle2, Trash2, Search, Copy, Download,
+  Clock, MapPin, Lock, ChevronDown, AlertTriangle,
+  KeyRound, RefreshCw, Send, Layers, Play,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -20,11 +19,10 @@ import {
 import KegiatanDetail from "./KegiatanDetail";
 import KegiatanFormModal from "./KegiatanFormModal";
 import KegiatanBantuanModal from "./KegiatanBantuanModal";
-import { ReminderModal, DelegasiModal, ScanPesertaModal } from "./KegiatanExtras";
+import { ReminderModal } from "./KegiatanExtras";
 import { RekapGabunganModal, SalinJadwalModal } from "./SesiExtras";
 import ActionModal from "@/components/ActionModal";
 import ListFab from "@/components/ListFab";
-import { Send as SendIcon, ShieldCheck as ShieldIcon, ScanLine as ScanIcon } from "lucide-react";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 const TIMES = timeOptions();
@@ -39,6 +37,7 @@ export default function KegiatanView({
   initialDetailId = null,
   onAddRequestHandled,
   onInitialDetailHandled,
+  onSubPageChange,
 }) {
   const handledAddRequest = useRef(0);
   const handledInitialDetailId = useRef(null);
@@ -88,6 +87,15 @@ export default function KegiatanView({
       onInitialDetailHandled?.();
     }
   }, [initialDetailId, onInitialDetailHandled]);
+
+  // Laporkan sub-halaman ke layout supaya jejak halaman di header ikut berubah.
+  useEffect(() => {
+    if (!onSubPageChange) return;
+    if (detailId) onSubPageChange("Detail Kegiatan");
+    else if (showAdd) onSubPageChange("Tambah Kegiatan");
+    else if (editItem) onSubPageChange("Ubah Kegiatan");
+    else onSubPageChange(null);
+  }, [detailId, showAdd, editItem, onSubPageChange]);
 
   const [y, m] = month.split("-").map((x) => parseInt(x, 10));
   const shiftMonth = (delta) => {
@@ -449,7 +457,7 @@ function FilterBadges({ k }) {
     <>
       {labels.map((l) => (
         <span key={l} data-testid="keg-filter-badge"
-          className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FBE5E3] text-[#A32A2A]">{l}</span>
+          className="inline-flex shrink-0 items-center rounded-full bg-[#F0EEE6] px-2 py-0.5 text-[11px] font-semibold text-[#3A4540]">{l}</span>
       ))}
     </>
   );
@@ -571,11 +579,7 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
             {meta.badge}
           </span>
           <JenisChip type={k.type} />
-          {k.gender_filter === "P" && (
-            <span className="inline-flex shrink-0 items-center rounded-full bg-[#FBE3EC] px-2 py-0.5 text-[11px] font-semibold text-[#8A1F4B]">
-              Khusus Perempuan
-            </span>
-          )}
+          <FilterBadges k={k} />
           {k.auto_closed && <span className="shrink-0 text-[10px] text-[#5F6B63]">(auto)</span>}
         </div>
         <div className="mt-1 truncate text-[15px] font-bold text-[#14201A]">{k.name}</div>
@@ -742,8 +746,8 @@ function ModalShell({ title, children, onClose, testid, wide }) {
 
 
 const STATUS_BTN = {
-  hadir: { label: "Hadir", on: "bg-[#14633F] text-white", off: "text-[#0E4E31]" },
-  izin: { label: "Izin", on: "bg-[#5F6B63] text-white", off: "text-[#6B4500]" },
+  hadir: { label: "Hadir", on: "bg-[#14633F] text-white", off: "text-[#14633F]" },
+  izin: { label: "Izin", on: "bg-[#8A5A00] text-white", off: "text-[#6B4500]" },
   sakit: { label: "Sakit", on: "bg-[#1D4F91] text-white", off: "text-[#1D4F91]" },
   alpha: { label: "Alpha", on: "bg-[#A32A2A] text-white", off: "text-[#A32A2A]" },
 };
@@ -810,7 +814,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
               className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left hover:bg-[#F6F4EE]"
             >
               <span className="flex items-center gap-2.5">
-                <span className="h-9 w-9 rounded-xl bg-[#E3F3EA] text-[#0E4E31] flex items-center justify-center"><CheckCircle2 size={18} /></span>
+                <span className="h-9 w-9 rounded-xl bg-[#E3F3EA] text-[#14633F] flex items-center justify-center"><CheckCircle2 size={18} /></span>
                 <span>
                   <span className="block font-bold text-[#14201A] text-[15px]">Absen Manual</span>
                   <span className="block text-xs text-[#5F6B63]">Tandai Hadir / Izin / Sakit / Alpha per peserta</span>
@@ -857,7 +861,7 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
                               disabled={busy === r.user_id + s || (s === "alpha" && !alphaAllowed)}
                               onClick={() => mark(r.user_id, s)}
                               title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.label}
-                              className={`h-8 px-2.5 rounded-lg text-xs font-bold border-2 transition-colors ${active ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#E7E3D8] hover:border-current`}`}
+                              className={`h-11 w-11 rounded-full text-xs font-bold border-2 transition-colors ${active ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#D9D4C5] hover:border-current`}`}
                             >
                               {cfg.label}
                             </button>

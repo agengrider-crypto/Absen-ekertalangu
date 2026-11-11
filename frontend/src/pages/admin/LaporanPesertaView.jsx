@@ -7,6 +7,7 @@ import {
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { PARTICIPANT_REPORT } from "@/constants/testIds";
+import ShareManyLinksModal from "./ShareManyLinksModal";
 
 const MONTHS = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -258,6 +259,7 @@ export default function LaporanPesertaView() {
   const [selected, setSelected] = useState(() => new Set());
   const [selectedOnly, setSelectedOnly] = useState(false);
   const [participantId, setParticipantId] = useState(() => searchParams.get("laporanPesertaId"));
+  const [shareManyOpen, setShareManyOpen] = useState(false);
 
   const period = mode === "mingguan" ? week : "bulanan";
   const load = useCallback(async () => {
@@ -399,6 +401,12 @@ export default function LaporanPesertaView() {
                 Hapus pilihan
               </button>
             )}
+            {selected.size > 0 && (
+              <button type="button" data-testid="laporan-peserta-share-many" onClick={() => setShareManyOpen(true)}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-3.5 text-base font-semibold text-white hover:bg-[#0E4E31]">
+                <Share2 size={16} /> Bagikan {selected.size} tautan
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -445,6 +453,15 @@ export default function LaporanPesertaView() {
             </p>
           )}
         </section>
+      )}
+
+      {shareManyOpen && (
+        <ShareManyLinksModal
+          rows={filteredRows.filter((row) => selected.has(row.user_id))}
+          month={month}
+          week={period}
+          onClose={() => setShareManyOpen(false)}
+        />
       )}
     </div>
   );

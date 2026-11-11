@@ -5091,6 +5091,66 @@ async def share_peserta_report(user_id: str, request: Request,
     }
 
 
+class ShareManyInput(BaseModel):
+    user_ids: List[str] = Field(default_factory=list)
+    month: str = ""
+    week: str = "bulanan"
+
+
+@api_router.post("/admin/laporan/peserta/share-banyak")
+async def share_many_peserta_reports(body: ShareManyInput, request: Request,
+                                     staff: dict = Depends(require_staff)):
+    """Buat satu tautan laporan untuk setiap peserta terpilih (maks. 200)."""
+    ids = [uid for uid in (body.user_ids or []) if ObjectId.is_valid(uid)][:200]
+    if not ids:
+        raise HTTPException(status_code=400, detail="Pilih minimal satu peserta")
+    selected_month = (body.month or "").strip() or now_wita().strftime("%Y-%m")
+    week_value = (body.week or "bulanan").strip() or "bulanan"
+    created_at = datetime.now(timezone.utc)
+    expires_at = (created_at + timedelta(days=30)).isoformat()
+    base = resolve_base_url(request)
+
+    users = await db.users.find(
+        {"_id": {"$in": [ObjectId(uid) for uid in ids]}, **PESERTA_QUERY},
+        {"name": 1},
+    ).to_list(len(ids))
+    by_id = {str(u["_id"]): (u.get("name") or "Peserta") for u in users}
+
+    links = []
+    for uid in ids:
+        if uid not in by_id:
+            continue
+        token = secrets.token_urlsafe(24)
+        await db.peserta_report_links.insert_one({
+            "_id": token,
+            "user_id": uid,
+            "month": selected_month,
+            "week": week_value,
+            "created_by": str(staff["_id"]),
+            "created_at": created_at.isoformat(),
+            "expires_at": expires_at,
+        })
+        links.append({
+            "user_id": uid,
+            "name": by_id[uid],
+            "link": f"{base}/laporan-peserta/{token}",
+        })
+
+    if not links:
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+
+    await log_activity(
+        staff, "bagikan_laporan_peserta_banyak",
+        f"Membagikan {len(links)} tautan laporan peserta untuk {selected_month}",
+    )
+    return {
+        "links": links,
+        "expires_at": expires_at,
+        "month": selected_month,
+        "week": week_value,
+    }
+
+
 @api_router.get("/laporan-peserta/{token}")
 async def public_peserta_report(token: str):
     share = await db.peserta_report_links.find_one({"_id": token})
