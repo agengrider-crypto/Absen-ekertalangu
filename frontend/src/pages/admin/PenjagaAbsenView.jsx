@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
-import { TYPE_LABEL, TYPE_COLOR, tanggalSingkat } from "./kegiatanUtils";
+import { typeLabel, typeColor, tanggalSingkat } from "./kegiatanUtils";
 import { DelegasiModal, ScanPesertaModal } from "./KegiatanExtras";
 import { AbsensiModal } from "./KegiatanView";
 import ActionModal from "@/components/ActionModal";
@@ -62,7 +62,7 @@ export default function PenjagaAbsenView() {
             return (
               <div key={k.id} className="bg-white rounded-2xl border border-[#E7E3D8] p-4" data-testid={`penjaga-keg-${k.id}`}>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${typeColor(k.type)}1a`, color: typeColor(k.type) }}>{typeLabel(k.type)}</span>
                   <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${open ? "bg-[#E3F3EA] text-[#0E4E31]" : "bg-[#F0EEE6] text-[#5F6B63]"}`}>{open ? "Aktif" : "Ditutup"}</span>
                 </div>
                 <h3 className="font-heading font-bold text-[#14201A] mt-1.5">{k.name}</h3>

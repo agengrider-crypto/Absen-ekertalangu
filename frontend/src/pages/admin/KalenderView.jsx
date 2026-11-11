@@ -6,7 +6,7 @@ import {
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import {
-  MONTH_SHORT, tanggalPanjang, TYPE_LABEL, TYPE_COLOR, PHASE_META, phaseOf,
+  MONTH_SHORT, tanggalPanjang, typeLabel, typeColor, phaseMeta, phaseOf,
 } from "./kegiatanUtils";
 
 const DOW = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
@@ -122,16 +122,18 @@ export default function KalenderView() {
               <p className="text-sm text-[#5F6B63] mt-2">Tidak ada kegiatan pada tanggal ini.</p>
             ) : (
               <div className="mt-3 space-y-2">
-                {dayItems.map((k) => (
+                {dayItems.map((k) => {
+                  const meta = phaseMeta(phaseOf(k));
+                  return (
                   <div key={k.id} data-testid={`kalender-item-${k.id}`}
                     className="rounded-xl border-2 border-[#E7E3D8] bg-[#F6F4EE] p-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>
-                        {TYPE_LABEL[k.type]}
+                        style={{ backgroundColor: `${typeColor(k.type)}1a`, color: typeColor(k.type) }}>
+                        {typeLabel(k.type)}
                       </span>
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${PHASE_META[phaseOf(k)].cls}`}>
-                        {PHASE_META[phaseOf(k)].badge}
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${meta.cls}`}>
+                        {meta.badge}
                       </span>
                       {(k.session_total || 1) > 1 && (
                         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#FBF1D6] text-[#6B4500] inline-flex items-center gap-1">
@@ -154,7 +156,8 @@ export default function KalenderView() {
                       <b className="text-[#0E4E31]"> {k.counts?.ratio ?? 0}%</b>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

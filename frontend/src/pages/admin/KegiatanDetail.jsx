@@ -16,8 +16,8 @@ import OfflineBanner from "@/components/OfflineBanner";
 import QrScanner from "@/components/QrScanner";
 import { waNumber } from "@/components/ContactButtons";
 import {
-  TYPE_LABEL, TYPE_COLOR, tanggalPanjang, tanggalSingkat, hhmm,
-  AUDIENCE_LABEL, GENDER_FILTER_LABEL, PHASE_META, phaseOf,
+  typeLabel, typeColor, tanggalPanjang, tanggalSingkat, hhmm,
+  AUDIENCE_LABEL, GENDER_FILTER_LABEL, phaseOf, phaseMeta,
 } from "./kegiatanUtils";
 
 /**
@@ -96,7 +96,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
   }
 
   const phase = phaseOf(k);
-  const pm = PHASE_META[phase];
+  const pm = phaseMeta(phase);
 
   return (
     <div data-testid="kegiatan-detail-view">
@@ -125,7 +125,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
       {/* Kartu info kegiatan */}
       <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4 sm:p-5">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${typeColor(k.type)}1a`, color: typeColor(k.type) }}>{typeLabel(k.type)}</span>
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pm.cls}`}>{pm.badge}</span>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#D9F2F4] text-[#0E4E31]">{AUDIENCE_LABEL[k.audience] || "Reguler"}</span>
           {(k.filter_labels && k.filter_labels.length

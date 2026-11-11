@@ -17,6 +17,7 @@ import PageTrail from "@/components/PageTrail";
 import UpdateModal from "@/components/UpdateModal";
 import DemoBanner from "@/components/DemoBanner";
 import BantuanView from "@/components/BantuanView";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import KalenderView from "./KalenderView";
 import { roleLabel } from "@/lib/roles";
 import DashboardView from "./DashboardView";
@@ -424,6 +425,7 @@ export default function AdminLayout({ user, role = "admin" }) {
 
         <main className="px-4 pb-40 pt-6 sm:px-8 sm:pb-40 sm:pt-10 lg:py-10 max-w-6xl mx-auto">
           <DemoBanner />
+          <ErrorBoundary resetKey={active}>
           {active === "dashboard" && (
             <DashboardView
               user={user}
@@ -477,6 +479,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "kelompok" && <KelompokView />}
           {active === "log" && role === "admin" && <LogAktivitas />}
           {active === "hakakses" && role === "admin" && <HakAkses currentUserId={user?.id} />}
+          </ErrorBoundary>
         </main>
       </div>
       <MobileBottomNav

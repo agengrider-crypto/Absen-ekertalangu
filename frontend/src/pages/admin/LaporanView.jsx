@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
-import { tanggalSingkat, TYPE_LABEL } from "./kegiatanUtils";
+import { tanggalSingkat, typeLabel } from "./kegiatanUtils";
 import TamuLaporanList from "@/components/TamuLaporanList";
 
 const inp = "h-11 px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
@@ -170,7 +170,7 @@ export default function LaporanView() {
                         <td className="px-4 py-3 text-[#5F6B63] whitespace-nowrap">{tanggalSingkat(r.date)}</td>
                         <td className="px-4 py-3">
                           <div className="font-semibold text-[#14201A]">{r.name}</div>
-                          <div className="text-xs text-[#5F6B63]">{TYPE_LABEL[r.type]}</div>
+                          <div className="text-xs text-[#5F6B63]">{typeLabel(r.type)}</div>
                         </td>
                         <td className="px-4 py-3 text-center text-[#0E4E31] font-semibold">{r.hadir}</td>
                         <td className="px-4 py-3 text-center text-[#6B4500]">{r.izin}</td>

@@ -25,6 +25,18 @@ export const JENIS_CHIP = {
   lain: { bg: "#FFE8DB", text: "#8F3008", dot: "#C2410C" },
 };
 
+// Cadangan bila server mengirim jenis kegiatan yang tidak dikenal / kosong.
+export const DEFAULT_TYPE_LABEL = "Kegiatan";
+export const DEFAULT_TYPE_COLOR = "#6B7280";
+
+export function typeLabel(type) {
+  return TYPE_LABEL[type] || (type ? String(type) : DEFAULT_TYPE_LABEL);
+}
+
+export function typeColor(type) {
+  return TYPE_COLOR[type] || DEFAULT_TYPE_COLOR;
+}
+
 /* ------------------------- FASE 8 ------------------------- */
 
 // Tipe peserta kegiatan
@@ -155,7 +167,58 @@ export const PHASE_META = {
     iconBg: "#E7E3D8",
     icon: "lock",
   },
+  berlangsung: {
+    label: "Berlangsung",
+    badge: "Berlangsung",
+    cls: "bg-[#E3F3EA] text-[#0E4E31]",
+    solid: "#14633F",
+    iconColor: "#14633F",
+    iconBg: "#E3F3EA",
+    icon: "check",
+  },
+  dibatalkan: {
+    label: "Dibatalkan",
+    badge: "Dibatalkan",
+    cls: "bg-[#FBE3E3] text-[#8F1D1D]",
+    solid: "#8F1D1D",
+    iconColor: "#8F1D1D",
+    iconBg: "#FBE3E3",
+    icon: "lock",
+  },
+  ditunda: {
+    label: "Ditunda",
+    badge: "Ditunda",
+    cls: "bg-[#FBF1D6] text-[#6B4500]",
+    solid: "#6B4500",
+    iconColor: "#6B4500",
+    iconBg: "#FBF1D6",
+    icon: "clock",
+  },
+  draft: {
+    label: "Draf",
+    badge: "Draf",
+    cls: "bg-[#ECE4FB] text-[#4C2A9B]",
+    solid: "#4C2A9B",
+    iconColor: "#4C2A9B",
+    iconBg: "#ECE4FB",
+    icon: "clock",
+  },
 };
+
+// Cadangan bila fase tidak dikenal / kosong — jangan sampai layar putih.
+export const DEFAULT_PHASE_META = {
+  label: "Tidak diketahui",
+  badge: "Tidak diketahui",
+  cls: "bg-[#F0EEE6] text-[#5F6B63]",
+  solid: "#5F6B63",
+  iconColor: "#5F6B63",
+  iconBg: "#F0EEE6",
+  icon: "clock",
+};
+
+export function phaseMeta(phase) {
+  return PHASE_META[phase] || DEFAULT_PHASE_META;
+}
 
 /** Fase kegiatan → kunci kelompok Layar 29 ("terlaksana" | "akan_datang" | "selesai"). */
 export function phaseGroup(k) {
@@ -172,7 +235,6 @@ export function jenisOf(type) {
   return "lain";
 }
 
-
 export function todayYmd() {
   const n = new Date();
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
@@ -180,7 +242,8 @@ export function todayYmd() {
 
 /** Hitung fase kegiatan bila server tidak mengirimkannya. */
 export function phaseOf(k) {
-  if (k?.phase) return k.phase;
+  const raw = k?.phase;
+  if (raw && PHASE_META[raw]) return raw;
   if ((k?.status || "open") !== "open") return "selesai";
   const today = todayYmd();
   if ((k?.date || today) > today) return "akan_datang";

@@ -14,7 +14,7 @@ import ActivationQrModal from "@/components/ActivationQr";
 import MaintenanceBanner from "@/components/MaintenanceBanner";
 import { useMaintenance } from "@/lib/maintenance";
 import { todayIndo } from "./adminUtils";
-import { MONTH_SHORT, TYPE_LABEL, tanggalSingkat } from "./kegiatanUtils";
+import { MONTH_SHORT, typeLabel, tanggalSingkat } from "./kegiatanUtils";
 
 function StatCard({ value }) {
   return (
@@ -214,7 +214,7 @@ export default function DashboardView({
                         {k.name}
                       </button>
                     </td>
-                    <td className="px-3 py-3 text-sm text-[#5F6B63]">{TYPE_LABEL[k.type] || k.type || "-"}</td>
+                    <td className="px-3 py-3 text-sm text-[#5F6B63]">{typeLabel(k.type)}</td>
                     <td className="px-3 py-3 text-sm text-[#5F6B63]">
                       {tanggalSingkat(k.date)} · {k.start_time}–{k.end_time}
                     </td>

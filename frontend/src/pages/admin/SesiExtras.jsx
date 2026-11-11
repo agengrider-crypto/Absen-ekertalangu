@@ -6,7 +6,7 @@ import {
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { ACTIVITIES } from "@/constants/testIds";
-import { tanggalPanjang, tanggalSingkat, hhmm, TYPE_LABEL, TYPE_COLOR } from "./kegiatanUtils";
+import { tanggalPanjang, tanggalSingkat, hhmm, typeLabel, typeColor } from "./kegiatanUtils";
 
 function Shell({ title, subtitle, children, onClose, testid, wide }) {
   return (
@@ -284,7 +284,7 @@ export function SalinJadwalModal({ group, onClose, onDone }) {
       <form onSubmit={submit} className="space-y-4">
         <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="salin-pola">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[first.type]}1a`, color: TYPE_COLOR[first.type] }}>{TYPE_LABEL[first.type]}</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${typeColor(first.type)}1a`, color: typeColor(first.type) }}>{typeLabel(first.type)}</span>
             {items.length > 1 && (
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FBF1D6] text-[#6B4500] inline-flex items-center gap-1"><Layers size={12} /> {items.length} Waktu / Sesi</span>
             )}

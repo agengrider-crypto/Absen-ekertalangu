@@ -3,7 +3,7 @@ import { Loader2, CalendarDays, Clock, MapPin, User, BookOpen, X, Users } from "
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import {
-  TYPE_LABEL, TYPE_COLOR, tanggalPanjang, groupKegiatan,
+  typeLabel, typeColor, tanggalPanjang, groupKegiatan,
   AUDIENCE_LABEL, GENDER_FILTER_LABEL,
 } from "@/pages/admin/kegiatanUtils";
 
@@ -27,7 +27,7 @@ function DetailModal({ k, onClose }) {
         </div>
         <div className="p-5 space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${typeColor(k.type)}1a`, color: typeColor(k.type) }}>{typeLabel(k.type)}</span>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
             {(k.filter_labels && k.filter_labels.length
               ? k.filter_labels
@@ -102,7 +102,7 @@ export default function KegiatanList() {
                   return (
                     <button key={k.id} data-testid={`peserta-keg-${k.id}`} onClick={() => setDetail(k)} className="w-full text-left bg-white rounded-2xl border border-[#E7E3D8] p-4 hover:border-[#14633F] transition-colors">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${typeColor(k.type)}1a`, color: typeColor(k.type) }}>{typeLabel(k.type)}</span>
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
                       </div>
                       <h3 className="font-heading font-bold text-[#14201A] mt-1.5">{k.name}</h3>

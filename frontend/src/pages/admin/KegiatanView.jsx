@@ -9,10 +9,10 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { ACTIVITIES } from "@/constants/testIds";
 import {
-  KEGIATAN_TYPES, TYPE_LABEL, TYPE_COLOR, timeOptions,
+  KEGIATAN_TYPES, typeLabel, timeOptions,
   tanggalPanjang, tanggalSingkat, hhmm, MONTH_SHORT,
   AUDIENCE_OPTIONS, GENDER_FILTER_OPTIONS, AUDIENCE_LABEL,
-  PHASE_META, phaseOf, phaseGroup, jenisOf, JENIS_CHIP, groupKegiatan,
+  PHASE_META, phaseOf, phaseGroup, phaseMeta, jenisOf, JENIS_CHIP, groupKegiatan,
   MARITAL_FILTER_OPTIONS, AGE_GROUP_OPTIONS, SESSION_LABEL_PRESETS,
   SESSION_DEFAULT_TIME, groupSessions,
 } from "./kegiatanUtils";
@@ -121,7 +121,7 @@ export default function KegiatanView({
       if (phaseFilter === "upcoming" && phase !== "akan_datang") return false;
       if (phaseFilter === "completed" && phase !== "selesai") return false;
       if (!term) return true;
-      return [k.name, k.teacher, k.location, TYPE_LABEL[k.type]]
+      return [k.name, k.teacher, k.location, typeLabel(k.type)]
         .some((value) => String(value || "").toLocaleLowerCase("id").includes(term));
     });
   }, [items, dayFilter, month, typeFilter, phaseFilter, search]);
@@ -488,7 +488,7 @@ function LocationLink({ k, className = "" }) {
 function DateBlock({ k, muted = false }) {
   const [, mm, dd] = String(k.date || "").split("-");
   const month = MONTH_SHORT[(parseInt(mm, 10) || 1) - 1];
-  const meta = PHASE_META[phaseGroup(k)];
+  const meta = phaseMeta(phaseGroup(k));
   return (
     <div
       data-testid={`${ACTIVITIES.datePrefix}-${k.id}`}
@@ -518,14 +518,14 @@ function JenisChip({ type }) {
       style={{ backgroundColor: "#F0EEE6", color: chip.text }}
     >
       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: chip.dot }} aria-hidden="true" />
-      {TYPE_LABEL[type] || "Jenis lain"}
+      {typeLabel(type)}
     </span>
   );
 }
 
 function KegiatanCard({ k, selected, onSelect, onOpen }) {
   const group = phaseGroup(k);
-  const meta = PHASE_META[group];
+  const meta = phaseMeta(group);
   const summary = [k.teacher, k.material].filter(Boolean).join(" · ");
   const counts = k.counts || {};
   const sudah = counts.hadir ?? 0;
@@ -641,12 +641,12 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
             <LocationLink k={first} className="max-w-full" />
           </div>
         </div>
-        <span className="hidden shrink-0 text-[11px] text-[#5F6B63] sm:inline">{TYPE_LABEL[first.type]}</span>
+        <span className="hidden shrink-0 text-[11px] text-[#5F6B63] sm:inline">{typeLabel(first.type)}</span>
       </div>
 
       <ul className="mt-2.5 divide-y divide-[#F0EEE6] border-t border-[#F0EEE6]">
         {group.items.map((k) => {
-          const meta = PHASE_META[phaseOf(k)];
+          const meta = phaseMeta(phaseOf(k));
           return (
             <li key={k.id}>
               <div
