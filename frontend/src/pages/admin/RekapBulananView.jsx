@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarRange, Loader2, Search, Users, TrendingUp, TrendingDown, Link2, Send,
   ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Layers, ChevronDown, Eye, EyeOff,
@@ -78,6 +78,8 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
   const [sharing, setSharing] = useState(false);
   const [hiddenParticipants, setHiddenParticipants] = useState({});
   const [showHiddenParticipants, setShowHiddenParticipants] = useState(false);
+  const [openSections, setOpenSections] = useState({ peserta: false, pertemuan: false, sesi: false, legend: false });
+  const [openMeetings, setOpenMeetings] = useState({});
 
   useEffect(() => {
     setHiddenParticipants(readHiddenParticipants(user?.id));
@@ -240,7 +242,25 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
           {/* Ringkasan sesi sebulan */}
           {data.per_sesi?.length > 0 && (
             <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="rekap-bulanan-sesi">
-              <div className="text-sm font-semibold text-[#14201A] inline-flex items-center gap-2 mb-3"><Layers size={16} style={{ color: REKAP.main }} /> Ringkasan Sesi Selama Sebulan</div>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => setOpenSections((prev) => ({ ...prev, sesi: !prev.sesi }))}
+                  aria-expanded={Boolean(openSections.sesi)}
+                  className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#14201A]"
+                >
+                  <ChevronDown size={16} className={`transition-transform ${openSections.sesi ? "rotate-180" : ""}`} />
+                  <Layers size={16} style={{ color: REKAP.main }} /> Ringkasan Sesi Selama Sebulan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenSections((prev) => ({ ...prev, sesi: !prev.sesi }))}
+                  className="min-h-11 rounded-xl border-2 border-[#E7E3D8] px-3 text-xs font-semibold text-[#5F6B63] hover:border-[#14633F]"
+                >
+                  {openSections.sesi ? "Tutup semua" : "Buka semua"}
+                </button>
+              </div>
+              {openSections.sesi && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {data.per_sesi.map((x, i) => (
                   <div key={x.label} data-testid={`${MONTHLY_RECAP.sessionCardPrefix}-${i}`}
@@ -251,10 +271,32 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                   </div>
                 ))}
               </div>
+              )}
             </div>
           )}
 
           <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setOpenSections((prev) => ({ ...prev, peserta: !prev.peserta }))}
+                aria-expanded={Boolean(openSections.peserta)}
+                data-testid="rekap-bulanan-peserta-toggle"
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#14201A]"
+              >
+                <ChevronDown size={16} className={`transition-transform ${openSections.peserta ? "rotate-180" : ""}`} />
+                Daftar Peserta ({rows.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpenSections((prev) => ({ ...prev, peserta: !prev.peserta }))}
+                className="min-h-11 rounded-xl border-2 border-[#E7E3D8] px-3 text-xs font-semibold text-[#5F6B63] hover:border-[#14633F]"
+              >
+                {openSections.peserta ? "Tutup semua" : "Buka semua"}
+              </button>
+            </div>
+            {openSections.peserta && (
+            <>
             <div className="flex flex-wrap items-center gap-2 justify-between mb-4">
               <div className="relative flex-1 min-w-[200px]">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
@@ -382,11 +424,37 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                 </tbody>
               </table>
             </div>
+            </>
+            )}
           </div>
 
           <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
-            <div className="font-semibold text-[#14201A] text-sm mb-3">Daftar Pertemuan {data.label}</div>
-            {data.per_pertemuan.length === 0 ? (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setOpenSections((prev) => ({ ...prev, pertemuan: !prev.pertemuan }))}
+                aria-expanded={Boolean(openSections.pertemuan)}
+                data-testid="rekap-bulanan-pertemuan-toggle"
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#14201A]"
+              >
+                <ChevronDown size={16} className={`transition-transform ${openSections.pertemuan ? "rotate-180" : ""}`} />
+                Daftar Pertemuan {data.label} ({data.per_pertemuan.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !openSections.pertemuan;
+                  setOpenSections((prev) => ({ ...prev, pertemuan: next }));
+                  setOpenMeetings(next
+                    ? Object.fromEntries((data.per_pertemuan || []).map((_, idx) => [idx, true]))
+                    : {});
+                }}
+                className="min-h-11 rounded-xl border-2 border-[#E7E3D8] px-3 text-xs font-semibold text-[#5F6B63] hover:border-[#14633F]"
+              >
+                {openSections.pertemuan ? "Tutup semua" : "Buka semua"}
+              </button>
+            </div>
+            {openSections.pertemuan && (data.per_pertemuan.length === 0 ? (
               <div className="text-sm text-[#5F6B63] inline-flex items-center gap-2"><AlertTriangle size={15} /> Belum ada kegiatan pada bulan ini.</div>
             ) : (
               <TooltipProvider>
@@ -406,18 +474,21 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                         <TooltipContent>{p.ratio}% hadir</TooltipContent>
                       </Tooltip>
                     </div>
-                    <details className="mt-1 group">
-                      <summary data-testid={`${MONTHLY_RECAP.meetingTogglePrefix}-${i}`}
-                        className="flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-semibold text-[#0E4E31]">
-                        Lihat nama dan absensi <span className="text-[#5F6B63]">({p.peserta} peserta)</span>
-                        <ChevronDown size={16} className="ml-auto transition-transform group-open:rotate-180" />
-                      </summary>
+                    <button
+                      type="button"
+                      onClick={() => setOpenMeetings((prev) => ({ ...prev, [i]: !prev[i] }))}
+                      aria-expanded={Boolean(openMeetings[i])}
+                      data-testid={`${MONTHLY_RECAP.meetingTogglePrefix}-${i}`}
+                      className="mt-1 flex min-h-11 w-full items-center gap-1 text-left text-sm font-semibold text-[#0E4E31]"
+                    >
+                      Lihat nama dan absensi <span className="text-[#5F6B63]">({p.peserta} peserta)</span>
+                      <ChevronDown size={16} className={`ml-auto transition-transform ${openMeetings[i] ? "rotate-180" : ""}`} />
+                    </button>
+                    {openMeetings[i] && (
                       <div className="mt-1 divide-y divide-[#F0EEE6] rounded-lg bg-[#F6F4EE] px-3" data-testid={`${MONTHLY_RECAP.meetingParticipantsPrefix}-${i}`}>
                         {(p.peserta_rows || []).length === 0 ? (
                           <div className="py-3 text-sm text-[#5F6B63]">Belum ada peserta yang wajib diabsen.</div>
-                        ) : (p.peserta_rows || []).filter((person) => !hiddenParticipants[person.user_id]).length === 0 ? (
-                          <div className="py-3 text-sm text-[#5F6B63]">Semua nama peserta pada daftar ini sedang disembunyikan.</div>
-                        ) : (p.peserta_rows || []).filter((person) => !hiddenParticipants[person.user_id]).map((person, j) => {
+                        ) : (p.peserta_rows || []).map((person, j) => {
                           const status = statusStyle(person.status);
                           return (
                             <div key={`${person.name}-${j}`} className={`flex min-h-10 items-center justify-between gap-3 text-sm ${status.name}`}>
@@ -426,20 +497,11 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                                 {person.session_labels?.length > 0 && ` (${person.session_labels.join(", ")})`}
                               </span>
                               <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${status.badge}`}>{status.label}</span>
-                              <button
-                                type="button"
-                                data-testid={`${MONTHLY_RECAP.hideMeetingParticipantPrefix}-${person.user_id}`}
-                                onClick={() => updateHiddenParticipants(person.user_id, true)}
-                                aria-label={`Sembunyikan ${person.name}`}
-                                className="min-h-10 shrink-0 px-2 text-[#5F6B63] hover:text-[#A32A2A]"
-                              >
-                                <EyeOff size={15} />
-                              </button>
                             </div>
                           );
                         })}
                       </div>
-                    </details>
+                    )}
                     {(p.sesi || []).length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {p.sesi.map((x, j) => (
@@ -453,13 +515,24 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                 ))}
               </div>
               </TooltipProvider>
-            )}
+            ))}
           </div>
-
           <div className="rounded-xl border border-[#E7E3D8] bg-white p-4 text-sm text-[#5F6B63] space-y-1" data-testid="rekap-bulanan-legend">
-            <div className="font-bold text-[#0E4E31] inline-flex items-center gap-1.5"><CheckCircle2 size={15} /> Cara menghitung</div>
-            <p>Persen hadir = pertemuan berstatus Hadir ÷ pertemuan wajib × 100.</p>
-            <p>Hadir di salah satu sesi wajib dihitung hadir. Izin, sakit, alpha, dan belum diabsen dicatat terpisah; sesi opsional tidak menambah kewajiban.</p>
+            <button
+              type="button"
+              onClick={() => setOpenSections((prev) => ({ ...prev, legend: !prev.legend }))}
+              aria-expanded={Boolean(openSections.legend)}
+              className="inline-flex min-h-11 w-full items-center gap-1.5 font-bold text-[#0E4E31]"
+            >
+              <CheckCircle2 size={15} /> Cara menghitung
+              <ChevronDown size={16} className={`ml-auto transition-transform ${openSections.legend ? "rotate-180" : ""}`} />
+            </button>
+            {openSections.legend && (
+              <>
+                <p>Persen hadir = pertemuan berstatus Hadir ÷ pertemuan wajib × 100.</p>
+                <p>Hadir di salah satu sesi wajib dihitung hadir. Izin, sakit, alpha, dan belum diabsen dicatat terpisah; sesi opsional tidak menambah kewajiban.</p>
+              </>
+            )}
           </div>
         </>
       )}

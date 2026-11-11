@@ -2044,7 +2044,10 @@ async def kegiatan_counts(kegiatan, total: Optional[int] = None) -> dict:
 
 
 async def mark_missing_alpha(k: dict, marked_at: Optional[str] = None) -> None:
-    """Tandai Alpha untuk peserta wajib yang belum diabsen saat kegiatan ditutup."""
+    """Tandai Alpha untuk peserta wajib yang belum diabsen saat kegiatan ditutup.
+
+    Satu query batch (bulk_write) agar tidak menulis satu per satu.
+    """
     participants = await peserta_for_kegiatan(k)
     existing = await db.absensis.find({"kegiatan_id": k["_id"]}).to_list(10000)
     existing_by_user = {row["user_id"]: row for row in existing}
@@ -2057,25 +2060,21 @@ async def mark_missing_alpha(k: dict, marked_at: Optional[str] = None) -> None:
         "updated_at": timestamp,
     }
 
+    ops = []
     for participant in participants:
         user_id = str(participant["_id"])
-        required = session_requires_participant(k, user_id)
-        if not required:
+        if not session_requires_participant(k, user_id):
             continue
         existing_row = existing_by_user.get(user_id)
         if existing_row and existing_row.get("status") in ABSEN_STATUS:
             continue
-        if existing_row:
-            await db.absensis.update_one(
-                {"kegiatan_id": k["_id"], "user_id": user_id, "status": {"$nin": ABSEN_STATUS}},
-                {"$set": {**alpha_fields, "user_id": user_id}},
-            )
-        else:
-            await db.absensis.update_one(
-                {"kegiatan_id": k["_id"], "user_id": user_id},
-                {"$setOnInsert": {**alpha_fields, "user_id": user_id}},
-                upsert=True,
-            )
+        ops.append(UpdateOne(
+            {"kegiatan_id": k["_id"], "user_id": user_id},
+            {"$set": {**alpha_fields, "user_id": user_id}},
+            upsert=True,
+        ))
+    if ops:
+        await db.absensis.bulk_write(ops, ordered=False)
 
 
 async def auto_close_kegiatan():
@@ -2763,7 +2762,12 @@ async def build_rekap_gabungan(docs: list) -> dict:
                 continue
             if not st:
                 st = "belum_diabsen"
-            per.append({"status": st, "arrival_time": a.get("arrival_time") if a else None})
+            per.append({
+                "status": st,
+                "arrival_time": a.get("arrival_time") if a else None,
+                "reason": a.get("reason") if a else None,
+                "note": a.get("note") if a else None,
+            })
         rows.append({
             "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
             "account_status": p.get("status", "active"),
@@ -2772,6 +2776,8 @@ async def build_rekap_gabungan(docs: list) -> dict:
 
     total_guests = sum(guest_by_keg.values())
     first = docs[0]
+    total_hadir = sum((s["counts"] or {}).get("hadir", 0) for s in sessions_out)
+    total_peserta = sum((s["counts"] or {}).get("total", 0) for s in sessions_out)
     return {
         "date": first.get("date"),
         "base_name": first.get("base_name") or first.get("name"),
@@ -2781,6 +2787,11 @@ async def build_rekap_gabungan(docs: list) -> dict:
         "teacher": first.get("teacher"),
         "filter_labels": kegiatan_filter_labels(first),
         "sessions": sessions_out,
+        "total": {
+            "hadir": total_hadir,
+            "total": total_peserta,
+            "ratio": round(total_hadir / total_peserta * 100) if total_peserta else 0,
+        },
         "tamu": total_guests,
         "rows": rows,
     }
@@ -3692,6 +3703,27 @@ async def share_absensi_rekap(token: str, body: AbsensiAccessInput, request: Req
         "expires_at": info["expires_at"],
         "wa_text": wa_template_laporan(k.get("name") or "kegiatan", info["link"]),
     }
+
+
+@api_router.post("/absensi/{token}/close")
+async def close_absensi_by_code(token: str, body: AbsensiAccessInput):
+    """Tutup absensi dari halaman /absensi/[token]: sisa 'belum diabsen' jadi Alpha."""
+    k = await kegiatan_by_akses_token(token)
+    verify_absensi_access(body.access, k["_id"], token)
+    if (k.get("status") or "open") != "open":
+        return {"status": "closed", "already_closed": True,
+                "message": "Absensi sudah ditutup sebelumnya."}
+    now = now_wita().isoformat()
+    result = await db.kegiatans.update_one(
+        {"_id": k["_id"], "status": "open"},
+        {"$set": {"status": "closed", "closed_at": now, "auto_closed": False}})
+    if result.modified_count:
+        await mark_missing_alpha(k, now)
+        await revoke_delegations_for_kegiatan(k["_id"], "Kegiatan diselesaikan")
+    k = await db.kegiatans.find_one({"_id": k["_id"]})
+    return {"status": "closed", "already_closed": False,
+            "kegiatan": public_kegiatan_info(k),
+            "message": "Absensi ditutup. Peserta yang belum diabsen ditandai Alpha."}
 
 
 @api_router.post("/absensi/{token}/mark")

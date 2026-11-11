@@ -396,7 +396,7 @@ export default function KegiatanView({
                       grp.single
                         ? <KegiatanCard key={grp.key} k={grp.k} selected={selectedIds.has(grp.k.id)} onSelect={() => toggleSelection(grp.k.id)}
                             onOpen={() => setDetailId(grp.k.id)} />
-                        : <SessionGroupCard key={grp.key} group={grp} selectedIds={selectedIds} onToggle={toggleSelection} onOpen={setDetailId} />
+                        : <SessionGroupCard key={grp.key} group={grp} selectedIds={selectedIds} onToggle={toggleSelection} onOpen={setDetailId} onOpenGabungan={setGabunganId} />
                     ))}
                   </div>
                 </section>
@@ -621,7 +621,7 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
  * peserta yang hadir sesi pagi tidak otomatis terhitung hadir di sesi lain.
  * Daftar hanya menampilkan ringkasan; rekap per sesi & salin jadwal ada di detail.
  */
-function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
+function SessionGroupCard({ group, selectedIds, onToggle, onOpen, onOpenGabungan }) {
   const first = group.items[0];
   const [, , day] = String(first.date || "").split("-");
   const times = group.items.map((k) => k.start_time).filter(Boolean);
@@ -631,7 +631,17 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
       className="rounded-2xl border border-[#E7E3D8] bg-white p-3 sm:p-4"
       data-testid={`kegiatan-sesi-group-${first.session_group_id}`}
     >
-      <div className="flex items-center gap-3 sm:gap-4">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onOpenGabungan?.(first.id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpenGabungan?.(first.id); }
+        }}
+        aria-label={`Buka rekap gabungan semua sesi ${first.base_name || first.name}`}
+        data-testid={`kegiatan-sesi-group-header-${first.session_group_id}`}
+        className="flex cursor-pointer items-center gap-3 rounded-xl outline-none transition-colors hover:bg-[#F6F4EE] focus-visible:ring-2 focus-visible:ring-[#14633F] sm:gap-4"
+      >
         <DateBlock k={first} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
@@ -651,6 +661,7 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen }) {
           </div>
         </div>
         <span className="hidden shrink-0 text-[11px] text-[#5F6B63] sm:inline">{typeLabel(first.type)}</span>
+        <ChevronRight size={18} className="shrink-0 text-[#D9D4C5]" />
       </div>
 
       <ul className="mt-2.5 divide-y divide-[#F0EEE6] border-t border-[#F0EEE6]">

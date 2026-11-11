@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Loader2, Layers, Search, CalendarDays, Clock, MapPin, User, Copy,
-  Plus, Trash2, AlertTriangle, ClipboardCopy, Link2, Send,
+  Plus, Trash2, AlertTriangle, ClipboardCopy, Link2, Send, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -44,6 +44,7 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [showRows, setShowRows] = useState(false);
+  const [openReasons, setOpenReasons] = useState({});
   const [share, setShare] = useState(null);
   const [sharing, setSharing] = useState(false);
 
@@ -125,6 +126,13 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
         <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={28} /></div>
       ) : (
         <div className="space-y-4">
+          <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="rekap-gabungan-total">
+            <div className="text-xs font-bold uppercase tracking-wide text-[#5F6B63]">Total keseluruhan (final)</div>
+            <div className="mt-1 text-2xl font-bold tabular-nums text-[#14201A]">
+              Hadir {data.total?.hadir ?? 0} / {data.total?.total ?? 0} orang = {data.total?.ratio ?? 0}%
+            </div>
+          </section>
+
           <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="rekap-gabungan-per-sesi">
             <h3 className="mb-3 font-bold text-[#14201A]">Kehadiran tiap waktu</h3>
             <div className="grid auto-cols-[minmax(12rem,1fr)] grid-flow-col gap-3 overflow-x-auto pb-2">
@@ -141,9 +149,57 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
                     <div className="h-full origin-left rounded-full bg-[#14633F] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
                       style={{ width: `${Math.min(Math.max(session.counts.ratio || 0, 0), 100)}%` }} />
                   </div>
+                  <div className="mt-2 space-y-0.5 text-[11px] text-[#5F6B63]">
+                    <div>Hadir <b className="text-[#0E4E31]">{session.counts.hadir}/{session.counts.total}</b> = {session.counts.ratio}%</div>
+                    <div>Izin <b className="text-[#6B4500]">{session.counts.izin}</b></div>
+                    <div>Sakit <b className="text-[#1D4F91]">{session.counts.sakit}</b></div>
+                    <div>Alpha <b className="text-[#A32A2A]">{session.counts.alpha}</b></div>
+                  </div>
                   {session.required === false && <div className="mt-1 text-[11px] text-[#5F6B63]">Sesi opsional</div>}
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="rekap-gabungan-alasan">
+            <h3 className="mb-2 font-bold text-[#14201A]">Rincian Izin / Sakit / Alpha per sesi</h3>
+            <div className="space-y-2">
+              {data.sessions.map((session) => {
+                const idx = data.sessions.findIndex((x) => x.id === session.id);
+                const detail = (data.rows || [])
+                  .map((r) => ({ name: r.name, cell: r.sessions?.[idx] }))
+                  .filter((x) => x.cell && ["izin", "sakit", "alpha"].includes(x.cell.status));
+                const open = Boolean(openReasons[session.id]);
+                return (
+                  <div key={session.id} className="rounded-xl border border-[#E7E3D8]">
+                    <button
+                      type="button"
+                      onClick={() => setOpenReasons((prev) => ({ ...prev, [session.id]: !prev[session.id] }))}
+                      aria-expanded={open}
+                      data-testid={`gab-alasan-toggle-${session.id}`}
+                      className="flex min-h-11 w-full items-center justify-between gap-2 px-3 text-left text-sm font-semibold text-[#14201A]"
+                    >
+                      <span className="min-w-0 truncate">{session.label} · {detail.length} peserta</span>
+                      <ChevronDown size={16} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+                    </button>
+                    {open && (
+                      <div className="divide-y divide-[#F0EEE6] border-t border-[#F0EEE6] px-3" data-testid={`gab-alasan-list-${session.id}`}>
+                        {detail.length === 0 ? (
+                          <div className="py-3 text-sm text-[#5F6B63]">Tidak ada peserta izin/sakit/alpha.</div>
+                        ) : detail.map((x, i) => (
+                          <div key={`${x.name}-${i}`} className="flex min-h-10 items-center justify-between gap-3 py-1.5 text-sm">
+                            <span className="min-w-0 truncate font-medium text-[#14201A]">{x.name}</span>
+                            <span className="shrink-0 text-xs text-[#5F6B63]">{x.cell.reason || x.cell.note || "-"}</span>
+                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${ST[x.cell.status]?.cls || ""}`}>
+                              {ST[x.cell.status]?.title || x.cell.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
 

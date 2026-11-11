@@ -61,6 +61,9 @@ export default function PublicAbsensi() {
   const [guestSaving, setGuestSaving] = useState(false);
   const [reportShare, setReportShare] = useState(null);
   const [reportSharing, setReportSharing] = useState(false);
+  const [closeConfirm, setCloseConfirm] = useState(null); // null | "back" | "button"
+  const [closing, setClosing] = useState(false);
+  const leavingRef = useRef(false);
   const scanLock = useRef(false);
 
   const dropAccess = useCallback(() => {
@@ -106,6 +109,59 @@ export default function PublicAbsensi() {
   useEffect(() => {
     if (access) load(access);
   }, [access, load]);
+
+  /* ------------------- Tutup absensi & peringatan keluar ------------------- */
+  const absensiOpen = Boolean(access && data?.kegiatan && data.kegiatan.status === "open");
+
+  const closeAbsensi = useCallback(async () => {
+    const leaving = closeConfirm === "back";
+    setClosing(true);
+    try {
+      const { data: res } = await api.post(`/absensi/${token}/close`, { access });
+      toast.success(res.message || "Absensi ditutup.");
+      setCloseConfirm(null);
+      await load(access);
+      if (leaving) {
+        leavingRef.current = true;
+        window.history.back();
+      }
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setClosing(false);
+    }
+  }, [token, access, load, closeConfirm]);
+
+  // Peringatan saat menutup tab / keluar halaman (dialog bawaan browser).
+  useEffect(() => {
+    if (!absensiOpen) return undefined;
+    const onBeforeUnload = (e) => {
+      if (leavingRef.current) return undefined;
+      e.preventDefault();
+      e.returnValue = "Absensi belum ditutup. Peserta yang belum diabsen akan otomatis ditandai Alpha. Yakin keluar?";
+      return e.returnValue;
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [absensiOpen]);
+
+  // Tombol back browser → modal konfirmasi sendiri.
+  useEffect(() => {
+    if (!absensiOpen) return undefined;
+    window.history.pushState({ absensiGuard: true }, "");
+    const onPopState = () => {
+      if (leavingRef.current) return;
+      setCloseConfirm("back");
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [absensiOpen]);
+
+  const cancelClose = () => {
+    const fromBack = closeConfirm === "back";
+    setCloseConfirm(null);
+    if (fromBack && absensiOpen) window.history.pushState({ absensiGuard: true }, "");
+  };
 
   const verify = async (e) => {
     if (e) e.preventDefault();
@@ -379,6 +435,48 @@ export default function PublicAbsensi() {
         <div className="mt-3 bg-[#FBF1D6] border border-[#EAD596] rounded-2xl p-4 text-sm text-[#6B4500] flex gap-2.5">
           <AlertTriangle size={18} className="shrink-0 mt-0.5" />
           <span>Kegiatan sudah selesai/ditutup sehingga absensi lewat kode akses dinonaktifkan.</span>
+        </div>
+      )}
+
+      {!closed && (
+        <button
+          type="button"
+          data-testid="absensi-close-button"
+          onClick={() => setCloseConfirm("button")}
+          className="mt-3 w-full h-12 rounded-xl bg-[#A32A2A] text-white font-semibold inline-flex items-center justify-center gap-2 hover:brightness-95"
+        >
+          <CheckCircle2 size={18} /> Tutup Absensi
+        </button>
+      )}
+
+      {closeConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(20,32,26,0.55)] p-4" data-testid="absensi-close-confirm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+            <div className="font-heading text-lg font-bold text-[#14201A]">Tutup Absensi?</div>
+            <p className="mt-1.5 text-sm text-[#5F6B63]">
+              Absensi belum ditutup. Peserta yang belum diabsen akan otomatis ditandai Alpha. Yakin keluar?
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                data-testid="absensi-close-cancel"
+                onClick={cancelClose}
+                disabled={closing}
+                className="h-11 rounded-xl border-2 border-[#E7E3D8] font-semibold text-[#5F6B63] hover:border-[#14633F] disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                data-testid="absensi-close-confirm-yes"
+                onClick={closeAbsensi}
+                disabled={closing}
+                className="h-11 rounded-xl bg-[#A32A2A] text-white font-semibold inline-flex items-center justify-center gap-2 hover:brightness-95 disabled:opacity-60"
+              >
+                {closing ? <Loader2 size={16} className="animate-spin" /> : null} Tutup &amp; Keluar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
