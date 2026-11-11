@@ -1,27 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  X, Loader2, Layers, Search, CalendarDays, Clock, MapPin, User, Copy,
+  Loader2, Layers, Search, CalendarDays, Clock, MapPin, User, Copy,
   Plus, Trash2, AlertTriangle, ClipboardCopy, Link2, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { ACTIVITIES } from "@/constants/testIds";
+import Modal from "@/components/Modal";
 import { tanggalPanjang, tanggalSingkat, hhmm, typeLabel, typeColor } from "./kegiatanUtils";
 
 function Shell({ title, subtitle, children, onClose, testid, wide }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[rgba(20,32,26,0.5)] p-0 sm:p-4" onClick={onClose}>
-      <div className={`bg-[#F6F4EE] w-full ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E7E3D8] px-5 py-3.5 flex items-center justify-between z-10 gap-3">
-          <div className="min-w-0">
-            <h2 className="font-heading font-bold text-[#14201A] truncate">{title}</h2>
-            {subtitle && <p className="text-xs text-[#5F6B63] truncate">{subtitle}</p>}
-          </div>
-          <button onClick={onClose} className="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]" data-testid={`${testid}-close`}><X size={20} /></button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
+    <Modal
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
+      testid={testid}
+      maxWidth={wide ? 960 : 640}
+      bodyClassName="bg-[#F6F4EE] p-5"
+    >
+      {children}
+    </Modal>
   );
 }
 

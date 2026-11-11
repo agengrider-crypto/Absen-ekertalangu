@@ -4,7 +4,6 @@
 // - Aktivasi manual: cari nama peserta lalu aktifkan, atau ketik nama baru
 //   (opsional tanggal lahir) untuk membuat akun yang langsung aktif.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   QrCode, Maximize2, X, Printer, Search, Loader2, UserCheck,
   UserPlus, CheckCircle2, AlertTriangle, ChevronRight,
@@ -12,6 +11,7 @@ import {
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { ACTIVATION_QR } from "@/constants/testIds";
+import Modal from "@/components/Modal";
 
 const inp = "w-full h-11 px-3.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white";
 
@@ -218,16 +218,16 @@ export default function ActivationQrModal({ onClose }) {
   };
 
   const content = (
-    <div className="fixed inset-0 z-[85] flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)] backdrop-blur-[2px]" onClick={onClose} />
-      <div
-        data-testid={ACTIVATION_QR.modal}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="activation-qr-title"
-        className="relative flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#F6F4EE] shadow-2xl sm:max-h-[90vh] sm:max-w-2xl sm:rounded-3xl"
-      >
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#E7E3D8] bg-white px-5 py-4">
+    <Modal
+      onClose={onClose}
+      testid={ACTIVATION_QR.modal}
+      closeTestId={ACTIVATION_QR.close}
+      maxWidth={960}
+      zIndex={85}
+      hideClose
+      bodyClassName="bg-[#F6F4EE] p-4 sm:p-5"
+      header={(
+        <div className="flex items-start justify-between gap-3 px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E3F3EA] text-[#0E4E31]">
               <QrCode size={20} />
@@ -244,13 +244,13 @@ export default function ActivationQrModal({ onClose }) {
             data-testid={ACTIVATION_QR.close}
             onClick={onClose}
             aria-label="Tutup"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]"
           >
             <X size={20} />
           </button>
         </div>
-
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
+      )}
+    >
           <div className="space-y-3.5">
             {/* QR besar */}
             <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4">
@@ -422,19 +422,12 @@ export default function ActivationQrModal({ onClose }) {
               </span>
             </div>
           </div>
-        </div>
+    </Modal>
+  );
 
-        <div className="shrink-0 border-t border-[#E7E3D8] bg-white px-4 py-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-11 w-full rounded-xl bg-[#F0EEE6] text-sm font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]"
-          >
-            Tutup
-          </button>
-        </div>
-      </div>
-
+  return (
+    <>
+      {content}
       {/* Lightbox QR besar */}
       {zoom && qr?.image && (
         <div
@@ -460,9 +453,6 @@ export default function ActivationQrModal({ onClose }) {
           <p className="mt-4 max-w-md break-all text-center text-xs text-white/70">{qr.url}</p>
         </div>
       )}
-    </div>
+    </>
   );
-
-  if (typeof document === "undefined" || !document.body) return content;
-  return createPortal(content, document.body);
 }

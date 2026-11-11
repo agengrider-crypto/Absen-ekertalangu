@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  Layers, Plus, Pencil, Trash2, Loader2, Users, X, AlertTriangle, Check,
+  Layers, Plus, Pencil, Trash2, Loader2, Users, AlertTriangle, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import Modal from "@/components/Modal";
 
 /**
  * FASE 7 — Kelola Kelompok Sambung.
@@ -217,17 +218,8 @@ function DeleteModal({ item, onClose, onDone }) {
 
 function Overlay({ children, onClose, title, testid }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid={testid}>
-        <div className="sticky top-0 bg-white border-b border-[#E7E3D8] px-5 py-4 flex items-center justify-between">
-          <h3 className="font-heading font-bold text-[#14201A]">{title}</h3>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]">
-            <X size={20} />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <Modal onClose={onClose} title={title} testid={testid} maxWidth={640} bodyClassName="p-5">
+      {children}
+    </Modal>
   );
 }

@@ -19,7 +19,6 @@ import DemoBanner from "@/components/DemoBanner";
 import BantuanView from "@/components/BantuanView";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import KalenderView from "./KalenderView";
-import { roleLabel } from "@/lib/roles";
 import DashboardView from "./DashboardView";
 import Peserta from "./Peserta";
 import KartuNamaView from "./KartuNamaView";
@@ -409,7 +408,25 @@ export default function AdminLayout({ user, role = "admin" }) {
         {/* Topbar */}
         <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-[#E7E3D8]">
           <div className="px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-            <PageTrail items={trailItems} role={role} name={user?.name} />
+            <div className="flex min-w-0 items-center gap-2">
+              <button
+                type="button"
+                data-testid="admin-mobile-menu-button"
+                onClick={() => setDrawer(true)}
+                aria-label="Buka menu"
+                aria-expanded={drawer}
+                aria-controls="admin-mobile-menu"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#14201A] transition-colors hover:bg-[#F0EEE6] lg:hidden"
+              >
+                <Menu size={22} />
+              </button>
+              <span className="hidden min-w-0 lg:block">
+                <PageTrail items={trailItems} />
+              </span>
+              <span className="min-w-0 lg:hidden">
+                <PageTrail items={trailItems} compact />
+              </span>
+            </div>
             <div className="flex shrink-0 items-center gap-2">
               <NotificationBell onNavigate={(target) => {
                 const map = {
@@ -418,12 +435,15 @@ export default function AdminLayout({ user, role = "admin" }) {
                 };
                 go(map[target] || "dashboard");
               }} />
-              <ProfileMenu subtitle={roleLabel(role)} />
+              <ProfileMenu role={role} />
             </div>
           </div>
         </header>
 
-        <main className="px-4 pb-40 pt-6 sm:px-8 sm:pb-40 sm:pt-10 lg:py-10 max-w-6xl mx-auto">
+        <main
+          className="mx-auto max-w-6xl px-4 pt-6 sm:px-8 sm:pt-10 lg:py-10"
+          style={{ paddingBottom: "calc(64px + 56px + 32px + env(safe-area-inset-bottom))" }}
+        >
           <DemoBanner />
           <ErrorBoundary resetKey={active}>
           {active === "dashboard" && (

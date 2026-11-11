@@ -1,8 +1,9 @@
 // FASE 15 — Panel kesan & pesan kegiatan (Suka/Tidak Suka + pesan) di dashboard peserta.
 import { useEffect, useState } from "react";
-import { MessageSquareQuote, ThumbsUp, ThumbsDown, Loader2, X, CheckCircle2, CalendarDays } from "lucide-react";
+import { MessageSquareQuote, ThumbsUp, ThumbsDown, Loader2, CheckCircle2, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import Modal from "@/components/Modal";
 import { tanggalSingkat } from "@/pages/admin/kegiatanUtils";
 
 function FormModal({ item, onClose, onDone }) {
@@ -24,17 +25,24 @@ function FormModal({ item, onClose, onDone }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid="modal-kesan-pesan">
-        <div className="sticky top-0 bg-white border-b border-[#E7E3D8] px-5 py-4 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="font-heading font-bold text-[#14201A]">Kesan &amp; Pesan</h3>
-            <p className="text-xs text-[#5F6B63] truncate">{item.name}{item.session_label ? ` (${item.session_label})` : ""}</p>
-          </div>
-          <button onClick={onClose} className="h-9 w-9 shrink-0 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={19} /></button>
-        </div>
-        <div className="p-5 space-y-4">
+    <Modal
+      onClose={onClose}
+      title="Kesan & Pesan"
+      subtitle={`${item.name}${item.session_label ? ` (${item.session_label})` : ""}`}
+      testid="modal-kesan-pesan"
+      maxWidth={640}
+      bodyClassName="p-5 space-y-4"
+      footer={(
+        <button
+          data-testid="kesan-kirim"
+          onClick={kirim}
+          disabled={saving}
+          className="w-full h-12 rounded-xl bg-[#0B6B52] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="animate-spin" size={18} /> : <MessageSquareQuote size={18} />} Kirim Kesan &amp; Pesan
+        </button>
+      )}
+    >
           <div>
             <div className="text-sm font-semibold text-[#14201A]">Bagaimana kegiatan ini?</div>
             <div className="mt-2 grid grid-cols-2 gap-3">
@@ -73,18 +81,7 @@ function FormModal({ item, onClose, onDone }) {
             />
             <div className="text-right text-xs text-[#5F6B63] mt-1">{message.length}/3000</div>
           </div>
-
-          <button
-            data-testid="kesan-kirim"
-            onClick={kirim}
-            disabled={saving}
-            className="w-full h-12 rounded-xl bg-[#14633F] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60"
-          >
-            {saving ? <Loader2 className="animate-spin" size={18} /> : <MessageSquareQuote size={18} />} Kirim Kesan &amp; Pesan
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

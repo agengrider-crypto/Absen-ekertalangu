@@ -3,7 +3,7 @@ import {
   CalendarDays, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
   CheckCircle2, Trash2, Search, Copy, Download,
   Clock, MapPin, Lock, ChevronDown, AlertTriangle,
-  KeyRound, RefreshCw, Send, Layers, Play,
+  KeyRound, RefreshCw, Send, Layers, Play, SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -22,7 +22,8 @@ import KegiatanBantuanModal from "./KegiatanBantuanModal";
 import { ReminderModal } from "./KegiatanExtras";
 import { RekapGabunganModal, SalinJadwalModal } from "./SesiExtras";
 import ActionModal from "@/components/ActionModal";
-import ListFab from "@/components/ListFab";
+import Modal from "@/components/Modal";
+import ListFab, { ListPagination } from "@/components/ListFab";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 const TIMES = timeOptions();
@@ -47,6 +48,7 @@ export default function KegiatanView({
   const [dayFilter, setDayFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [phaseFilter, setPhaseFilter] = useState("all");
+  const [showFilter, setShowFilter] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 12;
@@ -250,22 +252,64 @@ export default function KegiatanView({
         <CalendarDays size={20} /> Kegiatan
       </div>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-        <label className="relative">
+      <div className="mb-4 flex items-center gap-2">
+        <label className="relative min-w-0 flex-1">
           <span className="sr-only">Cari kegiatan</span>
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama, pengajar, atau lokasi kegiatan"
             data-testid={ACTIVITIES.search}
             className="h-11 w-full rounded-xl border border-[#8A948D] bg-white pl-11 pr-4 text-base outline-none focus:border-[#14633F]" />
         </label>
-        <div className="flex items-center gap-2">
-          <label htmlFor="kegiatan-type-filter" className="sr-only">Filter jenis kegiatan</label>
-          <select id="kegiatan-type-filter" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}
-            data-testid={ACTIVITIES.typeFilter}
-            className="h-11 min-w-36 rounded-xl border-2 border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A]">
-            <option value="all">Semua jenis</option>
-            {KEGIATAN_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-          </select>
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowFilter((v) => !v)}
+            aria-label="Filter kegiatan"
+            aria-expanded={showFilter}
+            className={`flex h-11 w-11 items-center justify-center rounded-xl border-2 transition-colors ${
+              typeFilter !== "all" || phaseFilter !== "all"
+                ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]"
+                : "border-[#E7E3D8] bg-white text-[#5F6B63] hover:border-[#14633F]"
+            }`}
+          >
+            <SlidersHorizontal size={18} />
+          </button>
+          {showFilter && (
+            <div className="absolute right-0 top-[calc(100%+6px)] z-30 w-64 rounded-2xl border border-[#E7E3D8] bg-white p-3 shadow-xl">
+              <label htmlFor="kegiatan-type-filter" className="mb-1 block text-xs font-bold uppercase tracking-wide text-[#5F6B63]">Jenis</label>
+              <select id="kegiatan-type-filter" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)}
+                data-testid={ACTIVITIES.typeFilter}
+                className="h-11 w-full rounded-xl border-2 border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A]">
+                <option value="all">Semua jenis</option>
+                {KEGIATAN_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+              </select>
+              <div className="mb-1 mt-3 text-xs font-bold uppercase tracking-wide text-[#5F6B63]">Status</div>
+              <div className="flex flex-wrap gap-1.5" data-testid={ACTIVITIES.phaseFilter}>
+                {[
+                  { key: "all", label: "Semua" },
+                  { key: "upcoming", label: "Akan datang" },
+                  { key: "today", label: "Terlaksana" },
+                  { key: "completed", label: "Selesai" },
+                ].map((f) => {
+                  const on = phaseFilter === f.key;
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      data-testid={`${ACTIVITIES.phasePrefix}-${f.key}`}
+                      onClick={() => setPhaseFilter(f.key)}
+                      aria-pressed={on}
+                      className={`inline-flex h-10 items-center rounded-full px-3 text-xs font-semibold ${
+                        on ? "border-2 border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]" : "border border-[#D9D4C5] bg-white text-[#5F6B63]"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -281,6 +325,11 @@ export default function KegiatanView({
         <div className="hidden items-center gap-1 rounded-xl border border-[#E7E3D8] bg-white p-1 lg:flex">
           <button data-testid="view-list" onClick={() => setView("list")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "list" ? "bg-[#E3F3EA] text-[#0E4E31]" : "text-[#5F6B63]"}`}><List size={16} /> Daftar</button>
           <button data-testid="view-calendar" onClick={() => setView("calendar")} className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold ${view === "calendar" ? "bg-[#E3F3EA] text-[#0E4E31]" : "text-[#5F6B63]"}`}><Grid3x3 size={16} /> Kalender</button>
+        </div>
+        <div className="flex items-center gap-1 rounded-xl border border-[#E7E3D8] bg-white p-1 lg:hidden">
+          <button data-testid="view-list-mobile" onClick={() => setView("list")} aria-label="Tampilan daftar" className={`inline-flex h-11 w-11 items-center justify-center rounded-lg ${view === "list" ? "bg-[#E3F3EA] text-[#0E4E31]" : "text-[#5F6B63]"}`}><List size={18} /></button>
+          <button data-testid="view-calendar-mobile" onClick={() => setView("calendar")} aria-label="Tampilan kalender" className={`inline-flex h-11 w-11 items-center justify-center rounded-lg ${view === "calendar" ? "bg-[#E3F3EA] text-[#0E4E31]" : "text-[#5F6B63]"}`}><Grid3x3 size={18} /></button>
+          <button data-testid={ACTIVITIES.helpButton} onClick={() => setShowHelp(true)} aria-label="Animasi panduan" className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-[#5F6B63]"><Play size={18} /></button>
         </div>
       </div>
 
@@ -354,58 +403,18 @@ export default function KegiatanView({
               ))}
             </div>
           )}
+          <ListPagination
+            page={safePage}
+            pageCount={pageCount}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => Math.min(pageCount, p + 1))}
+            total={filtered.length}
+            pageSize={PAGE_SIZE}
+          />
         </>
       )}
 
-      <ListFab
-        search={search}
-        onSearch={setSearch}
-        searchPlaceholder="Cari nama, pengajar, atau lokasi…"
-        filters={[
-          { key: "all", label: "Semua", dot: "#14201A", count: (items || []).filter((k) => String(k.date || "").startsWith(month)).length },
-          { key: "upcoming", label: "Akan datang", dot: "#1D4F91", count: (items || []).filter((k) => phaseOf(k) === "akan_datang").length },
-          { key: "today", label: "Terlaksana", dot: "#14633F", count: (items || []).filter((k) => phaseGroup(k) === "terlaksana").length },
-          { key: "completed", label: "Selesai", dot: "#4A5650", count: (items || []).filter((k) => phaseOf(k) === "selesai").length },
-        ]}
-        filterValue={phaseFilter}
-        onFilter={setPhaseFilter}
-        filterLabel="Filter status"
-        filterTestId={ACTIVITIES.phaseFilter}
-        filterItemTestId={ACTIVITIES.phasePrefix}
-        onAdd={() => setShowAdd(true)}
-        addLabel="Tambah Kegiatan"
-        page={safePage}
-        pageCount={pageCount}
-        onPrev={() => setPage((p) => Math.max(1, p - 1))}
-        onNext={() => setPage((p) => Math.min(pageCount, p + 1))}
-        total={filtered.length}
-        pageSize={PAGE_SIZE}
-        actions={[
-          {
-            key: "panduan",
-            label: "Animasi Panduan",
-            testid: ACTIVITIES.helpButton,
-            icon: Play,
-            onClick: () => setShowHelp(true),
-          },
-          {
-            key: "daftar",
-            label: "Tampilan Daftar",
-            testid: "view-list",
-            icon: List,
-            active: view === "list",
-            onClick: () => setView("list"),
-          },
-          {
-            key: "kalender",
-            label: "Tampilan Kalender",
-            testid: "view-calendar",
-            icon: Grid3x3,
-            active: view === "calendar",
-            onClick: () => setView("calendar"),
-          },
-        ]}
-      />
+      <ListFab onAdd={() => setShowAdd(true)} addLabel="Tambah Kegiatan" />
 
       {showAdd && <KegiatanFormModal suggestions={Array.isArray(items) ? items : []}
         onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
@@ -732,15 +741,15 @@ function CalendarMonth({ year, month, daysWithEvent, dayFilter, onPick }) {
 
 function ModalShell({ title, children, onClose, testid, wide }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[rgba(20,32,26,0.5)] p-0 sm:p-4" onClick={onClose}>
-      <div className={`bg-[#F6F4EE] w-full ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E7E3D8] px-5 py-3.5 flex items-center justify-between z-10">
-          <h2 className="font-heading font-bold text-[#14201A]">{title}</h2>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
+    <Modal
+      onClose={onClose}
+      title={title}
+      testid={testid}
+      maxWidth={wide ? 960 : 640}
+      bodyClassName="bg-[#F6F4EE] p-5"
+    >
+      {children}
+    </Modal>
   );
 }
 

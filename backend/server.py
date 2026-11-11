@@ -6320,7 +6320,7 @@ async def bantuan_kontak(user: dict = Depends(get_current_user)):
         roles = s.get("roles") or []
         rows.append({
             "id": str(s["_id"]), "name": s.get("name"),
-            "role": "Adminator" if "admin" in roles else "Pengurus",
+            "role": "Administrator" if "admin" in roles else "Pengurus",
             "phone": s.get("phone"), "whatsapp": wa or None,
             "wa_link": f"https://wa.me/{digits}" if digits else None,
             "email": s.get("email"),
@@ -6391,10 +6391,10 @@ HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Ahad"]
 
 
 async def require_program_editor(user: dict = Depends(get_current_user)) -> dict:
-    """Program Pembelajaran hanya boleh diubah Adminator dan Guru/Pengajar."""
+    """Program Pembelajaran hanya boleh diubah Administrator dan Guru/Pengajar."""
     roles = user.get("roles") or []
     if "admin" not in roles and "guru" not in roles:
-        raise HTTPException(status_code=403, detail="Akses khusus Adminator dan Guru/Pengajar")
+        raise HTTPException(status_code=403, detail="Akses khusus Administrator dan Guru/Pengajar")
     return user
 
 

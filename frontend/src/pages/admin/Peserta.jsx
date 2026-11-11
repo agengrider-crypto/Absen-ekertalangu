@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Users, Search, Loader2, UserPlus, Trash2, X, Eye, AlertTriangle,
   ClipboardList, CalendarDays, Heart, Printer, QrCode, CheckCircle2, ChevronLeft, ChevronRight,
-  MoreHorizontal, User as UserIcon, History,
+  MoreHorizontal, User as UserIcon, History, SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -10,7 +10,8 @@ import { api, API, formatApiErrorDetail } from "@/lib/api";
 import { PARTICIPANTS } from "@/constants/testIds";
 import { DateField } from "@/components/DateField";
 import ActionModal from "@/components/ActionModal";
-import ListFab from "@/components/ListFab";
+import Modal from "@/components/Modal";
+import ListFab, { ListPagination } from "@/components/ListFab";
 import PesertaDetailModal from "./PesertaDetailModal";
 import { genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
 
@@ -81,6 +82,8 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
   const [kelompok, setKelompok] = useState([]);
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // all | pending | active | incomplete
+  const [showStatusFilter, setShowStatusFilter] = useState(false);
+  const roleTabRefs = useRef({});
   const [roleFilter, setRoleFilter] = useState("all");
   const [selected, setSelected] = useState(new Set());
   const [detailId, setDetailId] = useState(null);
@@ -158,6 +161,11 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
   useEffect(() => { setPage(1); }, [q, statusFilter, roleFilter]);
 
+  // Tab aktif otomatis tergulir ke tampilan.
+  useEffect(() => {
+    roleTabRefs.current[roleFilter]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [roleFilter]);
+
   const selectedParticipants = (users || []).filter((u) =>
     selected.has(u.id) && u.roles?.includes("peserta"));
   const pureParticipants = selectedParticipants.filter((u) => u.roles?.length === 1);
@@ -231,7 +239,13 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         {users && <span className="text-sm font-medium text-[#5F6B63]">({users.length})</span>}
       </div>
 
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Kategori peran" data-testid={PARTICIPANTS.roleFilter}>
+      <div
+        className="mb-4 -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0"
+        role="tablist"
+        aria-label="Kategori peran"
+        data-testid={PARTICIPANTS.roleFilter}
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none", scrollSnapType: "x proximity" }}
+      >
         {[
           { key: "all", label: "Semua", count: users?.length || 0 },
           { key: "peserta", label: "Peserta", count: counts.roles.peserta },
@@ -248,10 +262,12 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
               aria-selected={active}
               aria-pressed={active}
               data-testid={`${PARTICIPANTS.roleTabPrefix}-${tab.key}`}
+              ref={(node) => { roleTabRefs.current[tab.key] = node; }}
               onClick={() => setRoleFilter(tab.key)}
-              className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border-2 px-4 text-sm font-semibold transition-colors ${
+              className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-xl border-2 px-4 text-sm font-semibold transition-colors ${
                 active ? "border-[#14633F] bg-[#14633F] text-white" : "border-[#E7E3D8] bg-white text-[#5F6B63] hover:border-[#14633F]"
               }`}
+              style={{ scrollSnapAlign: "start" }}
             >
               {tab.label}
               <span className={`rounded-full px-2 py-0.5 text-xs ${active ? "bg-white/20" : "bg-[#F0EEE6] text-[#14201A]"}`}>{tab.count}</span>
@@ -260,17 +276,63 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         })}
       </div>
 
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="relative flex-1 min-w-[220px]">
+      <div className="mb-4 flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
           <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
           <input
             data-testid="input-search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari nama, nama pengguna, No HP..."
-            className="w-full h-11 pl-11 pr-4 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white"
+            className="h-11 w-full rounded-xl border border-[#8A948D] bg-white pl-11 pr-4 text-base outline-none focus:border-[#14633F]"
           />
         </div>
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            data-testid={PARTICIPANTS.statusFilter}
+            onClick={() => setShowStatusFilter((v) => !v)}
+            aria-label="Filter status"
+            aria-expanded={showStatusFilter}
+            className={`flex h-11 w-11 items-center justify-center rounded-xl border-2 transition-colors ${
+              statusFilter !== "all"
+                ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]"
+                : "border-[#E7E3D8] bg-white text-[#5F6B63] hover:border-[#14633F]"
+            }`}
+          >
+            <SlidersHorizontal size={18} />
+          </button>
+          {showStatusFilter && (
+            <div className="absolute right-0 top-[calc(100%+6px)] z-30 w-56 rounded-2xl border border-[#E7E3D8] bg-white p-2 shadow-xl">
+              {[
+                { key: "all", label: "Semua", count: counts.all },
+                { key: "pending", label: "Belum Aktivasi", count: counts.pending },
+                { key: "active", label: "Sudah Aktif", count: counts.active },
+                { key: "incomplete", label: "Data Belum Lengkap", count: counts.incomplete },
+              ].map((f) => {
+                const on = statusFilter === f.key;
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    data-testid={`${PARTICIPANTS.statusFilterPrefix}-${f.key}`}
+                    onClick={() => { setStatusFilter(f.key); setShowStatusFilter(false); }}
+                    aria-pressed={on}
+                    className={`flex min-h-11 w-full items-center justify-between gap-2 rounded-xl px-3 text-sm font-semibold ${
+                      on ? "bg-[#E3F3EA] text-[#0E4E31]" : "text-[#5F6B63] hover:bg-[#F6F4EE]"
+                    }`}
+                  >
+                    {f.label}
+                    <span className="rounded-full bg-[#F0EEE6] px-2 py-0.5 text-[11px] text-[#14201A]">{f.count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         {activatableSelected.length > 0 && (
           <button data-testid={PARTICIPANTS.bulkActivateButton} onClick={bulkActivate}
             className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#14633F] text-white font-semibold text-sm hover:bg-[#0E4E31]">
@@ -369,12 +431,12 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                       }}
                       aria-label={`Buka detail ${u.name}`}
                       data-testid={`peserta-row-${u.id}`}
-                      className={`group flex cursor-pointer items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-[#F6F4EE] focus-visible:bg-[#F6F4EE] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#14633F] sm:gap-4 sm:px-4 ${
+                      className={`group flex cursor-pointer items-start gap-3 px-4 py-4 outline-none transition-colors hover:bg-[#F6F4EE] focus-visible:bg-[#F6F4EE] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#14633F] sm:gap-4 ${
                         isSelected ? "bg-[#F6F4EE]" : ""
                       }`}
                     >
                       <label
-                        className="flex h-9 w-6 shrink-0 items-center justify-center"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center"
                         onClick={(e) => e.stopPropagation()}
                         onKeyDown={(e) => e.stopPropagation()}
                       >
@@ -403,22 +465,21 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                           <span className="truncate">{u.username ? `@${u.username}` : genderLabel(u.gender)}</span>
                           {u.phone && <span className="hidden shrink-0 sm:inline">· {u.phone}</span>}
                         </div>
-                        {miss.length > 0 && (
-                          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-[#FBE5E3] px-2 py-0.5 text-[11px] font-semibold text-[#A32A2A]">
-                            <ClipboardList size={11} /> {miss.map((m) => MISSING_LABEL[m]).join(" & ")} belum diisi
-                          </div>
-                        )}
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          {(u.roles || []).map((r) => (
+                            <span key={r} className="inline-flex h-6 items-center rounded-full bg-[#E3F3EA] px-2.5 text-xs font-medium text-[#14201A]">
+                              {ROLE_NAMES[r] || r}
+                            </span>
+                          ))}
+                          <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold ${b.cls}`}>{b.label}</span>
+                          {miss.length > 0 && (
+                            <span className="inline-flex h-6 items-center gap-1 rounded-full bg-[#FBE5E3] px-2.5 text-xs font-semibold text-[#A32A2A]">
+                              <ClipboardList size={11} />
+                              {miss.length > 2 ? "Data belum lengkap" : `${miss.map((m) => MISSING_LABEL[m]).join(" & ")} belum diisi`}
+                            </span>
+                          )}
+                        </div>
                       </div>
-
-                      <div className="hidden shrink-0 items-center gap-1 md:flex">
-                        {(u.roles || []).map((r) => (
-                          <span key={r} className="rounded-full bg-[#E3F3EA] px-2 py-0.5 text-[11px] font-medium text-[#14201A]">
-                            {ROLE_NAMES[r] || r}
-                          </span>
-                        ))}
-                      </div>
-
-                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${b.cls}`}>{b.label}</span>
 
                       <button
                         type="button"
@@ -426,7 +487,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                         aria-label={`Aksi lain untuk ${u.name}`}
                         title="Aksi lainnya"
                         data-testid={`button-more-${u.id}`}
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] transition-colors hover:bg-[#E3F3EA] hover:text-[#0E4E31] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14633F]"
+                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] transition-colors hover:bg-[#E3F3EA] hover:text-[#0E4E31] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14633F]"
                       >
                         <MoreHorizontal size={18} />
                       </button>
@@ -435,34 +496,19 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                 );
               })}
             </ul>
+            <ListPagination
+              page={safePage}
+              pageCount={pageCount}
+              onPrev={() => setPage((p) => Math.max(1, p - 1))}
+              onNext={() => setPage((p) => Math.min(pageCount, p + 1))}
+              total={filtered.length}
+              pageSize={PAGE_SIZE}
+            />
           </>
         )}
       </div>
 
-      <ListFab
-        search={q}
-        onSearch={setQ}
-        searchPlaceholder="Cari nama, nama pengguna, No HP…"
-        filters={[
-          { key: "all", label: "Semua", count: counts.all },
-          { key: "pending", label: "Belum Aktivasi", count: counts.pending },
-          { key: "active", label: "Sudah Aktif", count: counts.active },
-          { key: "incomplete", label: "Data Belum Lengkap", count: counts.incomplete },
-        ]}
-        filterValue={statusFilter}
-        onFilter={setStatusFilter}
-        filterLabel="Filter status"
-        filterTestId={PARTICIPANTS.statusFilter}
-        filterItemTestId={PARTICIPANTS.statusFilterPrefix}
-        onAdd={() => setModal("add")}
-        addLabel="Tambah Peserta"
-        page={safePage}
-        pageCount={pageCount}
-        onPrev={() => setPage((p) => Math.max(1, p - 1))}
-        onNext={() => setPage((p) => Math.min(pageCount, p + 1))}
-        total={filtered.length}
-        pageSize={PAGE_SIZE}
-      />
+      <ListFab onAdd={() => setModal("add")} addLabel="Tambah Peserta" />
       {detailId && (
         <PesertaDetailModal
           userId={detailId}
@@ -512,15 +558,16 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
 function ModalShell({ title, children, onClose, testid, wide = false }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[rgba(20,32,26,0.5)] p-0 sm:p-4" onClick={onClose}>
-      <div className={`bg-[#F6F4EE] w-full ${wide ? "sm:max-w-3xl" : "sm:max-w-lg"} sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl`} onClick={(e) => e.stopPropagation()} data-testid={testid}>
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E7E3D8] px-5 py-3.5 flex items-center justify-between z-10">
-          <h2 className="font-heading font-bold text-[#14201A]">{title}</h2>
-          <button type="button" onClick={onClose} aria-label={`Tutup ${title}`} data-testid={PARTICIPANTS.closeModal} className="h-11 w-11 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
+    <Modal
+      onClose={onClose}
+      title={title}
+      testid={testid}
+      closeTestId={PARTICIPANTS.closeModal}
+      maxWidth={wide ? 960 : 640}
+      bodyClassName="bg-[#F6F4EE] p-5"
+    >
+      {children}
+    </Modal>
   );
 }
 

@@ -1,8 +1,6 @@
 // Halaman "Tentang Aplikasi": identitas aplikasi dan Tour Panduan.
 // Daftar perubahan aplikasi ada di menu "Update Terbaru" (terpisah).
 // Murni UI — tidak memanggil API apa pun.
-import { useEffect } from "react";
-import { createPortal } from "react-dom";
 import {
   X, Info, Play, CalendarDays,
   ShieldCheck, Users, Smartphone, HeartHandshake, Layers, BookOpen,
@@ -10,6 +8,7 @@ import {
 import { ABOUT } from "@/constants/testIds";
 import { APP_INFO } from "@/lib/appInfo";
 import { K1Mark } from "@/components/Logo";
+import Modal from "@/components/Modal";
 
 const TOUR_STORAGE_KEY = "ekertalangu.tourSeen";
 
@@ -44,29 +43,17 @@ function InfoRow({ icon: Icon, label, value }) {
 }
 
 export default function AboutApp({ onClose, onStartTour }) {
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [onClose]);
-
   const content = (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)] backdrop-blur-[2px]" onClick={onClose} />
-      <div
-        data-testid={ABOUT.page}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="about-app-title"
-        className="relative flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#F6F4EE] shadow-2xl sm:max-h-[90vh] sm:max-w-2xl sm:rounded-3xl"
-      >
-        {/* Header */}
-        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#E7E3D8] bg-white px-5 py-4">
+    <Modal
+      onClose={onClose}
+      testid={ABOUT.page}
+      closeTestId={ABOUT.close}
+      maxWidth={960}
+      zIndex={80}
+      hideClose
+      bodyClassName="bg-[#F6F4EE] p-4 sm:p-5"
+      header={(
+        <div className="flex items-start justify-between gap-3 px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E3F3EA] p-1">
               <K1Mark size={32} variant="light" />
@@ -85,13 +72,22 @@ export default function AboutApp({ onClose, onStartTour }) {
             data-testid={ABOUT.close}
             onClick={onClose}
             aria-label="Tutup"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]"
           >
             <X size={20} />
           </button>
         </div>
-
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
+      )}
+      footer={(
+        <button
+          type="button"
+          onClick={onClose}
+          className="h-11 w-full rounded-xl bg-[#F0EEE6] text-sm font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]"
+        >
+          Tutup
+        </button>
+      )}
+    >
           <div className="space-y-3.5">
             {/* Identitas aplikasi */}
             <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid={ABOUT.identity}>
@@ -163,21 +159,8 @@ export default function AboutApp({ onClose, onStartTour }) {
               </span>
             </div>
           </div>
-        </div>
-
-        <div className="shrink-0 border-t border-[#E7E3D8] bg-white px-4 py-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-11 w-full rounded-xl bg-[#F0EEE6] text-sm font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]"
-          >
-            Tutup
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 
-  if (typeof document === "undefined" || !document.body) return content;
-  return createPortal(content, document.body);
+  return content;
 }

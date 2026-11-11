@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import {
-  Plus, Loader2, Trash2, Pin, PinOff, AlertCircle, X, Pencil, Megaphone, LayoutTemplate,
+  Plus, Loader2, Trash2, Pin, PinOff, AlertCircle, Pencil, Megaphone, LayoutTemplate,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import Modal from "@/components/Modal";
 
 const ROLE_LABEL = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta" };
 const MAX_PINNED = 3;
@@ -117,14 +118,18 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid="modal-pengumuman-form">
-        <div className="sticky top-0 bg-white border-b border-[#E7E3D8] px-5 py-4 flex items-center justify-between">
-          <h3 className="font-heading font-bold text-[#14201A] text-lg">{editing ? "Edit Pengumuman" : "Pengumuman Baru"}</h3>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
-        </div>
-        <div className="p-5 space-y-4">
+    <Modal
+      onClose={onClose}
+      title={editing ? "Edit Pengumuman" : "Pengumuman Baru"}
+      testid="modal-pengumuman-form"
+      maxWidth={640}
+      bodyClassName="p-5 space-y-4"
+      footer={(
+        <button data-testid="peng-submit" onClick={submit} disabled={saving} className="w-full h-12 rounded-xl bg-[#0B6B52] text-white font-semibold hover:bg-[#0E4E31] disabled:opacity-60 inline-flex items-center justify-center gap-2">
+          {saving && <Loader2 className="animate-spin" size={18} />} {editing ? "Simpan Perubahan" : "Terbitkan"}
+        </button>
+      )}
+    >
           <Field label="Kegiatan terkait (untuk mengisi template)">
             <select data-testid="peng-kegiatan" value={f.kegiatan_id} onChange={(e) => set("kegiatan_id", e.target.value)} className="w-full h-11 px-3 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white">
               <option value="">— Tidak terkait kegiatan —</option>
@@ -196,13 +201,7 @@ function FormModal({ initial, kegiatanOptions, pinnedCount, onClose, onDone }) {
               </div>
             )}
           </div>
-
-          <button data-testid="peng-submit" onClick={submit} disabled={saving} className="w-full h-12 rounded-xl bg-[#14633F] text-white font-semibold hover:bg-[#0E4E31] disabled:opacity-60 inline-flex items-center justify-center gap-2">
-            {saving && <Loader2 className="animate-spin" size={18} />} {editing ? "Simpan Perubahan" : "Terbitkan"}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

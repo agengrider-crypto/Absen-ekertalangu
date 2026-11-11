@@ -1,27 +1,24 @@
 import { useEffect, useState } from "react";
 import {
-  X, Loader2, Copy, Send, Users, ShieldCheck, Trash2,
+  Loader2, Copy, Send, Users, ShieldCheck, Trash2,
   CheckCircle2, ScanLine, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import QrScanner from "@/components/QrScanner";
+import Modal from "@/components/Modal";
 
 function ModalShell({ title, children, onClose, testid, wide }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={onClose} />
-      <div
-        className={`relative bg-white w-full ${wide ? "sm:max-w-2xl" : "sm:max-w-lg"} rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto`}
-        data-testid={testid}
-      >
-        <div className="sticky top-0 bg-white border-b border-[#E7E3D8] px-5 py-4 flex items-center justify-between">
-          <h3 className="font-heading font-bold text-[#14201A] text-lg">{title}</h3>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
+    <Modal
+      onClose={onClose}
+      title={title}
+      testid={testid}
+      maxWidth={wide ? 960 : 640}
+      bodyClassName="p-5"
+    >
+      {children}
+    </Modal>
   );
 }
 

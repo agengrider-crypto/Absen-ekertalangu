@@ -29,7 +29,7 @@ export default function GuruArea({ user }) {
               <div className="text-[11px] text-[#5F6B63]">Area Guru / Pengajar</div>
             </div>
           </div>
-          <ProfileMenu subtitle="Guru / Pengajar" />
+          <ProfileMenu role="guru" />
         </div>
       </header>
 

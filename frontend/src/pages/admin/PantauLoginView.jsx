@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MonitorSmartphone, Loader2, Search, RefreshCw, Smartphone, Monitor, Tablet, HelpCircle,
-  UserX, Users, LogIn, CalendarDays, X, AlertTriangle, ChevronRight, Clock,
+  UserX, Users, LogIn, CalendarDays, AlertTriangle, ChevronRight, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import Modal from "@/components/Modal";
 import { genderLabel } from "./adminUtils";
 
 /* ---------- util ---------- */
@@ -283,13 +284,13 @@ export function LoginDetailModal({ userId, onClose }) {
   }, [userId]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-[rgba(20,32,26,0.5)] p-0 sm:p-4" onClick={onClose}>
-      <div className="bg-[#F6F4EE] w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="modal-login-detail">
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E7E3D8] px-5 py-3.5 flex items-center justify-between z-10">
-          <h2 className="font-heading font-bold text-[#14201A]">Riwayat Login</h2>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]" data-testid="modal-login-detail-close"><X size={20} /></button>
-        </div>
-        <div className="p-5">
+    <Modal
+      onClose={onClose}
+      title="Riwayat Login"
+      testid="modal-login-detail"
+      maxWidth={640}
+      bodyClassName="bg-[#F6F4EE] p-5"
+    >
           {err ? <p className="text-sm text-[#A32A2A]">{err}</p> : !d ? (
             <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={26} /></div>
           ) : (
@@ -330,8 +331,6 @@ export function LoginDetailModal({ userId, onClose }) {
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

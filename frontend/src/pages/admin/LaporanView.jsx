@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   FileBarChart2, Loader2, FileSpreadsheet, FileText, TrendingUp, Award, AlertTriangle,
-  Link as LinkIcon, Copy, X, ExternalLink, Send, Users,
+  Link as LinkIcon, Copy, ExternalLink, Send, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { tanggalSingkat, typeLabel } from "./kegiatanUtils";
 import TamuLaporanList from "@/components/TamuLaporanList";
+import Modal from "@/components/Modal";
 
 const inp = "h-11 px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 
@@ -320,38 +321,35 @@ function LaporanLinkModal({ data, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid="modal-laporan-link">
-        <div className="sticky top-0 bg-white border-b border-[#E7E3D8] px-5 py-4 flex items-center justify-between">
-          <h3 className="font-heading font-bold text-[#14201A]">Tautan Laporan Publik</h3>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
-        </div>
-        <div className="p-5">
-          <div className="mt-3 bg-[#F6F4EE] border border-[#E7E3D8] rounded-xl p-3 text-left">
-            <p className="text-sm font-semibold text-[#0E4E31]">{data.title}</p>
-            <p className="text-xs text-[#5F6B63] mt-1 leading-relaxed">
-              Siapa pun yang membuka tautan ini <b>langsung melihat laporannya tanpa perlu login</b>.
-              Tautan bersifat <b>permanen</b> untuk periode {tanggalSingkat(data.date_from)} s/d {tanggalSingkat(data.date_to)}.
-            </p>
-          </div>
-          <a
-            href={data.link}
-            target="_blank"
-            rel="noreferrer"
-            data-testid="laporan-link-open"
-            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E4E31] hover:underline break-all"
-          >
-            <ExternalLink size={14} className="shrink-0" /> {data.link}
-          </a>
-          <div className="grid grid-cols-2 gap-2 mt-4">
-            <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#E3F3EA]"><Copy size={16} /> Salin Tautan</button>
-            <button data-testid="laporan-link-wa" onClick={shareWa} className="h-11 rounded-xl bg-[#14633F] text-white font-bold flex items-center justify-center gap-2 hover:brightness-95">
-              <Send size={18} /> Bagikan Tautan via WhatsApp
-            </button>
-          </div>
-        </div>
+    <Modal
+      onClose={onClose}
+      title="Tautan Laporan Publik"
+      testid="modal-laporan-link"
+      maxWidth={640}
+      bodyClassName="p-5"
+    >
+      <div className="mt-3 bg-[#F6F4EE] border border-[#E7E3D8] rounded-xl p-3 text-left">
+        <p className="text-sm font-semibold text-[#0E4E31]">{data.title}</p>
+        <p className="text-xs text-[#5F6B63] mt-1 leading-relaxed">
+          Siapa pun yang membuka tautan ini <b>langsung melihat laporannya tanpa perlu login</b>.
+          Tautan bersifat <b>permanen</b> untuk periode {tanggalSingkat(data.date_from)} s/d {tanggalSingkat(data.date_to)}.
+        </p>
       </div>
-    </div>
+      <a
+        href={data.link}
+        target="_blank"
+        rel="noreferrer"
+        data-testid="laporan-link-open"
+        className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#0E4E31] hover:underline break-all"
+      >
+        <ExternalLink size={14} className="shrink-0" /> {data.link}
+      </a>
+      <div className="grid grid-cols-2 gap-2 mt-4">
+        <button data-testid="laporan-link-copy" onClick={copy} className="h-11 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#E3F3EA]"><Copy size={16} /> Salin Tautan</button>
+        <button data-testid="laporan-link-wa" onClick={shareWa} className="h-11 rounded-xl bg-[#0B6B52] text-white font-bold flex items-center justify-center gap-2 hover:brightness-95">
+          <Send size={18} /> Bagikan Tautan via WhatsApp
+        </button>
+      </div>
+    </Modal>
   );
 }

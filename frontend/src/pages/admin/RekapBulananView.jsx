@@ -171,7 +171,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
             {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 rounded-2xl bg-[#F0EEE6] animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />)}
           </div>
           <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
-            <div className="text-sm text-[#5F6B63] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#0E4E31]" /> Memuat rekap bulananâ€¦</div>
+            <div className="text-sm text-[#5F6B63] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#0E4E31]" /> Memuat rekap bulanan…</div>
             <SkeletonList rows={6} testid="rekap-bulanan-skeleton" />
           </div>
         </div>
@@ -246,7 +246,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                   <div key={x.label} data-testid={`${MONTHLY_RECAP.sessionCardPrefix}-${i}`}
                     className="min-w-0 rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] p-3">
                     <div className="truncate text-sm font-bold text-[#14201A]" title={x.label}>{x.label}</div>
-                    <div className="mt-1 text-[11px] text-[#5F6B63]">{x.pertemuan}Ã— kegiatan{x.required === false ? " Â· opsional" : ""}</div>
+                    <div className="mt-1 text-[11px] text-[#5F6B63]">{x.pertemuan}× kegiatan{x.required === false ? " · opsional" : ""}</div>
                     <div className="mt-1 text-xl font-bold tabular-nums" style={{ color: ratioColor(x.ratio) }}>{x.ratio}%</div>
                   </div>
                 ))}
@@ -259,19 +259,19 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
               <div className="relative flex-1 min-w-[200px]">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
                 <input data-testid="rekap-bulanan-search" value={q} onChange={(e) => setQ(e.target.value)}
-                  placeholder="Cari nama pesertaâ€¦"
-                  className="w-full h-11 pl-9 pr-3 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F]" />
+                  placeholder="Cari nama peserta…"
+                  className="w-full h-11 pl-9 pr-3 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F]" />
               </div>
-              <div className="flex items-center gap-1 bg-[#F0EEE6] rounded-xl p-1" data-testid="rekap-bulanan-gender-tabs">
+              <div className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-xl bg-[#F0EEE6] p-1" data-testid="rekap-bulanan-gender-tabs" style={{ scrollbarWidth: "none" }}>
                 {[["semua", "L/P"], ["L", "Laki-laki"], ["P", "Perempuan"]].map(([v, l]) => (
                   <button key={v} data-testid={`rekap-bulanan-gender-${v}`} onClick={() => setGender(v)}
-                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${gender === v ? "bg-white text-[#0E4E31] shadow-sm" : "text-[#5F6B63]"}`}>{l}</button>
+                    className={`h-9 shrink-0 whitespace-nowrap rounded-lg px-3 text-xs font-semibold ${gender === v ? "bg-white text-[#0E4E31] shadow-sm" : "text-[#5F6B63]"}`}>{l}</button>
                 ))}
               </div>
-              <div className="flex items-center gap-1 bg-[#F0EEE6] rounded-xl p-1">
+              <div className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-xl bg-[#F0EEE6] p-1" style={{ scrollbarWidth: "none" }}>
                 {[["semua", "Semua"], ["belum", "Belum hadir"], ["jarang", "Jarang"], ["cukup", "Cukup"], ["rajin", "Rajin"]].map(([v, l]) => (
                   <button key={v} data-testid={`rekap-bulanan-filter-${v}`} onClick={() => setFilter(v)}
-                    className={`h-9 px-3 rounded-lg text-xs font-semibold ${filter === v ? "bg-white text-[#0E4E31] shadow-sm" : "text-[#5F6B63]"}`}>{l}</button>
+                    className={`h-9 shrink-0 whitespace-nowrap rounded-lg px-3 text-xs font-semibold ${filter === v ? "bg-white text-[#0E4E31] shadow-sm" : "text-[#5F6B63]"}`}>{l}</button>
                 ))}
               </div>
               <button
@@ -327,51 +327,51 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
               </div>
             )}
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm" data-testid="rekap-bulanan-table">
-                <thead className="bg-[#F6F4EE] text-[#5F6B63] text-left">
+            <div className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+              <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm" data-testid="rekap-bulanan-table">
+                <thead className="bg-[#F6F4EE] text-[#5F6B63]">
                   <tr>
-                    <th className="px-3 py-2 font-semibold">Nama Peserta</th>
-                    <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Ikut</th>
-                    <th className="px-3 py-2 font-semibold whitespace-nowrap">Kehadiran</th>
-                    <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Izin</th>
-                    <th className="px-3 py-2 font-semibold text-center whitespace-nowrap">Alpha</th>
-                    <th className="px-3 py-2 font-semibold whitespace-nowrap">Terakhir hadir</th>
-                    <th className="px-3 py-2 font-semibold text-right">Tampilan</th>
+                    <th className="sticky left-0 z-10 w-[240px] min-w-[240px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Nama Peserta</th>
+                    <th className="w-[72px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Ikut</th>
+                    <th className="w-[120px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Kehadiran</th>
+                    <th className="w-[72px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Izin</th>
+                    <th className="w-[72px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Alpha</th>
+                    <th className="w-[130px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Terakhir hadir</th>
+                    <th className="w-[130px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Tampilan</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E7E3D8]">
+                <tbody>
                   {rows.length === 0 ? (
                     <tr><td colSpan={7} className="p-10 text-center text-[#5F6B63]">Tidak ada data peserta.</td></tr>
                   ) : rows.map((r) => {
                     const b = badgeOf(r);
                     return (
-                      <tr key={r.user_id} data-testid={`rekap-bulanan-row-${r.user_id}`} className="hover:bg-[#F6F4EE]">
-                        <td className="px-3 py-2.5">
-                          <div className="font-semibold text-[#14201A] flex items-center gap-1.5 flex-wrap">
-                            {r.name}
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${b.cls}`}>{b.t}</span>
+                      <tr key={r.user_id} data-testid={`rekap-bulanan-row-${r.user_id}`} className="group">
+                        <td className="sticky left-0 z-10 border-b border-[#F0EEE6] bg-white px-3 py-2.5 align-top group-hover:bg-[#F6F4EE]">
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <span className="min-w-0 truncate font-semibold text-[#14201A]" title={r.name}>{r.name}</span>
+                            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${b.cls}`}>{b.t}</span>
                           </div>
-                          <div className="text-[11px] text-[#5F6B63]">
-                            {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "â€”"}
-                            {r.kelompok_name ? ` Â· ${r.kelompok_name}` : ""}
+                          <div className="mt-0.5 truncate text-[11px] text-[#5F6B63]" title={r.kelompok_name || undefined}>
+                            {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—"}
+                            {r.kelompok_name ? ` · ${r.kelompok_name}` : ""}
                           </div>
                         </td>
-                        <td className="px-3 py-2.5 text-center font-bold tabular-nums text-[#14633F] whitespace-nowrap">
-                          {r.hadir}<span className="text-[#5F6B63] font-semibold">/{r.pertemuan}</span>
+                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 text-right font-bold tabular-nums whitespace-nowrap text-[#14633F] group-hover:bg-[#F6F4EE]">
+                          {r.hadir}<span className="font-semibold text-[#5F6B63]">/{r.pertemuan}</span>
                         </td>
-                        <td className="px-3 py-2.5">
+                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 group-hover:bg-[#F6F4EE]">
                           <PersenRingkas value={r.ratio} testid={`persen-bulanan-${r.user_id}`} />
                         </td>
-                        <td className="px-3 py-2.5 text-center tabular-nums text-[#8A5A00] font-semibold">{r.izin}</td>
-                        <td className="px-3 py-2.5 text-center tabular-nums text-[#A32A2A] font-semibold">{r.alpha}</td>
-                        <td className="px-3 py-2.5 text-[#5F6B63] whitespace-nowrap">{r.last_date || "â€”"}</td>
-                        <td className="px-3 py-2.5 text-right">
+                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 text-right font-semibold tabular-nums text-[#8A5A00] group-hover:bg-[#F6F4EE]">{r.izin}</td>
+                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 text-right font-semibold tabular-nums text-[#A32A2A] group-hover:bg-[#F6F4EE]">{r.alpha}</td>
+                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 tabular-nums whitespace-nowrap text-[#5F6B63] group-hover:bg-[#F6F4EE]">{r.last_date || "—"}</td>
+                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 text-right group-hover:bg-[#F6F4EE]">
                           <button
                             type="button"
                             data-testid={`${MONTHLY_RECAP.hideParticipantPrefix}-${r.user_id}`}
                             onClick={() => updateHiddenParticipants(r.user_id, true)}
-                            className="min-h-11 rounded-lg px-2 text-xs font-semibold text-[#5F6B63] hover:bg-[#F0EEE6]"
+                            className="inline-flex min-h-11 items-center rounded-lg px-2 text-xs font-semibold text-[#5F6B63] hover:bg-[#F0EEE6]"
                           >
                             <EyeOff size={15} className="mr-1 inline" />Sembunyikan
                           </button>
@@ -394,7 +394,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                 {data.per_pertemuan.map((p, i) => (
                   <div key={i} className="rounded-xl border border-[#F0EEE6] p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="font-semibold text-sm text-[#14201A]">{p.date} Â· {p.name}</div>
+                      <div className="font-semibold text-sm text-[#14201A]">{p.date} · {p.name}</div>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button type="button" data-testid={`${MONTHLY_RECAP.meetingAttendancePrefix}-${i}`}
@@ -444,7 +444,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {p.sesi.map((x, j) => (
                           <span key={j} className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${x.required ? "bg-[#E3EEFB] text-[#1D4F91]" : "bg-[#F0EEE6] text-[#5F6B63]"}`}>
-                            {x.label} {x.start_time}â€“{x.end_time}{x.required ? "" : " Â· opsional"}
+                            {x.label} {x.start_time}–{x.end_time}{x.required ? "" : " · opsional"}
                           </span>
                         ))}
                       </div>
@@ -458,7 +458,7 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
 
           <div className="rounded-xl border border-[#E7E3D8] bg-white p-4 text-sm text-[#5F6B63] space-y-1" data-testid="rekap-bulanan-legend">
             <div className="font-bold text-[#0E4E31] inline-flex items-center gap-1.5"><CheckCircle2 size={15} /> Cara menghitung</div>
-            <p>Persen hadir = pertemuan berstatus Hadir Ã· pertemuan wajib Ã— 100.</p>
+            <p>Persen hadir = pertemuan berstatus Hadir ÷ pertemuan wajib × 100.</p>
             <p>Hadir di salah satu sesi wajib dihitung hadir. Izin, sakit, alpha, dan belum diabsen dicatat terpisah; sesi opsional tidak menambah kewajiban.</p>
           </div>
         </>

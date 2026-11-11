@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
-import { getActiveRole, rolesLabel, setActiveRole } from "@/lib/roles";
+import { getActiveRole, setActiveRole } from "@/lib/roles";
 
 const ROLE_META = {
   admin: {
@@ -90,7 +90,7 @@ export default function RoleDashboard() {
           </button>
 
           {/* Foto profil + menu akun (tersedia di halaman peran juga) */}
-          <ProfileMenu subtitle={rolesLabel(roles)} />
+          <ProfileMenu role={roles[0]} />
         </div>
       </header>
 

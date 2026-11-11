@@ -1,12 +1,8 @@
-import { useEffect } from "react";
-import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import Modal from "@/components/Modal";
 
 /**
- * ActionModal — pengganti menu dropdown.
- *
- * Tampil sebagai bottom-sheet di HP dan dialog di tengah pada layar besar,
- * sehingga daftar aksi tidak pernah terpotong / keluar layar seperti dropdown.
+ * ActionModal — daftar aksi (pengganti dropdown).
+ * Memakai komponen Modal bersama: tengah layar di desktop, bottom sheet di HP.
  *
  * Pemakaian:
  *   <ActionModal title="Aksi Kegiatan" subtitle={k.name} onClose={...} actions={[
@@ -15,101 +11,67 @@ import { X } from "lucide-react";
  *   ]} />
  */
 export default function ActionModal({ title, subtitle, actions = [], onClose, testid = "action-modal", children }) {
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
-    document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [onClose]);
+  const hasDelete = actions.some((a) => a && a.hapus);
 
-  return createPortal(
-    (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)] backdrop-blur-[2px] animate-in fade-in duration-150" onClick={onClose} />
-      <div
-        data-testid={testid}
-        className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[88vh] flex flex-col overflow-hidden"
-      >
-        {/* Handle bar (mobile) */}
-        <div className="sm:hidden pt-2.5 pb-1 flex justify-center">
-          <div className="h-1.5 w-11 rounded-full bg-[#E7E3D8]" />
-        </div>
-
-        <div className="px-5 pt-3 pb-3 border-b border-[#E7E3D8] flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="font-heading font-bold text-[#14201A] text-base leading-tight">{title}</h3>
-            {subtitle && <p className="text-sm text-[#5F6B63] mt-0.5 truncate">{subtitle}</p>}
-          </div>
+  return (
+    <Modal
+      onClose={onClose}
+      title={title}
+      subtitle={subtitle}
+      testid={testid}
+      maxWidth={560}
+      bodyClassName="p-3"
+      footer={(
+        <button
+          data-testid={`${testid}-cancel`}
+          onClick={onClose}
+          className="h-12 w-full rounded-2xl bg-[#F0EEE6] font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]"
+        >
+          {hasDelete ? "Batalkan" : "Tutup"}
+        </button>
+      )}
+    >
+      {children}
+      {actions.filter(Boolean).map((a) => {
+        const Icon = a.icon;
+        return (
           <button
-            data-testid={`${testid}-close`}
-            onClick={onClose}
-            aria-label="Tutup"
-            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]"
+            key={a.key}
+            data-testid={a.testid || `action-${a.key}`}
+            disabled={a.disabled}
+            onClick={() => {
+              const keepOpen = a.onClick?.();
+              if (keepOpen !== false) onClose?.();
+            }}
+            className={`flex w-full items-center gap-3.5 rounded-2xl px-3.5 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+              a.hapus ? "hover:bg-[#FBE5E3]" : "hover:bg-[#F6F4EE]"
+            }`}
           >
-            <X size={19} />
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+              style={{
+                backgroundColor: a.hapus ? "#FBE5E3" : "#F0EEE6",
+                color: a.hapus ? "#A32A2A" : "#14201A",
+              }}
+            >
+              {Icon && <Icon size={19} />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className={`flex items-center gap-1.5 text-[15px] font-semibold ${a.hapus ? "text-[#A32A2A]" : "text-[#14201A]"}`}>
+                {a.label}
+                {a.badge && (
+                  <span
+                    data-testid={`${a.testid || `action-${a.key}`}-badge`}
+                    className="h-2 w-2 shrink-0 rounded-full bg-[#A32A2A]"
+                    aria-label="baru"
+                  />
+                )}
+              </span>
+              {a.desc && <span className="mt-0.5 block text-xs text-[#5F6B63]">{a.desc}</span>}
+            </span>
           </button>
-        </div>
-
-        <div className="overflow-y-auto p-3">
-          {children}
-          {actions.filter(Boolean).map((a) => {
-            const Icon = a.icon;
-            return (
-              <button
-                key={a.key}
-                data-testid={a.testid || `action-${a.key}`}
-                disabled={a.disabled}
-                onClick={() => {
-                  const keepOpen = a.onClick?.();
-                  if (keepOpen !== false) onClose?.();
-                }}
-                className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-left transition-colors disabled:opacity-45 disabled:cursor-not-allowed ${
-                  a.hapus ? "hover:bg-[#FBE5E3]" : "hover:bg-[#F6F4EE]"
-                }`}
-              >
-                <span
-                  className="h-10 w-10 shrink-0 rounded-xl flex items-center justify-center"
-                  style={{
-                    backgroundColor: a.hapus ? "#FBE5E3" : "#F0EEE6",
-                    color: a.hapus ? "#A32A2A" : "#14201A",
-                  }}
-                >
-                  {Icon && <Icon size={19} />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className={`flex items-center gap-1.5 text-[15px] font-semibold ${a.hapus ? "text-[#A32A2A]" : "text-[#14201A]"}`}>
-                    {a.label}
-                    {a.badge && (
-                      <span
-                        data-testid={`${a.testid || `action-${a.key}`}-badge`}
-                        className="h-2 w-2 shrink-0 rounded-full bg-[#A32A2A]"
-                        aria-label="baru"
-                      />
-                    )}
-                  </span>
-                  {a.desc && <span className="block text-xs text-[#5F6B63] mt-0.5">{a.desc}</span>}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="px-3 pb-3 pt-1 border-t border-[#E7E3D8]">
-          <button
-            data-testid={`${testid}-cancel`}
-            onClick={onClose}
-            className="w-full h-12 rounded-2xl bg-[#F0EEE6] text-[#5F6B63] font-semibold hover:bg-[#E7E3D8]"
-          >
-            {actions.some((a) => a && a.hapus) ? "Batalkan" : "Tutup"}
-          </button>
-        </div>
-      </div>
-    </div>
-    ),
-    document.body,
+        );
+      })}
+    </Modal>
   );
 }

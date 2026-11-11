@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   CalendarDays, Check, ChevronLeft, ChevronRight, CircleCheck, Clock3,
-  MapPin, Pause, Play, RotateCcw, Users, Volume2, X,
+  MapPin, Pause, Play, RotateCcw, Users, Volume2,
 } from "lucide-react";
 import { ACTIVITIES } from "@/constants/testIds";
+import Modal from "@/components/Modal";
 
 const STEPS = [
   {
@@ -343,42 +343,18 @@ export default function KegiatanBantuanModal({ onClose }) {
     speakStep(firstStep);
   };
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-[rgba(20,32,26,0.5)] sm:items-center sm:p-4"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
+  return (
+    <Modal
+      onClose={onClose}
+      title="Animasi Panduan: Membuat Kegiatan"
+      subtitle="Ikuti langkah-langkahnya, atau putar animasi dari awal sampai akhir."
+      testid={ACTIVITIES.helpModal}
+      closeTestId={ACTIVITIES.helpClose}
+      maxWidth={960}
+      zIndex={70}
+      bodyClassName="bg-[#F6F4EE] p-0"
     >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="kegiatan-animation-title"
-        data-testid={ACTIVITIES.helpModal}
-        className="flex max-h-[96vh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#F6F4EE] shadow-2xl sm:max-h-[92vh] sm:max-w-5xl sm:rounded-3xl"
-      >
-        <header className="flex items-start justify-between gap-3 border-b border-[#E7E3D8] bg-white px-4 py-3.5 sm:px-5">
-          <div className="min-w-0">
-            <h2 id="kegiatan-animation-title" className="font-heading text-lg font-bold text-[#14201A]">
-              Animasi Panduan: Membuat Kegiatan
-            </h2>
-            <p className="mt-0.5 text-base text-[#5F6B63]">
-              Ikuti langkah-langkahnya, atau putar animasi dari awal sampai akhir.
-            </p>
-          </div>
-          <button
-            type="button"
-            aria-label="Tutup animasi panduan"
-            title="Tutup jika sudah paham"
-            data-testid={ACTIVITIES.helpClose}
-            onClick={onClose}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#E7E3D8] bg-white text-[#5F6B63] hover:border-[#14633F] hover:text-[#0E4E31]"
-          >
-            <X size={20} />
-          </button>
-        </header>
-
-        <div className="grid min-h-0 gap-4 overflow-y-auto p-4 sm:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.9fr)] sm:p-5">
+        <div className="grid min-h-0 gap-4 p-4 sm:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.9fr)] sm:p-5">
           <div className="min-w-0">
             <div data-testid={ACTIVITIES.helpAnimation} aria-live="polite">
               <PreviewScene step={step} />
@@ -485,8 +461,6 @@ export default function KegiatanBantuanModal({ onClose }) {
             </div>
           </section>
         </div>
-      </section>
-    </div>,
-    document.body,
+    </Modal>
   );
 }

@@ -57,7 +57,7 @@ export default function RoleArea() {
           >
             <ArrowLeft size={18} /> Pilih Peran
           </button>
-          <ProfileMenu subtitle={meta.title} />
+          <ProfileMenu role={role} />
         </div>
       </header>
 

@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 import { ACTIVITIES } from "@/constants/testIds";
 import ActionModal from "@/components/ActionModal";
+import Modal from "@/components/Modal";
 import KegiatanRekapPanel from "./KegiatanRekapPanel";
 import { api, formatApiErrorDetail, isOfflineError } from "@/lib/api";
 import { useOfflineQueue } from "@/lib/offline";
@@ -537,11 +538,16 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
       </button>
 
       {reasonFor && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(20,32,26,0.5)] p-4" onClick={() => setReasonFor(null)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="reason-modal">
-            <div className="font-heading font-bold text-[#14201A] text-lg">Alasan Izin</div>
-            <p className="text-sm text-[#5F6B63] mt-0.5">{reasonFor.name}</p>
-            <div className="mt-4 space-y-3">
+        <Modal
+          onClose={() => setReasonFor(null)}
+          title="Alasan Izin"
+          subtitle={reasonFor.name}
+          testid="reason-modal"
+          maxWidth={560}
+          zIndex={70}
+          bodyClassName="p-5"
+        >
+            <div className="space-y-3">
               <div>
                 <label className="block text-[13px] font-semibold text-[#14201A] mb-2">Pilih alasan *</label>
                 <div className="flex flex-wrap gap-2" data-testid="reason-options">
@@ -580,10 +586,9 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button onClick={() => setReasonFor(null)} className="h-11 rounded-xl border-2 border-[#E7E3D8] font-semibold text-[#5F6B63]">Batalkan</button>
-              <button data-testid="reason-submit" onClick={submitReason} disabled={!reason} className="h-11 rounded-xl bg-[#14633F] text-white font-semibold disabled:opacity-40">Simpan</button>
+              <button data-testid="reason-submit" onClick={submitReason} disabled={!reason} className="h-11 rounded-xl bg-[#0B6B52] text-white font-semibold disabled:opacity-40">Simpan</button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

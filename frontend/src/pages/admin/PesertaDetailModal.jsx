@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   X, Loader2, Save, KeyRound, ArrowRightLeft, Power, Camera, MoreHorizontal,
   Phone, MessageCircle, Mail, MapPin, GraduationCap, User as UserIcon, HeartHandshake,
@@ -12,6 +11,7 @@ import { PARTICIPANTS } from "@/constants/testIds";
 import ContactButtons from "@/components/ContactButtons";
 import { DateField } from "@/components/DateField";
 import ActionModal from "@/components/ActionModal";
+import Modal from "@/components/Modal";
 import {
   EDUCATION_OPTIONS, MUBALIGH_OPTIONS, MARITAL_OPTIONS, ACTION_LABELS,
   genderLabel, statusBadge, formatTanggal, formatDateTime, maritalLabel, mubalighLabel,
@@ -306,19 +306,17 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
     },
   ].filter(Boolean) : [];
 
-  return createPortal((
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)] backdrop-blur-[2px]" onClick={onClose} />
-      <div
-        className="relative flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-3xl bg-[#F6F4EE] shadow-2xl sm:max-h-[90vh] sm:max-w-2xl sm:rounded-3xl"
-        data-testid="peserta-detail-modal"
-      >
-        <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-white">
-          <div className="h-1.5 w-11 rounded-full bg-[#E7E3D8]" />
-        </div>
-
-        {/* Header */}
-        <div className="shrink-0 border-b border-[#E7E3D8] bg-white">
+  return (
+    <>
+    <Modal
+      onClose={onClose}
+      testid="peserta-detail-modal"
+      closeTestId="button-close-detail"
+      maxWidth={960}
+      hideClose
+      bodyClassName="bg-[#F6F4EE] p-4 sm:p-5"
+      header={(
+        <>
           <div className="flex items-start justify-between gap-3 px-4 pt-3 sm:px-5">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#E3F3EA] text-[#0E4E31]">
@@ -380,12 +378,13 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
               );
             })}
           </div>
-        </div>
-
+        </>
+      )}
+    >
         {!data ? (
           <div className="flex flex-1 justify-center p-16"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+          <div>
             {/* ---------------- PROFIL ---------------- */}
             {tab === "profil" && (
               <div className="space-y-3.5">
@@ -811,7 +810,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
             )}
           </div>
         )}
-      </div>
+    </Modal>
 
       {actionsOpen && (
         <ActionModal
@@ -824,9 +823,14 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
       )}
 
       {moveConfirm && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(20,32,26,0.5)] p-4" onClick={() => setMoveConfirm(false)}>
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="move-confirm-dialog">
-            <div className="mb-1 text-base font-bold text-[#14201A]">Konfirmasi Pindah Sambung</div>
+        <Modal
+          onClose={() => setMoveConfirm(false)}
+          title="Konfirmasi Pindah Sambung"
+          testid="move-confirm-dialog"
+          maxWidth={480}
+          zIndex={70}
+          bodyClassName="p-5"
+        >
             <p className="mb-3 text-sm text-[#5F6B63]">
               Pindahkan <b>{data?.name}</b> ke{" "}
               <b>{(() => {
@@ -860,15 +864,19 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                 Ya, Pindahkan
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {resetConfirm && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(20,32,26,0.5)] p-4" onClick={() => setResetConfirm(false)}>
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="modal-reset-confirm">
+        <Modal
+          onClose={() => setResetConfirm(false)}
+          title="Reset Kata Sandi?"
+          testid="modal-reset-confirm"
+          maxWidth={480}
+          zIndex={70}
+          bodyClassName="p-6 text-center"
+        >
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#FBF1D6] text-[#8A5A00]"><KeyRound size={24} /></div>
-            <h3 className="font-heading text-lg font-bold text-[#14201A]">Reset Kata Sandi?</h3>
             <p className="mt-1.5 text-sm text-[#5F6B63]">
               Apakah Anda yakin mereset kata sandi <b className="text-[#14201A]">{data?.name}</b>? Sandi sementara memakai tanggal lahir (DDMMYYYY) dan wajib diganti saat peserta masuk berikutnya.
             </p>
@@ -878,25 +886,28 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
               <button data-testid="button-reset-confirm" onClick={doReset}
                 className="h-11 rounded-xl bg-[#5F6B63] font-bold text-white hover:bg-[#8A5A00]">Ya, Reset</button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {resetResult && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(20,32,26,0.5)] p-4" onClick={() => setResetResult(null)}>
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="modal-reset-result">
+        <Modal
+          onClose={() => setResetResult(null)}
+          title="Kata Sandi Direset"
+          testid="modal-reset-result"
+          maxWidth={480}
+          zIndex={70}
+          bodyClassName="p-6 text-center"
+        >
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#E3F3EA] text-[#0E4E31]"><CheckCircle2 size={24} /></div>
-            <h3 className="font-heading text-lg font-bold text-[#14201A]">Kata Sandi Direset</h3>
             <p className="mt-1.5 text-sm text-[#5F6B63]">Nama pengguna:</p>
             <div className="my-2 rounded-xl bg-[#F0EEE6] px-3 py-2 font-semibold text-[#0E4E31]" data-testid={PARTICIPANTS.resetUsername}>{resetResult.username || data?.name}</div>
             <p className="mt-2 text-sm text-[#5F6B63]">Kata sandi sementara:</p>
             <div className="my-2 rounded-xl bg-[#F0EEE6] py-3 font-mono text-2xl font-bold tracking-widest text-[#0E4E31]" data-testid="reset-result-password">{resetResult.password}</div>
             <p className="text-xs text-[#5F6B63]">Sampaikan dengan aman. Peserta harus mengganti kata sandi ini dan melengkapi data akun setelah masuk.</p>
             <button data-testid="button-reset-result-close" onClick={() => setResetResult(null)}
-              className="mt-4 h-11 w-full rounded-xl bg-[#14633F] font-bold text-white hover:bg-[#0E4E31]">Tutup</button>
-          </div>
-        </div>
+              className="mt-4 h-11 w-full rounded-xl bg-[#0B6B52] font-bold text-white hover:bg-[#0E4E31]">Tutup</button>
+        </Modal>
       )}
-    </div>
-  ), document.body);
+    </>
+  );
 }

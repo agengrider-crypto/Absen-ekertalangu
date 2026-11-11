@@ -1,282 +1,84 @@
-// Mobile Bottom Action Bar untuk daftar User & Kegiatan.
-// Selalu menempel di bawah layar pada tampilan mobile, berisi:
-// Search, Filter, FAB "+" (menonjol di tengah), Previous/Next, dan indikator halaman.
-// Murni UI — tidak mengubah data, API, atau routing.
-import { useEffect, useRef, useState } from "react";
+// FAB (tombol tambah) + paginasi daftar untuk tampilan HP.
+// FAB: 56x56 px, ikon 24 px, hijau zamrud, 16 px dari kanan dan 16 px di atas
+// bilah menu bawah (tinggi bilah 64 px + safe-area). Paginasi diletakkan di
+// bawah daftar (bukan melayang). Murni UI — tidak mengubah data/API/routing.
 import { createPortal } from "react-dom";
-import {
-  Search, SlidersHorizontal, Plus, ChevronLeft, ChevronRight, X,
-} from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { FAB } from "@/constants/testIds";
 
-/**
- * @param {object}   props
- * @param {string}   props.search          nilai pencarian
- * @param {function} props.onSearch        (value) => void
- * @param {string}   props.searchPlaceholder
- * @param {Array}    props.filters         [{ key, label, count }]
- * @param {string}   props.filterValue     key filter aktif
- * @param {function} props.onFilter        (key) => void
- * @param {string}   props.filterLabel     label tombol filter
- * @param {function} props.onAdd           aksi tombol tambah (FAB)
- * @param {string}   props.addLabel        label tombol tambah
- * @param {number}   props.page            1-based
- * @param {number}   props.pageCount
- * @param {function} props.onPrev
- * @param {function} props.onNext
- * @param {number}   props.total           jumlah item setelah filter
- * @param {number}   props.pageSize
- * @param {Array}    props.actions         tombol tambahan [{ key, label, icon, onClick, active }]
- * @param {string}   props.filterTestId    data-testid untuk wadah chip filter
- * @param {string}   props.filterItemTestId prefix data-testid tiap chip filter
- */
-export default function ListFab({
-  search = "",
-  onSearch,
-  searchPlaceholder = "Cari…",
-  filters = [],
-  filterValue,
-  onFilter,
-  filterLabel = "Filter",
-  onAdd,
-  addLabel = "Tambah",
-  page = 1,
-  pageCount = 1,
-  onPrev,
-  onNext,
-  total = 0,
-  pageSize = 0,
-  actions = [],
-  filterTestId,
-  filterItemTestId,
-}) {
-  const [panel, setPanel] = useState(null); // null | "search" | "filter"
-  const inputRef = useRef(null);
+const NAV_HEIGHT = 64;
 
-  useEffect(() => {
-    if (panel !== "search") return;
-    const t = setTimeout(() => inputRef.current?.focus(), 120);
-    return () => clearTimeout(t);
-  }, [panel]);
-
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") setPanel(null); };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
-
-  const activeFilter = filters.find((f) => f.key === filterValue);
-  const hasFilter = Boolean(filterValue) && filterValue !== "all";
-  const atFirst = page <= 1;
-  const atLast = page >= pageCount;
-  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = Math.min(page * pageSize, total);
+export default function ListFab({ onAdd, addLabel = "Tambah" }) {
+  if (!onAdd) return null;
 
   const content = (
-    <div
-      data-testid={FAB.root}
-      className="pointer-events-none fixed inset-x-0 bottom-16 z-40 lg:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    <button
+      type="button"
+      data-testid={FAB.add}
+      onClick={onAdd}
+      aria-label={addLabel}
+      title={addLabel}
+      className="fixed right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_10px_24px_-6px_rgba(11,107,82,0.55)] transition-transform active:scale-95 lg:hidden"
+      style={{
+        backgroundColor: "#0B6B52",
+        bottom: `calc(${NAV_HEIGHT}px + 16px + env(safe-area-inset-bottom))`,
+      }}
     >
-      <div className="pointer-events-auto relative mx-auto w-full max-w-lg px-3 pb-2">
-        {/* Panel pencarian / filter */}
-        {panel && (
-          <div
-            data-testid={FAB.panel}
-            className="mb-2 rounded-2xl border border-[#E7E3D8] bg-white p-3 shadow-[0_-8px_32px_-8px_rgba(20,32,26,0.28)]"
-          >
-            <div className="flex items-center justify-between gap-2 pb-2">
-              <span className="text-xs font-bold uppercase tracking-wide text-[#5F6B63]">
-                {panel === "search" ? "Cari" : filterLabel}
-              </span>
-              <button
-                type="button"
-                data-testid={FAB.close}
-                onClick={() => setPanel(null)}
-                aria-label="Tutup panel"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {panel === "search" && (
-              <div className="relative">
-                <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
-                <input
-                  ref={inputRef}
-                  data-testid={FAB.search}
-                  value={search}
-                  onChange={(e) => onSearch?.(e.target.value)}
-                  placeholder={searchPlaceholder}
-                  className="h-11 w-full rounded-xl border border-[#8A948D] bg-white pl-10 pr-9 text-sm outline-none focus:border-[#14633F]"
-                />
-                {search && (
-                  <button
-                    type="button"
-                    onClick={() => onSearch?.("")}
-                    aria-label="Hapus pencarian"
-                    className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            )}
-
-            {panel === "filter" && (
-              <div className="flex flex-wrap gap-1.5" data-testid={filterTestId}>
-                {filters.map((f) => {
-                  const on = f.key === filterValue;
-                  return (
-                    <button
-                      key={f.key}
-                      type="button"
-                      data-testid={filterItemTestId ? `${filterItemTestId}-${f.key}` : FAB.filter}
-                      onClick={() => onFilter?.(f.key)}
-                      aria-pressed={on}
-                      className={`inline-flex min-h-10 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors ${
-                        on
-                          ? "border-2 border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]"
-                          : "border border-[#D9D4C5] bg-white text-[#5F6B63] hover:border-[#14633F]"
-                      }`}
-                    >
-                      {f.dot && (
-                        <span
-                          className="h-3 w-3 shrink-0 rounded-full"
-                          style={{ backgroundColor: f.dot }}
-                          aria-hidden="true"
-                        />
-                      )}
-                      {f.label}
-                      {typeof f.count === "number" && (
-                        <span className={`rounded-full px-1.5 text-[10px] ${on ? "bg-white/70 text-[#0E4E31]" : "bg-[#F0EEE6] text-[#14201A]"}`}>
-                          {f.count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Toolbar */}
-        <div className="relative flex items-center justify-between gap-1 rounded-2xl border border-[#E7E3D8] bg-white/95 px-2 py-1.5 shadow-[0_-6px_24px_-6px_rgba(20,32,26,0.22)] backdrop-blur">
-          {/* Kiri: Search + Filter */}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              data-testid={FAB.searchToggle}
-              onClick={() => setPanel((p) => (p === "search" ? null : "search"))}
-              aria-label="Cari"
-              aria-expanded={panel === "search"}
-              className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
-                panel === "search" ? "bg-[#14633F] text-white" : "text-[#5F6B63] hover:bg-[#F0EEE6]"
-              }`}
-            >
-              <Search size={19} />
-              {search && panel !== "search" && (
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#14633F]" aria-hidden="true" />
-              )}
-            </button>
-            <button
-              type="button"
-              data-testid={FAB.filterToggle}
-              onClick={() => setPanel((p) => (p === "filter" ? null : "filter"))}
-              aria-label={filterLabel}
-              aria-expanded={panel === "filter"}
-              className={`relative flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
-                panel === "filter" ? "bg-[#14633F] text-white" : "text-[#5F6B63] hover:bg-[#F0EEE6]"
-              }`}
-            >
-              <SlidersHorizontal size={19} />
-              {hasFilter && panel !== "filter" && (
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#14633F]" aria-hidden="true" />
-              )}
-            </button>
-          </div>
-
-          {/* Tengah: Previous + Next (indikator halaman ada di bawah toolbar) */}
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-1">
-            <button
-              type="button"
-              data-testid={FAB.prev}
-              onClick={onPrev}
-              disabled={atFirst}
-              aria-label="Halaman sebelumnya"
-              className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6] disabled:opacity-30"
-            >
-              <ChevronLeft size={19} />
-            </button>
-            <button
-              type="button"
-              data-testid={FAB.next}
-              onClick={onNext}
-              disabled={atLast}
-              aria-label="Halaman berikutnya"
-              className="flex h-10 w-9 shrink-0 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6] disabled:opacity-30"
-            >
-              <ChevronRight size={19} />
-            </button>
-          </div>
-
-          {/* Kanan: aksi tambahan (Panduan, Daftar/Kalender) */}
-          <div className="flex items-center gap-1">
-            {actions.map((a) => {
-              const Icon = a.icon;
-              return (
-                <button
-                  key={a.key}
-                  type="button"
-                  data-testid={a.testid}
-                  onClick={a.onClick}
-                  aria-label={a.label}
-                  aria-pressed={a.active}
-                  title={a.label}
-                  className={`flex h-11 w-11 items-center justify-center rounded-xl transition-colors ${
-                    a.active ? "bg-[#14633F] text-white" : "text-[#5F6B63] hover:bg-[#F0EEE6]"
-                  }`}
-                >
-                  {Icon ? <Icon size={19} /> : a.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* FAB "+" menonjol di tengah atas toolbar */}
-        {onAdd && (
-          <button
-            type="button"
-            data-testid={FAB.add}
-            onClick={onAdd}
-            aria-label={addLabel}
-            title={addLabel}
-            className="absolute bottom-[calc(100%-1.75rem)] left-1/2 flex h-14 w-14 -translate-x-1/2 items-center justify-center rounded-full bg-[#14633F] text-white shadow-[0_8px_20px_-4px_rgba(20,99,63,0.55)] ring-4 ring-white transition-transform active:scale-95"
-          >
-            <Plus size={26} strokeWidth={2.6} />
-          </button>
-        )}
-
-        {/* Indikator halaman + ringkasan data */}
-        <div className="mt-1 flex items-center justify-center gap-2 text-[10px] font-medium text-[#5F6B63]">
-          <span
-            data-testid={FAB.pageInfo}
-            className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#0E4E31] shadow-sm"
-          >
-            {page} / {pageCount}
-          </span>
-          <span>
-            {total === 0 ? "Tidak ada data" : `${from}–${to} dari ${total}`}
-            {hasFilter && activeFilter ? ` · ${activeFilter.label}` : ""}
-          </span>
-        </div>
-      </div>
-    </div>
+      <Plus size={24} strokeWidth={2.4} />
+    </button>
   );
 
   if (typeof document === "undefined" || !document.body) return content;
   return createPortal(content, document.body);
+}
+
+/**
+ * Paginasi di bawah daftar (tidak melayang).
+ * @param {number} page 1-based
+ * @param {number} pageCount
+ * @param {function} onPrev
+ * @param {function} onNext
+ * @param {number} total
+ * @param {number} pageSize
+ */
+export function ListPagination({ page = 1, pageCount = 1, onPrev, onNext, total = 0, pageSize = 0 }) {
+  if (pageCount <= 1 && total === 0) return null;
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+
+  return (
+    <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#E7E3D8] bg-white px-3 py-2">
+      <span className="text-xs text-[#5F6B63]">
+        {total === 0 ? "Tidak ada data" : `${from}–${to} dari ${total}`}
+      </span>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          data-testid={FAB.prev}
+          onClick={onPrev}
+          disabled={page <= 1}
+          aria-label="Halaman sebelumnya"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6] disabled:opacity-30"
+        >
+          <ChevronLeft size={19} />
+        </button>
+        <span
+          data-testid={FAB.pageInfo}
+          className="min-w-12 text-center text-xs font-bold tabular-nums text-[#0E4E31]"
+        >
+          {page} / {pageCount}
+        </span>
+        <button
+          type="button"
+          data-testid={FAB.next}
+          onClick={onNext}
+          disabled={page >= pageCount}
+          aria-label="Halaman berikutnya"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6] disabled:opacity-30"
+        >
+          <ChevronRight size={19} />
+        </button>
+      </div>
+    </div>
+  );
 }

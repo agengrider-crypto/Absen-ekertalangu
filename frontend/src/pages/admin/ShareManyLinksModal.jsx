@@ -2,9 +2,10 @@
 // Dua pilihan: satu tautan per peserta (digabung dalam satu pesan) atau satu tautan
 // yang membuka daftar semua peserta terpilih.
 import { useEffect, useMemo, useState } from "react";
-import { Check, Copy, Link2, Loader2, Send, Users, X } from "lucide-react";
+import { Check, Copy, Link2, Loader2, Send, Users } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import Modal from "@/components/Modal";
 
 const MONTHS = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -83,33 +84,36 @@ export default function ShareManyLinksModal({ rows = [], month, week = "bulanan"
   const loading = links === null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center" data-testid="share-many-modal">
-      <button type="button" aria-label="Tutup" onClick={onClose}
-        className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" />
-      <div role="dialog" aria-modal="true" aria-labelledby="share-many-title"
-        className="relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-w-3xl sm:rounded-3xl">
-        <header className="flex items-start justify-between gap-3 border-b border-[#E7E3D8] px-5 py-4">
-          <div className="min-w-0">
-            <h2 id="share-many-title" className="font-heading text-lg font-bold text-[#14201A]">
-              Bagikan laporan banyak peserta
-            </h2>
-            <p className="mt-0.5 text-[13px] text-[#5F6B63]">
-              {rows.length} peserta dipilih · {periodLabel}
-            </p>
+    <Modal
+      onClose={onClose}
+      title="Bagikan laporan banyak peserta"
+      subtitle={`${rows.length} peserta dipilih · ${periodLabel}`}
+      testid="share-many-modal"
+      maxWidth={960}
+      footer={(
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[12px] text-[#5F6B63]">
+            {expiresAt ? `Semua tautan berlaku sampai ${expiryLabel(expiresAt)}.` : "Tautan dibuat otomatis saat modal dibuka."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => copy(message, "pesan")} disabled={loading || !message}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#E7E3D8] bg-white px-4 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-50">
+              {copied === "pesan" ? <Check size={16} /> : <Copy size={16} />} Salin semua pesan
+            </button>
+            <button type="button" onClick={shareWa} disabled={loading || !message}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#0B6B52] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-50">
+              <Send size={16} /> Bagikan ke pengurus
+            </button>
           </div>
-          <button type="button" onClick={onClose} aria-label="Tutup"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]">
-            <X size={20} />
-          </button>
-        </header>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          {error ? (
-            <div className="rounded-2xl border border-[#FBE5E3] bg-[#FBE5E3] p-4 text-sm text-[#A32A2A]">{error}</div>
-          ) : (
-            <>
-              {/* Pilihan mode */}
-              <div className="grid gap-3 sm:grid-cols-2">
+        </div>
+      )}
+    >
+      {error ? (
+        <div className="rounded-2xl border border-[#FBE5E3] bg-[#FBE5E3] p-4 text-sm text-[#A32A2A]">{error}</div>
+      ) : (
+        <>
+          {/* Pilihan mode */}
+          <div className="grid gap-3 sm:grid-cols-2">
                 {[
                   {
                     key: "per-peserta",
@@ -193,26 +197,8 @@ export default function ShareManyLinksModal({ rows = [], month, week = "bulanan"
                   </div>
                 </section>
               </div>
-            </>
-          )}
-        </div>
-
-        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E7E3D8] px-5 py-3.5">
-          <p className="text-[12px] text-[#5F6B63]">
-            {expiresAt ? `Semua tautan berlaku sampai ${expiryLabel(expiresAt)}.` : "Tautan dibuat otomatis saat modal dibuka."}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => copy(message, "pesan")} disabled={loading || !message}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#E7E3D8] bg-white px-4 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-50">
-              {copied === "pesan" ? <Check size={16} /> : <Copy size={16} />} Salin semua pesan
-            </button>
-            <button type="button" onClick={shareWa} disabled={loading || !message}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-50">
-              <Send size={16} /> Bagikan ke pengurus
-            </button>
-          </div>
-        </footer>
-      </div>
-    </div>
+        </>
+      )}
+    </Modal>
   );
 }

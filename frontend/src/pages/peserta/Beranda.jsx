@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Loader2, Pin, AlertCircle, CalendarDays, Clock, MapPin, ShieldCheck, X, Search, QrCode, ScanLine, ChevronRight, UserCog } from "lucide-react";
+import { Loader2, Pin, AlertCircle, CalendarDays, Clock, MapPin, ShieldCheck, Search, QrCode, ScanLine, ChevronRight, UserCog } from "lucide-react";
 import { toast } from "sonner";
+import Modal from "@/components/Modal";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
@@ -64,17 +65,14 @@ function DelegasiFill({ deleg, onClose }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto" data-testid="modal-delegasi-fill">
-        <div className="sticky top-0 bg-white border-b border-[#E7E3D8] px-5 py-4 flex items-center justify-between">
-          <div>
-            <h3 className="font-heading font-bold text-[#14201A]">Isi Absensi (Delegasi)</h3>
-            <p className="text-xs text-[#5F6B63]">{deleg.kegiatan_name}</p>
-          </div>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
-        </div>
-        <div className="p-4">
+    <Modal
+      onClose={onClose}
+      title="Isi Absensi (Delegasi)"
+      subtitle={deleg.kegiatan_name}
+      testid="modal-delegasi-fill"
+      maxWidth={640}
+      bodyClassName="p-4"
+    >
           <div className="relative mb-3">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama…" className="w-full h-11 pl-9 pr-3 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F]" />
@@ -99,9 +97,7 @@ function DelegasiFill({ deleg, onClose }) {
               ))}
             </div>
           )}
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

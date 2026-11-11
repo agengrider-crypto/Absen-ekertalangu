@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { ACTIVITIES } from "@/constants/testIds";
 import { tanggalSingkat } from "./kegiatanUtils";
+import Modal from "@/components/Modal";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
   "Agustus", "September", "Oktober", "November", "Desember"];
@@ -157,10 +158,15 @@ export default function KodeAksesView({ onLeave }) {
       )}
 
       {leavePrompt && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(20,32,26,0.5)] p-4" onClick={() => setLeavePrompt(null)}>
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()} data-testid="leave-prompt">
-            <div className="font-heading font-bold text-[#14201A] text-lg">Tutup absen sebelum keluar?</div>
-            <p className="text-sm text-[#5F6B63] mt-1">
+        <Modal
+          onClose={() => setLeavePrompt(null)}
+          title="Tutup absen sebelum keluar?"
+          testid="leave-prompt"
+          maxWidth={560}
+          zIndex={70}
+          bodyClassName="p-5"
+        >
+            <p className="text-sm text-[#5F6B63]">
               Masih ada <b>{leavePrompt.length} kegiatan</b> dengan absen terbuka.
               Peserta yang belum diabsen akan otomatis tercatat <b>Alpha</b>.
             </p>
@@ -179,8 +185,7 @@ export default function KodeAksesView({ onLeave }) {
                 Tutup &amp; Alpha
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

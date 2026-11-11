@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, CalendarDays, Clock, MapPin, User, BookOpen, X, Users } from "lucide-react";
+import { Loader2, CalendarDays, Clock, MapPin, User, BookOpen, Users } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
+import Modal from "@/components/Modal";
 import {
   typeLabel, typeColor, tanggalPanjang, groupKegiatan,
   AUDIENCE_LABEL, GENDER_FILTER_LABEL,
@@ -18,14 +19,7 @@ const STATUS_STYLE = {
 function DetailModal({ k, onClose }) {
   const st = STATUS_STYLE[k.my_status] || STATUS_STYLE.belum_diabsen;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl" data-testid="peserta-kegiatan-detail">
-        <div className="px-5 py-4 flex items-center justify-between border-b border-[#E7E3D8]">
-          <h3 className="font-heading font-bold text-[#14201A]">Detail Kegiatan</h3>
-          <button onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
-        </div>
-        <div className="p-5 space-y-3">
+    <Modal onClose={onClose} title="Detail Kegiatan" testid="peserta-kegiatan-detail" maxWidth={640} bodyClassName="p-5 space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${typeColor(k.type)}1a`, color: typeColor(k.type) }}>{typeLabel(k.type)}</span>
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>{st.label}</span>
@@ -48,9 +42,7 @@ function DetailModal({ k, onClose }) {
             {k.material && <div className="flex items-start gap-2"><BookOpen size={16} className="text-[#0E4E31] mt-0.5" /> {k.material}</div>}
             <div className="flex items-center gap-2"><Users size={16} className="text-[#0E4E31]" /> {AUDIENCE_LABEL[k.audience] || "Reguler"}</div>
           </div>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

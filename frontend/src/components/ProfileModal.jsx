@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
-  X, Camera, Trash2, Loader2, User as UserIcon, Save, Pencil,
+  Camera, Trash2, Loader2, User as UserIcon, Save, Pencil,
   Phone, Mail, MapPin, Shield, CalendarDays, GraduationCap, MessageCircle, AlertCircle, HeartHandshake,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -10,8 +9,9 @@ import { resizeImageFile } from "@/lib/image";
 import { useAuth } from "@/context/AuthContext";
 import { formatTanggal, MARITAL_OPTIONS, maritalLabel } from "@/pages/admin/adminUtils";
 import UpdateModal from "@/components/UpdateModal";
+import Modal from "@/components/Modal";
+import { roleLabel } from "@/lib/roles";
 
-const ROLE_LABEL = { admin: "Admin", pengurus: "Pengurus", peserta: "Peserta" };
 const inp = "w-full h-11 px-3.5 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F] bg-white";
 
 function Row({ icon: Icon, label, value }) {
@@ -133,23 +133,16 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
     }
   };
 
-  return createPortal(
-    (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)] backdrop-blur-[2px]" onClick={onClose} />
-      <div
-        className="relative bg-[#F6F4EE] w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto shadow-2xl"
-        data-testid="profile-modal"
-      >
-        <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-white">
-          <div className="h-1.5 w-11 rounded-full bg-[#E7E3D8]" />
-        </div>
-        <div className="sticky top-0 bg-white/95 backdrop-blur border-b border-[#E7E3D8] px-5 py-3.5 flex items-center justify-between z-10">
-          <h2 className="font-heading font-bold text-[#14201A]">Profil Saya</h2>
-          <button data-testid="button-close-profile" onClick={onClose} className="h-9 w-9 flex items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"><X size={20} /></button>
-        </div>
-
-        <div className="p-5 space-y-4">
+  return (
+    <>
+    <Modal
+      onClose={onClose}
+      title="Profil Saya"
+      testid="profile-modal"
+      closeTestId="button-close-profile"
+      maxWidth={640}
+      bodyClassName="bg-[#F6F4EE] p-5 space-y-4"
+    >
           {missing.length > 0 && (
             <div className="rounded-2xl border-2 border-[#EAD596] bg-[#FBF1D6] p-3.5 flex items-start gap-2.5" data-testid="profile-missing-warning">
               <AlertCircle size={18} className="text-[#6B4500] shrink-0 mt-0.5" />
@@ -193,7 +186,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
           {/* Peran */}
           <div className="flex flex-wrap gap-1.5 justify-center">
             {(user?.roles || []).map((r) => (
-              <span key={r} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#E3F3EA] text-[#0E4E31]">{ROLE_LABEL[r] || r}</span>
+              <span key={r} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#E3F3EA] text-[#0E4E31]">{roleLabel(r)}</span>
             ))}
           </div>
 
@@ -305,13 +298,10 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
               </button>
             </>
           )}
-        </div>
-      </div>
+    </Modal>
       {showReleaseNotes && (
         <UpdateModal forceOpen onClose={() => setShowReleaseNotes(false)} />
       )}
-    </div>
-    ),
-    document.body,
+    </>
   );
 }

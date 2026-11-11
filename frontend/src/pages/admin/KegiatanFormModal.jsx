@@ -1,14 +1,14 @@
 // FASE 18 — Form Tambah/Edit Kegiatan: tampilan baru (modal berlapis, nyaman di HP & PC).
 import { useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import {
-  X, Plus, Loader2, Layers, Trash2, SlidersHorizontal, AlertTriangle,
+  Plus, Loader2, Layers, Trash2, SlidersHorizontal, AlertTriangle,
   CalendarDays, Info, Users, ListChecks, Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { ACTIVITIES } from "@/constants/testIds";
 import PesertaPicker from "@/components/PesertaPicker";
+import Modal from "@/components/Modal";
 import {
   KEGIATAN_TYPES, timeOptions, AUDIENCE_OPTIONS, GENDER_FILTER_OPTIONS,
   MARITAL_FILTER_OPTIONS, AGE_GROUP_OPTIONS, SESSION_LABEL_PRESETS, SESSION_DEFAULT_TIME,
@@ -234,34 +234,44 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
     } finally { setSaving(false); }
   };
 
-  return createPortal((
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)] backdrop-blur-[2px]" onClick={onClose} />
-      <div
-        data-testid={editing ? "modal-edit-kegiatan" : "modal-add-kegiatan"}
-        className="relative bg-[#F6F4EE] w-full sm:max-w-3xl rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[94vh] sm:max-h-[90vh] flex flex-col overflow-hidden"
-      >
-        <div className="sm:hidden pt-2.5 pb-1 flex justify-center bg-white">
-          <div className="h-1.5 w-11 rounded-full bg-[#E7E3D8]" />
-        </div>
-
-        {/* Header */}
-        <div className="bg-white px-5 py-3.5 border-b border-[#E7E3D8] flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="font-heading font-bold text-[#14201A] text-lg leading-tight">
-              {editing ? "Edit Kegiatan" : "Tambah Kegiatan"}
-            </h2>
-            <p className="text-xs text-[#5F6B63] mt-0.5">
-              {editing ? "Ubah jadwal, pengajar, dan penyaringan peserta." : "Isi jadwal pengajian lalu atur siapa saja pesertanya."}
-            </p>
-          </div>
-          <button onClick={onClose} data-testid="kegiatan-form-close"
-            className="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]">
-            <X size={19} />
+  return (
+    <Modal
+      onClose={onClose}
+      title={editing ? "Edit Kegiatan" : "Tambah Kegiatan"}
+      subtitle={editing ? "Ubah jadwal, pengajar, dan penyaringan peserta." : "Isi jadwal pengajian lalu atur siapa saja pesertanya."}
+      testid={editing ? "modal-edit-kegiatan" : "modal-add-kegiatan"}
+      closeTestId="kegiatan-form-close"
+      maxWidth={960}
+      bodyClassName="bg-[#F6F4EE] p-0"
+      footer={(
+        <div className="flex gap-2">
+          <button type="button" onClick={() => {
+            if (step === 0) onClose();
+            else {
+              setReviewConfirmed(false);
+              setStep((current) => Math.max(current - 1, 0));
+            }
+          }}
+            data-testid={step === 0 ? "kegiatan-form-cancel" : ACTIVITIES.wizardPrevious}
+            className="h-12 px-4 rounded-xl bg-[#F0EEE6] text-[#5F6B63] font-semibold hover:bg-[#E7E3D8]">
+            {step === 0 ? "Batal" : "Kembali"}
           </button>
+          {step < 3 ? (
+            <button type="button" onClick={nextStep} data-testid={ACTIVITIES.wizardNext}
+              className="flex-1 h-12 rounded-xl bg-[#0B6B52] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31]">
+              Lanjut
+            </button>
+          ) : (
+          <button form="kegiatan-form" type="submit" data-testid="button-submit-kegiatan" disabled={saving || !reviewConfirmed}
+            className="flex-1 h-12 rounded-xl bg-[#0B6B52] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60">
+            {saving ? <Loader2 className="animate-spin" size={18} /> : editing ? <Save size={18} /> : <Plus size={18} />}
+            {editing ? "Simpan Perubahan" : "Simpan Kegiatan"}
+          </button>
+          )}
         </div>
-
-        <div className="grid grid-cols-4 gap-1 border-b border-[#E7E3D8] bg-white px-4 pb-3 sm:px-5">
+      )}
+    >
+        <div className="grid grid-cols-4 gap-1 border-b border-[#E7E3D8] bg-white px-4 pb-3 pt-3 sm:px-5">
           {["Kegiatan", "Jadwal", "Peserta", "Tinjau"].map((label, index) => (
             <button key={label} type="button" onClick={() => index <= step && setStep(index)}
               aria-current={step === index ? "step" : undefined}
@@ -643,34 +653,6 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
             </Section>
           )}
         </form>
-
-        {/* Navigasi langkah dan aksi utama selalu terlihat */}
-        <div className="bg-white border-t border-[#E7E3D8] px-4 sm:px-5 py-3 flex gap-2">
-          <button type="button" onClick={() => {
-            if (step === 0) onClose();
-            else {
-              setReviewConfirmed(false);
-              setStep((current) => Math.max(current - 1, 0));
-            }
-          }}
-            data-testid={step === 0 ? "kegiatan-form-cancel" : ACTIVITIES.wizardPrevious}
-            className="h-12 px-4 rounded-xl bg-[#F0EEE6] text-[#5F6B63] font-semibold hover:bg-[#E7E3D8]">
-            {step === 0 ? "Batal" : "Kembali"}
-          </button>
-          {step < 3 ? (
-            <button type="button" onClick={nextStep} data-testid={ACTIVITIES.wizardNext}
-              className="flex-1 h-12 rounded-xl bg-[#14633F] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31]">
-              Lanjut
-            </button>
-          ) : (
-          <button form="kegiatan-form" type="submit" data-testid="button-submit-kegiatan" disabled={saving || !reviewConfirmed}
-            className="flex-1 h-12 rounded-xl bg-[#14633F] text-white font-bold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60">
-            {saving ? <Loader2 className="animate-spin" size={18} /> : editing ? <Save size={18} /> : <Plus size={18} />}
-            {editing ? "Simpan Perubahan" : "Simpan Kegiatan"}
-          </button>
-          )}
-        </div>
-      </div>
-    </div>
-  ), document.body);
+    </Modal>
+  );
 }
