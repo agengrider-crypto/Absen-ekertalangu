@@ -1686,6 +1686,9 @@ class KegiatanInput(BaseModel):
     attendance_participant_ids: Optional[List[str]] = None
     # FASE 9 — beberapa waktu/sesi dalam 1 hari (pagi/sore/malam)
     sessions: List[SessionInput] = []
+    # Absen sebelumnya — kegiatan lampau yang sengaja dibiarkan terbuka
+    # (dikecualikan dari auto-close) sampai pengurus menutupnya manual.
+    susulan: bool = False
 
 
 class KegiatanUpdate(BaseModel):
@@ -1762,6 +1765,7 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
         "status": k.get("status", "open"),
         "closed_at": k.get("closed_at"),
         "auto_closed": bool(k.get("auto_closed", False)),
+        "susulan": bool(k.get("susulan", False)),
         "share_token": k.get("share_token"),
         "share_expires_at": k.get("share_expires_at"),
         # Fase 7 — kode akses absensi + masa berlaku barcode kegiatan (1 bulan)
@@ -2081,6 +2085,10 @@ async def auto_close_kegiatan():
     """Tutup otomatis kegiatan (per-kegiatan) saat jam selesai WITA sudah lewat."""
     now = now_wita()
     async for k in db.kegiatans.find({"status": "open"}):
+        # Kegiatan "absen sebelumnya" (susulan) sengaja dibiarkan terbuka
+        # sampai pengurus menutupnya manual.
+        if k.get("susulan"):
+            continue
         end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
         if end and now >= end:
             result = await db.kegiatans.update_one(
@@ -2270,6 +2278,7 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
                 "status": "open",
                 "closed_at": None,
                 "auto_closed": False,
+                "susulan": bool(body.susulan),
                 "share_token": None,
                 "share_expires_at": None,
                 # Fase 7: setiap kegiatan baru langsung punya kode akses absensi 6 digit
@@ -2286,6 +2295,8 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
     extra = []
     if multi:
         extra.append(f"{len(sessions)} waktu/sesi: " + ", ".join(s["label"] for s in sessions))
+    if body.susulan:
+        extra.append("mode isi susulan")
     if monthly_recurring:
         extra.append(f"rutin bulanan selama {occurrences} bulan")
     elif legacy_weekly:
@@ -3592,6 +3603,7 @@ def public_kegiatan_info(k: dict) -> dict:
         "end_time": k.get("end_time"), "location": k.get("location"),
         "teacher": k.get("teacher"), "material": k.get("material"),
         "status": k.get("status", "open"),
+        "susulan": bool(k.get("susulan", False)),
         "audience": k.get("audience", "reguler"),
         "gender_filter": k.get("gender_filter", "semua"),
         "gender_label": gender_label(k.get("gender_filter", "semua")),

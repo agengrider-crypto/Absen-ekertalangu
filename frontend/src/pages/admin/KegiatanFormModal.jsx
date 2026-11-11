@@ -103,12 +103,13 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
     gender_filter: initial?.gender_filter || "semua",
     marital_filter: initial?.marital_filter || "semua",
     age_filter: initial?.age_filter || [],
+    susulan: Boolean(initial?.susulan),
   });
   // FASE 18 — mode ceklis peserta tertentu
   const [pickMode, setPickMode] = useState((initial?.participant_ids || []).length > 0);
   const [participants, setParticipants] = useState(initial?.participant_ids || []);
   const [requiredParticipants, setRequiredParticipants] = useState(initial?.session_participant_ids || []);
-  const [multi, setMulti] = useState(false);
+  const [multi, setMulti] = useState(Boolean(initial?.multi));
   const [sessions, setSessions] = useState([
     { label: "Pagi", start_time: "08:00", end_time: "10:00", teacher: "", material: "", location: "", required: true },
     { label: "Sore", start_time: "16:00", end_time: "17:30", teacher: "", material: "", location: "", required: true },
@@ -203,7 +204,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
     try {
       const participant_ids = pickMode ? participants : [];
       if (editing) {
-        const { recurring_months, ...rest } = f;
+        const { recurring_months, susulan, ...rest } = f;
         await api.patch(`/admin/kegiatan/${initial.id}`, {
           ...rest,
           participant_ids,

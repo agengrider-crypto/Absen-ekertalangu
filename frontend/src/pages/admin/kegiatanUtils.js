@@ -240,6 +240,25 @@ export function todayYmd() {
   return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
 }
 
+/** Tanggal & jam "sekarang" menurut WITA (Asia/Makassar), bukan zona perangkat. */
+export function nowWita() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Makassar",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(new Date());
+  const get = (t) => parts.find((p) => p.type === t)?.value || "";
+  const hour = get("hour") === "24" ? "00" : get("hour");
+  return { date: `${get("year")}-${get("month")}-${get("day")}`, time: `${hour}:${get("minute")}` };
+}
+
+/** Jam selesai aman: sekarang + 3 jam, dibatasi 23:59 pada hari yang sama. */
+export function safeEndTime(startTime) {
+  const [h, m] = String(startTime || "00:00").split(":").map(Number);
+  const total = Math.min(h * 60 + m + 180, 23 * 60 + 59);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
 /** Hitung fase kegiatan bila server tidak mengirimkannya. */
 export function phaseOf(k) {
   const raw = k?.phase;

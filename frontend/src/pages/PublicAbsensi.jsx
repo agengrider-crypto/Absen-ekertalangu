@@ -403,6 +403,11 @@ export default function PublicAbsensi() {
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E3EEFB] text-[#1D4F91]">
             {AUDIENCE_LABEL[k.audience] || "Reguler"}
           </span>
+          {k.susulan && (
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FBF1D6] text-[#6B4500]" data-testid="absensi-susulan-badge">
+              Mode isi susulan
+            </span>
+          )}
           {(k.filter_labels && k.filter_labels.length
             ? k.filter_labels
             : (k.gender_filter && k.gender_filter !== "semua" ? [GENDER_FILTER_LABEL[k.gender_filter]] : [])
@@ -445,7 +450,7 @@ export default function PublicAbsensi() {
           onClick={() => setCloseConfirm("button")}
           className="mt-3 w-full h-12 rounded-xl bg-[#A32A2A] text-white font-semibold inline-flex items-center justify-center gap-2 hover:brightness-95"
         >
-          <CheckCircle2 size={18} /> Tutup Absensi
+          <CheckCircle2 size={18} /> {k.susulan ? "Simpan dan selesai" : "Tutup Absensi"}
         </button>
       )}
 

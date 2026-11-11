@@ -4,6 +4,7 @@ import {
   CheckCircle2, Trash2, Search, Copy, Download,
   Clock, MapPin, Lock, ChevronDown, AlertTriangle,
   KeyRound, RefreshCw, Send, Layers, Play, SlidersHorizontal,
+  Zap, History, CalendarPlus, CalendarClock, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -18,6 +19,7 @@ import {
 } from "./kegiatanUtils";
 import KegiatanDetail from "./KegiatanDetail";
 import KegiatanFormModal from "./KegiatanFormModal";
+import KegiatanQuickAddModal from "./KegiatanQuickAddModal";
 import KegiatanBantuanModal from "./KegiatanBantuanModal";
 import { ReminderModal } from "./KegiatanExtras";
 import { RekapGabunganModal, SalinJadwalModal } from "./SesiExtras";
@@ -56,6 +58,9 @@ export default function KegiatanView({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingSelected, setDeletingSelected] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [quickMode, setQuickMode] = useState(null); // null | "cepat" | "sebelumnya"
+  const [formInitial, setFormInitial] = useState(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [detailId, setDetailId] = useState(null);
   const [editItem, setEditItem] = useState(null);
@@ -77,7 +82,7 @@ export default function KegiatanView({
   useEffect(() => {
     if (addRequest > handledAddRequest.current) {
       handledAddRequest.current = addRequest;
-      setShowAdd(true);
+      setAddMenuOpen(true);
       onAddRequestHandled?.();
     }
   }, [addRequest, onAddRequestHandled]);
@@ -94,10 +99,11 @@ export default function KegiatanView({
   useEffect(() => {
     if (!onSubPageChange) return;
     if (detailId) onSubPageChange("Detail Kegiatan");
+    else if (quickMode) onSubPageChange(quickMode === "sebelumnya" ? "Absen Sebelumnya" : "Absen Cepat");
     else if (showAdd) onSubPageChange("Tambah Kegiatan");
     else if (editItem) onSubPageChange("Ubah Kegiatan");
     else onSubPageChange(null);
-  }, [detailId, showAdd, editItem, onSubPageChange]);
+  }, [detailId, showAdd, quickMode, editItem, onSubPageChange]);
 
   const [y, m] = month.split("-").map((x) => parseInt(x, 10));
   const shiftMonth = (delta) => {
@@ -143,6 +149,34 @@ export default function KegiatanView({
   const groups = useMemo(() => groupKegiatan(paged), [paged]);
   const selectedTargets = filtered.filter((k) => selectedIds.has(k.id));
   const selectedVisibleCount = selectedTargets.length;
+
+  // Sub-menu "Tambah Kegiatan": 2 jalur cepat + 2 jalur form lengkap.
+  const addMenuItems = [
+    {
+      key: "cepat", label: "Absen cepat", icon: Zap,
+      desc: "Mulai absen sekarang, jadwal otomatis.",
+      testId: "add-menu-absen-cepat",
+      onClick: () => setQuickMode("cepat"),
+    },
+    {
+      key: "sebelumnya", label: "Absen sebelumnya", icon: History,
+      desc: "Catat kegiatan yang sudah lewat.",
+      testId: "add-menu-absen-sebelumnya",
+      onClick: () => setQuickMode("sebelumnya"),
+    },
+    {
+      key: "terjadwal", label: "Kegiatan terjadwal", icon: CalendarPlus,
+      desc: "Form lengkap: info, jadwal, peserta, tinjau.",
+      testId: "add-menu-terjadwal",
+      onClick: () => { setFormInitial(null); setShowAdd(true); },
+    },
+    {
+      key: "multi", label: "Kegiatan multi-sesi", icon: CalendarClock,
+      desc: "Beberapa sesi dalam satu hari (mis. Pagi & Malam).",
+      testId: "add-menu-multi-sesi",
+      onClick: () => { setFormInitial({ multi: true }); setShowAdd(true); },
+    },
+  ];
 
   const toggleStatus = async (k) => {
     try {
@@ -250,6 +284,47 @@ export default function KegiatanView({
     <div>
       <div className="mb-4 flex items-center gap-2 text-[#0E4E31] font-bold text-lg">
         <CalendarDays size={20} /> Kegiatan
+        <div className="relative ml-auto">
+          <button
+            type="button"
+            data-testid="kegiatan-add-button"
+            onClick={() => setAddMenuOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={addMenuOpen}
+            className="hidden h-11 items-center gap-1.5 rounded-xl bg-[#0B6B52] px-4 text-sm font-semibold text-white hover:brightness-110 lg:inline-flex"
+          >
+            <Plus size={17} /> Tambah Kegiatan <ChevronDown size={15} className={`transition-transform ${addMenuOpen ? "rotate-180" : ""}`} />
+          </button>
+          {addMenuOpen && (
+            <div
+              role="menu"
+              data-testid="kegiatan-add-menu"
+              className="absolute right-0 top-[calc(100%+6px)] z-30 hidden w-72 overflow-hidden rounded-2xl border border-[#E7E3D8] bg-white p-1.5 shadow-xl lg:block"
+            >
+              {addMenuItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    role="menuitem"
+                    data-testid={`${item.testId}-desktop`}
+                    onClick={() => { setAddMenuOpen(false); item.onClick(); }}
+                    className="flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-[#F6F4EE]"
+                  >
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E3F3EA] text-[#0E4E31]">
+                      <Icon size={16} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-[#14201A]">{item.label}</span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-[#5F6B63]">{item.desc}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="mb-4 flex items-center gap-2">
@@ -414,10 +489,23 @@ export default function KegiatanView({
         </>
       )}
 
-      <ListFab onAdd={() => setShowAdd(true)} addLabel="Tambah Kegiatan" />
+      <ListFab
+        onAdd={() => setAddMenuOpen((v) => !v)}
+        addLabel="Tambah Kegiatan"
+        items={addMenuItems}
+        open={addMenuOpen}
+        onOpenChange={setAddMenuOpen}
+      />
 
-      {showAdd && <KegiatanFormModal suggestions={Array.isArray(items) ? items : []}
-        onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load(); }} />}
+      {quickMode && (
+        <KegiatanQuickAddModal
+          mode={quickMode}
+          onClose={() => setQuickMode(null)}
+          onFullForm={(initial) => { setQuickMode(null); setFormInitial(initial); setShowAdd(true); }}
+        />
+      )}
+      {showAdd && <KegiatanFormModal initial={formInitial || undefined} suggestions={Array.isArray(items) ? items : []}
+        onClose={() => { setShowAdd(false); setFormInitial(null); }} onDone={() => { setShowAdd(false); setFormInitial(null); load(); }} />}
       {showDeleteConfirm && (
         <ActionModal
           title="Hapus kegiatan?"
