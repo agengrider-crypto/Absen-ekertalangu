@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { ACTIVITIES } from "@/constants/testIds";
 import Modal from "@/components/Modal";
+import ReportHeader from "@/components/ReportHeader";
+import { PercentRing, StackedBar } from "@/components/ReportVisuals";
 import { tanggalPanjang, tanggalSingkat, hhmm, typeLabel, typeColor } from "./kegiatanUtils";
 
 function Shell({ title, subtitle, children, onClose, testid, wide }) {
@@ -126,10 +128,32 @@ export function RekapGabunganModal({ kegiatanId, onClose }) {
         <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={28} /></div>
       ) : (
         <div className="space-y-4">
+          <ReportHeader
+            title="Laporan Rekap Gabungan"
+            subtitle={data ? `${tanggalPanjang(data.date)} · ${data.sessions.length} sesi` : ""}
+            showUserIcon
+            testid="rekap-gabungan-modal-header"
+          />
           <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="rekap-gabungan-total">
-            <div className="text-xs font-bold uppercase tracking-wide text-[#5F6B63]">Total keseluruhan (final)</div>
-            <div className="mt-1 text-2xl font-bold tabular-nums text-[#14201A]">
-              Hadir {data.total?.hadir ?? 0} / {data.total?.total ?? 0} orang = {data.total?.ratio ?? 0}%
+            <div className="flex items-center gap-4">
+              <PercentRing value={data.total?.ratio ?? 0} />
+              <div className="min-w-0">
+                <div className="font-heading text-base font-bold text-[#14201A]">
+                  Hadir {data.total?.hadir ?? 0} dari {data.total?.total ?? 0} orang
+                </div>
+                <div className="mt-0.5 text-xs text-[#5F6B63]">Tingkat kehadiran · gabungan semua sesi</div>
+              </div>
+            </div>
+            <div className="mt-3">
+              <StackedBar
+                counts={{
+                  hadir: data.total?.hadir ?? 0,
+                  izin: data.sessions.reduce((n, s) => n + (s.counts.izin || 0), 0),
+                  sakit: data.sessions.reduce((n, s) => n + (s.counts.sakit || 0), 0),
+                  alpha: data.sessions.reduce((n, s) => n + (s.counts.alpha || 0), 0),
+                }}
+                testid="rekap-gabungan-stacked-bar"
+              />
             </div>
           </section>
 

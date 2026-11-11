@@ -7,6 +7,7 @@ import {
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { PARTICIPANT_REPORT } from "@/constants/testIds";
+import ReportHeader from "@/components/ReportHeader";
 import ShareManyLinksModal from "./ShareManyLinksModal";
 
 const MONTHS = [
@@ -162,6 +163,13 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
   const six = data.six_months;
   return (
     <div className="space-y-4" data-testid={PARTICIPANT_REPORT.detail}>
+      <ReportHeader
+        title="Laporan per Peserta"
+        subtitle={`${monthLabel(month)}${week !== "bulanan" ? ` · Pekan ${week}` : ""}`}
+        showUserIcon
+        compact
+        testid="laporan-peserta-admin-header"
+      />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <button type="button" data-testid={PARTICIPANT_REPORT.back} onClick={onBack}

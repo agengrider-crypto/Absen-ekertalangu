@@ -7,6 +7,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PercentBar } from "@/pages/PublicRekapGabungan";
+import ReportHeader from "@/components/ReportHeader";
 import { SkeletonList } from "@/components/GlobalLoading";
 import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "./rekapUtils";
 
@@ -86,6 +87,13 @@ export default function RekapHarianView() {
 
   return (
     <div className="space-y-5" data-testid="rekap-harian-view">
+      <ReportHeader
+        title="Laporan Harian"
+        subtitle={data?.label || date}
+        showUserIcon
+        compact
+        testid="rekap-harian-header"
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#0E4E31]">Rekap Absen Harian</h1>

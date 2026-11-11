@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CalendarDays, Clock, MapPin, User, Loader2, Layers } from "lucide-react";
 import { api } from "@/lib/api";
-import { Logo, K1Mark } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
+import ReportHeader from "@/components/ReportHeader";
 import { TYPE_LABEL, tanggalPanjang, hhmm } from "./admin/kegiatanUtils";
 
 const ST = {
@@ -59,17 +60,14 @@ export default function PublicRekapGabungan() {
 
   return (
     <div className="min-h-screen bg-[#F6F4EE] pb-14" data-testid="rekap-gabungan-public">
-      <header className="bg-[#14633F] text-white">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><K1Mark size={32} variant="light" /></div>
-          <div className="leading-tight">
-            <div className="font-bold font-heading">E-KERTALANGU</div>
-            <div className="text-white/70 text-xs">Rekap Kehadiran per Sesi</div>
-          </div>
-        </div>
-      </header>
+      <ReportHeader
+        title="Laporan Rekap Gabungan"
+        subtitle={`${tanggalPanjang(data.date)} · ${data.sessions.length} sesi`}
+        showUserIcon
+        testid="rekap-gabungan-header"
+      />
 
-      <main className="max-w-2xl mx-auto px-4 -mt-3">
+      <main className="max-w-2xl mx-auto px-4">
         <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E3F3EA] text-[#0E4E31]">{TYPE_LABEL[data.type] || data.type}</span>

@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CalendarDays, ClipboardList, Loader2 } from "lucide-react";
-import { Logo, K1Mark, K1Wordmark } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
 import { api } from "@/lib/api";
 import { PARTICIPANT_REPORT } from "@/constants/testIds";
+import ReportHeader from "@/components/ReportHeader";
+import {
+  PercentRing, StackedBar, StatCard, ReportCard, REPORT_COLORS,
+} from "@/components/ReportVisuals";
 
 const MONTHS = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -25,15 +29,6 @@ function dateLabel(value) {
 function monthLabel(value) {
   const [year, month] = value.split("-").map(Number);
   return `${MONTHS[month - 1]} ${year}`;
-}
-
-function Metric({ label, value, color = "text-[#14201A]" }) {
-  return (
-    <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4">
-      <div className={`text-2xl font-bold ${color}`}>{value}</div>
-      <div className="mt-1 text-base text-[#5F6B63]">{label}</div>
-    </div>
-  );
 }
 
 export default function PublicLaporanPeserta() {
@@ -59,7 +54,7 @@ export default function PublicLaporanPeserta() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#F6F4EE] px-4 text-center">
         <Logo size={48} />
-        <h1 className="mt-5 font-heading text-xl font-bold text-[#14201A]">Laporan Peserta</h1>
+        <h1 className="mt-5 font-heading text-xl font-bold text-[#14201A]">Laporan per Peserta</h1>
         <p className="mt-2 text-base text-[#A32A2A]" data-testid={PARTICIPANT_REPORT.publicError}>{error}</p>
       </div>
     );
@@ -73,67 +68,98 @@ export default function PublicLaporanPeserta() {
     );
   }
 
-  const summary = data.summary;
+  const summary = data.summary || {};
+  const total = Number(summary.total_pertemuan) || 0;
+  const hadir = Number(summary.hadir) || 0;
+  const ratio = total ? Math.round((hadir / total) * 100) : 0;
+  const period = data.week === "bulanan"
+    ? monthLabel(data.month)
+    : `${dateLabel(data.date_from)}–${dateLabel(data.date_to)}`;
+  const months = data.six_months?.months || [];
+  const six = data.six_months?.summary || {};
+  const maxRatio = 100;
+
   return (
     <div className="min-h-screen bg-[#F6F4EE] pb-12" data-testid={PARTICIPANT_REPORT.publicPage}>
-      <header className="bg-[#14633F] text-white">
-        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
-          <K1Mark size={40} variant="dark" />
-          <div className="leading-tight">
-            <K1Wordmark variant="dark" size="text-base" />
-            <div className="text-sm text-white/75">Laporan Peserta</div>
+      <ReportHeader
+        title="Laporan per Peserta"
+        subtitle={period}
+        showUserIcon
+        testid="laporan-peserta-header"
+      />
+
+      <main className="mx-auto max-w-2xl space-y-3 px-4">
+        <ReportCard index={0} className="rounded-2xl border border-[#E7E3D8] bg-white p-5 shadow-sm">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-[#5F6B63]">Nama peserta</div>
+          <div className="mt-1 font-heading text-xl font-bold text-[#14201A]">{data.participant.name}</div>
+          <div className="mt-2 flex items-center gap-2 text-sm text-[#5F6B63]">
+            <CalendarDays size={15} /> {period}
           </div>
-        </div>
-      </header>
+        </ReportCard>
 
-      <main className="mx-auto -mt-2 max-w-2xl space-y-4 px-4">
-        <section className="rounded-2xl border border-[#E7E3D8] bg-white p-5 shadow-sm">
-          <h1 className="font-heading text-xl font-bold text-[#14201A]">Laporan Peserta</h1>
-          <p className="mt-2 text-lg font-semibold text-[#14201A]">{data.participant.name}</p>
-          <p className="mt-2 flex items-center gap-2 text-base text-[#5F6B63]">
-            <CalendarDays size={17} />
-            {data.week === "bulanan"
-              ? monthLabel(data.month)
-              : `${dateLabel(data.date_from)}–${dateLabel(data.date_to)}`}
-          </p>
-        </section>
-
-        <section className="grid gap-3 sm:grid-cols-2" data-testid={PARTICIPANT_REPORT.periodSummary}>
-          <Metric label="Persentase kehadiran" value={`${summary.ratio}%`} color="text-[#0E4E31]" />
-          <Metric label="Total pertemuan" value={summary.total_pertemuan} />
-        </section>
-
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid={PARTICIPANT_REPORT.periodStatuses}>
-          {STATUSES.map(([key, label, color]) => (
-            <Metric key={key} label={label} value={summary[key] || 0} color={color} />
-          ))}
-        </section>
-
-        <section className="space-y-4 rounded-2xl border border-[#E7E3D8] bg-white p-4 sm:p-5" data-testid={PARTICIPANT_REPORT.sixMonthChart}>
-          <div>
-            <h2 className="font-bold text-[#14201A]">Kehadiran 6 bulan terakhir</h2>
-            <p className="mt-1 text-base text-[#5F6B63]">
-              {data.six_months.summary.ratio}% · {data.six_months.summary.hadir} hadir dari {data.six_months.summary.total_pertemuan} pertemuan
-            </p>
-          </div>
-          {data.six_months.months.map((item) => (
-            <div key={item.month} className="grid grid-cols-[5.5rem_1fr_3rem] items-center gap-3">
-              <span className="text-base font-semibold text-[#5F6B63]">{item.label}</span>
-              <div className="h-3 overflow-hidden rounded-full bg-[#E3F3EA]">
-                <div className="h-full origin-left rounded-full bg-[#14633F] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
-                  style={{ width: `${Math.min(Math.max(item.ratio || 0, 0), 100)}%` }} />
+        <ReportCard index={1} className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
+          <div className="flex items-center gap-4">
+            <PercentRing value={ratio} />
+            <div className="min-w-0">
+              <div className="font-heading text-base font-bold text-[#14201A]">
+                {hadir} dari {total} pertemuan hadir
               </div>
-              <span className="text-right text-base font-bold text-[#14201A]">{item.ratio}%</span>
+              <div className="mt-0.5 text-xs text-[#5F6B63]">Persentase kehadiran bulan ini</div>
             </div>
-          ))}
-        </section>
+          </div>
+          <div className="mt-4">
+            <StackedBar counts={summary} showBelum testid="laporan-peserta-stacked-bar" />
+            <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-[#5F6B63]">
+              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: REPORT_COLORS.hadir }} /> Hadir</span>
+              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: REPORT_COLORS.izin }} /> Izin</span>
+              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: REPORT_COLORS.sakit }} /> Sakit</span>
+              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: REPORT_COLORS.alpha }} /> Alpha</span>
+              <span className="inline-flex items-center gap-1"><i className="h-2 w-2 rounded-full" style={{ background: REPORT_COLORS.belum }} /> Belum diabsen</span>
+            </div>
+          </div>
+        </ReportCard>
 
-        <section className="overflow-hidden rounded-2xl border border-[#E7E3D8] bg-white" data-testid={PARTICIPANT_REPORT.activityList}>
+        <ReportCard index={2} className="grid grid-cols-5 gap-1.5" testid={PARTICIPANT_REPORT.periodStatuses}>
+          <StatCard label="Hadir" value={summary.hadir || 0} color="#0E4E31" bg="#E3F3EA" />
+          <StatCard label="Izin" value={summary.izin || 0} color="#6B4500" bg="#FBF1D6" />
+          <StatCard label="Sakit" value={summary.sakit || 0} color="#1D4F91" bg="#E3EEFB" />
+          <StatCard label="Alpha" value={summary.alpha || 0} color="#A32A2A" bg="#FBE5E3" />
+          <StatCard label="Belum" value={summary.belum_diabsen || 0} color="#5F6B63" bg="#F0EEE6" />
+        </ReportCard>
+
+        <ReportCard index={3} className="rounded-2xl border border-[#E7E3D8] bg-white p-4 sm:p-5" testid={PARTICIPANT_REPORT.sixMonthChart}>
+          <h2 className="font-bold text-[#14201A]">Kehadiran 6 bulan terakhir</h2>
+          <p className="mt-1 text-xs text-[#5F6B63]">
+            {six.hadir || 0} hadir dari {six.total_pertemuan || 0} pertemuan · {Math.round(six.ratio || 0)}%
+          </p>
+          <div className="mt-4 flex items-end justify-between gap-2" style={{ height: 132 }}>
+            {months.map((item, i) => {
+              const noMeeting = !item.total_pertemuan;
+              const value = noMeeting ? 0 : Math.min(Math.max(item.ratio || 0, 0), 100);
+              const h = noMeeting ? 4 : Math.max(6, (value / maxRatio) * 96);
+              return (
+                <div key={item.month} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
+                  <span className="text-[10px] font-bold tabular-nums text-[#5F6B63]">
+                    {noMeeting ? "-" : `${Math.round(item.ratio || 0)}%`}
+                  </span>
+                  <div
+                    className={`w-full max-w-8 rounded-t-md report-bar-up ${noMeeting ? "bg-[#E7E3D8]" : "bg-[#14633F]"}`}
+                    style={{ height: h, animationDelay: `${i * 70}ms` }}
+                    title={`${item.label}: ${noMeeting ? "tidak ada pertemuan" : `${Math.round(item.ratio || 0)}%`}`}
+                  />
+                  <span className="w-full truncate text-center text-[10px] font-semibold text-[#5F6B63]">{item.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </ReportCard>
+
+        <ReportCard index={4} className="overflow-hidden rounded-2xl border border-[#E7E3D8] bg-white" testid={PARTICIPANT_REPORT.activityList}>
           <div className="flex items-center justify-between border-b border-[#E7E3D8] px-4 py-3">
             <h2 className="inline-flex items-center gap-2 font-bold text-[#14201A]">
               <ClipboardList size={18} /> Kegiatan yang diikuti
             </h2>
-            <span className="text-base text-[#5F6B63]">{data.activities.length} pertemuan</span>
+            <span className="text-xs text-[#5F6B63]">{data.activities.length} pertemuan</span>
           </div>
           {data.activities.length ? (
             <ul className="divide-y divide-[#E7E3D8]">
@@ -145,11 +171,11 @@ export default function PublicLaporanPeserta() {
                       <p className="truncate font-semibold text-[#14201A]">
                         {activity.name}{activity.session_label ? ` · ${activity.session_label}` : ""}
                       </p>
-                      <p className="mt-1 text-base text-[#5F6B63]">
+                      <p className="mt-1 text-xs text-[#5F6B63]">
                         {dateLabel(activity.date)}{activity.start_time ? ` · ${activity.start_time}${activity.end_time ? `–${activity.end_time}` : ""}` : ""}
                       </p>
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-base font-semibold ${status?.[3] || "bg-[#F0EEE6]"} ${status?.[2] || "text-[#5F6B63]"}`}>
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status?.[3] || "bg-[#F0EEE6]"} ${status?.[2] || "text-[#5F6B63]"}`}>
                       {status?.[1] || activity.status}
                     </span>
                   </li>
@@ -157,11 +183,11 @@ export default function PublicLaporanPeserta() {
               })}
             </ul>
           ) : (
-            <p className="p-8 text-center text-base text-[#5F6B63]">Belum ada kegiatan pada periode ini.</p>
+            <p className="p-8 text-center text-sm text-[#5F6B63]">Belum ada kegiatan pada periode ini.</p>
           )}
-        </section>
+        </ReportCard>
 
-        <p className="text-center text-sm text-[#5F6B63]">
+        <p className="text-center text-xs text-[#5F6B63]">
           Tautan berlaku sampai {new Date(data.expires_at).toLocaleDateString("id-ID")}.
         </p>
       </main>

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { tanggalSingkat, typeLabel } from "./kegiatanUtils";
 import TamuLaporanList from "@/components/TamuLaporanList";
+import ReportHeader from "@/components/ReportHeader";
 import Modal from "@/components/Modal";
 
 const inp = "h-11 px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
@@ -78,6 +79,13 @@ export default function LaporanView() {
 
   return (
     <div>
+      <ReportHeader
+        title="Laporan Harian"
+        subtitle={data?.label || data?.date || ""}
+        showUserIcon
+        compact
+        testid="laporan-view-header"
+      />
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2 text-[#0E4E31] font-bold text-lg">
           <FileBarChart2 size={20} /> Laporan Kehadiran

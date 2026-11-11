@@ -7,7 +7,7 @@ import {
 import { api } from "@/lib/api";
 import { PercentBar } from "@/pages/PublicRekapGabungan";
 import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "@/pages/admin/rekapUtils";
-import { K1Mark } from "@/components/Logo";
+import ReportHeader from "@/components/ReportHeader";
 
 const STATUS_CHIP = {
   hadir: { t: "Hadir", cls: "bg-[#E3F3EA] text-[#0E4E31]" },
@@ -54,17 +54,12 @@ export default function PublicRekapHarian() {
 
   return (
     <div className="min-h-screen bg-[#F6F4EE] pb-16">
-      <header className="bg-white border-b border-[#E7E3D8]">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-xl bg-[#E3F3EA] flex items-center justify-center overflow-hidden p-1">
-            <K1Mark size={32} variant="light" />
-          </div>
-          <div className="leading-tight">
-            <div className="font-heading font-bold text-[#0E4E31]">E-KERTALANGU</div>
-            <div className="text-xs text-[#5F6B63]">Rekap Absen Harian</div>
-          </div>
-        </div>
-      </header>
+      <ReportHeader
+        title="Laporan Harian"
+        subtitle={`${data.label || data.date} · ${data.total_sesi} sesi`}
+        showUserIcon
+        testid="pub-harian-report-header"
+      />
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-5">
         <div className="rounded-2xl border-2 border-[#D9F2F4] bg-[#E3F3EA] p-4" data-testid="pub-harian-header">

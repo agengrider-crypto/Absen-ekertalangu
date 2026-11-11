@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { CalendarRange, Users, TrendingDown, TrendingUp, Search, Layers, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
-import { Logo, K1Mark } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
+import ReportHeader from "@/components/ReportHeader";
 import { PercentBar } from "./PublicRekapGabungan";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MONTHLY_RECAP } from "@/constants/testIds";
@@ -59,17 +60,14 @@ export default function PublicRekapBulanan() {
 
   return (
     <div className="min-h-screen bg-[#F6F4EE] pb-14" data-testid="rekap-bulanan-public">
-      <header className="bg-[#14633F] text-white">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5"><K1Mark size={32} variant="light" /></div>
-          <div className="leading-tight">
-            <div className="font-bold font-heading">E-KERTALANGU</div>
-            <div className="text-white/70 text-xs">Rekap Absen Bulanan</div>
-          </div>
-        </div>
-      </header>
+      <ReportHeader
+        title="Laporan Bulanan"
+        subtitle={data.label}
+        showUserIcon
+        testid="rekap-bulanan-header"
+      />
 
-      <main className="max-w-3xl mx-auto px-4 -mt-3">
+      <main className="max-w-3xl mx-auto px-4">
         <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 shadow-sm">
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E3F3EA] text-[#0E4E31] inline-flex items-center gap-1">
             <CalendarRange size={12} /> {data.label}

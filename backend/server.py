@@ -3150,6 +3150,7 @@ async def public_rekap(token: str):
             if g in gender:
                 gender[g] += 1
         rows.append({"name": p.get("name"), "status": status,
+                     "gender": _derive_gender(p),
                      "account_status": p.get("status", "active"),
                      "required_for_session": session_requires_participant(k, str(p["_id"])),
                      "arrival_time": a.get("arrival_time") if a else None})
@@ -3157,7 +3158,7 @@ async def public_rekap(token: str):
         rows.append({"name": f"{g.get('name')} (tamu)", "status": "hadir",
                      "account_status": "tamu", "arrival_time": g.get("arrival_time")})
     counts = compute_counts(peserta, absens, len(guests), set(other), k)
-    return {
+    payload = {
         "name": k.get("name"), "type": k.get("type"), "location": k.get("location"),
         "date": k.get("date"), "start_time": k.get("start_time"), "end_time": k.get("end_time"),
         "teacher": k.get("teacher"), "material": k.get("material"),
@@ -3165,6 +3166,13 @@ async def public_rekap(token: str):
         "gender": gender,
         "rows": rows,
     }
+    # Kegiatan multi-sesi: sertakan rekap gabungan agar halaman publik bisa
+    # menampilkan toggle Gabungan | Pagi | Malam tanpa endpoint tambahan.
+    if k.get("session_group_id"):
+        docs = await sesi_group_docs(k["_id"])
+        if len(docs) > 1:
+            payload["gabungan"] = await build_rekap_gabungan(docs)
+    return payload
 
 
 # ------------------------- QR Absen Mandiri + Kesan & Pesan -------------------------

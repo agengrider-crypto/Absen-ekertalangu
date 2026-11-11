@@ -6,6 +6,7 @@ import {
 import { api } from "@/lib/api";
 import { tanggalSingkat, tanggalPanjang, TYPE_LABEL } from "./admin/kegiatanUtils";
 import TamuLaporanList from "@/components/TamuLaporanList";
+import ReportHeader from "@/components/ReportHeader";
 import { K1Mark } from "@/components/Logo";
 
 /**
@@ -47,19 +48,14 @@ export default function PublicLaporan() {
 
   return (
     <div className="min-h-screen bg-[#F6F4EE] pb-12" data-testid="page-public-laporan">
-      <header className="bg-[#14633F] text-white">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
-            <K1Mark size={32} variant="light" />
-          </div>
-          <div className="leading-tight">
-            <div className="font-bold font-heading">E-KERTALANGU</div>
-            <div className="text-white/70 text-xs">{data.title || "Laporan Kehadiran"}</div>
-          </div>
-        </div>
-      </header>
+      <ReportHeader
+        title={data.mode === "bulanan" ? "Laporan Bulanan" : "Laporan Harian"}
+        subtitle={data.title || data.date_from || ""}
+        showUserIcon
+        testid="laporan-public-header"
+      />
 
-      <main className="max-w-3xl mx-auto px-4 -mt-3">
+      <main className="max-w-3xl mx-auto px-4">
         <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 shadow-sm">
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#E3F3EA] text-[#0E4E31]">
             {data.mode === "harian" ? "Laporan Harian" : data.mode === "bulanan" ? "Laporan Bulanan" : "Laporan Rentang"}

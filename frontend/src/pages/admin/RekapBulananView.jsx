@@ -6,6 +6,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { SkeletonList } from "@/components/GlobalLoading";
+import ReportHeader from "@/components/ReportHeader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MONTHLY_RECAP } from "@/constants/testIds";
 import { useAuth } from "@/context/AuthContext";
@@ -149,6 +150,13 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
 
   return (
     <div className="space-y-5" data-testid="rekap-bulanan-view">
+      <ReportHeader
+        title="Laporan Bulanan"
+        subtitle={`${BULAN[m - 1]} ${y}`}
+        showUserIcon
+        compact
+        testid="rekap-bulanan-header"
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-bold text-[#14201A]">Rekap Absen Bulanan</h1>

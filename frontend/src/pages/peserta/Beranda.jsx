@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Pin, AlertCircle, CalendarDays, Clock, MapPin, ShieldCheck, Search, QrCode, ScanLine, ChevronRight, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import Modal from "@/components/Modal";
+import ReportHeader from "@/components/ReportHeader";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
@@ -236,6 +237,14 @@ export default function Beranda({ user, onGoto }) {
 
       {/* Riwayat kehadiran per bulan */}
       <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5" data-testid="riwayat-kehadiran">
+        <ReportHeader
+          title="Laporan Kehadiran Saya"
+          subtitle={history?.current?.label || "6 bulan terakhir"}
+          showUserIcon
+          onUserClick={() => onGoto?.("profil")}
+          compact
+          testid="riwayat-kehadiran-header"
+        />
         <h2 className="font-heading font-bold text-[#14201A] mb-1">Riwayat Kehadiran</h2>
         <p className="text-xs text-[#5F6B63] mb-3">Ringkasan hadir/izin/alpha 6 bulan terakhir</p>
         {history === null ? (

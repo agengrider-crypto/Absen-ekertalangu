@@ -24,7 +24,6 @@ function statusOf(row) {
  */
 export default function PesertaRekapList({
   rows = [],
-  counts,
   defaultOpen = false,
   searchable = true,
   title = "Daftar Peserta",
@@ -49,7 +48,9 @@ export default function PesertaRekapList({
     return c;
   }, [rows]);
 
-  const shown = counts || { total: rows.length, ...tally };
+  // Chip & ringkasan HARUS memakai jumlah peserta pada daftar yang sedang
+  // dilihat (rows), bukan total seluruh peserta kegiatan.
+  const shown = { total: rows.length, ...tally };
 
   return (
     <div className="bg-white rounded-2xl border border-[#E7E3D8] overflow-hidden" data-testid={testid}>
