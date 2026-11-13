@@ -4,19 +4,11 @@ import { CalendarRange, Users, TrendingDown, TrendingUp, Search, Layers, Loader2
 import { api } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import ReportHeader from "@/components/ReportHeader";
+import StatusGroups from "@/components/StatusGroups";
 import { PercentBar } from "./PublicRekapGabungan";
 import { MONTHLY_RECAP } from "@/constants/testIds";
 
 const GEN = [["semua", "Semua"], ["L", "Laki-laki"], ["P", "Perempuan"]];
-
-const STATUS_PILL = {
-  hadir: { label: "Hadir", cls: "bg-[#E3F3EA] text-[#0E4E31]" },
-  izin: { label: "Izin", cls: "bg-[#FBF1D6] text-[#6B4500]" },
-  sakit: { label: "Sakit", cls: "bg-[#E3EEFB] text-[#1D4F91]" },
-  alpha: { label: "Alpha", cls: "bg-[#FBE5E3] text-[#A32A2A]" },
-  belum_diabsen: { label: "Belum diabsen", cls: "bg-[#F0EEE6] text-[#5F6B63]" },
-  optional: { label: "Tidak wajib", cls: "bg-[#ECE4FB] text-[#4C2A9B]" },
-};
 
 function badgeOf(r) {
   if (r.pertemuan === 0) return { t: "Tidak ada kegiatan", cls: "bg-[#F0EEE6] text-[#5F6B63]" };
@@ -243,22 +235,21 @@ export default function PublicRekapBulanan() {
                           </div>
                         )}
                         {(p.peserta_rows || []).length > 0 && (
-                          <ul className="mt-2 divide-y divide-[#F0EEE6]">
-                            {p.peserta_rows.map((person, j) => {
-                              const st = STATUS_PILL[person.status] || STATUS_PILL.belum_diabsen;
-                              return (
-                                <li key={`${person.name}-${j}`} className="flex min-h-9 items-center justify-between gap-2 py-1">
-                                  <span className="min-w-0 truncate text-sm text-[#14201A]">
-                                    {person.name}
-                                    {person.session_labels?.length > 0 && (
-                                      <span className="text-[#5F6B63]"> · {person.session_labels.join(", ")}</span>
-                                    )}
-                                  </span>
-                                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${st.cls}`}>{st.label}</span>
-                                </li>
-                              );
-                            })}
-                          </ul>
+                          <div className="mt-2">
+                            <StatusGroups
+                              counts={{
+                                total: p.peserta, hadir: p.hadir, izin: p.izin,
+                                sakit: p.sakit, alpha: p.alpha, belum_diabsen: p.belum_diabsen,
+                              }}
+                              rows={(p.peserta_rows || []).map((person) => ({
+                                name: person.name,
+                                status: person.status,
+                                reason: person.reason,
+                              }))}
+                              showBelum={(p.belum_diabsen || 0) > 0}
+                              testid={`bulanan-public-status-${i}`}
+                            />
+                          </div>
                         )}
                         {(p.sesi || []).length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1.5">

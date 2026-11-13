@@ -4,6 +4,7 @@ import { CalendarDays, Clock, MapPin, User, Loader2, Layers } from "lucide-react
 import { api } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import ReportHeader from "@/components/ReportHeader";
+import StatusGroups from "@/components/StatusGroups";
 import { TYPE_LABEL, tanggalPanjang, hhmm } from "./admin/kegiatanUtils";
 
 const ST = {
@@ -36,6 +37,8 @@ export default function PublicRekapGabungan() {
   const { token } = useParams();
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
+  const [sessionIdx, setSessionIdx] = useState(0);
+  const [view, setView] = useState("status"); // status | peserta
 
   useEffect(() => {
     api.get(`/rekap-gabungan/${token}`)
@@ -61,7 +64,7 @@ export default function PublicRekapGabungan() {
   return (
     <div className="min-h-screen bg-[#F6F4EE] pb-14" data-testid="rekap-gabungan-public">
       <ReportHeader
-        title="Laporan Rekap Gabungan"
+        title="Rekap Gabungan"
         subtitle={`${tanggalPanjang(data.date)} · ${data.sessions.length} sesi`}
         showUserIcon
         testid="rekap-gabungan-header"
@@ -82,27 +85,96 @@ export default function PublicRekapGabungan() {
           </div>
         </div>
 
-        {/* Rekap dipisahkan per sesi */}
-        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 mt-4 space-y-4" data-testid="gabungan-public-sesi">
-          <div className="font-semibold text-[#14201A] text-sm">Kehadiran per Sesi</div>
-          {data.sessions.map((x) => (
-            <div key={x.id}>
-              <PercentBar
-                label={`${x.label} · ${x.start_time}–${x.end_time} WITA${x.required === false ? " · Opsional" : ""}`}
-                value={x.counts.ratio}
-                sub={`${x.counts.hadir}/${x.counts.total}`}
-                testid={`bar-sesi-${x.id}`}
-              />
-              <div className="text-[11px] text-[#5F6B63] mt-1 flex flex-wrap gap-x-3">
-                <span>Hadir {x.counts.hadir}</span><span>Izin {x.counts.izin}</span>
-                <span>Sakit {x.counts.sakit || 0}</span><span>Alpha {x.counts.alpha}</span>
-                <span>Belum diabsen {x.counts.belum_diabsen || 0}</span>
-                {x.counts.sudah_sesi_lain > 0 && <span>Sudah hadir sesi lain {x.counts.sudah_sesi_lain}</span>}
-                {x.teacher && <span className="inline-flex items-center gap-1"><User size={11} /> {x.teacher}</span>}
-                {x.location && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {x.location}</span>}
-              </div>
+        {/* Rekap per sesi: pemilih sesi + pembagian per status */}
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 mt-4 space-y-3" data-testid="gabungan-public-sesi">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-semibold text-[#14201A]">Kehadiran per Sesi</div>
+            <div className="flex gap-1 rounded-xl bg-[#F0EEE6] p-1" data-testid="gabungan-view-toggle">
+              {[["status", "Per status"], ["peserta", "Per peserta"]].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setView(key)}
+                  aria-pressed={view === key}
+                  className={`h-8 rounded-lg px-2.5 text-[11px] font-semibold transition-colors ${
+                    view === key ? "bg-white text-[#0E4E31] shadow-sm" : "text-[#5F6B63]"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {view === "status" ? (
+            <>
+              <div className="flex gap-1 overflow-x-auto rounded-xl bg-[#F0EEE6] p-1 no-scrollbar" data-testid="gabungan-session-picker">
+                {data.sessions.map((x, i) => (
+                  <button
+                    key={x.id}
+                    type="button"
+                    onClick={() => setSessionIdx(i)}
+                    aria-pressed={sessionIdx === i}
+                    className={`h-9 shrink-0 rounded-lg px-3 text-xs font-semibold transition-colors ${
+                      sessionIdx === i ? "bg-white text-[#0E4E31] shadow-sm" : "text-[#5F6B63]"
+                    }`}
+                  >
+                    {x.label}
+                  </button>
+                ))}
+              </div>
+              {(() => {
+                const s = data.sessions[sessionIdx] || data.sessions[0];
+                if (!s) return null;
+                const idx = data.sessions.indexOf(s);
+                const rows = (data.rows || [])
+                  .map((r) => ({ ...r, cell: r.sessions?.[idx] }))
+                  .filter((r) => r.cell)
+                  .map((r) => ({
+                    name: r.name,
+                    status: r.cell.status,
+                    reason: r.cell.reason || r.cell.note,
+                  }));
+                return (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <div className="font-heading text-base font-bold text-[#14201A]">{s.label}</div>
+                      <div className="text-xs font-semibold text-[#5F6B63]">
+                        {s.start_time}–{s.end_time} WITA{s.required === false ? " · opsional" : ""}
+                      </div>
+                    </div>
+                    <StatusGroups
+                      counts={s.counts}
+                      rows={rows}
+                      showBelum={(s.counts.belum_diabsen || 0) > 0}
+                      testid={`gabungan-status-${s.id}`}
+                    />
+                  </div>
+                );
+              })()}
+            </>
+          ) : (
+            <div className="space-y-3">
+              {data.sessions.map((x) => (
+                <div key={x.id}>
+                  <PercentBar
+                    label={`${x.label} · ${x.start_time}–${x.end_time} WITA${x.required === false ? " · Opsional" : ""}`}
+                    value={x.counts.ratio}
+                    sub={`${x.counts.hadir}/${x.counts.total}`}
+                    testid={`bar-sesi-${x.id}`}
+                  />
+                  <div className="text-[11px] text-[#5F6B63] mt-1 flex flex-wrap gap-x-3">
+                    <span>Hadir {x.counts.hadir}</span><span>Izin {x.counts.izin}</span>
+                    <span>Sakit {x.counts.sakit || 0}</span><span>Alpha {x.counts.alpha}</span>
+                    <span>Belum diabsen {x.counts.belum_diabsen || 0}</span>
+                    {x.counts.sudah_sesi_lain > 0 && <span>Sudah hadir sesi lain {x.counts.sudah_sesi_lain}</span>}
+                    {x.teacher && <span className="inline-flex items-center gap-1"><User size={11} /> {x.teacher}</span>}
+                    {x.location && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {x.location}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Tabel peserta × sesi */}

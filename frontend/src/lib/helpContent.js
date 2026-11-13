@@ -1,5 +1,6 @@
-// Isi Pusat Bantuan per peran + daftar tutorial video.
-// Satu file data agar mudah dirawat. Bantuan Guru belum dibuat.
+// Isi Pusat Bantuan per peran. Tutorial video dikelola admin lewat halaman
+// Tutorial video (koleksi `tutorial_video`) â€” tidak ada data contoh di sini.
+// Bantuan Guru belum dibuat.
 
 export const HELP_ROLES = [
   { key: "admin", label: "Administrator" },
@@ -12,7 +13,7 @@ export const HELP_CONTENT = {
     label: "Administrator",
     steps: [
       { title: "Kelola peserta", desc: "Menu User untuk menambah, mengubah, dan menonaktifkan akun. Lengkapi tanggal lahir dan jenis kelamin agar penyaringan kegiatan akurat." },
-      { title: "Buat kegiatan", desc: "Daftar Kegiatan → Tambah Kegiatan. Pilih riwayat kegiatan yang sering dibuat, atau Mulai dari kosong lalu tentukan Waktu dan Sesi." },
+      { title: "Buat kegiatan", desc: "Daftar Kegiatan â†’ Tambah Kegiatan. Pilih riwayat kegiatan yang sering dibuat, atau Mulai dari kosong lalu tentukan Waktu dan Sesi." },
       { title: "Atur hak akses", desc: "Menu Hak Akses memberi peran Pengurus atau Guru, serta mengatur ulang kata sandi peserta." },
       { title: "Pantau kehadiran", desc: "Rekap Harian dan Rekap Bulanan menampilkan persentase serta status kehadiran tiap peserta." },
       { title: "Bagikan rekap", desc: "Tombol Bagikan ke WhatsApp atau Salin tautan membuat tautan baru yang berlaku 7 hari." },
@@ -26,8 +27,8 @@ export const HELP_CONTENT = {
   pengurus: {
     label: "Pengurus",
     steps: [
-      { title: "Buat kegiatan", desc: "Daftar Kegiatan → Tambah Kegiatan. Isi nama, tanggal, dan jam; pilih beberapa sesi bila sehari ada pagi dan malam." },
-      { title: "Catat kehadiran", desc: "Buka kegiatan → tab Absen Manual, atau bagikan kode akses agar petugas di lokasi bisa mengabsen sendiri." },
+      { title: "Buat kegiatan", desc: "Daftar Kegiatan â†’ Tambah Kegiatan. Isi nama, tanggal, dan jam; pilih beberapa sesi bila sehari ada pagi dan malam." },
+      { title: "Catat kehadiran", desc: "Buka kegiatan â†’ tab Absen Manual, atau bagikan kode akses agar petugas di lokasi bisa mengabsen sendiri." },
       { title: "Scan barcode peserta", desc: "Tab Scan Barcode memindai QR peserta dan langsung mencatat kehadiran pada sesi yang dibuka." },
       { title: "Bagikan rekap", desc: "Rekap harian dan bulanan menyediakan tautan WhatsApp untuk dibagikan ke peserta." },
     ],
@@ -51,19 +52,5 @@ export const HELP_CONTENT = {
   },
 };
 
-// Tutorial video: tautan YouTube "Tidak publik". Ganti url bila video sudah diunggah.
-export const TUTORIAL_VIDEOS = [
-  { role: "admin", title: "Membuat kegiatan baru", duration: "3:20", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-  { role: "admin", title: "Mengelola peserta & hak akses", duration: "4:05", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-  { role: "admin", title: "Membagikan rekap bulanan", duration: "2:40", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-  { role: "pengurus", title: "Mengabsen peserta di lokasi", duration: "3:10", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-  { role: "pengurus", title: "Menutup absensi & menandai Alpha", duration: "2:15", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-  { role: "peserta", title: "Menunjukkan QR untuk absen", duration: "1:50", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-  { role: "peserta", title: "Melihat riwayat kehadiran", duration: "2:05", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-];
-
-/** Ambil ID video YouTube dari berbagai bentuk URL. */
-export function youtubeId(url) {
-  const m = String(url || "").match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{6,})/);
-  return m ? m[1] : "";
-}
+// Tutorial video dikelola admin lewat halaman Tutorial video (koleksi
+// `tutorial_video`). Tidak ada data contoh di file ini.

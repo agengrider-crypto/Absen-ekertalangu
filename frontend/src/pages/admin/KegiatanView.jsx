@@ -479,15 +479,12 @@ function FilterBadges({ k }) {
 const MAPS_URL = (k) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k.maps_query || k.location)}`;
 
 /**
- * Dialog "Hapus {n} kegiatan?" — tombol utama merah solid.
- * Bila kegiatan sudah punya absensi, admin harus mengetik "HAPUS" dulu.
+ * Dialog "Hapus {n} kegiatan?" — konfirmasi biasa (tanpa mengetik).
+ * Tombol utama merah solid, tombol kedua netral.
  */
 function DeleteKegiatanModal({ targets = [], deleting, onClose, onConfirm }) {
-  const [typed, setTyped] = useState("");
   const totalAbsen = targets.reduce((n, k) => n + (k.counts?.hadir || 0) + (k.counts?.izin || 0)
     + (k.counts?.sakit || 0) + (k.counts?.alpha || 0), 0);
-  const needType = totalAbsen > 0;
-  const ready = !needType || typed.trim().toUpperCase() === "HAPUS";
 
   return (
     <Modal
@@ -509,7 +506,7 @@ function DeleteKegiatanModal({ targets = [], deleting, onClose, onConfirm }) {
             type="button"
             data-testid="delete-kegiatan-confirm"
             onClick={onConfirm}
-            disabled={!ready || deleting}
+            disabled={deleting}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#A32A2A] font-semibold text-white hover:brightness-95 disabled:opacity-50"
           >
             {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Ya, hapus
@@ -528,23 +525,10 @@ function DeleteKegiatanModal({ targets = [], deleting, onClose, onConfirm }) {
           </li>
         ))}
       </ul>
-      {needType && (
-        <>
-          <div className="mt-3 rounded-xl border border-[#EAD596] bg-[#FBF1D6] px-3 py-2.5 text-xs font-semibold text-[#6B4500]">
-            Sudah ada {totalAbsen} peserta tercatat. Rekap bulanan juga akan berubah.
-          </div>
-          <label className="mt-3 block text-[13px] font-semibold text-[#14201A]" htmlFor="delete-kegiatan-typed">
-            Ketik HAPUS untuk melanjutkan
-          </label>
-          <input
-            id="delete-kegiatan-typed"
-            data-testid="delete-kegiatan-typed"
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            placeholder="HAPUS"
-            className="mt-1.5 h-11 w-full rounded-xl border border-[#8A948D] px-3 text-base outline-none focus:border-[#A32A2A]"
-          />
-        </>
+      {totalAbsen > 0 && (
+        <div className="mt-3 rounded-xl border border-[#EAD596] bg-[#FBF1D6] px-3 py-2.5 text-xs font-semibold text-[#6B4500]">
+          Sudah ada {totalAbsen} peserta tercatat. Rekap bulanan juga akan berubah.
+        </div>
       )}
     </Modal>
   );

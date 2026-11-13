@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { SkeletonList } from "@/components/GlobalLoading";
 import ReportHeader from "@/components/ReportHeader";
+import StatusGroups from "@/components/StatusGroups";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MONTHLY_RECAP } from "@/constants/testIds";
 import { useAuth } from "@/context/AuthContext";
@@ -66,6 +67,7 @@ function statusStyle(status) {
   };
   return styles[status] || styles.belum_diabsen;
 }
+void statusStyle;
 
 export default function RekapBulananView({ initialFilter = "semua" }) {
   const { user } = useAuth();
@@ -493,21 +495,24 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                       <ChevronDown size={16} className={`ml-auto transition-transform ${openMeetings[i] ? "rotate-180" : ""}`} />
                     </button>
                     {openMeetings[i] && (
-                      <div className="mt-1 divide-y divide-[#F0EEE6] rounded-lg bg-[#F6F4EE] px-3" data-testid={`${MONTHLY_RECAP.meetingParticipantsPrefix}-${i}`}>
+                      <div className="mt-2" data-testid={`${MONTHLY_RECAP.meetingParticipantsPrefix}-${i}`}>
                         {(p.peserta_rows || []).length === 0 ? (
                           <div className="py-3 text-sm text-[#5F6B63]">Belum ada peserta yang wajib diabsen.</div>
-                        ) : (p.peserta_rows || []).map((person, j) => {
-                          const status = statusStyle(person.status);
-                          return (
-                            <div key={`${person.name}-${j}`} className={`flex min-h-10 items-center justify-between gap-3 text-sm ${status.name}`}>
-                              <span className="min-w-0 truncate font-medium">
-                                {person.name}
-                                {person.session_labels?.length > 0 && ` (${person.session_labels.join(", ")})`}
-                              </span>
-                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${status.badge}`}>{status.label}</span>
-                            </div>
-                          );
-                        })}
+                        ) : (
+                          <StatusGroups
+                            counts={{
+                              total: p.peserta, hadir: p.hadir, izin: p.izin,
+                              sakit: p.sakit, alpha: p.alpha, belum_diabsen: p.belum_diabsen,
+                            }}
+                            rows={(p.peserta_rows || []).map((person) => ({
+                              name: person.name,
+                              status: person.status,
+                              reason: person.reason,
+                            }))}
+                            showBelum={(p.belum_diabsen || 0) > 0}
+                            testid={`bulanan-status-${i}`}
+                          />
+                        )}
                       </div>
                     )}
                     {(p.sesi || []).length > 0 && (

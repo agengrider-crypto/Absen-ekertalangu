@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PercentBar } from "@/pages/PublicRekapGabungan";
 import ReportHeader from "@/components/ReportHeader";
+import StatusGroups from "@/components/StatusGroups";
 import { SkeletonList } from "@/components/GlobalLoading";
 import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "./rekapUtils";
 
@@ -190,9 +191,19 @@ export default function RekapHarianView() {
                   {s.location && <span className="inline-flex items-center gap-1"><MapPin size={12} /> {s.location}</span>}
                   {s.material && <span className="inline-flex items-center gap-1"><Clock size={12} /> {s.material}</span>}
                 </div>
-                <div className="mt-2 text-[11px] font-semibold text-[#5F6B63]">
-                  {keteranganHitungan({ hadir: s.hadir, izin: s.izin, sakit: s.sakit, alpha: s.alpha,
-                    belum_diabsen: s.belum_diabsen, total: s.peserta, satuan: "peserta" })}
+                <div className="mt-3">
+                  <StatusGroups
+                    counts={{
+                      total: s.peserta, hadir: s.hadir, izin: s.izin,
+                      sakit: s.sakit, alpha: s.alpha, belum_diabsen: s.belum_diabsen,
+                    }}
+                    rows={(data.rows || []).map((r) => {
+                      const cell = (r.detail || []).find((x) => x.label === s.label);
+                      return cell ? { name: r.name, status: cell.status, reason: cell.reason } : null;
+                    }).filter(Boolean)}
+                    showBelum={(s.belum_diabsen || 0) > 0}
+                    testid={`harian-status-${s.label}`}
+                  />
                 </div>
               </div>
             ))}

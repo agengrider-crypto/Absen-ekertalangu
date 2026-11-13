@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { PercentBar } from "@/pages/PublicRekapGabungan";
 import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "@/pages/admin/rekapUtils";
 import ReportHeader from "@/components/ReportHeader";
+import StatusGroups from "@/components/StatusGroups";
 
 const STATUS_CHIP = {
   hadir: { t: "Hadir", cls: "bg-[#E3F3EA] text-[#0E4E31]" },
@@ -114,9 +115,19 @@ export default function PublicRekapHarian() {
                     {x.location && <span className="inline-flex items-center gap-1"><MapPin size={12} /> {x.location}</span>}
                     {x.material && <span className="inline-flex items-center gap-1"><Clock size={12} /> {x.material}</span>}
                   </div>
-                  <div className="mt-2 text-[11px] font-semibold text-[#5F6B63]">
-                    {keteranganHitungan({ hadir: x.hadir, izin: x.izin, sakit: x.sakit, alpha: x.alpha,
-                      belum_diabsen: x.belum_diabsen, total: x.peserta, satuan: "peserta" })}
+                  <div className="mt-3">
+                    <StatusGroups
+                      counts={{
+                        total: x.peserta, hadir: x.hadir, izin: x.izin,
+                        sakit: x.sakit, alpha: x.alpha, belum_diabsen: x.belum_diabsen,
+                      }}
+                      rows={(data.rows || []).map((r) => {
+                        const cell = (r.detail || []).find((d) => d.label === x.label);
+                        return cell ? { name: r.name, status: cell.status, reason: cell.reason } : null;
+                      }).filter(Boolean)}
+                      showBelum={(x.belum_diabsen || 0) > 0}
+                      testid={`pub-harian-status-${x.label}`}
+                    />
                   </div>
                 </div>
               ))}

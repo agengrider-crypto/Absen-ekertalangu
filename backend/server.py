@@ -5253,6 +5253,8 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
     absens = await db.absensis.find(
         {"kegiatan_id": {"$in": [k["_id"] for k in docs]}}).to_list(100000)
     status_by = {(a["kegiatan_id"], a["user_id"]): a.get("status") for a in absens}
+    reason_by = {(a["kegiatan_id"], a["user_id"]): (a.get("reason") or a.get("note"))
+                 for a in absens}
     elig = {k["_id"]: {str(p["_id"]) for p in filter_peserta_for_kegiatan(k, peserta)} for k in docs}
 
     sesi_out = []
@@ -5300,6 +5302,7 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
                 "label": k.get("session_label") or "Sesi tunggal",
                 "start_time": k.get("start_time"), "end_time": k.get("end_time"),
                 "required": required, "status": st,
+                "reason": reason_by.get((k["_id"], pid)),
             })
         total = len(mine)
         hari_status = (
@@ -5318,6 +5321,7 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
             "alpha_ratio": round((status_counts["alpha"] / total) * 100, 1) if total else 0.0,
             "status_hari": hari_status,
             "sesi_wajib": sum(1 for row in detail if row["required"]),
+            "reason": next((row["reason"] for row in detail if row.get("reason")), None),
             "detail": detail,
         })
     rows.sort(key=lambda x: (x["ratio"], (x["name"] or "").lower()))
@@ -5408,6 +5412,8 @@ async def build_rekap_bulanan(month: Optional[str] = None, include_participants:
     keg_ids = [k["_id"] for k in kegiatans]
     absens = await db.absensis.find({"kegiatan_id": {"$in": keg_ids}}).to_list(200000) if keg_ids else []
     status_by = {(a["kegiatan_id"], a["user_id"]): a.get("status") for a in absens}
+    reason_by = {(a["kegiatan_id"], a["user_id"]): (a.get("reason") or a.get("note"))
+                 for a in absens}
     elig_by_doc = {k["_id"]: {str(p["_id"]) for p in filter_peserta_for_kegiatan(k, peserta)}
                    for k in kegiatans}
 
@@ -5505,6 +5511,8 @@ async def build_rekap_bulanan(month: Optional[str] = None, include_participants:
                 "name": t["name"],
                 "status": attendance_status,
                 "session_labels": session_labels,
+                "reason": next((reason_by.get((d["_id"], pid)) for d in docs_p
+                                if reason_by.get((d["_id"], pid))), None),
             })
         total_p = n_h + n_i + n_s + n_a + n_pending
 
@@ -6415,6 +6423,83 @@ async def bantuan_kontak(user: dict = Depends(get_current_user)):
     return {"items": rows, "demo": is_demo_ctx()}
 
 
+# ------------------------- Tutorial video (admin mengisi sendiri) -------------------------
+TUTORIAL_ROLES = ("admin", "pengurus", "peserta")
+YOUTUBE_RE = re.compile(
+    r"^https?://(www\.|m\.)?(youtube\.com/(watch\?v=|embed/|shorts/)|youtu\.be/)[\w-]{6,}",
+    re.IGNORECASE)
+
+
+class TutorialVideoInput(BaseModel):
+    judul: str
+    peran: str = "admin"
+    durasi: Optional[str] = None
+    url: str
+
+
+def serialize_tutorial(v: dict) -> dict:
+    return {"id": v["_id"], "judul": v.get("judul"), "peran": v.get("peran"),
+            "durasi": v.get("durasi") or "", "url": v.get("url"),
+            "urutan": v.get("urutan", 0), "dibuat": v.get("dibuat")}
+
+
+def validate_tutorial(body: TutorialVideoInput) -> dict:
+    judul = (body.judul or "").strip()
+    if not judul:
+        raise HTTPException(status_code=400, detail="Judul tutorial wajib diisi")
+    if body.peran not in TUTORIAL_ROLES:
+        raise HTTPException(status_code=400, detail="Peran tutorial tidak valid")
+    url = (body.url or "").strip()
+    if not YOUTUBE_RE.match(url):
+        raise HTTPException(status_code=400, detail="Tautan harus berupa tautan YouTube")
+    return {"judul": judul, "peran": body.peran,
+            "durasi": (body.durasi or "").strip() or None, "url": url}
+
+
+@api_router.get("/tutorial-video")
+async def list_tutorial_video(user: dict = Depends(get_current_user)):
+    """Daftar tutorial video. Peserta hanya melihat video untuk perannya."""
+    roles = user.get("roles") or []
+    q = {}
+    if not ({"admin", "pengurus"} & set(roles)):
+        q = {"peran": "peserta"}
+    items = await db.tutorial_video.find(q).sort([("urutan", 1), ("dibuat", 1)]).to_list(500)
+    return {"items": [serialize_tutorial(v) for v in items],
+            "can_manage": "admin" in roles}
+
+
+@api_router.post("/admin/tutorial-video")
+async def create_tutorial_video(body: TutorialVideoInput, admin: dict = Depends(require_admin)):
+    data = validate_tutorial(body)
+    last = await db.tutorial_video.find_one({}, sort=[("urutan", -1)])
+    doc = {"_id": str(uuid.uuid4()), **data,
+           "urutan": (last.get("urutan", 0) + 1) if last else 1,
+           "dibuat": now_wita().isoformat(), "created_by": str(admin["_id"])}
+    await db.tutorial_video.insert_one(doc)
+    await log_activity(admin, "tambah_tutorial", f"Menambah tutorial video '{data['judul']}'")
+    return serialize_tutorial(doc)
+
+
+@api_router.patch("/admin/tutorial-video/{video_id}")
+async def update_tutorial_video(video_id: str, body: TutorialVideoInput,
+                                admin: dict = Depends(require_admin)):
+    existing = await db.tutorial_video.find_one({"_id": video_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Tutorial tidak ditemukan")
+    data = validate_tutorial(body)
+    await db.tutorial_video.update_one({"_id": video_id}, {"$set": data})
+    doc = await db.tutorial_video.find_one({"_id": video_id})
+    return serialize_tutorial(doc)
+
+
+@api_router.delete("/admin/tutorial-video/{video_id}")
+async def delete_tutorial_video(video_id: str, admin: dict = Depends(require_admin)):
+    res = await db.tutorial_video.delete_one({"_id": video_id})
+    if not res.deleted_count:
+        raise HTTPException(status_code=404, detail="Tutorial tidak ditemukan")
+    return {"message": "Tutorial dihapus"}
+
+
 # ------------------------- FASE 20: Program Pembelajaran -------------------------
 # Penyimpanan berkas materi (Emergent Object Storage).
 STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
@@ -6981,6 +7066,7 @@ async def _run_init():
     await db.pengumumans.create_index("pin_roles")
     await db.delegations.create_index([("kegiatan_id", 1), ("grantee_id", 1), ("active", 1)])
     await db.delegations.create_index("grantee_id")
+    await db.tutorial_video.create_index([("peran", 1), ("urutan", 1)])
 
 
 _init_done = False
