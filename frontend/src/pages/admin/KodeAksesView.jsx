@@ -46,16 +46,8 @@ export default function KodeAksesView({ onLeave }) {
     setBusyId(null);
   };
 
-  const tutupAbsen = async (row) => {
-    if (!window.confirm(`Tutup absensi "${row.base_name}"? Peserta wajib yang belum memiliki status akan otomatis ditandai Alpha.`)) return;
-    setBusyId(row.id);
-    try {
-      const { data: res } = await api.post(`/admin/kegiatan/${row.id}/tutup-absen`);
-      toast.success(res.message || "Absen ditutup. Peserta yang belum diabsen otomatis tercatat Alpha.");
-      load();
-    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
-    setBusyId(null);
-  };
+  // Tutup absen kini hanya tersedia di halaman /absensi/[token] (tautan WhatsApp).
+  // Dialog "Tutup absen sebelum keluar?" tetap memakai endpoint yang sama.
 
   // Daftarkan handler ke AdminLayout: dipanggil saat pengguna mau keluar
   // dari halaman Kode Akses. Mengembalikan false = tahan dulu, tampilkan prompt.
@@ -141,15 +133,9 @@ export default function KodeAksesView({ onLeave }) {
                   {busyId === r.id ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />} Perbarui Kode
                 </button>
                 {r.status === "open" && (
-                  <button
-                    data-testid={`${ACTIVITIES.accessClosePrefix}-${r.id}`}
-                    onClick={() => tutupAbsen(r)}
-                    disabled={busyId === r.id}
-                    className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-[#14201A] text-white font-semibold text-sm hover:bg-[#0E4E31] disabled:opacity-60"
-                  >
-                    {busyId === r.id ? <Loader2 className="animate-spin" size={15} /> : <LockKeyhole size={15} />}
-                    Tutup Absen &amp; Tandai Alpha
-                  </button>
+                  <span className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl bg-[#E3F3EA] text-[#0E4E31] font-semibold text-sm">
+                    <LockKeyhole size={15} /> Absen terbuka
+                  </span>
                 )}
               </div>
             </div>

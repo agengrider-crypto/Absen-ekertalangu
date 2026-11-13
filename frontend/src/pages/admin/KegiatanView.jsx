@@ -3,8 +3,7 @@ import {
   CalendarDays, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
   CheckCircle2, Trash2, Search, Copy, Download,
   Clock, MapPin, Lock, ChevronDown, AlertTriangle,
-  KeyRound, RefreshCw, Send, Layers, Play, SlidersHorizontal,
-  Zap, History, CalendarPlus, CalendarClock, Plus,
+  KeyRound, RefreshCw, Send, Layers, Play, SlidersHorizontal, Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -19,11 +18,10 @@ import {
 } from "./kegiatanUtils";
 import KegiatanDetail from "./KegiatanDetail";
 import KegiatanFormModal from "./KegiatanFormModal";
-import KegiatanQuickAddModal from "./KegiatanQuickAddModal";
+import TambahKegiatanView from "./TambahKegiatanView";
 import KegiatanBantuanModal from "./KegiatanBantuanModal";
 import { ReminderModal } from "./KegiatanExtras";
 import { RekapGabunganModal, SalinJadwalModal } from "./SesiExtras";
-import ActionModal from "@/components/ActionModal";
 import Modal from "@/components/Modal";
 import ListFab, { ListPagination } from "@/components/ListFab";
 
@@ -58,9 +56,8 @@ export default function KegiatanView({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingSelected, setDeletingSelected] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
-  const [quickMode, setQuickMode] = useState(null); // null | "cepat" | "sebelumnya"
+  const [showAddPage, setShowAddPage] = useState(false);
   const [formInitial, setFormInitial] = useState(null);
-  const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [detailId, setDetailId] = useState(null);
   const [editItem, setEditItem] = useState(null);
@@ -82,7 +79,7 @@ export default function KegiatanView({
   useEffect(() => {
     if (addRequest > handledAddRequest.current) {
       handledAddRequest.current = addRequest;
-      setAddMenuOpen(true);
+      setShowAddPage(true);
       onAddRequestHandled?.();
     }
   }, [addRequest, onAddRequestHandled]);
@@ -99,11 +96,11 @@ export default function KegiatanView({
   useEffect(() => {
     if (!onSubPageChange) return;
     if (detailId) onSubPageChange("Detail Kegiatan");
-    else if (quickMode) onSubPageChange(quickMode === "sebelumnya" ? "Absen Sebelumnya" : "Absen Cepat");
+    else if (showAddPage) onSubPageChange("Tambah Kegiatan");
     else if (showAdd) onSubPageChange("Tambah Kegiatan");
     else if (editItem) onSubPageChange("Ubah Kegiatan");
     else onSubPageChange(null);
-  }, [detailId, showAdd, quickMode, editItem, onSubPageChange]);
+  }, [detailId, showAdd, showAddPage, editItem, onSubPageChange]);
 
   const [y, m] = month.split("-").map((x) => parseInt(x, 10));
   const shiftMonth = (delta) => {
@@ -150,33 +147,7 @@ export default function KegiatanView({
   const selectedTargets = filtered.filter((k) => selectedIds.has(k.id));
   const selectedVisibleCount = selectedTargets.length;
 
-  // Sub-menu "Tambah Kegiatan": 2 jalur cepat + 2 jalur form lengkap.
-  const addMenuItems = [
-    {
-      key: "cepat", label: "Absen cepat", icon: Zap,
-      desc: "Mulai absen sekarang, jadwal otomatis.",
-      testId: "add-menu-absen-cepat",
-      onClick: () => setQuickMode("cepat"),
-    },
-    {
-      key: "sebelumnya", label: "Absen sebelumnya", icon: History,
-      desc: "Catat kegiatan yang sudah lewat.",
-      testId: "add-menu-absen-sebelumnya",
-      onClick: () => setQuickMode("sebelumnya"),
-    },
-    {
-      key: "terjadwal", label: "Kegiatan terjadwal", icon: CalendarPlus,
-      desc: "Form lengkap: info, jadwal, peserta, tinjau.",
-      testId: "add-menu-terjadwal",
-      onClick: () => { setFormInitial(null); setShowAdd(true); },
-    },
-    {
-      key: "multi", label: "Kegiatan multi-sesi", icon: CalendarClock,
-      desc: "Beberapa sesi dalam satu hari (mis. Pagi & Malam).",
-      testId: "add-menu-multi-sesi",
-      onClick: () => { setFormInitial({ multi: true }); setShowAdd(true); },
-    },
-  ];
+  const openAddPage = () => setShowAddPage(true);
 
   const toggleStatus = async (k) => {
     try {
@@ -242,6 +213,16 @@ export default function KegiatanView({
     load();
   };
 
+  // Halaman "Tambah Kegiatan" (bukan dropdown).
+  if (showAddPage) {
+    return (
+      <TambahKegiatanView
+        onBack={() => setShowAddPage(false)}
+        onDone={() => { setShowAddPage(false); load(); }}
+      />
+    );
+  }
+
   // Semua fitur kegiatan berada DI DALAM halaman detail (klik kegiatan di daftar)
   if (detailId) {
     return (
@@ -284,47 +265,14 @@ export default function KegiatanView({
     <div>
       <div className="mb-4 flex items-center gap-2 text-[#0E4E31] font-bold text-lg">
         <CalendarDays size={20} /> Kegiatan
-        <div className="relative ml-auto">
-          <button
-            type="button"
-            data-testid="kegiatan-add-button"
-            onClick={() => setAddMenuOpen((v) => !v)}
-            aria-haspopup="menu"
-            aria-expanded={addMenuOpen}
-            className="hidden h-11 items-center gap-1.5 rounded-xl bg-[#0B6B52] px-4 text-sm font-semibold text-white hover:brightness-110 lg:inline-flex"
-          >
-            <Plus size={17} /> Tambah Kegiatan <ChevronDown size={15} className={`transition-transform ${addMenuOpen ? "rotate-180" : ""}`} />
-          </button>
-          {addMenuOpen && (
-            <div
-              role="menu"
-              data-testid="kegiatan-add-menu"
-              className="absolute right-0 top-[calc(100%+6px)] z-30 hidden w-72 overflow-hidden rounded-2xl border border-[#E7E3D8] bg-white p-1.5 shadow-xl lg:block"
-            >
-              {addMenuItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    role="menuitem"
-                    data-testid={`${item.testId}-desktop`}
-                    onClick={() => { setAddMenuOpen(false); item.onClick(); }}
-                    className="flex w-full items-start gap-2.5 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-[#F6F4EE]"
-                  >
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E3F3EA] text-[#0E4E31]">
-                      <Icon size={16} />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold text-[#14201A]">{item.label}</span>
-                      <span className="mt-0.5 block text-[11px] leading-snug text-[#5F6B63]">{item.desc}</span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          data-testid="kegiatan-add-button"
+          onClick={openAddPage}
+          className="ml-auto hidden h-11 items-center gap-1.5 rounded-xl bg-[#0B6B52] px-4 text-sm font-semibold text-white hover:brightness-110 lg:inline-flex"
+        >
+          <Plus size={17} /> Tambah Kegiatan
+        </button>
       </div>
 
       <div className="mb-4 flex items-center gap-2">
@@ -489,49 +437,17 @@ export default function KegiatanView({
         </>
       )}
 
-      <ListFab
-        onAdd={() => setAddMenuOpen((v) => !v)}
-        addLabel="Tambah Kegiatan"
-        items={addMenuItems}
-        open={addMenuOpen}
-        onOpenChange={setAddMenuOpen}
-      />
+      <ListFab onAdd={openAddPage} addLabel="Tambah Kegiatan" />
 
-      {quickMode && (
-        <KegiatanQuickAddModal
-          mode={quickMode}
-          onClose={() => setQuickMode(null)}
-          onFullForm={(initial) => { setQuickMode(null); setFormInitial(initial); setShowAdd(true); }}
-        />
-      )}
       {showAdd && <KegiatanFormModal initial={formInitial || undefined} suggestions={Array.isArray(items) ? items : []}
         onClose={() => { setShowAdd(false); setFormInitial(null); }} onDone={() => { setShowAdd(false); setFormInitial(null); load(); }} />}
       {showDeleteConfirm && (
-        <ActionModal
-          title="Hapus kegiatan?"
-          subtitle={`${selectedTargets.length} kegiatan dipilih`}
+        <DeleteKegiatanModal
+          targets={selectedTargets}
+          deleting={deletingSelected}
           onClose={() => setShowDeleteConfirm(false)}
-          testid={ACTIVITIES.deleteConfirmModal}
-          actions={[{
-            key: "confirm-delete",
-            label: deletingSelected ? "Menghapus…" : "Hapus",
-            icon: Trash2,
-            hapus: true,
-            disabled: deletingSelected,
-            onClick: deleteSelected,
-          }]}
-        >
-          <p className="px-3 py-2 text-sm text-[#5F6B63]">
-            Kegiatan yang dihapus tidak bisa dikembalikan.
-          </p>
-          <ul className="mx-3 mb-2 max-h-40 divide-y divide-[#E7E3D8] overflow-y-auto rounded-xl border border-[#E7E3D8]">
-            {selectedTargets.map((kegiatan) => (
-              <li key={kegiatan.id} className="px-3 py-2 text-sm text-[#14201A]">
-                {kegiatan.date} · {kegiatan.name}
-              </li>
-            ))}
-          </ul>
-        </ActionModal>
+          onConfirm={deleteSelected}
+        />
       )}
       {showHelp && <KegiatanBantuanModal onClose={() => setShowHelp(false)} />}
       {gabunganId && <RekapGabunganModal kegiatanId={gabunganId} onClose={() => setGabunganId(null)} />}
@@ -561,6 +477,78 @@ function FilterBadges({ k }) {
 }
 
 const MAPS_URL = (k) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k.maps_query || k.location)}`;
+
+/**
+ * Dialog "Hapus {n} kegiatan?" — tombol utama merah solid.
+ * Bila kegiatan sudah punya absensi, admin harus mengetik "HAPUS" dulu.
+ */
+function DeleteKegiatanModal({ targets = [], deleting, onClose, onConfirm }) {
+  const [typed, setTyped] = useState("");
+  const totalAbsen = targets.reduce((n, k) => n + (k.counts?.hadir || 0) + (k.counts?.izin || 0)
+    + (k.counts?.sakit || 0) + (k.counts?.alpha || 0), 0);
+  const needType = totalAbsen > 0;
+  const ready = !needType || typed.trim().toUpperCase() === "HAPUS";
+
+  return (
+    <Modal
+      onClose={onClose}
+      title={`Hapus ${targets.length} kegiatan?`}
+      testid={ACTIVITIES.deleteConfirmModal}
+      maxWidth={560}
+      footer={(
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            data-testid="delete-kegiatan-cancel"
+            onClick={onClose}
+            className="h-12 rounded-xl border-2 border-[#E7E3D8] font-semibold text-[#5F6B63] hover:border-[#14633F]"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            data-testid="delete-kegiatan-confirm"
+            onClick={onConfirm}
+            disabled={!ready || deleting}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#A32A2A] font-semibold text-white hover:brightness-95 disabled:opacity-50"
+          >
+            {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />} Ya, hapus
+          </button>
+        </div>
+      )}
+    >
+      <p className="text-sm leading-relaxed text-[#5F6B63]">
+        Kegiatan ini beserta semua data absensinya (hadir, izin, sakit, alpha) akan ikut terhapus
+        dan tidak bisa dikembalikan.
+      </p>
+      <ul className="mt-3 max-h-40 divide-y divide-[#E7E3D8] overflow-y-auto rounded-xl border border-[#E7E3D8]">
+        {targets.map((k) => (
+          <li key={k.id} className="px-3 py-2 text-sm text-[#14201A]">
+            {k.date} · {k.name}
+          </li>
+        ))}
+      </ul>
+      {needType && (
+        <>
+          <div className="mt-3 rounded-xl border border-[#EAD596] bg-[#FBF1D6] px-3 py-2.5 text-xs font-semibold text-[#6B4500]">
+            Sudah ada {totalAbsen} peserta tercatat. Rekap bulanan juga akan berubah.
+          </div>
+          <label className="mt-3 block text-[13px] font-semibold text-[#14201A]" htmlFor="delete-kegiatan-typed">
+            Ketik HAPUS untuk melanjutkan
+          </label>
+          <input
+            id="delete-kegiatan-typed"
+            data-testid="delete-kegiatan-typed"
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            placeholder="HAPUS"
+            className="mt-1.5 h-11 w-full rounded-xl border border-[#8A948D] px-3 text-base outline-none focus:border-[#A32A2A]"
+          />
+        </>
+      )}
+    </Modal>
+  );
+}
 
 /** Tautan lokasi terpisah: membuka Google Maps tanpa membuka detail kegiatan. */
 function LocationLink({ k, className = "" }) {

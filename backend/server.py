@@ -5366,6 +5366,23 @@ async def rekap_bulanan(month: Optional[str] = None, staff: dict = Depends(requi
     return await build_rekap_bulanan(month, include_participants=True)
 
 
+REKAP_LINK_DAYS = 7
+
+
+def rekap_link_valid(doc: dict) -> bool:
+    """Tautan rekap bulanan berlaku 7 hari sejak dibuat (WITA).
+
+    Tautan lama tanpa `expires_at` dianggap kedaluwarsa.
+    """
+    exp = doc.get("expires_at")
+    if not exp:
+        return False
+    try:
+        return datetime.fromisoformat(exp) > now_wita()
+    except Exception:
+        return False
+
+
 async def build_rekap_bulanan(month: Optional[str] = None, include_participants: bool = False) -> dict:
     """FASE 13 — Rekap absen BULANAN per peserta.
 
@@ -5536,6 +5553,20 @@ async def build_rekap_bulanan(month: Optional[str] = None, include_participants:
             meeting_row["peserta_rows"] = meeting_participants
         meeting_rows.append(meeting_row)
 
+    # Catatan musyawarah: pakai data yang SUDAH ADA (koleksi musyawarahs),
+    # dicocokkan lewat tanggal. Tidak ada perubahan skema.
+    musy = await db.musyawarahs.find(
+        {"date": {"$gte": date_from, "$lte": date_to}}).to_list(500)
+    catatan_by_date = {}
+    for m in musy:
+        text = (m.get("content") or "").strip()
+        if text and m.get("date"):
+            catatan_by_date.setdefault(m["date"], text)
+    for row in meeting_rows:
+        note = catatan_by_date.get(row["date"])
+        if note:
+            row["catatan"] = note
+
     per_sesi = sorted(
         [{**v, "ratio": round((v["hadir"] / v["peserta"]) * 100, 1) if v["peserta"] else 0.0}
          for v in sesi_summary.values()],
@@ -5598,17 +5629,16 @@ async def build_rekap_bulanan(month: Optional[str] = None, include_participants:
 @api_router.post("/staff/rekap-bulanan/share")
 async def share_rekap_bulanan(request: Request, month: Optional[str] = None,
                               staff: dict = Depends(require_staff)):
-    """FASE 14 — tautan publik rekap bulanan (permanen, tanpa login)."""
+    """Tautan publik rekap bulanan — berlaku 7 hari sejak dibuat (WITA)."""
     month = month or now_wita().strftime("%Y-%m")
-    existing = await db.bulanan_links.find_one({"month": month})
-    if existing:
-        token = existing["_id"]
-    else:
-        token = secrets.token_urlsafe(10)
-        await db.bulanan_links.insert_one({
-            "_id": token, "month": month,
-            "created_by": str(staff["_id"]), "created_by_name": staff.get("name"),
-            "created_at": datetime.now(timezone.utc).isoformat()})
+    # Setiap ketuk "Bagikan"/"Salin tautan" membuat tautan baru yang berlaku 7 hari.
+    token = secrets.token_urlsafe(10)
+    created = now_wita()
+    await db.bulanan_links.insert_one({
+        "_id": token, "month": month,
+        "created_by": str(staff["_id"]), "created_by_name": staff.get("name"),
+        "created_at": created.isoformat(),
+        "expires_at": (created + timedelta(days=REKAP_LINK_DAYS)).isoformat()})
     link = f"{resolve_base_url(request)}/rekap-bulanan/{token}"
     data = await build_rekap_bulanan(month)
     wa_text = (
@@ -5618,6 +5648,7 @@ async def share_rekap_bulanan(request: Request, month: Optional[str] = None,
         f"{link}"
     )
     return {"token": token, "link": link, "month": month, "label": data["label"],
+            "expires_at": (created + timedelta(days=REKAP_LINK_DAYS)).isoformat(),
             "wa_text": wa_text}
 
 
@@ -5626,7 +5657,11 @@ async def public_rekap_bulanan(token: str):
     doc = await db.bulanan_links.find_one({"_id": token})
     if not doc:
         raise HTTPException(status_code=404, detail="Tautan rekap bulanan tidak ditemukan")
-    return await build_rekap_bulanan(doc.get("month"))
+    if not rekap_link_valid(doc):
+        raise HTTPException(
+            status_code=410,
+            detail="Tautan sudah kedaluwarsa. Minta tautan baru ke pengurus.")
+    return await build_rekap_bulanan(doc.get("month"), include_participants=True)
 
 
 # ------------------------- Tautan publik Rekap Harian -------------------------

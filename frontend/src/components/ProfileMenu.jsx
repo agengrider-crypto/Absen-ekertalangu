@@ -1,15 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, User as UserIcon, LogOut, AlertCircle, Sparkles, Info, ArrowLeftRight } from "lucide-react";
+import { User as UserIcon, LogOut, AlertCircle, Sparkles, Info, RefreshCw, Shield, Users, UserCheck, GraduationCap } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import ProfileModal from "@/components/ProfileModal";
 import ActionModal from "@/components/ActionModal";
-import RoleSwitcher from "@/components/RoleSwitcher";
 import UpdateModal, { hasUnreadUpdate } from "@/components/UpdateModal";
 import AboutApp, { hasUnseenTour } from "@/components/AboutApp";
 import GuidedTour from "@/components/GuidedTour";
-import { roleLabel, getActiveRole } from "@/lib/roles";
+import { roleLabel, getActiveRole, setActiveRole } from "@/lib/roles";
+
+const ROLE_ICON = { admin: Shield, pengurus: Users, guru: GraduationCap, peserta: UserCheck };
+const ROLE_DESC = {
+  admin: "Kelola semua",
+  pengurus: "Absen dan rekap",
+  guru: "Kelas dan pembelajaran",
+  peserta: "Absen dan riwayat saya",
+};
+const ROLE_ORDER = ["admin", "guru", "pengurus", "peserta"];
 
 /**
  * Menu akun di kanan atas.
@@ -23,12 +31,13 @@ export default function ProfileMenu({ role }) {
   const navigate = useNavigate();
   const [openMenu, setOpenMenu] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [showSwitcher, setShowSwitcher] = useState(false);
+  const [showSwitch, setShowSwitch] = useState(false);
   const [showUpdates, setShowUpdates] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const [unreadUpdate, setUnreadUpdate] = useState(() => hasUnreadUpdate());
   const [photo, setPhoto] = useState(null);
+  const switchRef = useRef(null);
 
   const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const roles = user?.roles || [];
@@ -37,8 +46,19 @@ export default function ProfileMenu({ role }) {
   const activeRoleLabel = roleLabel(activeRole);
   const incomplete = (user?.missing_fields || []).length > 0;
   const isStaff = roles.some((r) => r === "admin" || r === "pengurus");
-  // Nama akun yang sama persis dengan nama peran tidak perlu diulang.
-  const showName = Boolean(user?.name) && user.name.trim().toLowerCase() !== activeRoleLabel.toLowerCase();
+  const switchable = ROLE_ORDER.filter((r) => roles.includes(r));
+
+  useEffect(() => {
+    if (!showSwitch) return undefined;
+    const onDown = (e) => { if (switchRef.current && !switchRef.current.contains(e.target)) setShowSwitch(false); };
+    const onKey = (e) => { if (e.key === "Escape") setShowSwitch(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [showSwitch]);
 
   // Guided tour hanya muncul SEKALI (khusus admin & pengurus). Update berikutnya
   // tidak memunculkan tour lagi — cukup pop-up Update Terbaru.
@@ -58,49 +78,82 @@ export default function ProfileMenu({ role }) {
     return () => { active = false; };
   }, [user?.has_photo]);
 
-  const roleBadge = multiRole ? (
-    <button
-      type="button"
-      data-testid="button-switch-role"
-      onClick={() => setShowSwitcher(true)}
-      aria-label={`Peran aktif ${activeRoleLabel}. Ganti peran`}
-      title="Ganti peran"
-      className="inline-flex min-h-11 items-center gap-1 rounded-full bg-[#E3F3EA] px-2.5 py-0.5 text-[11px] font-semibold text-[#0E4E31] transition-colors hover:bg-[#D3EBDD] sm:min-h-6 sm:px-2"
-    >
-      {activeRoleLabel}
-      <ArrowLeftRight size={11} aria-hidden="true" />
-    </button>
-  ) : (
-    <span
-      data-testid="role-label-static"
-      className="inline-flex min-h-6 items-center rounded-full bg-[#F0EEE6] px-2 py-0.5 text-[11px] font-semibold text-[#5F6B63]"
-    >
-      {activeRoleLabel}
-    </span>
-  );
-
   return (
     <>
-      <div className="flex items-center gap-1.5">
-        <div className="flex flex-col items-end leading-tight">
-          {showName && <div className="hidden text-sm font-semibold text-[#14201A] sm:block">{user?.name}</div>}
-          <div className="flex justify-end">{roleBadge}</div>
-        </div>
+      <div className="relative flex items-center gap-1.5" ref={switchRef}>
+        {multiRole && (
+          <button
+            type="button"
+            data-testid="button-switch-role"
+            onClick={() => setShowSwitch((v) => !v)}
+            aria-label={`Pindah peran. Aktif ${activeRoleLabel}`}
+            aria-haspopup="menu"
+            aria-expanded={showSwitch}
+            title="Pindah peran"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E7E3D8] bg-white text-[#0E4E31] transition-colors hover:border-[#14633F] hover:bg-[#F6F4EE]"
+          >
+            <RefreshCw size={17} />
+          </button>
+        )}
         <button
           data-testid="button-profile-menu"
           onClick={() => setOpenMenu(true)}
           aria-label="Buka menu akun"
-          className="relative flex items-center gap-1.5 rounded-full py-1 pl-1 pr-1 transition-colors hover:bg-[#F0EEE6]"
+          className="relative flex items-center rounded-full p-1 transition-colors hover:bg-[#F0EEE6]"
         >
           <Avatar size={40} photo={photo} initials={initials} />
           {incomplete && (
-            <span data-testid="profile-incomplete-dot" className="absolute -top-0.5 right-6 h-3 w-3 rounded-full bg-[#5F6B63] ring-2 ring-white" />
+            <span data-testid="profile-incomplete-dot" className="absolute -top-0.5 right-0 h-3 w-3 rounded-full bg-[#5F6B63] ring-2 ring-white" />
           )}
           {unreadUpdate && (
-            <span data-testid="profile-update-dot" className="absolute right-5 top-0.5 h-2.5 w-2.5 rounded-full bg-[#A32A2A] ring-2 ring-white" />
+            <span data-testid="profile-update-dot" className="absolute right-0 top-0.5 h-2.5 w-2.5 rounded-full bg-[#A32A2A] ring-2 ring-white" />
           )}
-          <ChevronDown size={16} className="hidden text-[#5F6B63] sm:block" />
         </button>
+
+        {showSwitch && (
+          <div
+            role="menu"
+            data-testid="role-switch-popover"
+            className="absolute right-0 top-[calc(100%+8px)] z-40 w-64 overflow-hidden rounded-2xl border border-[#E7E3D8] bg-white p-1.5 shadow-xl"
+          >
+            <div className="px-2.5 pb-1 pt-1.5 text-[11px] font-bold uppercase tracking-wide text-[#5F6B63]">
+              Pindah ke
+            </div>
+            {switchable.map((r) => {
+              const Icon = ROLE_ICON[r] || Users;
+              const on = r === activeRole;
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  role="menuitem"
+                  data-testid={`switch-role-${r}`}
+                  aria-current={on ? "true" : undefined}
+                  onClick={() => {
+                    setShowSwitch(false);
+                    if (on) return;
+                    setActiveRole(r);
+                    navigate(`/area/${r}`);
+                  }}
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors ${
+                    on ? "bg-[#E3F3EA]" : "hover:bg-[#F6F4EE]"
+                  }`}
+                >
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                    on ? "bg-[#14633F] text-white" : "bg-[#E3F3EA] text-[#0E4E31]"
+                  }`}>
+                    <Icon size={15} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-[#14201A]">{roleLabel(r)}</span>
+                    <span className="block text-[11px] text-[#5F6B63]">{ROLE_DESC[r] || ""}</span>
+                  </span>
+                  {on && <span className="shrink-0 text-[10px] font-bold text-[#0E4E31]">Aktif</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {openMenu && (
@@ -158,8 +211,6 @@ export default function ProfileMenu({ role }) {
       {showProfile && (
         <ProfileModal photo={photo} onPhotoChange={setPhoto} onClose={() => setShowProfile(false)} />
       )}
-
-      {showSwitcher && <RoleSwitcher current={activeRole} onClose={() => setShowSwitcher(false)} />}
 
       {showUpdates && (
         <UpdateModal

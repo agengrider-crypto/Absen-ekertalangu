@@ -6,7 +6,7 @@ import {
   ShieldCheck, Menu, X, LogOut, MessagesSquare, Megaphone, UserCog, Layers,
   MonitorSmartphone, CalendarRange, ListPlus, CopyCheck, KeyRound, ScanLine,
   ClipboardList, CalendarCheck, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
-  PanelLeftClose, PanelLeftOpen, Wrench,
+  PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { K1Mark, K1Wordmark } from "@/components/Logo";
@@ -17,6 +17,7 @@ import PageTrail from "@/components/PageTrail";
 import UpdateModal from "@/components/UpdateModal";
 import DemoBanner from "@/components/DemoBanner";
 import BantuanView from "@/components/BantuanView";
+import TutorialVideoView from "@/components/TutorialVideoView";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import KalenderView from "./KalenderView";
 import DashboardView from "./DashboardView";
@@ -72,16 +73,21 @@ const MENU = [
     ],
   },
   {
+    group: "grup-bantuan", label: "Bantuan", icon: LifeBuoy, roles: ["admin", "pengurus"],
+    items: [
+      { key: "tutorial-video", label: "Tutorial video", icon: PlayCircle, roles: ["admin", "pengurus"], badge: "Baru" },
+      { key: "bantuan", label: "Pusat Bantuan", icon: LifeBuoy, roles: ["admin", "pengurus"] },
+    ],
+  },
+  {
     group: "grup-pengaturan", label: "Pengaturan", icon: ShieldCheck, roles: ["admin"],
     items: [
-      { key: "bantuan", label: "Bantuan", icon: LifeBuoy, roles: ["admin"] },
       { key: "pemeliharaan", label: "Pemeliharaan", icon: Wrench, roles: ["admin"] },
       { key: "pantau-login", label: "Aktivitas Login", icon: MonitorSmartphone, roles: ["admin"] },
       { key: "log", label: "Log Aktivitas", icon: ScrollText, roles: ["admin"] },
       { key: "hakakses", label: "Hak Akses", icon: ShieldCheck, roles: ["admin"] },
     ],
   },
-  { key: "bantuan", label: "Bantuan", icon: LifeBuoy, roles: ["pengurus"] },
 ];
 
 function buildMenu(role) {
@@ -109,7 +115,8 @@ const TRAIL_LABEL = {
   "rekap-harian": "Rekap Harian",
   musyawarah: "Musyawarah",
   pengaduan: "Laporan Masuk",
-  bantuan: "Bantuan",
+  bantuan: "Pusat Bantuan",
+  "tutorial-video": "Tutorial video",
   pemeliharaan: "Pemeliharaan",
   "pantau-login": "Aktivitas Login",
   log: "Log Aktivitas",
@@ -164,7 +171,12 @@ function NavButton({ item, active, onNav, collapsed, mobile = false }) {
       ) : <Icon size={19} className={on ? "text-[#14633F]" : undefined} />}
       {(!collapsed || mobile) && (
         <span className={mobile ? "flex min-h-10 w-full flex-col items-center justify-start break-words leading-5" : "min-w-0 flex-1 text-left"}>
-          <span>{item.label}</span>
+          <span className="inline-flex items-center gap-1.5">
+            {item.label}
+            {item.badge && (
+              <span className="rounded-full bg-[#E3F3EA] px-1.5 py-0.5 text-[10px] font-bold text-[#0E4E31]">{item.badge}</span>
+            )}
+          </span>
           {item.comingSoon && <span className="text-xs font-semibold text-[#5F6B63]">Segera hadir</span>}
         </span>
       )}
@@ -485,7 +497,8 @@ export default function AdminLayout({ user, role = "admin" }) {
             />
           )}
           {active === "kalender" && <KalenderView />}
-          {active === "bantuan" && <BantuanView />}
+          {active === "bantuan" && <BantuanView role={role} />}
+          {active === "tutorial-video" && <TutorialVideoView role={role} />}
           {active === "pemeliharaan" && role === "admin" && <MaintenanceSettings />}
           {active === "kode-akses" && <KodeAksesView onLeave={leaveGuard} />}
           {active === "scan-presensi" && <ScanPresensiView />}

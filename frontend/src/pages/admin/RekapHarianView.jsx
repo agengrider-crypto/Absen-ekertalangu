@@ -239,21 +239,12 @@ export default function RekapHarianView() {
                           {r.name}
                           <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${chip.cls}`}>{chip.t}</span>
                         </span>
-                        <span className="block text-[11px] text-[#5F6B63]">
-                          {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—"}
-                          {r.kelompok_name ? ` · ${r.kelompok_name}` : ""}
-                        </span>
                       </span>
                       <span className="flex items-center gap-2 shrink-0">
                         <PersenRingkas value={r.ratio} sub={`${r.hadir}/${r.sesi_total}`} testid={`harian-persen-${r.user_id}`} />
                         <ChevronDown size={16} className={`text-[#5F6B63] transition-transform ${expanded ? "rotate-180" : ""}`} />
                       </span>
                     </button>
-
-                    <div className="mt-1.5 text-[11px] font-semibold text-[#5F6B63]" data-testid={`harian-keterangan-${r.user_id}`}>
-                      {keteranganHitungan({ hadir: r.hadir, izin: r.izin, sakit: r.sakit,
-                        alpha: r.alpha, belum_diabsen: r.belum_diabsen, total: r.sesi_total, satuan: "sesi" })}
-                    </div>
 
                     {expanded && (
                       <div className="mt-2 flex flex-wrap gap-1.5" data-testid={`harian-detail-${r.user_id}`}>

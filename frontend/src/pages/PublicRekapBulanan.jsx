@@ -5,10 +5,18 @@ import { api } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import ReportHeader from "@/components/ReportHeader";
 import { PercentBar } from "./PublicRekapGabungan";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MONTHLY_RECAP } from "@/constants/testIds";
 
 const GEN = [["semua", "Semua"], ["L", "Laki-laki"], ["P", "Perempuan"]];
+
+const STATUS_PILL = {
+  hadir: { label: "Hadir", cls: "bg-[#E3F3EA] text-[#0E4E31]" },
+  izin: { label: "Izin", cls: "bg-[#FBF1D6] text-[#6B4500]" },
+  sakit: { label: "Sakit", cls: "bg-[#E3EEFB] text-[#1D4F91]" },
+  alpha: { label: "Alpha", cls: "bg-[#FBE5E3] text-[#A32A2A]" },
+  belum_diabsen: { label: "Belum diabsen", cls: "bg-[#F0EEE6] text-[#5F6B63]" },
+  optional: { label: "Tidak wajib", cls: "bg-[#ECE4FB] text-[#4C2A9B]" },
+};
 
 function badgeOf(r) {
   if (r.pertemuan === 0) return { t: "Tidak ada kegiatan", cls: "bg-[#F0EEE6] text-[#5F6B63]" };
@@ -24,11 +32,19 @@ export default function PublicRekapBulanan() {
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [gender, setGender] = useState("semua");
+  const [openMeetings, setOpenMeetings] = useState({});
+  const [openAll, setOpenAll] = useState(false);
 
   useEffect(() => {
     api.get(`/rekap-bulanan/${token}`)
       .then(({ data: d }) => setData(d))
-      .catch(() => setErr("Tautan rekap bulanan tidak ditemukan."));
+      .catch((e) => {
+        if (e.response?.status === 410) {
+          setErr("Tautan sudah kedaluwarsa. Minta tautan baru ke pengurus.");
+        } else {
+          setErr("Tautan rekap bulanan tidak ditemukan.");
+        }
+      });
   }, [token]);
 
   const rows = useMemo(() => {
@@ -177,40 +193,88 @@ export default function PublicRekapBulanan() {
           </div>
         </div>
 
-        {/* Daftar pertemuan + rincian sesi */}
-        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 mt-4 space-y-4" data-testid="bulanan-public-pertemuan">
-          <div className="text-sm font-semibold text-[#14201A]">Kegiatan &amp; Sesi Bulan {data.label}</div>
+        {/* Daftar pertemuan: accordion per acara (sama seperti halaman utama rekap) */}
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 mt-4 space-y-3" data-testid="bulanan-public-pertemuan">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-sm font-semibold text-[#14201A]">Kegiatan &amp; Sesi Bulan {data.label}</div>
+            {data.per_pertemuan.length > 0 && (
+              <button
+                type="button"
+                data-testid="bulanan-public-toggle-all"
+                onClick={() => setOpenAll((v) => !v)}
+                className="min-h-10 rounded-xl border-2 border-[#E7E3D8] px-3 text-xs font-semibold text-[#5F6B63] hover:border-[#14633F]"
+              >
+                {openAll ? "Tutup semua" : "Buka semua"}
+              </button>
+            )}
+          </div>
           {data.per_pertemuan.length === 0 ? (
             <div className="text-sm text-[#5F6B63]">Belum ada kegiatan pada bulan ini.</div>
           ) : (
-            <TooltipProvider>
-              {data.per_pertemuan.map((p, i) => (
-                <div key={i} className="rounded-xl border border-[#F0EEE6] p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="font-semibold text-sm text-[#14201A]">{p.date} · {p.name}</div>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" data-testid={`${MONTHLY_RECAP.publicMeetingAttendancePrefix}-${i}`}
-                          aria-label={`Kehadiran ${p.hadir} dari ${p.peserta} peserta`}
-                          className="min-h-11 rounded-lg bg-[#E3F3EA] px-3 text-sm font-bold text-[#0E4E31]">
-                          Hadir {p.hadir}/{p.peserta}
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>{p.ratio}% hadir</TooltipContent>
-                    </Tooltip>
+            <div className="space-y-2">
+              {data.per_pertemuan.map((p, i) => {
+                const open = openAll || Boolean(openMeetings[i]);
+                return (
+                  <div key={i} className="overflow-hidden rounded-xl border border-[#F0EEE6]">
+                    <button
+                      type="button"
+                      data-testid={`${MONTHLY_RECAP.publicMeetingAttendancePrefix}-${i}`}
+                      onClick={() => setOpenMeetings((prev) => ({ ...prev, [i]: !prev[i] }))}
+                      aria-expanded={open}
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-[#F6F4EE]"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-[11px] font-semibold text-[#5F6B63]">{p.date}</span>
+                        <span className="block truncate text-sm font-semibold text-[#14201A]">{p.name}</span>
+                      </span>
+                      <span className="shrink-0 rounded-lg bg-[#E3F3EA] px-2.5 py-1 text-xs font-bold text-[#0E4E31]">
+                        Hadir {p.hadir} dari {p.peserta}
+                      </span>
+                    </button>
+                    {open && (
+                      <div className="border-t border-[#F0EEE6] px-3 py-2.5">
+                        <div className="text-[11px] font-semibold text-[#5F6B63]">
+                          Hadir {p.hadir} · Izin {p.izin} · Sakit {p.sakit} · Alpha {p.alpha}
+                        </div>
+                        {p.catatan && (
+                          <div className="mt-2 rounded-lg border border-[#EAD596] bg-[#FBF1D6] px-2.5 py-2 text-[11px] leading-relaxed text-[#6B4500]"
+                            data-testid={`bulanan-public-catatan-${i}`}>
+                            <b>Catatan musyawarah:</b> {p.catatan}
+                          </div>
+                        )}
+                        {(p.peserta_rows || []).length > 0 && (
+                          <ul className="mt-2 divide-y divide-[#F0EEE6]">
+                            {p.peserta_rows.map((person, j) => {
+                              const st = STATUS_PILL[person.status] || STATUS_PILL.belum_diabsen;
+                              return (
+                                <li key={`${person.name}-${j}`} className="flex min-h-9 items-center justify-between gap-2 py-1">
+                                  <span className="min-w-0 truncate text-sm text-[#14201A]">
+                                    {person.name}
+                                    {person.session_labels?.length > 0 && (
+                                      <span className="text-[#5F6B63]"> · {person.session_labels.join(", ")}</span>
+                                    )}
+                                  </span>
+                                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${st.cls}`}>{st.label}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        )}
+                        {(p.sesi || []).length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {p.sesi.map((x, j) => (
+                              <span key={j} className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${x.required ? "bg-[#E3F3EA] text-[#0E4E31]" : "bg-[#F0EEE6] text-[#5F6B63]"}`}>
+                                {x.label} {x.start_time}–{x.end_time}{x.required ? "" : " · opsional"}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {(p.sesi || []).length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {p.sesi.map((x, j) => (
-                        <span key={j} className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${x.required ? "bg-[#E3F3EA] text-[#0E4E31]" : "bg-[#D9F2F4] text-[#0E4E31]"}`}>
-                          {x.label} {x.start_time}–{x.end_time}{x.required ? "" : " · opsional"}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </TooltipProvider>
+                );
+              })}
+            </div>
           )}
         </div>
 

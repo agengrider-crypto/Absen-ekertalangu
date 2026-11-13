@@ -55,6 +55,7 @@ export default function KalenderView() {
 
   const dayItems = byDate[pick] || [];
   const totalBulan = (items || []).length;
+  const [selectedId, setSelectedId] = useState(null);
 
   return (
     <div data-testid="kalender-view">
@@ -94,7 +95,7 @@ export default function KalenderView() {
                   <button
                     key={ymd}
                     data-testid={`kalender-day-${ymd}`}
-                    onClick={() => setPick(ymd)}
+                    onClick={() => { setPick(ymd); setSelectedId(null); }}
                     className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 text-sm transition-colors border-2 ${
                       on ? "bg-[#14633F] text-white border-transparent"
                         : list.length ? "bg-[#E3F3EA] text-[#0E4E31] font-semibold border-transparent hover:border-[#14633F]"
@@ -103,9 +104,43 @@ export default function KalenderView() {
                   >
                     {parseInt(ymd.slice(-2), 10)}
                     {list.length > 0 && (
-                      <span className={`text-[10px] font-bold ${on ? "text-white/85" : "text-[#5F6B63]"}`}>
-                        {list.length} keg
-                      </span>
+                      <>
+                        {/* HP: titik penanda */}
+                        <span className={`flex gap-0.5 sm:hidden ${on ? "text-white/85" : "text-[#0E4E31]"}`}>
+                          {list.slice(0, 3).map((k) => (
+                            <i key={k.id} className="h-1 w-1 rounded-full bg-current" />
+                          ))}
+                        </span>
+                        {/* Desktop: chip kegiatan yang bisa diklik */}
+                        <span className="hidden w-full flex-col gap-0.5 px-0.5 sm:flex">
+                          {list.slice(0, 2).map((k) => (
+                            <span
+                              key={k.id}
+                              role="button"
+                              tabIndex={0}
+                              data-testid={`kalender-chip-${k.id}`}
+                              onClick={(e) => { e.stopPropagation(); setPick(ymd); setSelectedId(k.id); }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault(); e.stopPropagation();
+                                  setPick(ymd); setSelectedId(k.id);
+                                }
+                              }}
+                              title={`${k.name} · ${k.start_time}–${k.end_time}`}
+                              className={`block w-full truncate rounded px-1 py-0.5 text-left text-[9px] font-semibold leading-tight ${
+                                on ? "bg-white/20 text-white" : "bg-white text-[#0E4E31]"
+                              }`}
+                            >
+                              {k.start_time} {k.session_label || k.name}
+                            </span>
+                          ))}
+                          {list.length > 2 && (
+                            <span className={`text-[9px] font-bold ${on ? "text-white/80" : "text-[#5F6B63]"}`}>
+                              +{list.length - 2}
+                            </span>
+                          )}
+                        </span>
+                      </>
                     )}
                   </button>
                 );
@@ -124,9 +159,18 @@ export default function KalenderView() {
               <div className="mt-3 space-y-2">
                 {dayItems.map((k) => {
                   const meta = phaseMeta(phaseOf(k));
+                  const on = selectedId === k.id;
                   return (
                   <div key={k.id} data-testid={`kalender-item-${k.id}`}
-                    className="rounded-xl border-2 border-[#E7E3D8] bg-[#F6F4EE] p-3">
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedId(on ? null : k.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(on ? null : k.id); }
+                    }}
+                    className={`cursor-pointer rounded-xl border-2 p-3 transition-colors ${
+                      on ? "border-[#14633F] bg-white" : "border-[#E7E3D8] bg-[#F6F4EE] hover:border-[#14633F]"
+                    }`}>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                         style={{ backgroundColor: `${typeColor(k.type)}1a`, color: typeColor(k.type) }}>
@@ -155,6 +199,28 @@ export default function KalenderView() {
                       Belum diabsen <b className="text-[#5F6B63]"> {k.counts?.belum_diabsen ?? 0}</b> ·
                       <b className="text-[#0E4E31]"> {k.counts?.ratio ?? 0}%</b>
                     </div>
+                    {on && (
+                      <div className="mt-2.5 flex flex-wrap gap-2" data-testid={`kalender-actions-${k.id}`}>
+                        <a
+                          href={`/absensi/${k.akses_token || ""}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#0B6B52] px-3.5 text-sm font-semibold text-white hover:brightness-110"
+                        >
+                          Buka absensi
+                        </a>
+                        <a
+                          href={`/rekap/${k.share_token || ""}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex h-10 items-center gap-1.5 rounded-xl border-2 border-[#14633F] px-3.5 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]"
+                        >
+                          Rekap
+                        </a>
+                      </div>
+                    )}
                   </div>
                   );
                 })}

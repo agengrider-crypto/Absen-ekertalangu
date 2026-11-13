@@ -1,3 +1,5 @@
+// Pilih Peran — daftar baris sederhana (ikon bulat + nama + keterangan + chevron).
+// Hanya peran yang dimiliki akun yang ditampilkan.
 import { Navigate, useNavigate } from "react-router-dom";
 import { Shield, Users, UserCheck, GraduationCap, LogOut, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -6,56 +8,12 @@ import { Logo } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
 import { getActiveRole, setActiveRole } from "@/lib/roles";
 
-const ROLE_META = {
-  admin: {
-    icon: Shield,
-    title: "Administrator",
-    description:
-      "Kelola pengguna, buat & atur jadwal pengajian, kelola QR code publik, dan lihat laporan presensi lengkap.",
-    badge: "Akses Penuh",
-    action: "Masuk sebagai Administrator",
-    color: "#14201A",
-    bg: "#F0EEE6",
-    text: "#14201A",
-    border: "#D9D4C5",
-  },
-  pengurus: {
-    icon: Users,
-    title: "Pengurus",
-    description:
-      "Buka sesi presensi pengajian, verifikasi kehadiran peserta, dan pantau rekap kehadiran harian.",
-    badge: "Akses Operasional",
-    action: "Masuk sebagai Pengurus",
-    color: "#5F6B63",
-    bg: "#F0EEE6",
-    text: "#5F6B63",
-    border: "#D9D4C5",
-  },
-  guru: {
-    icon: GraduationCap,
-    title: "Guru / Pengajar",
-    description:
-      "Jadwal mengajar, materi pembelajaran, dan catatan perkembangan peserta — segera hadir.",
-    badge: "Segera Hadir",
-    action: "Masuk sebagai Guru",
-    color: "#5F6B63",
-    bg: "#F0EEE6",
-    text: "#5F6B63",
-    border: "#D9D4C5",
-  },
-  peserta: {
-    icon: UserCheck,
-    title: "Peserta",
-    description:
-      "Lakukan presensi cepat via QR code, cek jadwal pengajian terkini, dan lihat riwayat kehadiran Anda.",
-    badge: "Akses Peserta",
-    action: "Masuk sebagai Peserta",
-    color: "#14201A",
-    bg: "#F0EEE6",
-    text: "#14201A",
-    border: "#D9D4C5",
-  },
-};
+const ROLE_ROWS = [
+  { key: "admin", icon: Shield, title: "Administrator", desc: "Kelola semua" },
+  { key: "guru", icon: GraduationCap, title: "Guru / Pengajar", desc: "Kelas dan pembelajaran" },
+  { key: "pengurus", icon: Users, title: "Pengurus", desc: "Absen dan rekap" },
+  { key: "peserta", icon: UserCheck, title: "Peserta", desc: "Absen dan riwayat saya" },
+];
 
 export default function RoleDashboard() {
   const navigate = useNavigate();
@@ -65,7 +23,7 @@ export default function RoleDashboard() {
 
   const roles = user.roles || [];
 
-  // FASE 16 — akun dengan satu peran (mis. peserta) langsung masuk areanya.
+  // Akun dengan satu peran langsung masuk areanya.
   if (roles.length === 1) return <Navigate to={`/area/${roles[0]}`} replace />;
   const activeRole = getActiveRole(roles);
   if (activeRole) return <Navigate to={`/area/${activeRole}`} replace />;
@@ -79,97 +37,81 @@ export default function RoleDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F6F4EE]">
-      <header className="sticky top-0 z-40 bg-[#F6F4EE]/90 backdrop-blur-md border-b border-[#E7E3D8]">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-40 border-b border-[#E7E3D8] bg-[#F6F4EE]/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <button
             data-testid="button-account-switcher"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 h-11 px-3.5 rounded-xl border border-[#E7E3D8] bg-white text-[#5F6B63] font-semibold text-sm hover:border-[#14633F] hover:text-[#0E4E31] transition-colors"
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3.5 text-sm font-semibold text-[#5F6B63] transition-colors hover:border-[#14633F] hover:text-[#0E4E31]"
           >
             <RefreshCw size={18} /> Ganti Akun
           </button>
-
-          {/* Foto profil + menu akun (tersedia di halaman peran juga) */}
           <ProfileMenu role={roles[0]} />
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
-        <div className="flex justify-center mb-6">
+      <main className="mx-auto max-w-[560px] px-4 py-8">
+        <div className="mb-6 flex justify-center">
           <Logo size={40} />
         </div>
-        <div className="text-center mb-10">
-          <h1 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight text-[#14201A]">
-            Pilih Peran Anda
-          </h1>
-          <p className="text-[#5F6B63] text-lg mt-2">
-            Halo <span className="font-semibold text-[#0E4E31]">{user.name}</span>, pilih area yang ingin Anda buka.
+        <div className="mb-6 text-center">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-[#14201A]">Pilih Peran Anda</h1>
+          <p className="mt-1.5 text-sm text-[#5F6B63]">
+            Halo <span className="font-semibold text-[#0E4E31]">{user.name}</span>, pilih area yang ingin dibuka.
           </p>
         </div>
 
         {incomplete && (
-          <div className="max-w-2xl mx-auto mb-8 rounded-2xl border-2 border-[#EAD596] bg-[#FBF1D6] p-4 flex items-start gap-3" data-testid="role-incomplete-banner">
-            <AlertCircle size={20} className="text-[#6B4500] shrink-0 mt-0.5" />
+          <div className="mb-5 flex items-start gap-3 rounded-2xl border-2 border-[#EAD596] bg-[#FBF1D6] p-4" data-testid="role-incomplete-banner">
+            <AlertCircle size={20} className="mt-0.5 shrink-0 text-[#6B4500]" />
             <div className="text-sm text-[#6B4500]">
               Data profil Anda belum lengkap: <b>{(user.missing_fields || []).join(", ")}</b>.
-              Silakan buka menu <b>Profil Saya</b> di kanan atas untuk melengkapinya.
+              Buka menu <b>Profil Saya</b> di kanan atas untuk melengkapinya.
             </div>
           </div>
         )}
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {["admin", "pengurus", "guru", "peserta"].map((rid) => {
-            const meta = ROLE_META[rid];
-            const owned = roles.includes(rid);
-            if (!owned) return null;
-            const Icon = meta.icon;
+        <div className="overflow-hidden rounded-2xl border border-[#E7E3D8] bg-white" data-testid="role-list">
+          {ROLE_ROWS.filter((r) => roles.includes(r.key)).map((r) => {
+            const Icon = r.icon;
+            const on = r.key === activeRole;
             return (
-              <div
-                key={rid}
-                data-testid={`card-role-${rid}`}
-                className="bg-white rounded-2xl p-6 border border-[#E7E3D8] shadow-[0_4px_20px_-2px_rgba(20,32,26,0.08)] flex flex-col hover:shadow-[0_10px_32px_-6px_rgba(20,32,26,0.18)] hover:-translate-y-1 transition-all duration-200"
+              <button
+                key={r.key}
+                type="button"
+                data-testid={`row-role-${r.key}`}
+                aria-current={on ? "true" : undefined}
+                onClick={() => { setActiveRole(r.key); navigate(`/area/${r.key}`); }}
+                className={`flex w-full items-center gap-3 border-b border-[#F0EEE6] px-4 py-3.5 text-left transition-colors last:border-b-0 ${
+                  on ? "bg-[#E3F3EA]" : "hover:bg-[#F6F4EE]"
+                }`}
               >
-                <div
-                  className="h-14 w-14 rounded-2xl flex items-center justify-center mb-4"
-                  style={{ backgroundColor: meta.bg, color: meta.color }}
-                >
-                  <Icon size={28} />
-                </div>
-                <span
-                  className="self-start text-xs font-bold px-2.5 py-1 rounded-full mb-3"
-                  style={{ backgroundColor: meta.bg, color: meta.text, border: `1px solid ${meta.border}` }}
-                >
-                  {meta.badge}
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  on ? "bg-[#14633F] text-white" : "bg-[#E3F3EA] text-[#0E4E31]"
+                }`}>
+                  <Icon size={18} />
                 </span>
-                <h2 className="font-heading text-xl font-bold text-[#14201A] mb-2">{meta.title}</h2>
-                <p className="text-[#5F6B63] text-base leading-relaxed flex-1">{meta.description}</p>
-                <button
-                  data-testid={`button-select-role-${rid}`}
-                  onClick={() => {
-                    setActiveRole(rid);
-                    navigate(`/area/${rid}`);
-                  }}
-                  className="mt-5 w-full h-[52px] rounded-xl text-white text-base font-bold flex items-center justify-center gap-2 transition-colors"
-                  style={{ backgroundColor: meta.color }}
-                >
-                  {meta.action} <ChevronRight size={20} />
-                </button>
-              </div>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-[#14201A]">{r.title}</span>
+                  <span className="mt-0.5 block text-xs text-[#5F6B63]">{r.desc}</span>
+                </span>
+                <ChevronRight size={18} className="shrink-0 text-[#D9D4C5]" />
+              </button>
             );
           })}
         </div>
 
         {roles.length === 0 && (
-          <div className="text-center text-[#5F6B63] mt-10" data-testid="no-roles">
+          <div className="mt-8 text-center text-[#5F6B63]" data-testid="no-roles">
             Akun Anda belum memiliki peran. Hubungi administrator.
           </div>
         )}
 
-        <div className="text-center mt-12">
+        <div className="mt-10 text-center">
           <button
             data-testid="button-logout"
             onClick={handleLogout}
-            className="inline-flex items-center gap-2 text-[#5F6B63] font-medium hover:text-[#0E4E31]"
+            className="inline-flex items-center gap-2 font-medium text-[#5F6B63] hover:text-[#0E4E31]"
           >
             <LogOut size={18} /> Keluar
           </button>
