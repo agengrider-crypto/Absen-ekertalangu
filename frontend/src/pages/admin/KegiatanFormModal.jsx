@@ -110,10 +110,20 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
   const [participants, setParticipants] = useState(initial?.participant_ids || []);
   const [requiredParticipants, setRequiredParticipants] = useState(initial?.session_participant_ids || []);
   const [multi, setMulti] = useState(Boolean(initial?.multi));
-  const [sessions, setSessions] = useState([
-    { label: "Pagi", start_time: "08:00", end_time: "10:00", teacher: "", material: "", location: "", required: true },
-    { label: "Sore", start_time: "16:00", end_time: "17:30", teacher: "", material: "", location: "", required: true },
-  ]);
+  const [sessions, setSessions] = useState(() => (
+    Array.isArray(initial?.sessions) && initial.sessions.length >= 2
+      ? initial.sessions.map((s) => ({
+        label: s.label || "Sesi",
+        start_time: s.start_time || "08:00",
+        end_time: s.end_time || "10:00",
+        teacher: s.teacher || "", material: s.material || "",
+        location: s.location || "", required: s.required !== false,
+      }))
+      : [
+        { label: "Pagi", start_time: "08:00", end_time: "10:00", teacher: "", material: "", location: "", required: true },
+        { label: "Sore", start_time: "16:00", end_time: "17:30", teacher: "", material: "", location: "", required: true },
+      ]
+  ));
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState(0);
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
