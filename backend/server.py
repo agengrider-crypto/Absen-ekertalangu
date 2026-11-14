@@ -6064,38 +6064,56 @@ async def staff_scan_presensi(request: Request, staff: dict = Depends(require_st
     return {"date": d, "total": len(rows), "rows": rows}
 
 
-PENGADUAN_CATEGORIES = ["curhat", "saran", "pengaduan", "kendala", "pertanyaan"]
+PENGADUAN_CATEGORIES = [
+    "pertemanan", "keluarga", "sekolah", "perundungan", "kekerasan", "kehadiran",
+    "perasaan", "saran", "curhat", "mental", "ekonomi", "lainnya",
+]
 PENGADUAN_LABEL = {
-    "curhat": "Curhat / Konsultasi",
+    "pertemanan": "Pertemanan",
+    "keluarga": "Keluarga",
+    "sekolah": "Sekolah / Kerja / Kuliah",
+    "perundungan": "Perundungan / Bullying",
+    "kekerasan": "Kekerasan",
+    "kehadiran": "Kehadiran",
+    "perasaan": "Perasaan pribadi",
     "saran": "Saran & Masukan",
+    "curhat": "Curhat / Konsultasi",
+    "mental": "Permasalahan mental",
+    "ekonomi": "Ekonomi",
+    "lainnya": "Lainnya",
+    # Nilai lama tetap dibaca apa adanya pada pesan yang sudah tersimpan.
     "pengaduan": "Pengaduan",
     "kendala": "Kendala Hadir",
     "pertanyaan": "Pertanyaan Keagamaan",
 }
-PENGADUAN_MAX = 5000
+PENGADUAN_MAX = 800
+PENGADUAN_JUDUL_MAX = 60
 
 
 class PengaduanInput(BaseModel):
     message: str
-    category: str = "curhat"
+    category: str = ""
     anonymous: bool = False
+    judul: str = ""
 
 
 def serialize_pengaduan(p: dict, for_staff: bool = False) -> dict:
     return {
         "id": p["_id"],
         "category": p.get("category", "curhat"),
-        "category_label": PENGADUAN_LABEL.get(p.get("category", "curhat"), "Curhat"),
+        "category_label": PENGADUAN_LABEL.get(p.get("category", "curhat"), "Lainnya"),
+        "judul": p.get("judul") or "",
         "message": p.get("message"),
         "anonymous": bool(p.get("anonymous")),
-        "name": ("Peserta (tanpa nama)" if p.get("anonymous") else (p.get("name") or "Peserta")),
+        "name": ("Anonim" if p.get("anonymous") else (p.get("name") or "Peserta")),
         "phone": None if p.get("anonymous") else p.get("phone"),
         "at": p.get("at"),
         "dibaca": bool(p.get("read_by")),
         "dibaca_oleh": (p.get("read_by") or [{}])[-1].get("name") if p.get("read_by") else None,
     } if for_staff else {
         "id": p["_id"], "category": p.get("category", "curhat"),
-        "category_label": PENGADUAN_LABEL.get(p.get("category", "curhat"), "Curhat"),
+        "category_label": PENGADUAN_LABEL.get(p.get("category", "curhat"), "Lainnya"),
+        "judul": p.get("judul") or "",
         "message": p.get("message"), "anonymous": bool(p.get("anonymous")),
         "at": p.get("at"), "dibaca": bool(p.get("read_by")),
     }
@@ -6104,20 +6122,32 @@ def serialize_pengaduan(p: dict, for_staff: bool = False) -> dict:
 @api_router.post("/me/pengaduan")
 async def create_pengaduan(body: PengaduanInput, user: dict = Depends(get_current_user)):
     msg = (body.message or "").strip()
+    judul = (body.judul or "").strip()
+    cat = (body.category or "").strip()
+    if cat not in PENGADUAN_CATEGORIES:
+        raise HTTPException(status_code=400, detail="Pilih kategori cerita terlebih dahulu.")
+    if len(judul) < 3:
+        raise HTTPException(status_code=400, detail="Judul masalah minimal 3 huruf.")
     if len(msg) < 10:
         raise HTTPException(status_code=400,
-                            detail="Mohon tuliskan pesan minimal 10 huruf agar pengurus dapat memahami keadaan Anda.")
-    cat = body.category if body.category in PENGADUAN_CATEGORIES else "curhat"
+                            detail="Mohon tuliskan cerita minimal 10 huruf agar pengurus dapat memahami keadaan Anda.")
+    anonymous = bool(body.anonymous)
     doc = {
-        "_id": str(uuid.uuid4()), "user_id": str(user["_id"]),
-        "name": user.get("name"), "phone": user.get("phone"),
-        "anonymous": bool(body.anonymous), "category": cat, "message": msg[:PENGADUAN_MAX],
-        "kelompok_id": user.get("kelompok_id"), "read_by": [],
-        "at": now_wita().isoformat(),
+        "_id": str(uuid.uuid4()),
+        "anonymous": anonymous, "category": cat,
+        "judul": judul[:PENGADUAN_JUDUL_MAX], "message": msg[:PENGADUAN_MAX],
+        "read_by": [], "at": now_wita().isoformat(),
     }
+    # Cerita anonim: tidak menyimpan identitas apa pun (tanpa user_id/nama/telepon).
+    if not anonymous:
+        doc.update({
+            "user_id": str(user["_id"]),
+            "name": user.get("name"), "phone": user.get("phone"),
+            "kelompok_id": user.get("kelompok_id"),
+        })
     await db.pengaduans.insert_one(doc)
-    return {"id": doc["_id"],
-            "message": "Jazakumullahu khoiro. Pesan Anda sudah kami terima dan akan dibaca pengurus."}
+    return {"id": doc["_id"], "anonymous": anonymous,
+            "message": "Ceritamu sudah sampai ke pengurus."}
 
 
 @api_router.get("/me/pengaduan")
@@ -6125,7 +6155,7 @@ async def my_pengaduan(user: dict = Depends(get_current_user)):
     items = await db.pengaduans.find({"user_id": str(user["_id"])}).sort("at", -1).to_list(100)
     return {"items": [serialize_pengaduan(p) for p in items],
             "categories": [{"value": c, "label": PENGADUAN_LABEL[c]} for c in PENGADUAN_CATEGORIES],
-            "max_length": PENGADUAN_MAX}
+            "max_length": PENGADUAN_MAX, "max_title": PENGADUAN_JUDUL_MAX}
 
 
 @api_router.delete("/me/pengaduan/{pengaduan_id}")
@@ -6149,7 +6179,10 @@ async def staff_pengaduan(staff: dict = Depends(require_staff), q: str = "", lim
     rows = [serialize_pengaduan(p, for_staff=True) for p in items]
     t = q.strip().lower()
     if t:
-        rows = [r for r in rows if t in (r["message"] or "").lower() or t in (r["name"] or "").lower()]
+        rows = [r for r in rows
+                if t in (r["message"] or "").lower()
+                or t in (r["name"] or "").lower()
+                or t in (r.get("judul") or "").lower()]
     return {
         "total": len(rows),
         "belum_dibaca": len([r for r in rows if not r["dibaca"]]),
@@ -6377,10 +6410,10 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
                           "at": to_utc_iso(m.get("created_at")), "target": "musyawarah"})
         for p in await db.pengaduans.find({"read_by": {"$size": 0}}) \
                 .sort("at", -1).to_list(30):
-            who = "Peserta (tanpa nama)" if p.get("anonymous") else (p.get("name") or "Peserta")
+            who = "Anonim" if p.get("anonymous") else (p.get("name") or "Peserta")
             items.append({"type": "pengaduan", "id": p["_id"],
-                          "title": f"Pesan Ruang Teduh dari {who}",
-                          "subtitle": (p.get("message") or "")[:90],
+                          "title": f"Cerita Ruang Teduh dari {who}",
+                          "subtitle": (p.get("judul") or p.get("message") or "")[:90],
                           "at": to_utc_iso(p.get("at")), "target": "pengaduan"})
 
     items = [i for i in items if i.get("at")]

@@ -1,7 +1,7 @@
 // FASE 17 — Rekap Absen Harian: rincian tiap sesi dalam 1 hari + keterangan per peserta.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CalendarCheck, Loader2, Search, Users, Layers, ChevronLeft, ChevronRight,
+  CalendarCheck, Calendar1, Loader2, Search, Users, Layers, ChevronLeft, ChevronRight,
   Clock, User, MapPin, Info, ChevronDown, Link2, Send,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -97,7 +97,9 @@ export default function RekapHarianView() {
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-[#0E4E31]">Rekap Absen Harian</h1>
+          <h1 className="font-heading text-2xl font-bold text-[#0E4E31] inline-flex items-center gap-2">
+            <Calendar1 size={22} className="text-[#14633F]" /> Rekap Absen Harian
+          </h1>
           <p className="text-sm text-[#5F6B63] mt-0.5">
             Rincian kehadiran seluruh sesi pada satu tanggal, lengkap dengan keterangan hitungan tiap peserta.
           </p>

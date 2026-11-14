@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  CalendarRange, Loader2, Search, Users, TrendingUp, TrendingDown, Link2, Send,
+  CalendarRange, CalendarDays, Loader2, Search, Users, TrendingUp, TrendingDown, Link2, Send,
   ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Layers, ChevronDown, Eye, EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -161,7 +161,9 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
       />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-[#14201A]">Rekap Absen Bulanan</h1>
+          <h1 className="font-heading text-2xl font-bold text-[#14201A] inline-flex items-center gap-2">
+            <CalendarDays size={22} className="text-[#14633F]" /> Rekap Absen Bulanan
+          </h1>
           <p className="text-sm text-[#5F6B63] mt-0.5">
             Berapa kali setiap peserta mengikuti pertemuan dalam satu bulan. Satu hari kegiatan dihitung satu pertemuan.
           </p>

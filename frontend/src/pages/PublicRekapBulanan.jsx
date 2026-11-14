@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { CalendarRange, Users, TrendingDown, TrendingUp, Search, Layers, Loader2 } from "lucide-react";
+import { CalendarDays, Users, TrendingDown, TrendingUp, Search, Layers, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import ReportHeader from "@/components/ReportHeader";
@@ -78,9 +78,10 @@ export default function PublicRekapBulanan() {
       <main className="max-w-3xl mx-auto px-4">
         <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 shadow-sm">
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#E3F3EA] text-[#0E4E31] inline-flex items-center gap-1">
-            <CalendarRange size={12} /> {data.label}
+            <CalendarDays size={12} /> {data.label}
           </span>
-          <h1 className="font-heading text-xl font-bold text-[#14201A] mt-2">
+          <h1 className="font-heading text-xl font-bold text-[#14201A] mt-2 inline-flex items-center gap-2">
+            <CalendarDays size={20} className="text-[#14633F]" />
             {data.total_pertemuan} pertemuan · {data.total_peserta} peserta
           </h1>
           <p className="text-sm text-[#5F6B63] mt-1">

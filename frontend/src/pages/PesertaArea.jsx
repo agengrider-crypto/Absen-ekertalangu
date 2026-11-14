@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, CalendarDays, QrCode, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, HeartHandshake, LifeBuoy, MailWarning, MessagesSquare } from "lucide-react";
+import { Home, CalendarDays, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, HeartHandshake, LifeBuoy, MailWarning, MessagesSquare } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import RoleSwitcher from "@/components/RoleSwitcher";
@@ -19,8 +19,7 @@ import { K1Mark } from "@/components/Logo";
 const BASE_TABS = [
   { key: "beranda", label: "Beranda", icon: Home },
   { key: "kegiatan", label: "Kegiatan", icon: CalendarDays },
-  { key: "scan", label: "Scan", icon: ScanLine },
-  { key: "qr", label: "QR Saya", icon: QrCode },
+  { key: "scan", label: "Scan", icon: ScanLine, center: true },
   { key: "curhat", label: "Ruang Teduh", icon: HeartHandshake },
   { key: "profil", label: "Profil", icon: User },
 ];
@@ -31,6 +30,7 @@ export default function PesertaArea({ user }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [tab, setTab] = useState("beranda");
+  const [scanMode, setScanMode] = useState("scan"); // scan | qr
   const [updates, setUpdates] = useState([]);
   const [unread, setUnread] = useState(0);
   const [panel, setPanel] = useState(false);
@@ -64,8 +64,15 @@ export default function PesertaArea({ user }) {
 
   const doLogout = async () => { await logout(); navigate("/login"); };
 
+  // "qr" bukan lagi tab sendiri: pindah ke tab Scan dengan mode QR pribadi.
+  const gotoTab = (key) => {
+    if (key === "qr") { setScanMode("qr"); setTab("scan"); return; }
+    if (key === "scan") setScanMode("scan");
+    setTab(key);
+  };
+
   return (
-    <div className="min-h-screen bg-[#F6F4EE] pb-20">
+    <div className="min-h-screen bg-[#F6F4EE] pb-[calc(5.5rem_+_env(safe-area-inset-bottom))]">
       {/* Top bar */}
       <header className="sticky top-0 z-30 bg-white text-[#0E4E31] border-b border-[#E7E3D8]">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
@@ -149,30 +156,76 @@ export default function PesertaArea({ user }) {
 
       <main className="max-w-lg mx-auto px-4 py-4">
         <DemoBanner />
-        {tab === "beranda" && <><UndanganSaya /><Beranda user={user} onGoto={setTab} /></>}
+        {tab === "beranda" && <><UndanganSaya /><Beranda user={user} onGoto={gotoTab} /></>}
         {tab === "kegiatan" && <KegiatanList />}
-        {tab === "scan" && <ScanTab />}
-        {tab === "qr" && <QrSaya user={user} />}
+        {tab === "scan" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-1 rounded-xl border border-[#E7E3D8] bg-white p-1" role="tablist" aria-label="Scan atau QR pribadi">
+              {[
+                { key: "scan", label: "Scan Kegiatan" },
+                { key: "qr", label: "QR Saya" },
+              ].map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={scanMode === m.key}
+                  data-testid={`scan-toggle-${m.key}`}
+                  onClick={() => setScanMode(m.key)}
+                  className={`h-10 rounded-lg text-sm font-semibold transition-colors ${
+                    scanMode === m.key ? "bg-[#14633F] text-white" : "text-[#5F6B63] hover:bg-[#F6F4EE]"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            {scanMode === "scan" ? <ScanTab /> : <QrSaya user={user} />}
+          </div>
+        )}
         {tab === "curhat" && <RuangTeduh />}
         {tab === "bantuan" && <BantuanView />}
         {tab === "profil" && <ProfilTab user={user} />}
       </main>
 
-      {/* Bottom navigation */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[#E7E3D8]">
-        <div className="max-w-lg mx-auto grid" style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}>
+      {/* Bottom navigation — 5 tab, Scan bulat menonjol di tengah */}
+      <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-[#E7E3D8] bg-white pb-[env(safe-area-inset-bottom)]">
+        <div className="max-w-lg mx-auto grid items-end" style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}>
           {TABS.map((t) => {
             const Icon = t.icon;
             const on = tab === t.key;
+            if (t.center) {
+              return (
+                <button
+                  key={t.key}
+                  data-testid={`bottomnav-${t.key}`}
+                  onClick={() => gotoTab(t.key)}
+                  aria-label={t.label}
+                  className="flex flex-col items-center justify-end gap-0.5 pb-1.5"
+                >
+                  <span
+                    className={`-mt-6 flex h-[54px] w-[54px] items-center justify-center rounded-full border-4 border-[#F6F4EE] text-white shadow-[0_8px_20px_-6px_rgba(11,107,82,0.6)] transition-transform active:scale-95 ${
+                      on ? "bg-[#0E4E31]" : "bg-[#14633F]"
+                    }`}
+                  >
+                    <Icon size={24} strokeWidth={2.2} />
+                  </span>
+                  <span className={`text-[11px] ${on ? "font-semibold text-[#0E4E31]" : "font-medium text-[#5F6B63]"}`}>
+                    {t.label}
+                  </span>
+                </button>
+              );
+            }
             return (
               <button
                 key={t.key}
                 data-testid={`bottomnav-${t.key}`}
-                onClick={() => setTab(t.key)}
+                onClick={() => gotoTab(t.key)}
                 className={`flex flex-col items-center justify-center gap-0.5 py-2.5 ${on ? "text-[#0E4E31]" : "text-[#5F6B63]"}`}
               >
                 <Icon size={22} strokeWidth={on ? 2.4 : 2} />
                 <span className={`text-[11px] ${on ? "font-semibold" : "font-medium"}`}>{t.label}</span>
+                <span className={`h-1 w-1 rounded-full ${on ? "bg-[#14633F]" : "bg-transparent"}`} />
               </button>
             );
           })}

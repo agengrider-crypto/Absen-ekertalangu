@@ -5,8 +5,19 @@ import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 
 const CAT_CLS = {
-  curhat: "bg-[#E3F3EA] text-[#0E4E31]",
+  pertemanan: "bg-[#E3F3EA] text-[#0E4E31]",
+  keluarga: "bg-[#E3F3EA] text-[#0E4E31]",
+  sekolah: "bg-[#D9F2F4] text-[#1D4F91]",
+  perundungan: "bg-[#FBE5E3] text-[#A32A2A]",
+  kekerasan: "bg-[#FBE5E3] text-[#A32A2A]",
+  kehadiran: "bg-[#FBF1D6] text-[#6B4500]",
+  perasaan: "bg-[#ECE4FB] text-[#4C2A9B]",
   saran: "bg-[#E3F3EA] text-[#0E4E31]",
+  curhat: "bg-[#E3F3EA] text-[#0E4E31]",
+  mental: "bg-[#FBE5E3] text-[#A32A2A]",
+  ekonomi: "bg-[#FBF1D6] text-[#6B4500]",
+  lainnya: "bg-[#F0EEE6] text-[#5F6B63]",
+  // Nilai lama
   pengaduan: "bg-[#FBE5E3] text-[#A32A2A]",
   kendala: "bg-[#FBF1D6] text-[#6B4500]",
   pertanyaan: "bg-[#D9F2F4] text-[#1D4F91]",
@@ -51,7 +62,9 @@ export default function RuangTeduhView() {
   const rows = (data?.rows || []).filter((r) => {
     const t = q.trim().toLowerCase();
     if (!t) return true;
-    return (r.message || "").toLowerCase().includes(t) || (r.name || "").toLowerCase().includes(t);
+    return (r.message || "").toLowerCase().includes(t)
+      || (r.name || "").toLowerCase().includes(t)
+      || (r.judul || "").toLowerCase().includes(t);
   });
 
   return (
@@ -62,8 +75,7 @@ export default function RuangTeduhView() {
             <HeartHandshake size={22} className="text-[#0E4E31]" /> Laporan Masuk
           </h1>
           <p className="text-[#5F6B63] text-sm mt-1">
-            Pesan peserta: curhat, saran, pengaduan, kendala hadir, dan pertanyaan.
-            Mohon disikapi dengan lembut dan dijaga kerahasiaannya.
+            Cerita peserta dari Ruang Teduh. Mohon disikapi dengan lembut dan dijaga kerahasiaannya.
           </p>
         </div>
         {rows.length > 0 && (
@@ -125,6 +137,7 @@ export default function RuangTeduhView() {
                 <UserRound size={15} className="text-[#0E4E31]" /> {r.name}
                 {r.phone && <span className="text-xs font-normal text-[#5F6B63]">· {r.phone}</span>}
               </div>
+              {r.judul && <div className="mt-1.5 text-sm font-bold text-[#14201A]">{r.judul}</div>}
               <p className="text-sm text-[#14201A] mt-1.5 whitespace-pre-wrap leading-relaxed">{r.message}</p>
               <div className="mt-4">
                 {r.dibaca ? (

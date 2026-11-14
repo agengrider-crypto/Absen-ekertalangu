@@ -4,8 +4,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
   ShieldCheck, Menu, X, LogOut, MessagesSquare, Megaphone, UserCog, Layers,
-  MonitorSmartphone, CalendarRange, ListPlus, CopyCheck, KeyRound, ScanLine,
-  ClipboardList, CalendarCheck, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
+  MonitorSmartphone, ListPlus, CopyCheck, KeyRound, ScanLine,
+  ClipboardList, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
+  Calendar1,
   PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -66,8 +67,8 @@ const MENU = [
     group: "grup-laporan", label: "Rekap & Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"],
     items: [
       { key: "laporan-peserta", label: "Laporan per Peserta", icon: Users, roles: ["admin", "pengurus"] },
-      { key: "rekap-bulanan", label: "Rekap Bulanan", icon: CalendarRange, roles: ["admin", "pengurus"] },
-      { key: "rekap-harian", label: "Rekap Harian", icon: CalendarCheck, roles: ["admin", "pengurus"] },
+      { key: "rekap-bulanan", label: "Rekap Bulanan", icon: CalendarDays, roles: ["admin", "pengurus"] },
+      { key: "rekap-harian", label: "Rekap Harian", icon: Calendar1, roles: ["admin", "pengurus"] },
       { key: "musyawarah", label: "Musyawarah", icon: MessagesSquare, roles: ["admin", "pengurus"] },
       { key: "pengaduan", label: "Laporan Masuk", icon: HeartHandshake, roles: ["admin", "pengurus"] },
     ],
@@ -275,7 +276,7 @@ function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
     { key: "dashboard", label: "Beranda", icon: LayoutDashboard, action: () => onNavigate("dashboard") },
     { key: "peserta", label: "Peserta", icon: Users, action: () => onNavigate("peserta") },
     { key: "kegiatan", label: "Kegiatan", icon: CalendarDays, action: () => onNavigate("kegiatan") },
-    { key: "rekap", label: "Rekap", icon: CalendarRange, action: () => onNavigate("rekap-bulanan") },
+    { key: "rekap", label: "Rekap", icon: CalendarDays, action: () => onNavigate("rekap-bulanan") },
     { key: "menu", label: "Menu", icon: Menu, action: onOpenMenu },
   ];
 

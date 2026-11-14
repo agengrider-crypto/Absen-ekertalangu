@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
-  CalendarCheck, Loader2, Users, Layers, Clock, User, MapPin, Info, ChevronDown, Search,
+  CalendarCheck, Calendar1, Loader2, Users, Layers, Clock, User, MapPin, Info, ChevronDown, Search,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { PercentBar } from "@/pages/PublicRekapGabungan";
@@ -65,7 +65,7 @@ export default function PublicRekapHarian() {
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-5">
         <div className="rounded-2xl border-2 border-[#D9F2F4] bg-[#E3F3EA] p-4" data-testid="pub-harian-header">
           <div className="font-heading text-xl font-bold text-[#0A5961] inline-flex items-center gap-2">
-            <CalendarCheck size={20} /> {data.label || data.date}
+            <Calendar1 size={20} /> {data.label || data.date}
           </div>
           <div className="text-sm text-[#0E4E31] mt-1">
             {(data.kegiatan || []).join(" · ") || "-"} — {data.total_sesi} sesi

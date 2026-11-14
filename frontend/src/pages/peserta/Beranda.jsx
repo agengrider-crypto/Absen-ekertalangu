@@ -7,24 +7,23 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
 import { api, formatApiErrorDetail } from "@/lib/api";
-import { TYPE_LABEL, TYPE_COLOR, tanggalPanjang } from "@/pages/admin/kegiatanUtils";
-import TutorialQr from "./TutorialQr";
+import { tanggalPanjang } from "@/pages/admin/kegiatanUtils";
 import KesanPesan from "./KesanPesan";
-import { roleLabel, profileCompletion } from "@/lib/roles";
+import { profileCompletion } from "@/lib/roles";
 import { keteranganHitungan } from "@/pages/admin/rekapUtils";
 
 function Ring({ value }) {
   const r = 46, c = 2 * Math.PI * r;
   const off = c - (Math.min(value, 100) / 100) * c;
   return (
-    <div className="relative h-32 w-32" data-testid="attendance-ring">
+    <div className="relative h-24 w-24 shrink-0" data-testid="attendance-ring">
       <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
         <circle cx="60" cy="60" r={r} fill="none" stroke="#E7E3D8" strokeWidth="10" />
-        <circle cx="60" cy="60" r={r} fill="none" stroke="#14201A" strokeWidth="10" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={off} />
+        <circle cx="60" cy="60" r={r} fill="none" stroke="#14633F" strokeWidth="10" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={off} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold text-[#0E4E31]">{value}%</span>
-        <span className="text-[11px] text-[#5F6B63]">kehadiran</span>
+        <span className="text-xl font-bold text-[#0E4E31]">{value}%</span>
+        <span className="text-[10px] text-[#5F6B63]">kehadiran</span>
       </div>
     </div>
   );
@@ -125,42 +124,102 @@ export default function Beranda({ user, onGoto }) {
   if (data === null) return <div className="p-16 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>;
 
   const completion = profileCompletion(user);
+  const next = (data?.upcoming || [])[0];
+  const cur = history?.current || {};
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5F6B63]" data-testid="peserta-role-label">
-          {roleLabel("peserta")}
-        </div>
-        <h1 className="font-heading text-[26px] font-bold text-[#0E4E31] mt-1 leading-tight" data-testid="peserta-greeting">
-          Selamat datang, {user?.name} <span className="inline-block">👋</span>
+        <h1 className="font-heading text-[24px] font-bold text-[#14201A] leading-tight" data-testid="peserta-greeting">
+          Halo, {user?.name}
         </h1>
-        <p className="text-[#5F6B63] text-sm mt-1">{greeting}, semoga hari Anda berkah.</p>
+        <p className="text-[#5F6B63] text-sm mt-1">{greeting}. Semoga harimu lancar.</p>
       </div>
 
-      {/* Kelengkapan profil dengan persentase → arahkan ke akun pribadi */}
+      {/* Kegiatan berikutnya — disembunyikan bila tidak ada */}
+      {next && (
+        <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid={`upcoming-${next.id}`}>
+          <div className="text-[11px] font-bold uppercase tracking-wide text-[#5F6B63]">Kegiatan berikutnya</div>
+          <h2 className="font-heading font-bold text-[#14201A] mt-1">{next.name}</h2>
+          <div className="text-sm text-[#5F6B63] mt-1 flex flex-col gap-1">
+            <span className="inline-flex items-center gap-1.5"><CalendarDays size={14} /> {tanggalPanjang(next.date)}</span>
+            <span className="inline-flex items-center gap-1.5"><Clock size={14} /> {next.start_time}–{next.end_time} WITA</span>
+            {next.location && <span className="inline-flex items-center gap-1.5"><MapPin size={14} /> {next.location}</span>}
+          </div>
+        </div>
+      )}
+
+      {/* Satu-satunya elemen hijau tebal */}
+      <button
+        type="button"
+        data-testid="button-goto-scan"
+        onClick={() => onGoto("scan")}
+        className="flex w-full items-center gap-3 rounded-2xl bg-[#14633F] p-4 text-left text-white shadow-sm transition-colors hover:bg-[#0E4E31]"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15"><ScanLine size={22} /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-heading font-bold">Scan QR Kegiatan</span>
+          <span className="block text-xs text-white/80 mt-0.5">Absen mandiri dengan memindai QR kegiatan</span>
+        </span>
+        <ChevronRight size={18} className="shrink-0 text-white/80" />
+      </button>
+
+      <button
+        type="button"
+        data-testid="button-goto-barcode"
+        onClick={() => onGoto("qr")}
+        className="flex w-full items-center gap-2 px-1 py-1 text-left text-sm font-semibold text-[#0E4E31] hover:underline"
+      >
+        <QrCode size={16} /> Tampilkan QR Pribadi saya
+      </button>
+
+      {/* Kehadiran */}
+      <button
+        type="button"
+        data-testid="peserta-kehadiran-card"
+        onClick={() => document.getElementById("riwayat-kehadiran")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        className="w-full rounded-2xl border border-[#E7E3D8] bg-white p-4 text-left transition-colors hover:border-[#14633F]"
+      >
+        <div className="flex items-center gap-4">
+          <Ring value={data?.attendance?.ratio ?? 0} />
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold text-[#14201A]">Kehadiran Anda</div>
+            <div className="text-xs text-[#5F6B63] mt-0.5">
+              {data?.attendance?.hadir ?? 0} dari {data?.attendance?.total ?? 0} pengajian
+            </div>
+            <div className="mt-2 grid grid-cols-4 gap-1 text-center">
+              <span className="rounded-lg bg-[#E3F3EA] px-1 py-1">
+                <span className="block text-sm font-bold text-[#0E4E31]">{cur.hadir ?? 0}</span>
+                <span className="block text-[10px] text-[#5F6B63]">Hadir</span>
+              </span>
+              <span className="rounded-lg bg-[#FBF1D6] px-1 py-1">
+                <span className="block text-sm font-bold text-[#6B4500]">{cur.izin ?? 0}</span>
+                <span className="block text-[10px] text-[#5F6B63]">Izin</span>
+              </span>
+              <span className="rounded-lg bg-[#E3EEFB] px-1 py-1">
+                <span className="block text-sm font-bold text-[#1D4F91]">{cur.sakit ?? 0}</span>
+                <span className="block text-[10px] text-[#5F6B63]">Sakit</span>
+              </span>
+              <span className="rounded-lg bg-[#FBE5E3] px-1 py-1">
+                <span className="block text-sm font-bold text-[#A32A2A]">{cur.alpha ?? 0}</span>
+                <span className="block text-[10px] text-[#5F6B63]">Alpha</span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </button>
+
+      {/* Kelengkapan profil — disembunyikan bila 100% */}
       {completion.percent < 100 && (
         <button
           type="button"
           data-testid="peserta-kelengkapan-banner"
           onClick={() => onGoto("profil")}
-          className="w-full text-left rounded-2xl border border-[#E7E3D8] bg-white p-4 hover:border-[#14633F] transition-colors"
+          className="flex w-full items-center gap-2 px-1 py-1 text-left text-sm font-semibold text-[#0E4E31] hover:underline"
         >
-          <div className="flex items-center gap-3">
-            <span className="h-10 w-10 rounded-xl bg-[#E3F3EA] text-[#14633F] flex items-center justify-center shrink-0"><UserCog size={19} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-[#0E4E31]">Lengkapi Profil Kamu</span>
-              <span className="block text-xs text-[#5F6B63] mt-0.5">
-                {completion.filled} dari {completion.total} data terisi
-                {completion.missing.length ? ` · belum: ${completion.missing.slice(0, 3).join(", ")}${completion.missing.length > 3 ? ", …" : ""}` : ""}
-              </span>
-            </span>
-            <span className="shrink-0 text-lg font-bold text-[#0E4E31] tabular-nums" data-testid="peserta-kelengkapan-persen">{completion.percent}%</span>
-            <ChevronRight size={18} className="text-[#5F6B63] shrink-0" />
-          </div>
-          <div className="mt-3 h-1.5 w-full rounded-full bg-[#F0EEE6] overflow-hidden">
-            <div className="h-full rounded-full bg-[#14633F] transition-all duration-500" style={{ width: `${completion.percent}%` }} />
-          </div>
+          <UserCog size={16} /> Lengkapi profil
+          <span className="tabular-nums" data-testid="peserta-kelengkapan-persen">{completion.percent}%</span>
+          <ChevronRight size={16} className="ml-auto text-[#5F6B63]" />
         </button>
       )}
 
@@ -185,58 +244,10 @@ export default function Beranda({ user, onGoto }) {
         </div>
       ))}
 
-      {/* Pintasan cepat peserta — QR Pribadi Saya & Scan QR */}
-      <div className="grid grid-cols-2 gap-3" data-testid="peserta-shortcuts">
-        <button
-          type="button"
-          data-testid="button-goto-barcode"
-          onClick={() => onGoto("qr")}
-          className="rounded-2xl bg-[#14633F] text-white p-4 text-left shadow-sm hover:bg-[#0E4E31] transition-colors"
-        >
-          <span className="h-10 w-10 rounded-xl bg-white/15 flex items-center justify-center"><QrCode size={20} /></span>
-          <span className="block font-heading font-bold mt-2.5">QR Pribadi Saya</span>
-          <span className="block text-xs text-white/80 mt-0.5 leading-snug">
-            Tunjukkan QR ini ke petugas untuk diabsen
-          </span>
-          <span className="inline-flex items-center gap-1 text-xs font-semibold mt-2">
-            Buka QR pribadi saya <ChevronRight size={14} />
-          </span>
-        </button>
-        <button
-          type="button"
-          data-testid="button-goto-scan"
-          onClick={() => onGoto("scan")}
-          className="rounded-2xl bg-white border-2 border-[#E7E3D8] p-4 text-left hover:border-[#14633F] transition-colors"
-        >
-          <span className="h-10 w-10 rounded-xl bg-[#E3F3EA] text-[#14633F] flex items-center justify-center"><ScanLine size={20} /></span>
-          <span className="block font-heading font-bold text-[#14201A] mt-2.5">Scan QR Kegiatan</span>
-          <span className="block text-xs text-[#5F6B63] mt-0.5 leading-snug">
-            Absen mandiri dengan memindai QR kegiatan
-          </span>
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#0E4E31] mt-2">
-            Buka pemindai <ChevronRight size={14} />
-          </span>
-        </button>
-      </div>
-
-      {/* FASE 15 — Tutorial QR & kesan-pesan kegiatan tampil di dashboard peserta */}
-      <TutorialQr variant="pribadi" />
-      <TutorialQr variant="kegiatan" />
-
       <KesanPesan />
 
-      {/* Attendance ring */}
-      <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 flex items-center gap-5">
-        <Ring value={data?.attendance?.ratio ?? 0} />
-        <div>
-          <div className="text-sm text-[#5F6B63]">Kehadiran Anda</div>
-          <div className="text-lg font-bold text-[#14201A] mt-1">{data?.attendance?.hadir ?? 0} / {data?.attendance?.total ?? 0}</div>
-          <div className="text-xs text-[#5F6B63]">pengajian dihadiri</div>
-        </div>
-      </div>
-
       {/* Riwayat kehadiran per bulan */}
-      <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5" data-testid="riwayat-kehadiran">
+      <div id="riwayat-kehadiran" className="bg-white rounded-2xl border border-[#E7E3D8] p-5" data-testid="riwayat-kehadiran">
         <ReportHeader
           title="Laporan Kehadiran Saya"
           subtitle={history?.current?.label || "6 bulan terakhir"}
@@ -294,31 +305,6 @@ export default function Beranda({ user, onGoto }) {
               </BarChart>
             </ResponsiveContainer>
           </>
-        )}
-      </div>
-
-      {/* Upcoming */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="font-heading font-bold text-[#14201A]">Jadwal Mendatang</h2>
-          <button onClick={() => onGoto("kegiatan")} className="text-sm font-semibold text-[#0E4E31]">Lihat semua</button>
-        </div>
-        {(data?.upcoming || []).length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[#E7E3D8] p-6 text-center text-[#5F6B63] text-sm">Belum ada jadwal mendatang.</div>
-        ) : (
-          <div className="space-y-2">
-            {data.upcoming.map((k) => (
-              <div key={k.id} className="bg-white rounded-2xl border border-[#E7E3D8] p-4" data-testid={`upcoming-${k.id}`}>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: `${TYPE_COLOR[k.type]}1a`, color: TYPE_COLOR[k.type] }}>{TYPE_LABEL[k.type]}</span>
-                <h3 className="font-heading font-bold text-[#14201A] mt-1.5">{k.name}</h3>
-                <div className="text-sm text-[#5F6B63] mt-1 flex flex-col gap-1">
-                  <span className="inline-flex items-center gap-1.5"><CalendarDays size={14} /> {tanggalPanjang(k.date)}</span>
-                  <span className="inline-flex items-center gap-1.5"><Clock size={14} /> {k.start_time}–{k.end_time} WITA</span>
-                  {k.location && <span className="inline-flex items-center gap-1.5"><MapPin size={14} /> {k.location}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
         )}
       </div>
 

@@ -55,9 +55,7 @@ export default function KegiatanView({
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingSelected, setDeletingSelected] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
   const [showAddPage, setShowAddPage] = useState(false);
-  const [formInitial, setFormInitial] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [detailId, setDetailId] = useState(null);
   const [editItem, setEditItem] = useState(null);
@@ -97,10 +95,9 @@ export default function KegiatanView({
     if (!onSubPageChange) return;
     if (detailId) onSubPageChange("Detail Kegiatan");
     else if (showAddPage) onSubPageChange("Tambah Kegiatan");
-    else if (showAdd) onSubPageChange("Tambah Kegiatan");
     else if (editItem) onSubPageChange("Ubah Kegiatan");
     else onSubPageChange(null);
-  }, [detailId, showAdd, showAddPage, editItem, onSubPageChange]);
+  }, [detailId, showAddPage, editItem, onSubPageChange]);
 
   const [y, m] = month.split("-").map((x) => parseInt(x, 10));
   const shiftMonth = (delta) => {
@@ -439,8 +436,6 @@ export default function KegiatanView({
 
       <ListFab onAdd={openAddPage} addLabel="Tambah Kegiatan" />
 
-      {showAdd && <KegiatanFormModal initial={formInitial || undefined} suggestions={Array.isArray(items) ? items : []}
-        onClose={() => { setShowAdd(false); setFormInitial(null); }} onDone={() => { setShowAdd(false); setFormInitial(null); load(); }} />}
       {showDeleteConfirm && (
         <DeleteKegiatanModal
           targets={selectedTargets}

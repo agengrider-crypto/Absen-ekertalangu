@@ -82,7 +82,7 @@ export default function KalenderView() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr] items-start">
           <div className="bg-white rounded-2xl border border-[#E7E3D8] p-3 sm:p-4" data-testid="kalender-grid">
-            <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold uppercase tracking-wide text-[#5F6B63] mb-1">
+            <div className="grid grid-cols-7 gap-1 text-center text-[12px] font-bold uppercase tracking-wide text-[#5F6B63] mb-1">
               {DOW.map((d) => <div key={d} className="py-1">{d}</div>)}
             </div>
             <div className="grid grid-cols-7 gap-1">
@@ -96,19 +96,25 @@ export default function KalenderView() {
                     key={ymd}
                     data-testid={`kalender-day-${ymd}`}
                     onClick={() => { setPick(ymd); setSelectedId(null); }}
-                    className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 text-sm transition-colors border-2 ${
-                      on ? "bg-[#14633F] text-white border-transparent"
-                        : list.length ? "bg-[#E3F3EA] text-[#0E4E31] font-semibold border-transparent hover:border-[#14633F]"
-                        : `text-[#5F6B63] border-transparent hover:bg-[#F6F4EE] ${isToday ? "ring-2 ring-[#14633F]/20" : ""}`
+                    className={`flex min-h-[54px] flex-col items-center justify-start gap-0.5 rounded-xl border-2 px-0.5 pb-1 pt-1.5 transition-colors sm:min-h-[88px] ${
+                      on ? "border-transparent bg-[#E3F3EA] text-[#0E4E31]"
+                        : list.length ? "border-transparent bg-[#F6F4EE] text-[#0E4E31] hover:border-[#14633F]"
+                        : "border-transparent text-[#5F6B63] hover:bg-[#F6F4EE]"
                     }`}
                   >
-                    {parseInt(ymd.slice(-2), 10)}
+                    <span
+                      className={`flex h-6 w-6 items-center justify-center rounded-full text-[14px] leading-none ${
+                        isToday ? "bg-[#14633F] font-bold text-white" : on ? "font-bold" : "font-semibold"
+                      }`}
+                    >
+                      {parseInt(ymd.slice(-2), 10)}
+                    </span>
                     {list.length > 0 && (
                       <>
                         {/* HP: titik penanda */}
-                        <span className={`flex gap-0.5 sm:hidden ${on ? "text-white/85" : "text-[#0E4E31]"}`}>
+                        <span className="flex gap-0.5 sm:hidden">
                           {list.slice(0, 3).map((k) => (
-                            <i key={k.id} className="h-1 w-1 rounded-full bg-current" />
+                            <i key={k.id} className="h-1.5 w-1.5 rounded-full bg-[#14633F]" />
                           ))}
                         </span>
                         {/* Desktop: chip kegiatan yang bisa diklik */}
@@ -127,15 +133,13 @@ export default function KalenderView() {
                                 }
                               }}
                               title={`${k.name} · ${k.start_time}–${k.end_time}`}
-                              className={`block w-full truncate rounded px-1 py-0.5 text-left text-[9px] font-semibold leading-tight ${
-                                on ? "bg-white/20 text-white" : "bg-white text-[#0E4E31]"
-                              }`}
+                              className="block w-full truncate rounded bg-white px-1 py-0.5 text-left text-[11.5px] font-semibold leading-tight text-[#0E4E31]"
                             >
                               {k.start_time} {k.session_label || k.name}
                             </span>
                           ))}
                           {list.length > 2 && (
-                            <span className={`text-[9px] font-bold ${on ? "text-white/80" : "text-[#5F6B63]"}`}>
+                            <span className="text-[11px] font-bold text-[#5F6B63]">
                               +{list.length - 2}
                             </span>
                           )}

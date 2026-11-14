@@ -3,12 +3,12 @@
 // Hanya mengisi nilai default lalu memanggil endpoint simpan yang sudah ada.
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Users, ArrowRight } from "lucide-react";
+import { Loader2, Users, ArrowRight, Zap, History } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import PesertaPicker from "@/components/PesertaPicker";
 import Modal from "@/components/Modal";
-import { KEGIATAN_TYPES, nowWita, safeEndTime } from "./kegiatanUtils";
+import { KEGIATAN_TYPES, AUDIENCE_OPTIONS, nowWita, safeEndTime } from "./kegiatanUtils";
 
 const fld = "w-full h-12 px-3.5 rounded-xl border border-[#8A948D] text-[15px] outline-none focus:border-[#14633F] bg-white transition-colors";
 const lbl = "block text-[13px] font-semibold text-[#14201A] mb-1.5";
@@ -40,18 +40,22 @@ function Chip({ on, children, ...rest }) {
 
 /**
  * @param {object} source  kegiatan sumber salinan (opsional)
+ * @param {"cepat"|"sebelumnya"} mode  jalur cepat: absen sekarang / kegiatan lampau
  * @param {function} onClose
  * @param {function} onFullForm  buka formulir lengkap dengan nilai awal
  */
-export default function KegiatanQuickAddModal({ source = null, onClose, onFullForm }) {
+export default function KegiatanQuickAddModal({ source = null, mode = "cepat", onClose, onFullForm }) {
   const navigate = useNavigate();
+  const susulan = mode === "sebelumnya";
   const now = useMemo(() => nowWita(), []);
   const [name, setName] = useState("");
   const [type, setType] = useState(source?.type || "rutin");
+  // Bawaan "Terbuka / Publik" untuk absen cepat & formulir kecil.
+  const [audience, setAudience] = useState(source?.audience || "publik");
   const [date, setDate] = useState(now.date);
   const [startTime, setStartTime] = useState(source?.start_time || now.time);
   const [endTime, setEndTime] = useState(source?.end_time || safeEndTime(now.time));
-  const [waktu, setWaktu] = useState("sekarang");
+  const [waktu, setWaktu] = useState(susulan ? "lewat" : "sekarang");
   const [sesi, setSesi] = useState("satu");
   const [pickMode, setPickMode] = useState(false);
   const [participants, setParticipants] = useState([]);
@@ -80,6 +84,7 @@ export default function KegiatanQuickAddModal({ source = null, onClose, onFullFo
   const initialForFullForm = () => ({
     name: name.trim(),
     type,
+    audience,
     date,
     start_time: startTime,
     end_time: endTime,
@@ -110,6 +115,7 @@ export default function KegiatanQuickAddModal({ source = null, onClose, onFullFo
       const { data } = await api.post("/admin/kegiatan", {
         name: name.trim(),
         type,
+        audience,
         date,
         start_time: startTime,
         end_time: endTime,
@@ -121,7 +127,7 @@ export default function KegiatanQuickAddModal({ source = null, onClose, onFullFo
         susulan: waktu === "lewat",
       });
       const created = Array.isArray(data) ? data[0] : data;
-      toast.success("Kegiatan dibuat.");
+      toast.success(susulan ? "Kegiatan susulan dibuat." : "Absen dimulai.");
       onClose?.();
       if (created?.akses_token) {
         try {
@@ -142,10 +148,12 @@ export default function KegiatanQuickAddModal({ source = null, onClose, onFullFo
   return (
     <Modal
       onClose={onClose}
-      title="Tambah Kegiatan"
-      subtitle={source ? `Pengaturan disalin dari “${source.base_name || source.name}”` : "Mulai dari kosong"}
-      testid="modal-tambah-kegiatan-cepat"
-      maxWidth={560}
+      title={susulan ? "Absen sebelumnya" : "Absen cepat"}
+      subtitle={susulan
+        ? "Catat kegiatan yang sudah lewat, lalu isi absennya menyusul."
+        : "Mulai absen sekarang tanpa mengisi form lengkap."}
+      testid={susulan ? "modal-absen-sebelumnya" : "modal-absen-cepat"}
+      maxWidth={520}
       footer={(
         <div className="space-y-2">
           <div className="grid grid-cols-2 gap-2">
@@ -164,7 +172,8 @@ export default function KegiatanQuickAddModal({ source = null, onClose, onFullFo
               disabled={saving}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#0B6B52] font-semibold text-white hover:brightness-110 disabled:opacity-60"
             >
-              {saving ? <Loader2 size={17} className="animate-spin" /> : null} Mulai
+              {saving ? <Loader2 size={17} className="animate-spin" /> : susulan ? <History size={17} /> : <Zap size={17} />}
+              {susulan ? "Simpan & isi absen" : "Mulai absen sekarang"}
             </button>
           </div>
           <button
@@ -202,6 +211,19 @@ export default function KegiatanQuickAddModal({ source = null, onClose, onFullFo
             className={fld}
           >
             {KEGIATAN_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className={lbl} htmlFor="quick-add-audience">Tipe peserta</label>
+          <select
+            id="quick-add-audience"
+            data-testid="quick-add-audience"
+            value={audience}
+            onChange={(e) => setAudience(e.target.value)}
+            className={fld}
+          >
+            {AUDIENCE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
 
