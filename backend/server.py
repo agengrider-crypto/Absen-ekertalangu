@@ -6176,6 +6176,27 @@ PENGADUAN_LABEL = {
 }
 PENGADUAN_MAX = 800
 PENGADUAN_JUDUL_MAX = 60
+# Kategori yang butuh penanganan segera (tag "Perlu segera" di panel pengurus).
+PENGADUAN_SEGERA = ("kekerasan", "perundungan", "mental")
+
+
+def pengaduan_status(p: dict) -> str:
+    """Status tiga tahap — satu-satunya sumber kebenaran.
+
+    ditindaklanjuti_at terisi = "ditindaklanjuti"; selain itu read_by tidak
+    kosong = "dibaca"; selain itu "baru".
+    """
+    if p.get("ditindaklanjuti_at"):
+        return "ditindaklanjuti"
+    if p.get("read_by"):
+        return "dibaca"
+    return "baru"
+
+
+def perlu_segera(p: dict) -> bool:
+    """Tag "Perlu segera" selama belum ditindaklanjuti."""
+    return (p.get("category") in PENGADUAN_SEGERA
+            and not p.get("ditindaklanjuti_at"))
 
 
 class PengaduanInput(BaseModel):
@@ -6186,24 +6207,41 @@ class PengaduanInput(BaseModel):
 
 
 def serialize_pengaduan(p: dict, for_staff: bool = False) -> dict:
+    """Serialisasi pesan Ruang Teduh.
+
+    Status diturunkan dari data yang sudah ada (satu-satunya sumber):
+    `ditindaklanjuti_at` terisi = ditindaklanjuti; selain itu `read_by` tidak
+    kosong = dibaca; selain itu baru.
+    """
+    status = pengaduan_status(p)
+    if for_staff:
+        return {
+            "id": p["_id"],
+            "category": p.get("category", "curhat"),
+            "category_label": PENGADUAN_LABEL.get(p.get("category", "curhat"), "Lainnya"),
+            "judul": p.get("judul") or "",
+            "message": p.get("message"),
+            "anonymous": bool(p.get("anonymous")),
+            "name": ("Anonim" if p.get("anonymous") else (p.get("name") or "Peserta")),
+            "phone": None if p.get("anonymous") else p.get("phone"),
+            "at": p.get("at"),
+            "status": status,
+            "dibaca": status != "baru",
+            "dibaca_oleh": (p.get("read_by") or [{}])[-1].get("name") if p.get("read_by") else None,
+            "ditindaklanjuti_at": p.get("ditindaklanjuti_at"),
+            "catatan_pengurus": p.get("catatan_pengurus") or "",
+            "perlu_segera": perlu_segera(p),
+        }
+    # Peserta: hanya kategori, tanggal, cuplikan, dan status.
+    # Tidak pernah mengirim catatan pengurus, nama pengurus, atau waktu baca.
     return {
         "id": p["_id"],
         "category": p.get("category", "curhat"),
         "category_label": PENGADUAN_LABEL.get(p.get("category", "curhat"), "Lainnya"),
-        "judul": p.get("judul") or "",
-        "message": p.get("message"),
-        "anonymous": bool(p.get("anonymous")),
-        "name": ("Anonim" if p.get("anonymous") else (p.get("name") or "Peserta")),
-        "phone": None if p.get("anonymous") else p.get("phone"),
         "at": p.get("at"),
-        "dibaca": bool(p.get("read_by")),
-        "dibaca_oleh": (p.get("read_by") or [{}])[-1].get("name") if p.get("read_by") else None,
-    } if for_staff else {
-        "id": p["_id"], "category": p.get("category", "curhat"),
-        "category_label": PENGADUAN_LABEL.get(p.get("category", "curhat"), "Lainnya"),
-        "judul": p.get("judul") or "",
-        "message": p.get("message"), "anonymous": bool(p.get("anonymous")),
-        "at": p.get("at"), "dibaca": bool(p.get("read_by")),
+        "cuplikan": (p.get("message") or "").strip().replace("\n", " ")[:120],
+        "status": status,
+        "anonymous": bool(p.get("anonymous")),
     }
 
 
@@ -6240,7 +6278,12 @@ async def create_pengaduan(body: PengaduanInput, user: dict = Depends(get_curren
 
 @api_router.get("/me/pengaduan")
 async def my_pengaduan(user: dict = Depends(get_current_user)):
-    items = await db.pengaduans.find({"user_id": str(user["_id"])}).sort("at", -1).to_list(100)
+    # Hanya cerita bernama milik peserta yang login (cerita anonim tidak
+    # pernah ditautkan ke peserta). Proyeksi membatasi kolom yang dikirim.
+    items = await db.pengaduans.find(
+        {"user_id": str(user["_id"]), "anonymous": {"$ne": True}},
+        {"category": 1, "at": 1, "message": 1, "read_by": 1, "ditindaklanjuti_at": 1},
+    ).sort("at", -1).to_list(100)
     return {"items": [serialize_pengaduan(p) for p in items],
             "categories": [{"value": c, "label": PENGADUAN_LABEL[c]} for c in PENGADUAN_CATEGORIES],
             "max_length": PENGADUAN_MAX, "max_title": PENGADUAN_JUDUL_MAX}
@@ -6273,9 +6316,44 @@ async def staff_pengaduan(staff: dict = Depends(require_staff), q: str = "", lim
                 or t in (r.get("judul") or "").lower()]
     return {
         "total": len(rows),
-        "belum_dibaca": len([r for r in rows if not r["dibaca"]]),
+        "belum_dibaca": len([r for r in rows if r["status"] == "baru"]),
+        "perlu_segera": len([r for r in rows if r["perlu_segera"]]),
         "rows": rows,
     }
+
+
+class PengaduanStatusInput(BaseModel):
+    status: Optional[str] = None          # baru | dibaca | ditindaklanjuti
+    catatan_pengurus: Optional[str] = None
+
+
+@api_router.patch("/staff/pengaduan/{pengaduan_id}")
+async def update_pengaduan(pengaduan_id: str, body: PengaduanStatusInput,
+                           staff: dict = Depends(require_staff)):
+    """Simpan status tiga tahap dan/atau catatan pengurus (hanya pengurus/admin)."""
+    p = await db.pengaduans.find_one({"_id": pengaduan_id})
+    if not p:
+        raise HTTPException(status_code=404, detail="Pesan tidak ditemukan")
+    upd: dict = {}
+    if body.status is not None:
+        status = (body.status or "").strip()
+        if status not in ("baru", "dibaca", "ditindaklanjuti"):
+            raise HTTPException(status_code=400, detail="Status tidak valid")
+        if status == "ditindaklanjuti":
+            upd["ditindaklanjuti_at"] = p.get("ditindaklanjuti_at") or now_wita().isoformat()
+        else:
+            upd["ditindaklanjuti_at"] = None
+        if status == "baru":
+            upd["read_by"] = []
+        elif not p.get("read_by"):
+            upd["read_by"] = [{"id": str(staff["_id"]), "name": staff.get("name"),
+                               "at": now_wita().isoformat()}]
+    if body.catatan_pengurus is not None:
+        upd["catatan_pengurus"] = (body.catatan_pengurus or "").strip()[:2000] or None
+    if upd:
+        await db.pengaduans.update_one({"_id": pengaduan_id}, {"$set": upd})
+    doc = await db.pengaduans.find_one({"_id": pengaduan_id})
+    return serialize_pengaduan(doc, for_staff=True)
 
 
 @api_router.get("/staff/pengaduan/unread-count")

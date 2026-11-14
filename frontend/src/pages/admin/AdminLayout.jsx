@@ -3,11 +3,11 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
-  ShieldCheck, Menu, X, LogOut, MessagesSquare, Megaphone, UserCog, Layers,
+  ShieldCheck, X, LogOut, MessagesSquare, Megaphone, UserCog, Layers,
   MonitorSmartphone, ListPlus, CopyCheck, KeyRound, ScanLine,
   ClipboardList, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
   Calendar1,
-  PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle,
+  PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle, BarChart3, LayoutGrid,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { K1Mark, K1Wordmark } from "@/components/Logo";
@@ -276,8 +276,8 @@ function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
     { key: "dashboard", label: "Beranda", icon: LayoutDashboard, action: () => onNavigate("dashboard") },
     { key: "peserta", label: "Peserta", icon: Users, action: () => onNavigate("peserta") },
     { key: "kegiatan", label: "Kegiatan", icon: CalendarDays, action: () => onNavigate("kegiatan") },
-    { key: "rekap", label: "Rekap", icon: CalendarDays, action: () => onNavigate("rekap-bulanan") },
-    { key: "menu", label: "Menu", icon: Menu, action: onOpenMenu },
+    { key: "rekap", label: "Rekap", icon: BarChart3, action: () => onNavigate("rekap-bulanan") },
+    { key: "menu", label: "Lainnya", icon: LayoutGrid, action: onOpenMenu },
   ];
 
   return (
@@ -424,17 +424,9 @@ export default function AdminLayout({ user, role = "admin" }) {
         <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-[#E7E3D8]">
           <div className="px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
-              <button
-                type="button"
-                data-testid="admin-mobile-menu-button"
-                onClick={() => setDrawer(true)}
-                aria-label="Buka menu"
-                aria-expanded={drawer}
-                aria-controls="admin-mobile-menu"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#14201A] transition-colors hover:bg-[#F0EEE6] lg:hidden"
-              >
-                <Menu size={22} />
-              </button>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#E3F3EA] p-1 lg:hidden">
+                <K1Mark size={28} variant="light" />
+              </span>
               <span className="hidden min-w-0 lg:block">
                 <PageTrail items={trailItems} />
               </span>

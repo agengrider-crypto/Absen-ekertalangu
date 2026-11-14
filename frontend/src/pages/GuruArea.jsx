@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   LifeBuoy, BookOpen, CalendarClock, ClipboardCheck, Users,
-  NotebookPen, Megaphone, Home, MoreHorizontal, ArrowLeftRight, X, ChevronRight,
+  NotebookPen, Megaphone, Home, LayoutGrid, ArrowLeftRight, X, ChevronRight,
 } from "lucide-react";
 import ProfileMenu from "@/components/ProfileMenu";
 import BantuanView from "@/components/BantuanView";
@@ -47,7 +47,7 @@ const BOTTOM = [
   { key: "kelas", label: "Kelas", icon: Users },
   { key: "absen", label: "Absen", icon: ClipboardCheck, center: true },
   { key: "catatan", label: "Catatan", icon: NotebookPen, soon: true },
-  { key: "lainnya", label: "Lainnya", icon: MoreHorizontal },
+  { key: "lainnya", label: "Lainnya", icon: LayoutGrid },
 ];
 
 const LAINNYA = [

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   HeartHandshake, Loader2, ArrowLeft, ChevronDown, Eye, ShieldCheck, UserX,
-  AlertTriangle, CheckCircle2, Clock, CheckCheck,
+  AlertTriangle, CheckCircle2, Clock, EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -39,6 +39,36 @@ function DaruratNote() {
     <p className="px-1 text-[11px] leading-relaxed text-[#5F6B63]" data-testid="ruangteduh-darurat">
       {DARURAT}
     </p>
+  );
+}
+
+const BULAN_SHORT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+function tanggalSingkat(iso) {
+  const d = String(iso || "").slice(0, 10).split("-");
+  if (d.length !== 3) return "-";
+  return `${Number(d[2])} ${BULAN_SHORT[Number(d[1]) - 1]}`;
+}
+
+const TAHAP_STATUS = [
+  ["baru", "Terkirim"],
+  ["dibaca", "Dibaca"],
+  ["ditindaklanjuti", "Ditindaklanjuti"],
+];
+
+/** Tiga titik status: sampai status saat ini hijau, sisanya abu-abu. */
+function StatusTiga({ status }) {
+  const idx = Math.max(0, TAHAP_STATUS.findIndex(([v]) => v === (status || "baru")));
+  return (
+    <div className="mt-2.5 flex items-center gap-1.5" data-testid="ruangteduh-status-tiga">
+      {TAHAP_STATUS.map(([v, label], i) => (
+        <span key={v} className="inline-flex items-center gap-1.5">
+          {i > 0 && <span className={`h-px w-3 ${i <= idx ? "bg-[#14633F]" : "bg-[#E7E3D8]"}`} />}
+          <span className={`h-2 w-2 rounded-full ${i <= idx ? "bg-[#14633F]" : "bg-[#D9D4C5]"}`} />
+          <span className={`text-[10px] font-semibold ${i === idx ? "text-[#0E4E31]" : "text-[#5F6B63]"}`}>{label}</span>
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -135,12 +165,17 @@ export default function RuangTeduh() {
       </button>
 
       <div>
-        <h2 className="font-heading font-bold text-[#14201A] mb-2">Cerita saya</h2>
+        <h2 className="font-heading font-bold text-[#14201A] mb-1">Cerita saya</h2>
+        <p className="mb-2 text-[11px] text-[#5F6B63]">Hanya Anda yang bisa melihat ini.</p>
         {riwayat === null ? (
           <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={22} /></div>
         ) : riwayat.length === 0 ? (
-          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5 text-center text-sm text-[#5F6B63]" data-testid="ruangteduh-riwayat-empty">
-            Belum ada cerita. Cerita yang kamu kirim dengan nama akan muncul di sini.
+          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5 text-center" data-testid="ruangteduh-riwayat-empty">
+            <p className="text-sm text-[#5F6B63]">Belum ada cerita. Ruang Teduh siap mendengarkan.</p>
+            <button type="button" onClick={() => setView("form")}
+              className="mt-3 h-11 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
+              Mulai bercerita
+            </button>
           </div>
         ) : (
           <div className="space-y-2" data-testid="ruangteduh-riwayat">
@@ -148,11 +183,16 @@ export default function RuangTeduh() {
               <div key={r.id} className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid={`ruangteduh-riwayat-${r.id}`}>
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="rounded-full bg-[#E3F3EA] px-2 py-0.5 font-semibold text-[#0E4E31]">{r.category_label}</span>
-                  <span className="inline-flex items-center gap-1 text-[#5F6B63]"><Clock size={11} /> {String(r.at).slice(0, 16).replace("T", " ")} WITA</span>
-                  {r.dibaca && <span className="inline-flex items-center gap-1 font-semibold text-[#0E4E31]"><CheckCheck size={12} /> sudah dibaca pengurus</span>}
+                  <span className="inline-flex items-center gap-1 text-[#5F6B63]"><Clock size={11} /> {tanggalSingkat(r.at)}</span>
                 </div>
-                {r.judul && <div className="mt-2 text-sm font-semibold text-[#14201A]">{r.judul}</div>}
-                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-[#14201A]">{r.message}</p>
+                <p className="mt-1.5 truncate text-sm text-[#14201A]">{r.cuplikan || "(tanpa isi)"}</p>
+                {r.anonymous ? (
+                  <p className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#5F6B63]">
+                    <EyeOff size={12} /> Dikirim anonim, tanpa status
+                  </p>
+                ) : (
+                  <StatusTiga status={r.status} />
+                )}
               </div>
             ))}
           </div>
