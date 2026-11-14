@@ -133,6 +133,19 @@ GENDER_OPTIONS = ["L", "P"]
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Log error tak tertangani (terbaca di Vercel Logs) + balasan JSON ringkas."""
+    logger.exception(
+        "Unhandled error pada %s %s: %s: %s",
+        request.method, request.url.path, type(exc).__name__, exc,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Terjadi kesalahan pada server. Silakan coba lagi."},
+    )
+
 # ---------------------------------------------------------------------------
 # Helpers: password + jwt
 # ---------------------------------------------------------------------------
@@ -5630,10 +5643,10 @@ async def build_rekap_bulanan(month: Optional[str] = None, include_participants:
     musy = await db.musyawarahs.find(
         {"date": {"$gte": date_from, "$lte": date_to}}).to_list(500)
     catatan_by_date = {}
-    for m in musy:
-        text = (m.get("content") or "").strip()
-        if text and m.get("date"):
-            catatan_by_date.setdefault(m["date"], text)
+    for catatan in musy:
+        text = (catatan.get("content") or "").strip()
+        if text and catatan.get("date"):
+            catatan_by_date.setdefault(catatan["date"], text)
     for row in meeting_rows:
         note = catatan_by_date.get(row["date"])
         if note:
