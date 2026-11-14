@@ -56,6 +56,9 @@ export default function GuruKelas() {
               <div className="flex items-center gap-2 text-sm font-bold text-[#14201A]">
                 <Users size={16} className="text-[#0E4E31]" /> {active.label} · {active.total_peserta} peserta
               </div>
+              <div className="mt-1 text-xs text-[#5F6B63]" data-testid="guru-kelas-terlaksana">
+                Pertemuan terlaksana: <b className="text-[#14201A]">{active.pertemuan_terlaksana ?? 0}</b>
+              </div>
               <div className="mt-3 divide-y divide-[#F0EEE6]">
                 {active.peserta.length === 0 ? (
                   <p className="py-4 text-sm text-[#5F6B63]">Belum ada peserta pada jenjang ini.</p>

@@ -1,4 +1,4 @@
-// Absen Kelas — pilih pertemuan, tandai Hadir/Izin/Sakit/Alpha, simpan materi hari ini.
+// Absen Kelas — pilih pertemuan, tandai Hadir/Izin/Sakit/Alpha, isi pokok bahasan.
 // Memakai ulang endpoint rekap & absen yang sudah ada (logika absensi sama).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Search, CheckCircle2, BookOpen, ChevronDown } from "lucide-react";
@@ -20,8 +20,7 @@ export default function GuruAbsenKelas({ initialId = null }) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(null);
   const [materi, setMateri] = useState(null);
-  const [materiPick, setMateriPick] = useState("");
-  const [tersampaikan, setTersampaikan] = useState(false);
+  const [pokok, setPokok] = useState("");
   const [savingMateri, setSavingMateri] = useState(false);
   const today = nowWita().date;
 
@@ -43,11 +42,10 @@ export default function GuruAbsenKelas({ initialId = null }) {
     api.get(`/guru/pertemuan/${pick}/rekap`)
       .then(({ data: d }) => setData(d))
       .catch((e) => toast.error(formatApiErrorDetail(e.response?.data?.detail)));
-    api.get(`/guru/pertemuan/${pick}/materi`)
+    api.get(`/guru/pertemuan/${pick}/pokok-bahasan`)
       .then(({ data: d }) => {
         setMateri(d);
-        setMateriPick(d.materi_id || d.saran?.id || "");
-        setTersampaikan(Boolean(d.materi_tersampaikan));
+        setPokok(d.pokok_bahasan || "");
       })
       .catch(() => setMateri(false));
   }, [pick]);
@@ -68,10 +66,12 @@ export default function GuruAbsenKelas({ initialId = null }) {
   const simpanMateri = async () => {
     setSavingMateri(true);
     try {
-      await api.post(`/guru/pertemuan/${pick}/materi`, {
-        materi_id: materiPick || null, materi_tersampaikan: tersampaikan,
+      await api.post(`/guru/pertemuan/${pick}/pokok-bahasan`, {
+        pokok_bahasan: pokok.trim() || null,
       });
-      toast.success("Materi pertemuan disimpan.");
+      toast.success("Pokok bahasan disimpan.");
+      api.get(`/guru/pertemuan/${pick}/pokok-bahasan`)
+        .then(({ data: d }) => setMateri(d)).catch(() => {});
     } catch (e) {
       toast.error(formatApiErrorDetail(e.response?.data?.detail));
     } finally { setSavingMateri(false); }
@@ -128,38 +128,34 @@ export default function GuruAbsenKelas({ initialId = null }) {
             <div className="rounded-xl bg-[#FBE5E3] p-3 text-center"><div className="text-xl font-bold text-[#A32A2A]">{c.alpha}</div><div className="text-xs text-[#5F6B63]">Alpha</div></div>
           </div>
 
-          {/* Materi hari ini */}
-          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="guru-materi">
+          {/* Pokok bahasan */}
+          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="guru-pokok-bahasan">
             <div className="flex items-center gap-2 text-sm font-bold text-[#14201A]">
-              <BookOpen size={16} className="text-[#0E4E31]" /> Materi hari ini
+              <BookOpen size={16} className="text-[#0E4E31]" /> Pokok bahasan
             </div>
-            {materi === null ? (
-              <div className="py-4 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={20} /></div>
-            ) : materi === false ? (
-              <p className="mt-2 text-sm text-[#5F6B63]">Materi belum tersedia.</p>
-            ) : (
-              <div className="mt-2 space-y-2">
-                <select data-testid="guru-materi-pilih" value={materiPick} onChange={(e) => setMateriPick(e.target.value)}
-                  className="h-11 w-full rounded-xl border border-[#8A948D] bg-white px-3 text-sm outline-none focus:border-[#14633F]">
-                  <option value="">Pilih materi</option>
-                  {materi.pilihan.map((m) => (
-                    <option key={m.id} value={m.id}>{m.pekan ? `Pekan ${m.pekan} · ` : ""}{m.title}</option>
-                  ))}
-                </select>
-                {materi.saran && !materi.materi_id && (
-                  <p className="text-[11px] text-[#5F6B63]">Disarankan: {materi.saran.title}</p>
-                )}
-                <label className="flex items-center gap-2.5 text-sm text-[#14201A]">
-                  <input type="checkbox" data-testid="guru-materi-tersampaikan" checked={tersampaikan}
-                    onChange={(e) => setTersampaikan(e.target.checked)} className="h-4 w-4 accent-[#14633F]" />
-                  Materi tersampaikan
-                </label>
-                <button type="button" data-testid="guru-materi-simpan" onClick={simpanMateri} disabled={savingMateri}
-                  className="h-10 rounded-xl bg-[#14633F] px-3.5 text-sm font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-60">
-                  {savingMateri ? "Menyimpan…" : "Simpan materi"}
-                </button>
+            <input
+              data-testid="guru-pokok-input"
+              value={pokok}
+              maxLength={120}
+              onChange={(e) => setPokok(e.target.value.slice(0, 120))}
+              placeholder="Mis. Surat Al-Ikhlas"
+              className="mt-2 h-11 w-full rounded-xl border border-[#8A948D] bg-white px-3 text-sm outline-none focus:border-[#14633F]"
+            />
+            <div className="mt-1 text-right text-[11px] text-[#5F6B63]">{pokok.length} / 120</div>
+            {materi && materi.terakhir?.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-1.5" data-testid="guru-pokok-terakhir">
+                {materi.terakhir.map((t) => (
+                  <button key={t} type="button" onClick={() => setPokok(t.slice(0, 120))}
+                    className="rounded-full border border-[#E7E3D8] bg-[#F6F4EE] px-2.5 py-1 text-[11px] font-semibold text-[#0E4E31] hover:border-[#14633F]">
+                    {t}
+                  </button>
+                ))}
               </div>
             )}
+            <button type="button" data-testid="guru-pokok-simpan" onClick={simpanMateri} disabled={savingMateri}
+              className="mt-2 h-10 rounded-xl bg-[#14633F] px-3.5 text-sm font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-60">
+              {savingMateri ? "Menyimpan…" : "Simpan pokok bahasan"}
+            </button>
           </div>
 
           {/* Daftar peserta */}

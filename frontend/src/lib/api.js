@@ -7,6 +7,9 @@ import axios from "axios";
 const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "").replace(/\/+$/, "");
 export const API = `${BACKEND_URL}/api`;
 
+// Tautan kurikulum & penilaian (EPPG). Kosong = tombol disembunyikan.
+export const EPPG_URL = (process.env.REACT_APP_EPPG_URL || "").trim();
+
 export const api = axios.create({
   baseURL: API,
   withCredentials: true,

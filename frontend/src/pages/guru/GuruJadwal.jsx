@@ -62,7 +62,12 @@ export default function GuruJadwal({ onOpenAbsen }) {
                     <ChevronRight size={18} className={`shrink-0 text-[#D9D4C5] transition-transform ${on ? "rotate-90" : ""}`} />
                   </button>
                   {on && (
-                    <div className="mt-2.5 flex flex-wrap gap-2">
+                    <div className="mt-2.5 space-y-2">
+                      {k.pokok_bahasan && (
+                        <p className="text-xs text-[#5F6B63]" data-testid={`guru-jadwal-pokok-${k.id}`}>
+                          Pokok bahasan: <b className="text-[#14201A]">{k.pokok_bahasan}</b>
+                        </p>
+                      )}
                       <button type="button" data-testid={`guru-jadwal-absen-${k.id}`}
                         onClick={() => onOpenAbsen?.(k.id)}
                         className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#14633F] px-3.5 text-sm font-semibold text-white hover:bg-[#0E4E31]">

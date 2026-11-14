@@ -30,12 +30,14 @@ export const HELP_CONTENT = {
     steps: [
       { title: "Lihat jadwal mengajar", desc: "Menu Jadwal Saya memuat pertemuan pekan ini dan berikutnya. Ketuk satu pertemuan untuk membuka absen kelas." },
       { title: "Absen kelas", desc: "Menu Absen Kelas: pilih pertemuan, lalu tandai Hadir / Izin / Sakit / Alpha tiap peserta." },
-      { title: "Catat materi", desc: "Di Absen Kelas, materi berikutnya terisi otomatis. Ganti bila perlu, lalu centang Materi tersampaikan." },
-      { title: "Pantau kelas", desc: "Menu Kelas Saya menampilkan persentase kehadiran peserta dan tanda Tidak hadir 3x." },
+      { title: "Isi pokok bahasan", desc: "Di Absen Kelas ada isian opsional Pokok bahasan (mis. Surat Al-Ikhlas). Ketuk chip pokok bahasan terakhir untuk mengisi cepat." },
+      { title: "Pantau kelas", desc: "Menu Kelas Saya menampilkan pertemuan terlaksana, persentase kehadiran peserta, dan tanda Tidak hadir 3x." },
+      { title: "Kurikulum di EPPG", desc: "Kurikulum, target, dan penilaian dikelola di EPPG. E-Kertalangu hanya mengurus jadwal dan jalannya kelas." },
     ],
     faq: [
       { q: "Pertemuan tidak muncul di jadwal?", a: "Pertemuan dibuat otomatis dari jadwal Program Pembelajaran. Pastikan jadwal sudah memakai nama Anda sebagai Pengajar." },
       { q: "Kenapa tombol Alpha tidak aktif?", a: "Alpha baru tersedia setelah jam selesai pertemuan lewat, agar tidak salah menandai peserta yang belum sempat diabsen." },
+      { q: "Di mana mengatur materi dan penilaian?", a: "Semua kurikulum, target, dan penilaian ada di EPPG. Di sini cukup jadwal kelas dan pokok bahasan tiap pertemuan." },
     ],
   },
   pengurus: {

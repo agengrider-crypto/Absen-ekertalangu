@@ -1,6 +1,6 @@
-// Beranda area Guru: mengajar hari ini + capaian (materi & kehadiran).
+// Beranda area Guru: mengajar hari ini + ringkasan pertemuan & kehadiran.
 import { useEffect, useState } from "react";
-import { Loader2, CalendarClock, Clock, MapPin, Users, PlayCircle, BookOpen } from "lucide-react";
+import { Loader2, CalendarClock, Clock, MapPin, Users, PlayCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { nowWita, tanggalPanjang } from "@/pages/admin/kegiatanUtils";
 
@@ -27,9 +27,8 @@ export default function GuruBeranda({ user, onGoto, onOpenAbsen }) {
 
   const hariIni = (pertemuan || []).filter((k) => k.date === today);
   const berikutnya = (pertemuan || []).find((k) => k.date > today);
-  const materi = ringkasan?.materi || { tersampaikan: 0, total: 0 };
+  const terlaksana = ringkasan?.pertemuan?.terlaksana_bulan_ini ?? 0;
   const kehadiran = ringkasan?.kehadiran || { rata_rata: 0 };
-  const persenMateri = materi.total ? Math.round((materi.tersampaikan / materi.total) * 100) : 0;
 
   return (
     <div className="space-y-4" data-testid="guru-beranda">
@@ -87,10 +86,9 @@ export default function GuruBeranda({ user, onGoto, onOpenAbsen }) {
           <div className="mt-3 space-y-4">
             <div>
               <div className="flex items-center justify-between text-xs text-[#5F6B63]">
-                <span className="inline-flex items-center gap-1"><BookOpen size={12} /> Materi tersampaikan</span>
-                <span className="font-semibold text-[#14201A]">{materi.tersampaikan} dari {materi.total}</span>
+                <span className="inline-flex items-center gap-1"><CalendarClock size={12} /> Pertemuan terlaksana bulan ini</span>
+                <span className="font-semibold text-[#14201A]">{terlaksana}</span>
               </div>
-              <Bar value={persenMateri} />
             </div>
             <div>
               <div className="flex items-center justify-between text-xs text-[#5F6B63]">
