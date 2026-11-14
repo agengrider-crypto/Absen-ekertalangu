@@ -62,21 +62,34 @@ function StatusBox({ status, count, active, onClick }) {
   const meta = STATUS_META[status];
   const shown = useCountUp(count);
   const empty = !Number(count);
+  const cls = `rounded-xl border-2 px-2 py-2 text-center transition-all ${
+    active ? "border-[#14633F] shadow-sm" : "border-transparent"
+  } ${empty ? "opacity-45" : ""}`;
+  const inner = (
+    <>
+      <div className="font-heading text-lg font-bold tabular-nums" style={{ color: meta.ink }}>
+        {Math.round(shown)}
+      </div>
+      <div className="text-[11px] font-semibold" style={{ color: meta.ink }}>{meta.label}</div>
+    </>
+  );
+  if (!onClick) {
+    return (
+      <div data-testid={`status-box-${status}`} className={cls} style={{ backgroundColor: meta.bg }}>
+        {inner}
+      </div>
+    );
+  }
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
       data-testid={`status-box-${status}`}
-      className={`rounded-xl border-2 px-2 py-2 text-center transition-all ${
-        active ? "border-[#14633F] shadow-sm" : "border-transparent"
-      } ${empty ? "opacity-45" : ""}`}
+      className={cls}
       style={{ backgroundColor: meta.bg }}
     >
-      <div className="font-heading text-lg font-bold tabular-nums" style={{ color: meta.ink }}>
-        {Math.round(shown)}
-      </div>
-      <div className="text-[11px] font-semibold" style={{ color: meta.ink }}>{meta.label}</div>
+      {inner}
     </button>
   );
 }
@@ -85,10 +98,14 @@ function StatusBox({ status, count, active, onClick }) {
  * @param {object} counts  {hadir, izin, sakit, alpha, belum_diabsen, total}
  * @param {Array} rows     [{ name, status, reason }]
  * @param {boolean} showBelum tampilkan status "Belum absen"
+ * @param {boolean} countOnly hanya blok jumlah (tanpa bilah & daftar nama)
+ * @param {boolean} collapsible klik blok aktif menutup daftar nama
+ * @param {boolean} showRatio tampilkan bilah persen di atas blok
  */
 export default function StatusGroups({
   counts = {}, rows = [], showBelum = false, testid = "status-groups",
-  defaultStatus = "hadir", title,
+  defaultStatus = "hadir", title, countOnly = false, collapsible = false,
+  showRatio = true, showReason = true,
 }) {
   const statuses = showBelum ? STATUS_ORDER : STATUS_ORDER.filter((s) => s !== "belum_diabsen");
   const [active, setActive] = useState(defaultStatus);
@@ -115,22 +132,29 @@ export default function StatusGroups({
   const ratio = total ? Math.round((hadir / total) * 100) : 0;
   const ratioShown = useCountUp(ratio);
 
+  const pick = (s) => {
+    if (collapsible && active === s) { setActive(null); return; }
+    setActive(s);
+  };
+
   return (
     <div className="space-y-3" data-testid={testid}>
       {title && <div className="text-sm font-semibold text-[#14201A]">{title}</div>}
-      <div>
-        <div className="flex items-baseline justify-between gap-2">
-          <span className="font-heading text-2xl font-bold tabular-nums text-[#0E4E31]">
-            {Math.round(ratioShown)}%
-          </span>
-          <span className="text-xs font-semibold text-[#5F6B63]">
-            {hadir}/{total} hadir
-          </span>
+      {showRatio && (
+        <div>
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="font-heading text-2xl font-bold tabular-nums text-[#0E4E31]">
+              {Math.round(ratioShown)}%
+            </span>
+            <span className="text-xs font-semibold text-[#5F6B63]">
+              {hadir}/{total} hadir
+            </span>
+          </div>
+          <div className="mt-1.5">
+            <ProgressBar value={ratio} testid={`${testid}-bar`} />
+          </div>
         </div>
-        <div className="mt-1.5">
-          <ProgressBar value={ratio} testid={`${testid}-bar`} />
-        </div>
-      </div>
+      )}
 
       <div className={`grid gap-1.5 ${statuses.length >= 5 ? "grid-cols-5" : "grid-cols-4"}`}>
         {statuses.map((s) => (
@@ -139,56 +163,58 @@ export default function StatusGroups({
             status={s}
             count={counts[s] || 0}
             active={active === s}
-            onClick={() => setActive(s)}
+            onClick={countOnly ? null : () => pick(s)}
           />
         ))}
       </div>
 
-      <div ref={listRef} className="rounded-xl border border-[#E7E3D8]">
-        <div className="flex items-center justify-between gap-2 border-b border-[#F0EEE6] px-3 py-2">
-          <span className="text-xs font-bold uppercase tracking-wide text-[#5F6B63]">
-            {STATUS_META[active].label} ({list.length})
-          </span>
-          {list.length > 3 && (
+      {!countOnly && active && (
+        <div ref={listRef} className="rounded-xl border border-[#E7E3D8]">
+          <div className="flex items-center justify-between gap-2 border-b border-[#F0EEE6] px-3 py-2">
+            <span className="text-xs font-bold uppercase tracking-wide text-[#5F6B63]">
+              {STATUS_META[active].label} ({list.length})
+            </span>
+            {list.length > 3 && (
+              <button
+                type="button"
+                onClick={() => setShowAll((v) => !v)}
+                className="text-[11px] font-semibold text-[#0E4E31] underline"
+              >
+                {showAll ? "Ringkas" : "Lihat semua"}
+              </button>
+            )}
+          </div>
+          {list.length === 0 ? (
+            <p className="px-3 py-4 text-center text-xs text-[#5F6B63]">Tidak ada peserta pada status ini.</p>
+          ) : (
+            <ul className="divide-y divide-[#F0EEE6]">
+              {shown.map((r, i) => (
+                <li
+                  key={`${r.name}-${i}`}
+                  className="flex min-h-9 items-center justify-between gap-2 px-3 py-1.5 motion-safe:animate-[reportCardIn_0.4s_ease-out_both]"
+                  style={{ animationDelay: `${i * 70}ms` }}
+                >
+                  <span className="min-w-0 truncate text-sm text-[#14201A]">{r.name}</span>
+                  {(active === "izin" || active === "sakit") && showReason && (
+                    <span className="shrink-0 rounded-full bg-[#E3EEFB] px-2 py-0.5 text-[11px] font-semibold text-[#1D4F91]">
+                      {r.reason || "-"}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {rest > 0 && (
             <button
               type="button"
-              onClick={() => setShowAll((v) => !v)}
-              className="text-[11px] font-semibold text-[#0E4E31] underline"
+              onClick={() => setShowAll(true)}
+              className="flex w-full items-center justify-center gap-1 border-t border-[#F0EEE6] px-3 py-2 text-[11px] font-semibold text-[#0E4E31]"
             >
-              {showAll ? "Ringkas" : "Lihat semua"}
+              + {rest} peserta lainnya · Lihat semua <ChevronDown size={12} />
             </button>
           )}
         </div>
-        {list.length === 0 ? (
-          <p className="px-3 py-4 text-center text-xs text-[#5F6B63]">Tidak ada peserta pada status ini.</p>
-        ) : (
-          <ul className="divide-y divide-[#F0EEE6]">
-            {shown.map((r, i) => (
-              <li
-                key={`${r.name}-${i}`}
-                className="flex min-h-9 items-center justify-between gap-2 px-3 py-1.5 motion-safe:animate-[reportCardIn_0.4s_ease-out_both]"
-                style={{ animationDelay: `${i * 70}ms` }}
-              >
-                <span className="min-w-0 truncate text-sm text-[#14201A]">{r.name}</span>
-                {active === "izin" && r.reason && (
-                  <span className="shrink-0 rounded-full bg-[#E3EEFB] px-2 py-0.5 text-[11px] font-semibold text-[#1D4F91]">
-                    {r.reason}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        {rest > 0 && (
-          <button
-            type="button"
-            onClick={() => setShowAll(true)}
-            className="flex w-full items-center justify-center gap-1 border-t border-[#F0EEE6] px-3 py-2 text-[11px] font-semibold text-[#0E4E31]"
-          >
-            + {rest} peserta lainnya · Lihat semua <ChevronDown size={12} />
-          </button>
-        )}
-      </div>
+      )}
     </div>
   );
 }

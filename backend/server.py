@@ -5656,23 +5656,34 @@ async def build_rekap_bulanan(month: Optional[str] = None, include_participants:
     jarang = sum(1 for r in aktif if r["ratio"] < 50)
     belum = sum(1 for r in aktif if r["hadir"] == 0)
 
-    # Pisah Laki-laki / Perempuan
+    # Pisah Laki-laki / Perempuan — memakai METRIK YANG SAMA dengan rata-rata
+    # hadir (rata-rata persen per peserta), sehingga ring gabungan selalu sama
+    # dengan rata-rata tertimbang L dan P menurut jumlah peserta yang punya
+    # pertemuan. Sebelumnya L/P memakai rasio tertimbang slot sehingga tidak
+    # pernah cocok dengan angka gabungan.
     gender_out = {}
     for g in ("L", "P"):
         grp = [r for r in aktif if r["gender"] == g]
-        slot = sum(r["pertemuan"] for r in grp)
-        hadir = sum(r["hadir"] for r in grp)
         gender_out[g] = {
-            "peserta": len([r for r in rows if r["gender"] == g]),
-            "hadir": hadir, "pertemuan": slot,
+            # `peserta` = peserta yang punya pertemuan bulan ini; inilah bobot
+            # yang dipakai rata-rata gabungan (sama dengan dasar rata-rata hadir).
+            "peserta": len(grp),
+            "peserta_total": len([r for r in rows if r["gender"] == g]),
+            "hadir": sum(r["hadir"] for r in grp),
+            "pertemuan": sum(r["pertemuan"] for r in grp),
             "izin": sum(r["izin"] for r in grp),
             "sakit": sum(r["sakit"] for r in grp),
             "alpha": sum(r["alpha"] for r in grp),
             "belum_diabsen": sum(r["belum_diabsen"] for r in grp),
             "rajin": sum(1 for r in grp if r["ratio"] >= 80),
             "jarang": sum(1 for r in grp if r["ratio"] < 50),
-            "ratio": round((hadir / slot) * 100, 1) if slot else 0.0,
+            "ratio": round(sum(r["ratio"] for r in grp) / len(grp), 1) if grp else 0.0,
         }
+
+    # Bulan terakhir yang punya kegiatan (untuk tombol "Ke bulan dengan kegiatan").
+    last_keg = await db.kegiatans.find_one(
+        {"date": {"$lte": date_to}}, sort=[("date", -1)])
+    bulan_terakhir = (last_keg or {}).get("date", "")[:7] or None
 
     return {
         "month": month,
@@ -5681,6 +5692,8 @@ async def build_rekap_bulanan(month: Optional[str] = None, include_participants:
         "total_pertemuan": len(meetings),
         "total_kegiatan": len(kegiatans),
         "total_peserta": len(rows),
+        "total_peserta_aktif": len(aktif),
+        "bulan_terakhir": bulan_terakhir,
         "summary": {
             "rata_rata": round(sum(r["ratio"] for r in aktif) / len(aktif), 1) if aktif else 0.0,
             "rajin": rajin, "cukup": cukup, "jarang": jarang, "belum_pernah": belum,
@@ -5714,10 +5727,8 @@ async def share_rekap_bulanan(request: Request, month: Optional[str] = None,
     link = f"{resolve_base_url(request)}/rekap-bulanan/{token}"
     data = await build_rekap_bulanan(month)
     wa_text = (
-        f"Rekap absen bulan {data['label']}\n"
-        f"Pertemuan: {data['total_pertemuan']}\n"
-        f"Rata-rata kehadiran: {data['summary']['rata_rata']}%\n"
-        f"{link}"
+        f"Rekap {data['label']}: {data['total_pertemuan']} pertemuan, "
+        f"rata-rata hadir {data['summary']['rata_rata']}%.\n\n{link}"
     )
     return {"token": token, "link": link, "month": month, "label": data["label"],
             "expires_at": (created + timedelta(days=REKAP_LINK_DAYS)).isoformat(),

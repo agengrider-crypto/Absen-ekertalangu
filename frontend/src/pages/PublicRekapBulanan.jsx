@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { CalendarDays, Users, TrendingDown, TrendingUp, Search, Layers, Loader2 } from "lucide-react";
+import { CalendarDays, TrendingDown, TrendingUp, Search, Layers, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Logo } from "@/components/Logo";
 import ReportHeader from "@/components/ReportHeader";
 import StatusGroups from "@/components/StatusGroups";
+import { KalenderBulanan, RingkasanBulanan } from "@/components/RekapBulananBagian";
 import { PercentBar } from "./PublicRekapGabungan";
 import { MONTHLY_RECAP } from "@/constants/testIds";
 
@@ -64,8 +65,6 @@ export default function PublicRekapBulanan() {
     );
   }
 
-  const g = data.gender || {};
-
   return (
     <div className="min-h-screen bg-[#F6F4EE] pb-14" data-testid="rekap-bulanan-public">
       <ReportHeader
@@ -95,19 +94,14 @@ export default function PublicRekapBulanan() {
           </div>
         </div>
 
-        {/* Pisah Laki-laki / Perempuan */}
-        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4 mt-4" data-testid="bulanan-public-gender">
-          <div className="text-sm font-semibold text-[#14201A] inline-flex items-center gap-2 mb-3"><Users size={16} className="text-[#0E4E31]" /> Kehadiran Laki-laki &amp; Perempuan</div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl bg-[#E3F3EA] p-3" data-testid={MONTHLY_RECAP.maleSummary}>
-              <div className="text-xs font-semibold text-[#0E4E31]">Laki-laki</div>
-              <div className="mt-1 text-2xl font-bold tabular-nums text-[#0E4E31]">{g.L?.ratio || 0}%</div>
-            </div>
-            <div className="rounded-xl bg-[#ECE4FB] p-3" data-testid={MONTHLY_RECAP.femaleSummary}>
-              <div className="text-xs font-semibold text-[#4C2A9B]">Perempuan</div>
-              <div className="mt-1 text-2xl font-bold tabular-nums text-[#4C2A9B]">{g.P?.ratio || 0}%</div>
-            </div>
-          </div>
+        {/* Ring + batang Laki-laki / Perempuan (angka agregat) */}
+        <div className="mt-4">
+          <RingkasanBulanan data={data} />
+        </div>
+
+        {/* Kalender pertemuan: blok status berupa jumlah saja */}
+        <div className="mt-4">
+          <KalenderBulanan data={data} interactive={false} />
         </div>
 
         {/* Ringkasan tiap sesi selama 1 bulan */}
@@ -248,6 +242,7 @@ export default function PublicRekapBulanan() {
                                 reason: person.reason,
                               }))}
                               showBelum={(p.belum_diabsen || 0) > 0}
+                              showReason={false}
                               testid={`bulanan-public-status-${i}`}
                             />
                           </div>

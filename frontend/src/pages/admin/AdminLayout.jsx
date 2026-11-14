@@ -331,6 +331,7 @@ export default function AdminLayout({ user, role = "admin" }) {
   const [addKegiatanRequest, setAddKegiatanRequest] = useState(0);
   const [kegiatanIdToOpen, setKegiatanIdToOpen] = useState(null);
   const [monthlyRecapFilter, setMonthlyRecapFilter] = useState("semua");
+  const [rekapHarianDate, setRekapHarianDate] = useState(null);
   const [kegiatanSubPage, setKegiatanSubPage] = useState(null);
   const leaveGuard = useRef(null);
 
@@ -364,6 +365,7 @@ export default function AdminLayout({ user, role = "admin" }) {
       }
     }
     if (key === "rekap-bulanan") setMonthlyRecapFilter(filter);
+    if (key === "rekap-harian") setRekapHarianDate(null);
     setActive(key);
     setDrawer(false);
   };
@@ -507,8 +509,13 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "pengumuman" && <PengumumanView />}
           {active === "pengaduan" && <RuangTeduhView />}
           {active === "laporan-peserta" && <LaporanPesertaView />}
-          {active === "rekap-bulanan" && <RekapBulananView initialFilter={monthlyRecapFilter} />}
-          {active === "rekap-harian" && <RekapHarianView />}
+          {active === "rekap-bulanan" && (
+            <RekapBulananView
+              initialFilter={monthlyRecapFilter}
+              onOpenHarian={(date) => { go("rekap-harian"); setRekapHarianDate(date); }}
+            />
+          )}
+          {active === "rekap-harian" && <RekapHarianView initialDate={rekapHarianDate} />}
           {active === "pantau-login" && role === "admin" && <PantauLoginView />}
           {active === "kelompok" && <KelompokView />}
           {active === "log" && role === "admin" && <LogAktivitas />}

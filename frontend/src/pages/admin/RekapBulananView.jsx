@@ -1,25 +1,27 @@
-import { useEffect, useMemo, useState } from "react";
+// Rekap Bulanan — susunan baru: ring + L/P + kalender, daftar peserta, cara menghitung.
+// Perbaikan galat: data bulan lama dibersihkan saat ganti bulan, respons usang
+// diabaikan (AbortController + id permintaan), dan galat ditampilkan di dalam
+// halaman (bukan toast) sehingga tidak ada data bulan lain yang tertinggal.
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  CalendarRange, CalendarDays, Loader2, Search, Users, TrendingUp, TrendingDown, Link2, Send,
-  ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Layers, ChevronDown, Eye, EyeOff,
+  CalendarDays, Loader2, Search, Users, Link2, Send, ChevronLeft, ChevronRight,
+  ChevronDown, Eye, EyeOff, CalendarOff, RefreshCw, AlertTriangle, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { SkeletonList } from "@/components/GlobalLoading";
-import ReportHeader from "@/components/ReportHeader";
-import StatusGroups from "@/components/StatusGroups";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MONTHLY_RECAP } from "@/constants/testIds";
 import { useAuth } from "@/context/AuthContext";
-import { REKAP, PersenRingkas, ratioColor } from "./rekapUtils";
+import { KalenderBulanan, RingkasanBulanan } from "@/components/RekapBulananBagian";
+import { ratioColor } from "./rekapUtils";
+import { nowWita } from "./kegiatanUtils";
 
 const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli",
   "Agustus", "September", "Oktober", "November", "Desember"];
 const HIDDEN_PARTICIPANTS_KEY = "rekap-bulanan-peserta-tersembunyi";
 
 function thisMonth() {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
+  return nowWita().date.slice(0, 7);
 }
 
 function shiftMonth(m, delta) {
@@ -33,11 +35,13 @@ function hiddenStorageKey(userId) {
 }
 
 function readHiddenParticipants(userId) {
-  const saved = JSON.parse(localStorage.getItem(hiddenStorageKey(userId)) || "{}");
-  const now = Date.now();
-  return Object.fromEntries(
-    Object.entries(saved).filter(([, expiresAt]) => Number(expiresAt) > now),
-  );
+  try {
+    const saved = JSON.parse(localStorage.getItem(hiddenStorageKey(userId)) || "{}");
+    const now = Date.now();
+    return Object.fromEntries(
+      Object.entries(saved).filter(([, expiresAt]) => Number(expiresAt) > now),
+    );
+  } catch { return {}; }
 }
 
 function threeMonthsFromNow() {
@@ -49,40 +53,54 @@ function threeMonthsFromNow() {
   return date.getTime();
 }
 
-function badgeOf(r) {
-  if (r.pertemuan === 0) return { t: "Tidak ada kegiatan", cls: "bg-[#F0EEE6] text-[#5F6B63]" };
-  if (r.hadir === 0) return { t: "Belum pernah hadir", cls: "bg-[#FBE5E3] text-[#A32A2A]" };
-  if (r.ratio < 50) return { t: "Jarang hadir", cls: "bg-[#FBF1D6] text-[#6B4500]" };
-  if (r.ratio < 80) return { t: "Cukup aktif", cls: "bg-[#E3EEFB] text-[#1D4F91]" };
-  return { t: "Rajin hadir", cls: "bg-[#E3F3EA] text-[#0E4E31]" };
+const FILTERS = [
+  ["semua", "Semua"],
+  ["rajin", "Rajin ≥80%"],
+  ["cukup", "Cukup aktif"],
+  ["jarang", "Jarang <50%"],
+  ["belum", "Belum pernah"],
+];
+
+function matchFilter(r, filter) {
+  if (filter === "rajin") return r.pertemuan > 0 && r.ratio >= 80;
+  if (filter === "cukup") return r.pertemuan > 0 && r.ratio >= 50 && r.ratio < 80;
+  if (filter === "jarang") return r.pertemuan > 0 && r.ratio < 50;
+  if (filter === "belum") return r.pertemuan > 0 && r.hadir === 0;
+  return true;
 }
 
-function statusStyle(status) {
-  const styles = {
-    hadir: { name: "text-[#0E4E31]", badge: "bg-[#E3F3EA]", label: "Hadir" },
-    izin: { name: "text-[#6B4500]", badge: "bg-[#FBF1D6]", label: "Izin" },
-    sakit: { name: "text-[#1D4F91]", badge: "bg-[#E3EEFB]", label: "Sakit" },
-    alpha: { name: "text-[#A32A2A]", badge: "bg-[#FBE5E3]", label: "Alpha" },
-    belum_diabsen: { name: "text-[#5F6B63]", badge: "bg-[#F0EEE6]", label: "Belum diabsen" },
-  };
-  return styles[status] || styles.belum_diabsen;
+function Accordion({ open, onToggle, title, testid, children }) {
+  return (
+    <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4 sm:p-5" data-testid={testid}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="inline-flex min-h-11 w-full items-center gap-2 text-left text-sm font-semibold text-[#14201A]"
+      >
+        <ChevronDown size={16} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        {title}
+      </button>
+      {open && <div className="mt-2">{children}</div>}
+    </div>
+  );
 }
-void statusStyle;
 
-export default function RekapBulananView({ initialFilter = "semua" }) {
+export default function RekapBulananView({ initialFilter = "semua", onOpenHarian }) {
   const { user } = useAuth();
-  const [month, setMonth] = useState(thisMonth());
+  const [month, setMonth] = useState(thisMonth);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState(initialFilter); // semua | jarang | cukup | rajin | belum
-  const [gender, setGender] = useState("semua"); // semua | L | P
+  const [filter, setFilter] = useState(initialFilter);
   const [share, setShare] = useState(null);
   const [sharing, setSharing] = useState(false);
   const [hiddenParticipants, setHiddenParticipants] = useState({});
   const [showHiddenParticipants, setShowHiddenParticipants] = useState(false);
-  const [openSections, setOpenSections] = useState({ peserta: false, pertemuan: false, sesi: false, legend: false });
-  const [openMeetings, setOpenMeetings] = useState({});
+  const [openSections, setOpenSections] = useState({ peserta: false, legend: false });
+  const reqRef = useRef(0);
+  const abortRef = useRef(null);
 
   useEffect(() => {
     setHiddenParticipants(readHiddenParticipants(user?.id));
@@ -96,28 +114,46 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
     setHiddenParticipants(updated);
   };
 
-  const load = (m) => {
+  const load = useCallback((m) => {
+    const id = reqRef.current + 1;
+    reqRef.current = id;
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    // Kosongkan data lama supaya bulan sebelumnya tidak tertinggal di layar.
+    setData(null);
+    setError(false);
     setLoading(true);
-    api.get(`/staff/rekap-bulanan?month=${m}`)
-      .then(({ data: d }) => setData(d))
-      .catch(() => toast.error("Gagal memuat rekap bulanan"))
-      .finally(() => setLoading(false));
-  };
+    api.get(`/staff/rekap-bulanan?month=${m}`, { signal: controller.signal })
+      .then(({ data: d }) => {
+        if (reqRef.current !== id) return;
+        setData(d);
+      })
+      .catch((err) => {
+        if (reqRef.current !== id || err?.code === "ERR_CANCELED") return;
+        setError(true);
+      })
+      .finally(() => {
+        if (reqRef.current === id) setLoading(false);
+      });
+  }, []);
 
-  useEffect(() => { load(month); setShare(null); }, [month]);
+  useEffect(() => {
+    load(month);
+    setShare(null);
+    return () => { if (abortRef.current) abortRef.current.abort(); };
+  }, [month, load]);
 
-  const filteredRows = useMemo(() => {
-    let list = data?.rows || [];
-    if (gender !== "semua") list = list.filter((r) => r.gender === gender);
+  const [y, m] = month.split("-").map(Number);
+  const label = `${BULAN[m - 1]} ${y}`;
+  const isCurrentMonth = month >= thisMonth();
+
+  const rows = useMemo(() => {
+    let list = (data?.rows || []).filter((r) => !hiddenParticipants[r.user_id]);
     const s = q.trim().toLowerCase();
     if (s) list = list.filter((r) => (r.name || "").toLowerCase().includes(s));
-    if (filter === "jarang") list = list.filter((r) => r.pertemuan > 0 && r.hadir > 0 && r.ratio < 50);
-    if (filter === "cukup") list = list.filter((r) => r.pertemuan > 0 && r.ratio >= 50 && r.ratio < 80);
-    if (filter === "rajin") list = list.filter((r) => r.ratio >= 80 && r.pertemuan > 0);
-    if (filter === "belum") list = list.filter((r) => r.pertemuan > 0 && r.hadir === 0);
-    return list;
-  }, [data, q, filter, gender]);
-  const rows = filteredRows.filter((r) => !hiddenParticipants[r.user_id]);
+    return list.filter((r) => matchFilter(r, filter));
+  }, [data, q, filter, hiddenParticipants]);
   const hiddenRows = (data?.rows || []).filter((r) => hiddenParticipants[r.user_id]);
 
   const getLink = async () => {
@@ -148,215 +184,162 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
     window.open(`https://wa.me/?text=${encodeURIComponent(d.wa_text)}`, "_blank");
   };
 
-  const [y, m] = month.split("-").map(Number);
+  const goToMonthWithData = () => {
+    const target = data?.bulan_terakhir;
+    if (target && target !== month) { setMonth(target); return; }
+    // Tidak ada data sama sekali: mundur satu bulan sebagai jalan keluar.
+    setMonth(shiftMonth(month, -1));
+  };
 
   return (
-    <div className="space-y-5" data-testid="rekap-bulanan-view">
-      <ReportHeader
-        title="Laporan Bulanan"
-        subtitle={`${BULAN[m - 1]} ${y}`}
-        showUserIcon
-        compact
-        testid="rekap-bulanan-header"
-      />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-[#14201A] inline-flex items-center gap-2">
-            <CalendarDays size={22} className="text-[#14633F]" /> Rekap Absen Bulanan
+    <div className="space-y-4" data-testid="rekap-bulanan-view">
+      <nav className="text-xs font-semibold text-[#5F6B63]" aria-label="Breadcrumb" data-testid="rekap-bulanan-breadcrumb">
+        E-Kertalangu <span className="px-1 text-[#B4BBB6]">›</span>
+        Rekap &amp; Laporan <span className="px-1 text-[#B4BBB6]">›</span>
+        <span className="text-[#14201A]">Rekap Bulanan</span>
+      </nav>
+
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="font-heading text-xl font-bold text-[#14201A] inline-flex items-center gap-2 sm:text-2xl">
+            <CalendarDays size={22} className="shrink-0 text-[#14633F]" />
+            Rekap <span className="text-[#14633F]">Bulanan</span>
           </h1>
-          <p className="text-sm text-[#5F6B63] mt-0.5">
-            Berapa kali setiap peserta mengikuti pertemuan dalam satu bulan. Satu hari kegiatan dihitung satu pertemuan.
+          <p className="mt-0.5 text-sm text-[#5F6B63]">
+            Berapa kali tiap peserta mengikuti pertemuan dalam satu bulan.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button data-testid="bulan-prev" onClick={() => setMonth(shiftMonth(month, -1))}
-            className="h-11 w-11 rounded-xl border-2 border-[#E7E3D8] flex items-center justify-center text-[#5F6B63] hover:border-[#14633F] hover:text-[#0E4E31]"><ChevronLeft size={18} /></button>
-          <div className="h-11 px-4 rounded-xl bg-[#14633F] text-white font-semibold text-sm inline-flex items-center gap-2" data-testid="bulan-aktif">
-            <CalendarRange size={16} /> {BULAN[m - 1]} {y}
+          <button
+            type="button" data-testid="bulan-prev" aria-label="Bulan sebelumnya"
+            onClick={() => setMonth(shiftMonth(month, -1))}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#E7E3D8] text-[#5F6B63] hover:border-[#14633F] hover:text-[#0E4E31]"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <div className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white" data-testid="bulan-aktif">
+            <CalendarDays size={16} /> {label}
           </div>
-          <button data-testid="bulan-next" onClick={() => setMonth(shiftMonth(month, 1))}
-            className="h-11 w-11 rounded-xl border-2 border-[#E7E3D8] flex items-center justify-center text-[#5F6B63] hover:border-[#14633F] hover:text-[#0E4E31]"><ChevronRight size={18} /></button>
+          <button
+            type="button" data-testid="bulan-next" aria-label="Bulan berikutnya"
+            disabled={isCurrentMonth}
+            onClick={() => setMonth(shiftMonth(month, 1))}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border-2 border-[#E7E3D8] text-[#5F6B63] hover:border-[#14633F] hover:text-[#0E4E31] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[#E7E3D8]"
+          >
+            <ChevronRight size={18} />
+          </button>
         </div>
       </div>
 
       {loading ? (
-        <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[0, 1, 2, 3].map((i) => <div key={i} className="h-24 rounded-2xl bg-[#F0EEE6] animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />)}
+        <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
+          <div className="mb-3 inline-flex items-center gap-2 text-sm text-[#5F6B63]">
+            <Loader2 size={15} className="animate-spin text-[#0E4E31]" /> Memuat rekap {label}…
           </div>
-          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
-            <div className="text-sm text-[#5F6B63] mb-3 inline-flex items-center gap-2"><Loader2 size={15} className="animate-spin text-[#0E4E31]" /> Memuat rekap bulanan…</div>
-            <SkeletonList rows={6} testid="rekap-bulanan-skeleton" />
-          </div>
+          <SkeletonList rows={6} testid="rekap-bulanan-skeleton" />
         </div>
-      ) : !data ? null : (
+      ) : error ? (
+        <div className="rounded-2xl border border-[#FBE5E3] bg-white p-6 text-center" data-testid="rekap-bulanan-error">
+          <AlertTriangle size={28} className="mx-auto text-[#A32A2A]" />
+          <div className="mt-2 font-heading text-base font-bold text-[#14201A]">
+            Rekap {label} belum bisa dimuat
+          </div>
+          <p className="mx-auto mt-1 max-w-md text-sm text-[#5F6B63]">
+            Data bulan lain tidak ditampilkan agar tidak tertukar. Coba lagi, atau pilih bulan yang lain.
+          </p>
+          <button
+            type="button" onClick={() => load(month)} data-testid="rekap-bulanan-retry"
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]"
+          >
+            <RefreshCw size={16} /> Coba lagi
+          </button>
+        </div>
+      ) : !data ? null : data.total_pertemuan === 0 ? (
+        <div className="rounded-2xl border border-[#E7E3D8] bg-white p-6 text-center" data-testid="rekap-bulanan-kosong">
+          <CalendarOff size={28} className="mx-auto text-[#5F6B63]" />
+          <div className="mt-2 font-heading text-base font-bold text-[#14201A]">Tidak ada kegiatan di bulan ini</div>
+          <p className="mx-auto mt-1 max-w-md text-sm text-[#5F6B63]">
+            Belum ada pertemuan yang tercatat pada {label}. Ini bukan galat.
+          </p>
+          <button
+            type="button" onClick={goToMonthWithData} data-testid="rekap-bulanan-ke-bulan-berkegiatan"
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-[#14633F] px-4 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]"
+          >
+            <CalendarDays size={16} /> Ke bulan dengan kegiatan
+          </button>
+        </div>
+      ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="stat-pertemuan">
-              <div className="text-xs font-semibold text-[#5F6B63] inline-flex items-center gap-1.5"><CalendarRange size={14} /> Pertemuan bulan ini</div>
-              <div className="text-3xl font-bold text-[#14201A] mt-1 tabular-nums">{data.total_pertemuan}</div>
-              <div className="text-[11px] text-[#5F6B63] mt-0.5">{data.total_kegiatan} jadwal termasuk sesi</div>
-            </div>
-            <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="stat-jamaah">
-              <div className="text-xs font-semibold text-[#5F6B63] inline-flex items-center gap-1.5"><Users size={14} /> Jumlah peserta</div>
-              <div className="text-3xl font-bold text-[#14201A] mt-1 tabular-nums">{data.total_peserta}</div>
-              <div className="text-[11px] text-[#5F6B63] mt-0.5">Rata-rata hadir {data.summary.rata_rata}%</div>
-            </div>
-            <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="stat-rajin">
-              <div className="text-xs font-semibold text-[#0E4E31] inline-flex items-center gap-1.5"><TrendingUp size={14} /> Rajin hadir (≥80%)</div>
-              <div className="text-3xl font-bold text-[#0E4E31] mt-1 tabular-nums">{data.summary.rajin}</div>
-              <div className="text-[11px] text-[#5F6B63] mt-0.5">Cukup aktif: {data.summary.cukup}</div>
-            </div>
-            <div className="rounded-2xl border border-[#FBE5E3] bg-[#FBE5E3] p-4" data-testid="stat-jarang">
-              <div className="text-xs font-semibold text-[#A32A2A] inline-flex items-center gap-1.5"><TrendingDown size={14} /> Jarang hadir (&lt;50%)</div>
-              <div className="text-3xl font-bold text-[#A32A2A] mt-1 tabular-nums">{data.summary.jarang}</div>
-              <div className="text-[11px] text-[#A32A2A]/80 mt-0.5">Belum pernah hadir: {data.summary.belum_pernah}</div>
-            </div>
-          </div>
+          <RingkasanBulanan data={data} />
 
-          {/* Bagikan sebagai tautan + WhatsApp */}
-          <div className="rounded-2xl bg-[#14633F] p-4 space-y-2.5 text-white" data-testid="rekap-bulanan-share">
-            <div className="text-sm font-bold text-white inline-flex items-center gap-1.5"><Link2 size={15} /> Bagikan rekap bulan ini</div>
-            <p className="text-[11px] text-white/85 leading-relaxed">
-              Tautan publik: siapa pun yang klik bisa langsung melihat siapa saja yang hadir,
-              berapa kali ikut, dan rincian sesinya — tanpa perlu login.
-            </p>
+          <KalenderBulanan data={data} interactive onOpenHarian={onOpenHarian} />
+
+          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="rekap-bulanan-share">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="inline-flex items-center gap-1.5 text-sm font-bold text-[#14201A]">
+                  <Link2 size={15} className="text-[#14633F]" /> Bagikan rekap bulan ini
+                </div>
+                <p className="mt-0.5 text-[11px] text-[#5F6B63]">Tautan berlaku 7 hari, tanpa login.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button" onClick={shareWa} disabled={sharing} data-testid="rekap-bulanan-share-wa"
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-60"
+                >
+                  {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} WhatsApp
+                </button>
+                <button
+                  type="button" onClick={copyLink} disabled={sharing} data-testid="rekap-bulanan-copy-link"
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-2 border-[#14633F] px-4 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA] disabled:opacity-60"
+                >
+                  <Link2 size={15} /> Salin Tautan
+                </button>
+              </div>
+            </div>
             {share && (
-              <div className="text-[11px] font-mono break-all bg-white rounded-lg border border-[#E7E3D8] px-2.5 py-2 text-[#14201A]" data-testid="rekap-bulanan-link">{share.link}</div>
+              <div className="mt-2 break-all rounded-lg border border-[#E7E3D8] bg-[#F6F4EE] px-2.5 py-2 font-mono text-[11px] text-[#14201A]" data-testid="rekap-bulanan-link">
+                {share.link}
+              </div>
             )}
-            <div className="grid grid-cols-2 gap-2 max-w-md">
-              <button onClick={shareWa} disabled={sharing} data-testid="rekap-bulanan-share-wa"
-                className="h-11 rounded-xl bg-white text-[#0E4E31] font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-[#E3F3EA] disabled:opacity-60">
-                {sharing ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />} Bagikan ke WhatsApp
-              </button>
-              <button onClick={copyLink} disabled={sharing} data-testid="rekap-bulanan-copy-link"
-                className="h-11 rounded-xl border-2 border-white/70 text-white font-semibold text-xs sm:text-sm inline-flex items-center justify-center gap-1.5 hover:bg-white/10 disabled:opacity-60">
-                <Link2 size={15} /> Salin Tautan
-              </button>
-            </div>
           </div>
 
-          {/* Pisah Laki-laki / Perempuan */}
-          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="rekap-bulanan-gender">
-            <div className="text-sm font-semibold text-[#14201A] inline-flex items-center gap-2 mb-3"><Users size={16} style={{ color: REKAP.main }} /> Pisah Laki-laki &amp; Perempuan</div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-[#E3F3EA] p-3" data-testid={MONTHLY_RECAP.maleSummary}>
-                <div className="text-xs font-semibold text-[#0E4E31]">Laki-laki</div>
-                <div className="mt-1 text-2xl font-bold tabular-nums text-[#0E4E31]">{data.gender?.L?.ratio || 0}%</div>
-              </div>
-              <div className="rounded-xl bg-[#ECE4FB] p-3" data-testid={MONTHLY_RECAP.femaleSummary}>
-                <div className="text-xs font-semibold text-[#4C2A9B]">Perempuan</div>
-                <div className="mt-1 text-2xl font-bold tabular-nums text-[#4C2A9B]">{data.gender?.P?.ratio || 0}%</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Ringkasan sesi sebulan */}
-          {data.per_sesi?.length > 0 && (
-            <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="rekap-bulanan-sesi">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => setOpenSections((prev) => ({ ...prev, sesi: !prev.sesi }))}
-                  aria-expanded={Boolean(openSections.sesi)}
-                  className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#14201A]"
-                >
-                  <ChevronDown size={16} className={`transition-transform ${openSections.sesi ? "rotate-180" : ""}`} />
-                  <Layers size={16} style={{ color: REKAP.main }} /> Ringkasan Sesi Selama Sebulan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOpenSections((prev) => ({ ...prev, sesi: !prev.sesi }))}
-                  className="min-h-11 rounded-xl border-2 border-[#E7E3D8] px-3 text-xs font-semibold text-[#5F6B63] hover:border-[#14633F]"
-                >
-                  {openSections.sesi ? "Tutup semua" : "Buka semua"}
-                </button>
-              </div>
-              {openSections.sesi && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {data.per_sesi.map((x, i) => (
-                  <div key={x.label} data-testid={`${MONTHLY_RECAP.sessionCardPrefix}-${i}`}
-                    className="min-w-0 rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] p-3">
-                    <div className="truncate text-sm font-bold text-[#14201A]" title={x.label}>{x.label}</div>
-                    <div className="mt-1 text-[11px] text-[#5F6B63]">{x.pertemuan}× kegiatan{x.required === false ? " · opsional" : ""}</div>
-                    <div className="mt-1 text-xl font-bold tabular-nums" style={{ color: ratioColor(x.ratio) }}>{x.ratio}%</div>
-                  </div>
-                ))}
-              </div>
-              )}
-            </div>
-          )}
-
-          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => setOpenSections((prev) => ({ ...prev, peserta: !prev.peserta }))}
-                aria-expanded={Boolean(openSections.peserta)}
-                data-testid="rekap-bulanan-peserta-toggle"
-                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#14201A]"
-              >
-                <ChevronDown size={16} className={`transition-transform ${openSections.peserta ? "rotate-180" : ""}`} />
-                Daftar Peserta ({rows.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpenSections((prev) => ({ ...prev, peserta: !prev.peserta }))}
-                className="min-h-11 rounded-xl border-2 border-[#E7E3D8] px-3 text-xs font-semibold text-[#5F6B63] hover:border-[#14633F]"
-              >
-                {openSections.peserta ? "Tutup semua" : "Buka semua"}
-              </button>
-            </div>
-            {openSections.peserta && (
-            <>
-            <div className="flex flex-wrap items-center gap-2 justify-between mb-4">
-              <div className="relative flex-1 min-w-[200px]">
+          <Accordion
+            open={openSections.peserta}
+            onToggle={() => setOpenSections((p) => ({ ...p, peserta: !p.peserta }))}
+            title={`Daftar Peserta (${rows.length})`}
+            testid="rekap-bulanan-peserta"
+          >
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <div className="relative min-w-[180px] flex-1">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
-                <input data-testid="rekap-bulanan-search" value={q} onChange={(e) => setQ(e.target.value)}
+                <input
+                  data-testid="rekap-bulanan-search" value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari nama peserta…"
-                  className="w-full h-11 pl-9 pr-3 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F]" />
-              </div>
-              <div className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-xl bg-[#F0EEE6] p-1" data-testid="rekap-bulanan-gender-tabs" style={{ scrollbarWidth: "none" }}>
-                {[["semua", "L/P"], ["L", "Laki-laki"], ["P", "Perempuan"]].map(([v, l]) => (
-                  <button key={v} data-testid={`rekap-bulanan-gender-${v}`} onClick={() => setGender(v)}
-                    className={`h-9 shrink-0 whitespace-nowrap rounded-lg px-3 text-xs font-semibold ${gender === v ? "bg-white text-[#0E4E31] shadow-sm" : "text-[#5F6B63]"}`}>{l}</button>
-                ))}
+                  className="h-11 w-full rounded-xl border border-[#8A948D] pl-9 pr-3 text-base outline-none focus:border-[#14633F]"
+                />
               </div>
               <div className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-xl bg-[#F0EEE6] p-1" style={{ scrollbarWidth: "none" }}>
-                {[["semua", "Semua"], ["belum", "Belum hadir"], ["jarang", "Jarang"], ["cukup", "Cukup"], ["rajin", "Rajin"]].map(([v, l]) => (
-                  <button key={v} data-testid={`rekap-bulanan-filter-${v}`} onClick={() => setFilter(v)}
-                    className={`h-9 shrink-0 whitespace-nowrap rounded-lg px-3 text-xs font-semibold ${filter === v ? "bg-white text-[#0E4E31] shadow-sm" : "text-[#5F6B63]"}`}>{l}</button>
+                {FILTERS.map(([v, l]) => (
+                  <button
+                    key={v} type="button" data-testid={`rekap-bulanan-filter-${v}`} onClick={() => setFilter(v)}
+                    className={`h-9 shrink-0 whitespace-nowrap rounded-lg px-3 text-xs font-semibold ${filter === v ? "bg-white text-[#0E4E31] shadow-sm" : "text-[#5F6B63]"}`}
+                  >
+                    {l}
+                  </button>
                 ))}
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={showHiddenParticipants}
-                data-testid="rekap-bulanan-show-hidden"
-                onClick={() => setShowHiddenParticipants((v) => !v)}
-                className={`inline-flex items-center gap-2 h-9 pl-2 pr-3 rounded-xl border-2 text-xs font-semibold transition-colors ${
-                  showHiddenParticipants
-                    ? "bg-[#14633F] border-[#14633F] text-white"
-                    : "bg-white border-[#E7E3D8] text-[#5F6B63] hover:border-[#14633F]"
-                }`}
-                title="Tampilkan peserta yang disembunyikan dari daftar rekap"
-              >
-                <span className={`relative h-5 w-9 rounded-full transition-colors ${showHiddenParticipants ? "bg-white/30" : "bg-[#E7E3D8]"}`}>
-                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${showHiddenParticipants ? "left-[18px]" : "left-0.5"}`} />
-                </span>
-                Tampilkan tersembunyi ({hiddenRows.length})
-              </button>
             </div>
+
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[#F6F4EE] px-3 py-2.5">
               <p className="text-xs text-[#5F6B63]">
                 Peserta tersembunyi hanya tidak ditampilkan di daftar ini selama 3 bulan; hitungan dan tautan publik tidak berubah.
               </p>
               <button
-                type="button"
-                data-testid={MONTHLY_RECAP.hiddenParticipantsToggle}
+                type="button" data-testid={MONTHLY_RECAP.hiddenParticipantsToggle}
                 aria-expanded={showHiddenParticipants}
-                onClick={() => setShowHiddenParticipants((show) => !show)}
-                className="min-h-11 shrink-0 rounded-xl border-2 border-[#14633F] px-3 text-sm font-semibold text-[#0E4E31] inline-flex items-center gap-2"
+                onClick={() => setShowHiddenParticipants((v) => !v)}
+                className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl border-2 border-[#14633F] px-3 text-sm font-semibold text-[#0E4E31]"
               >
                 {showHiddenParticipants ? <Eye size={16} /> : <EyeOff size={16} />}
                 {showHiddenParticipants ? "Tutup daftar tersembunyi" : `Peserta tersembunyi (${hiddenRows.length})`}
@@ -368,187 +351,69 @@ export default function RekapBulananView({ initialFilter = "semua" }) {
                 <div className="flex flex-wrap gap-2">
                   {hiddenRows.map((person) => (
                     <button
-                      key={person.user_id}
-                      type="button"
+                      key={person.user_id} type="button"
                       data-testid={`${MONTHLY_RECAP.showParticipantPrefix}-${person.user_id}`}
                       onClick={() => updateHiddenParticipants(person.user_id, false)}
-                      className="min-h-11 rounded-xl border border-[#E7E3D8] px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]"
+                      className="inline-flex min-h-11 items-center rounded-xl border border-[#E7E3D8] px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]"
                     >
-                      <Eye size={15} className="mr-1 inline" />{person.name}
+                      <Eye size={15} className="mr-1" />{person.name}
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            <div className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
-              <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm" data-testid="rekap-bulanan-table">
-                <thead className="bg-[#F6F4EE] text-[#5F6B63]">
-                  <tr>
-                    <th className="sticky left-0 z-10 w-[240px] min-w-[240px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Nama Peserta</th>
-                    <th className="w-[72px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Ikut</th>
-                    <th className="w-[120px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Kehadiran</th>
-                    <th className="w-[72px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Izin</th>
-                    <th className="w-[72px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Alpha</th>
-                    <th className="w-[130px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Terakhir hadir</th>
-                    <th className="w-[130px] border-b border-[#E7E3D8] bg-[#F6F4EE] px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide whitespace-nowrap">Tampilan</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.length === 0 ? (
-                    <tr><td colSpan={7} className="p-10 text-center text-[#5F6B63]">Tidak ada data peserta.</td></tr>
-                  ) : rows.map((r) => {
-                    const b = badgeOf(r);
-                    return (
-                      <tr key={r.user_id} data-testid={`rekap-bulanan-row-${r.user_id}`} className="group">
-                        <td className="sticky left-0 z-10 border-b border-[#F0EEE6] bg-white px-3 py-2.5 align-top group-hover:bg-[#F6F4EE]">
-                          <div className="flex min-w-0 items-center gap-1.5">
-                            <span className="min-w-0 truncate font-semibold text-[#14201A]" title={r.name}>{r.name}</span>
-                            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${b.cls}`}>{b.t}</span>
-                          </div>
-                          <div className="mt-0.5 truncate text-[11px] text-[#5F6B63]" title={r.kelompok_name || undefined}>
-                            {r.gender === "L" ? "Laki-laki" : r.gender === "P" ? "Perempuan" : "—"}
-                            {r.kelompok_name ? ` · ${r.kelompok_name}` : ""}
-                          </div>
-                        </td>
-                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 text-right font-bold tabular-nums whitespace-nowrap text-[#14633F] group-hover:bg-[#F6F4EE]">
-                          {r.hadir}<span className="font-semibold text-[#5F6B63]">/{r.pertemuan}</span>
-                        </td>
-                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 group-hover:bg-[#F6F4EE]">
-                          <PersenRingkas value={r.ratio} testid={`persen-bulanan-${r.user_id}`} />
-                        </td>
-                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 text-right font-semibold tabular-nums text-[#8A5A00] group-hover:bg-[#F6F4EE]">{r.izin}</td>
-                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 text-right font-semibold tabular-nums text-[#A32A2A] group-hover:bg-[#F6F4EE]">{r.alpha}</td>
-                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 tabular-nums whitespace-nowrap text-[#5F6B63] group-hover:bg-[#F6F4EE]">{r.last_date || "—"}</td>
-                        <td className="border-b border-[#F0EEE6] px-3 py-2.5 text-right group-hover:bg-[#F6F4EE]">
-                          <button
-                            type="button"
-                            data-testid={`${MONTHLY_RECAP.hideParticipantPrefix}-${r.user_id}`}
-                            onClick={() => updateHiddenParticipants(r.user_id, true)}
-                            className="inline-flex min-h-11 items-center rounded-lg px-2 text-xs font-semibold text-[#5F6B63] hover:bg-[#F0EEE6]"
-                          >
-                            <EyeOff size={15} className="mr-1 inline" />Sembunyikan
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            </>
-            )}
-          </div>
-
-          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <button
-                type="button"
-                onClick={() => setOpenSections((prev) => ({ ...prev, pertemuan: !prev.pertemuan }))}
-                aria-expanded={Boolean(openSections.pertemuan)}
-                data-testid="rekap-bulanan-pertemuan-toggle"
-                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#14201A]"
-              >
-                <ChevronDown size={16} className={`transition-transform ${openSections.pertemuan ? "rotate-180" : ""}`} />
-                Daftar Pertemuan {data.label} ({data.per_pertemuan.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !openSections.pertemuan;
-                  setOpenSections((prev) => ({ ...prev, pertemuan: next }));
-                  setOpenMeetings(next
-                    ? Object.fromEntries((data.per_pertemuan || []).map((_, idx) => [idx, true]))
-                    : {});
-                }}
-                className="min-h-11 rounded-xl border-2 border-[#E7E3D8] px-3 text-xs font-semibold text-[#5F6B63] hover:border-[#14633F]"
-              >
-                {openSections.pertemuan ? "Tutup semua" : "Buka semua"}
-              </button>
-            </div>
-            {openSections.pertemuan && (data.per_pertemuan.length === 0 ? (
-              <div className="text-sm text-[#5F6B63] inline-flex items-center gap-2"><AlertTriangle size={15} /> Belum ada kegiatan pada bulan ini.</div>
-            ) : (
-              <TooltipProvider>
-              <div className="space-y-3" data-testid="rekap-bulanan-pertemuan">
-                {data.per_pertemuan.map((p, i) => (
-                  <div key={i} className="rounded-xl border border-[#F0EEE6] p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="font-semibold text-sm text-[#14201A]">{p.date} · {p.name}</div>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button type="button" data-testid={`${MONTHLY_RECAP.meetingAttendancePrefix}-${i}`}
-                            aria-label={`Kehadiran ${p.hadir} dari ${p.peserta} peserta`}
-                            className="min-h-11 rounded-lg bg-[#E3F3EA] px-3 text-sm font-bold text-[#0E4E31]">
-                            Hadir {p.hadir}/{p.peserta}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>{p.ratio}% hadir</TooltipContent>
-                      </Tooltip>
+            <ul className="divide-y divide-[#F0EEE6]" data-testid="rekap-bulanan-table">
+              {rows.length === 0 ? (
+                <li className="py-8 text-center text-sm text-[#5F6B63]">Tidak ada peserta pada filter ini.</li>
+              ) : rows.map((r) => (
+                <li key={r.user_id} data-testid={`rekap-bulanan-row-${r.user_id}`} className="flex items-center gap-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span className="min-w-0 truncate text-sm font-semibold text-[#14201A]" title={r.name}>{r.name}</span>
+                      <span className="shrink-0 rounded-full bg-[#F0EEE6] px-1.5 py-0.5 text-[10px] font-bold text-[#5F6B63]">
+                        {r.gender === "L" ? "L" : r.gender === "P" ? "P" : "—"}
+                      </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setOpenMeetings((prev) => ({ ...prev, [i]: !prev[i] }))}
-                      aria-expanded={Boolean(openMeetings[i])}
-                      data-testid={`${MONTHLY_RECAP.meetingTogglePrefix}-${i}`}
-                      className="mt-1 flex min-h-11 w-full items-center gap-1 text-left text-sm font-semibold text-[#0E4E31]"
-                    >
-                      Lihat nama dan absensi <span className="text-[#5F6B63]">({p.peserta} peserta)</span>
-                      <ChevronDown size={16} className={`ml-auto transition-transform ${openMeetings[i] ? "rotate-180" : ""}`} />
-                    </button>
-                    {openMeetings[i] && (
-                      <div className="mt-2" data-testid={`${MONTHLY_RECAP.meetingParticipantsPrefix}-${i}`}>
-                        {(p.peserta_rows || []).length === 0 ? (
-                          <div className="py-3 text-sm text-[#5F6B63]">Belum ada peserta yang wajib diabsen.</div>
-                        ) : (
-                          <StatusGroups
-                            counts={{
-                              total: p.peserta, hadir: p.hadir, izin: p.izin,
-                              sakit: p.sakit, alpha: p.alpha, belum_diabsen: p.belum_diabsen,
-                            }}
-                            rows={(p.peserta_rows || []).map((person) => ({
-                              name: person.name,
-                              status: person.status,
-                              reason: person.reason,
-                            }))}
-                            showBelum={(p.belum_diabsen || 0) > 0}
-                            testid={`bulanan-status-${i}`}
-                          />
-                        )}
-                      </div>
-                    )}
-                    {(p.sesi || []).length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {p.sesi.map((x, j) => (
-                          <span key={j} className={`rounded-lg px-2 py-1 text-[11px] font-semibold ${x.required ? "bg-[#E3EEFB] text-[#1D4F91]" : "bg-[#F0EEE6] text-[#5F6B63]"}`}>
-                            {x.label} {x.start_time}–{x.end_time}{x.required ? "" : " · opsional"}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-[#F0EEE6]">
+                      <div
+                        className="h-full rounded-full transition-[width] duration-700 ease-out"
+                        style={{ width: `${Math.max(0, Math.min(100, r.ratio))}%`, backgroundColor: ratioColor(r.ratio) }}
+                      />
+                    </div>
                   </div>
-                ))}
-              </div>
-              </TooltipProvider>
-            ))}
-          </div>
-          <div className="rounded-xl border border-[#E7E3D8] bg-white p-4 text-sm text-[#5F6B63] space-y-1" data-testid="rekap-bulanan-legend">
-            <button
-              type="button"
-              onClick={() => setOpenSections((prev) => ({ ...prev, legend: !prev.legend }))}
-              aria-expanded={Boolean(openSections.legend)}
-              className="inline-flex min-h-11 w-full items-center gap-1.5 font-bold text-[#0E4E31]"
-            >
-              <CheckCircle2 size={15} /> Cara menghitung
-              <ChevronDown size={16} className={`ml-auto transition-transform ${openSections.legend ? "rotate-180" : ""}`} />
-            </button>
-            {openSections.legend && (
-              <>
-                <p>Persen hadir = pertemuan berstatus Hadir ÷ pertemuan wajib × 100.</p>
-                <p>Hadir di salah satu sesi wajib dihitung hadir. Izin, sakit, alpha, dan belum diabsen dicatat terpisah; sesi opsional tidak menambah kewajiban.</p>
-              </>
-            )}
-          </div>
+                  <span className="shrink-0 text-sm font-bold tabular-nums text-[#14201A]">
+                    {r.hadir}<span className="font-semibold text-[#5F6B63]"> dari {r.pertemuan}</span>
+                  </span>
+                  <button
+                    type="button" data-testid={`${MONTHLY_RECAP.hideParticipantPrefix}-${r.user_id}`}
+                    onClick={() => updateHiddenParticipants(r.user_id, true)}
+                    aria-label={`Sembunyikan ${r.name}`}
+                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"
+                  >
+                    <EyeOff size={15} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+
+            <p className="mt-3 rounded-xl bg-[#F6F4EE] px-3 py-2 text-xs text-[#5F6B63]" data-testid="rekap-bulanan-ringkas-kategori">
+              Rajin ≥80%: {data.summary.rajin} · Cukup aktif: {data.summary.cukup} · Jarang &lt;50%: {data.summary.jarang} · Belum pernah hadir: {data.summary.belum_pernah}
+            </p>
+          </Accordion>
+
+          <Accordion
+            open={openSections.legend}
+            onToggle={() => setOpenSections((p) => ({ ...p, legend: !p.legend }))}
+            title="Cara menghitung"
+            testid="rekap-bulanan-legend"
+          >
+            <div className="space-y-1 text-sm text-[#5F6B63]">
+              <p className="inline-flex items-start gap-1.5"><CheckCircle2 size={15} className="mt-0.5 shrink-0" /> Persen hadir = pertemuan berstatus Hadir ÷ pertemuan wajib × 100.</p>
+              <p>Hadir di salah satu sesi wajib dihitung hadir. Izin, sakit, alpha, dan belum diabsen dicatat terpisah; sesi opsional tidak menambah kewajiban.</p>
+              <p className="inline-flex items-start gap-1.5"><Users size={15} className="mt-0.5 shrink-0" /> Rata-rata gabungan = seluruh kehadiran ÷ seluruh slot pertemuan, sama dengan rata-rata tertimbang Laki-laki dan Perempuan.</p>
+            </div>
+          </Accordion>
         </>
       )}
     </div>

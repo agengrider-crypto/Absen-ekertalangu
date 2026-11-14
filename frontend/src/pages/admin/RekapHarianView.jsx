@@ -28,8 +28,8 @@ const STATUS_CHIP = {
   alpha: { t: "Alpha", cls: "bg-[#FBE5E3] text-[#A32A2A]" },
 };
 
-export default function RekapHarianView() {
-  const [date, setDate] = useState(todayYmd);
+export default function RekapHarianView({ initialDate = null }) {
+  const [date, setDate] = useState(() => initialDate || todayYmd());
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
