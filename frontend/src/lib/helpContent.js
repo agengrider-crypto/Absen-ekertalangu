@@ -4,6 +4,7 @@
 
 export const HELP_ROLES = [
   { key: "admin", label: "Administrator" },
+  { key: "guru", label: "Guru / Pengajar" },
   { key: "pengurus", label: "Pengurus" },
   { key: "peserta", label: "Peserta" },
 ];
@@ -22,6 +23,19 @@ export const HELP_CONTENT = {
       { q: "Kenapa tautan rekap sudah tidak bisa dibuka?", a: "Tautan rekap bulanan hanya berlaku 7 hari sejak dibuat. Buat tautan baru dari halaman Rekap Bulanan." },
       { q: "Bagaimana menutup absensi yang terlupa?", a: "Buka tautan absensi kegiatan (dibagikan lewat WhatsApp), lalu tekan Tutup Absensi. Peserta yang belum diabsen otomatis menjadi Alpha." },
       { q: "Bisakah menghapus kegiatan yang sudah ada absensinya?", a: "Bisa, tetapi seluruh data absensinya ikut terhapus. Sistem meminta Anda mengetik HAPUS sebagai konfirmasi." },
+    ],
+  },
+  guru: {
+    label: "Guru / Pengajar",
+    steps: [
+      { title: "Lihat jadwal mengajar", desc: "Menu Jadwal Saya memuat pertemuan pekan ini dan berikutnya. Ketuk satu pertemuan untuk membuka absen kelas." },
+      { title: "Absen kelas", desc: "Menu Absen Kelas: pilih pertemuan, lalu tandai Hadir / Izin / Sakit / Alpha tiap peserta." },
+      { title: "Catat materi", desc: "Di Absen Kelas, materi berikutnya terisi otomatis. Ganti bila perlu, lalu centang Materi tersampaikan." },
+      { title: "Pantau kelas", desc: "Menu Kelas Saya menampilkan persentase kehadiran peserta dan tanda Tidak hadir 3x." },
+    ],
+    faq: [
+      { q: "Pertemuan tidak muncul di jadwal?", a: "Pertemuan dibuat otomatis dari jadwal Program Pembelajaran. Pastikan jadwal sudah memakai nama Anda sebagai Pengajar." },
+      { q: "Kenapa tombol Alpha tidak aktif?", a: "Alpha baru tersedia setelah jam selesai pertemuan lewat, agar tidak salah menandai peserta yang belum sempat diabsen." },
     ],
   },
   pengurus: {

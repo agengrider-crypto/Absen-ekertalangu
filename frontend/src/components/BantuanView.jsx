@@ -4,12 +4,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   LifeBuoy, BookOpen, MessageCircleQuestion, PhoneCall, ChevronDown, ChevronLeft,
-  ChevronRight, Loader2, Send, Mail, Search, ShieldCheck, Users, UserCheck,
+  ChevronRight, Loader2, Send, Mail, Search, ShieldCheck, Users, UserCheck, GraduationCap,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { HELP_CONTENT, HELP_ROLES } from "@/lib/helpContent";
 
-const ROLE_ICON = { admin: ShieldCheck, pengurus: Users, peserta: UserCheck };
+const ROLE_ICON = { admin: ShieldCheck, guru: GraduationCap, pengurus: Users, peserta: UserCheck };
 
 export default function BantuanView({ role = "admin" }) {
   const available = useMemo(() => {

@@ -2,15 +2,15 @@
 // Data disimpan di koleksi `tutorial_video` (lihat backend/server.py).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Play, Clock, X, Plus, Pencil, Trash2, Loader2, Video, ShieldCheck, Users, UserCheck,
+  Play, Clock, X, Plus, Pencil, Trash2, Loader2, Video, ShieldCheck, Users, UserCheck, GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import Modal from "@/components/Modal";
 
-const ROLE_LABEL = { admin: "Administrator", pengurus: "Pengurus", peserta: "Peserta" };
-const ROLE_ICON = { admin: ShieldCheck, pengurus: Users, peserta: UserCheck };
-const ROLE_OPTIONS = ["admin", "pengurus", "peserta"];
+const ROLE_LABEL = { admin: "Administrator", guru: "Guru / Pengajar", pengurus: "Pengurus", peserta: "Peserta" };
+const ROLE_ICON = { admin: ShieldCheck, guru: GraduationCap, pengurus: Users, peserta: UserCheck };
+const ROLE_OPTIONS = ["admin", "guru", "pengurus", "peserta"];
 
 /** Ambil ID video YouTube dari berbagai bentuk URL. */
 function youtubeId(url) {

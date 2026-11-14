@@ -1,46 +1,97 @@
-// FASE 18 — Area Guru / Pengajar + menu Bantuan.
-// Administrator boleh membuka area ini tanpa terdaftar sebagai guru (cakupan "semua").
-import { useEffect, useState } from "react";
-import { GraduationCap, LifeBuoy, Sparkles, BookOpen, ClipboardList, CalendarClock, Loader2, MapPin, Clock } from "lucide-react";
-import { toast } from "sonner";
-import { api, formatApiErrorDetail } from "@/lib/api";
+// Area Guru / Pengajar — sidebar desktop (8 menu) + menu bawah 5 tab di HP.
+// Semua data lewat getGuruScope: guru = miliknya, Administrator = semua.
+import { useState } from "react";
+import {
+  LifeBuoy, BookOpen, CalendarClock, ClipboardCheck, Users,
+  NotebookPen, Megaphone, Home, MoreHorizontal, ArrowLeftRight, X, ChevronRight,
+} from "lucide-react";
 import ProfileMenu from "@/components/ProfileMenu";
 import BantuanView from "@/components/BantuanView";
 import DemoBanner from "@/components/DemoBanner";
 import ProgramPembelajaran from "@/pages/admin/ProgramPembelajaran";
 import { K1Mark } from "@/components/Logo";
-import { tanggalSingkat } from "@/pages/admin/kegiatanUtils";
+import GuruBeranda from "./guru/GuruBeranda";
+import GuruJadwal from "./guru/GuruJadwal";
+import GuruAbsenKelas from "./guru/GuruAbsenKelas";
+import GuruKelas from "./guru/GuruKelas";
 
-const TABS = [
-  { key: "beranda", label: "Beranda", icon: GraduationCap },
+const MENU = [
+  { group: null, items: [{ key: "beranda", label: "Beranda", icon: Home }] },
+  {
+    group: "MENGAJAR",
+    items: [
+      { key: "jadwal", label: "Jadwal Saya", icon: CalendarClock },
+      { key: "absen", label: "Absen Kelas", icon: ClipboardCheck },
+      { key: "kelas", label: "Kelas Saya", icon: Users },
+    ],
+  },
+  {
+    group: "PERKEMBANGAN",
+    items: [{ key: "catatan", label: "Catatan Peserta", icon: NotebookPen, soon: true }],
+  },
+  {
+    group: "KOMUNIKASI",
+    items: [{ key: "pengumuman", label: "Pengumuman Kelas", icon: Megaphone, soon: true }],
+  },
+  {
+    group: "PROGRAM",
+    items: [
+      { key: "program", label: "Program Pembelajaran", icon: BookOpen },
+      { key: "bantuan", label: "Bantuan", icon: LifeBuoy },
+    ],
+  },
+];
+
+const BOTTOM = [
+  { key: "beranda", label: "Beranda", icon: Home },
+  { key: "kelas", label: "Kelas", icon: Users },
+  { key: "absen", label: "Absen", icon: ClipboardCheck, center: true },
+  { key: "catatan", label: "Catatan", icon: NotebookPen, soon: true },
+  { key: "lainnya", label: "Lainnya", icon: MoreHorizontal },
+];
+
+const LAINNYA = [
+  { key: "jadwal", label: "Jadwal Saya", icon: CalendarClock },
+  { key: "pengumuman", label: "Pengumuman Kelas", icon: Megaphone, soon: true },
   { key: "program", label: "Program Pembelajaran", icon: BookOpen },
   { key: "bantuan", label: "Bantuan", icon: LifeBuoy },
 ];
 
 export default function GuruArea({ user }) {
   const [tab, setTab] = useState("beranda");
-  const [scope, setScope] = useState(null);
-  const [pertemuan, setPertemuan] = useState(null);
+  const [absenId, setAbsenId] = useState(null);
+  const [more, setMore] = useState(false);
 
-  useEffect(() => {
-    api.get("/guru/scope").then(({ data }) => setScope(data.scope)).catch(() => setScope(false));
-    api.get("/guru/pertemuan")
-      .then(({ data }) => setPertemuan(data.items || []))
-      .catch((e) => { setPertemuan([]); toast.error(formatApiErrorDetail(e.response?.data?.detail)); });
-  }, []);
+  const isAdmin = (user?.roles || []).includes("admin");
 
-  const isAdminView = scope?.mode === "semua";
+  const go = (key) => {
+    if (key === "lainnya") { setMore(true); return; }
+    setTab(key);
+    setMore(false);
+  };
+
+  const openAbsen = (id) => { setAbsenId(id || null); setTab("absen"); setMore(false); };
+
+  const body = () => {
+    if (tab === "beranda") return <GuruBeranda user={user} onGoto={go} onOpenAbsen={openAbsen} />;
+    if (tab === "jadwal") return <GuruJadwal onOpenAbsen={openAbsen} />;
+    if (tab === "absen") return <GuruAbsenKelas key={absenId || "auto"} initialId={absenId} />;
+    if (tab === "kelas") return <GuruKelas />;
+    if (tab === "program") return <ProgramPembelajaran />;
+    if (tab === "bantuan") return <BantuanView role="guru" />;
+    return null;
+  };
 
   return (
-    <div className="min-h-screen bg-[#F6F4EE]" data-testid="guru-area">
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-[#E7E3D8]">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div className="min-h-screen bg-[#F6F4EE] pb-[calc(5.5rem_+_env(safe-area-inset-bottom))] lg:pb-0" data-testid="guru-area">
+      <header className="sticky top-0 z-30 border-b border-[#E7E3D8] bg-white/90 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-[#E3F3EA] flex items-center justify-center overflow-hidden p-1">
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-[#E3F3EA] p-1">
               <K1Mark size={32} variant="light" />
             </div>
             <div className="leading-tight">
-              <div className="font-heading font-bold text-[#0E4E31] text-sm">E-KERTALANGU</div>
+              <div className="font-heading text-sm font-bold text-[#0E4E31]">E-KERTALANGU</div>
               <div className="text-[11px] text-[#5F6B63]">Area Guru / Pengajar</div>
             </div>
           </div>
@@ -48,93 +99,131 @@ export default function GuruArea({ user }) {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 pt-4">
-        {isAdminView && (
-          <div className="mb-3 rounded-xl border border-[#D9F2F4] bg-[#D9F2F4] px-3 py-2 text-[12px] font-semibold text-[#0A5961]" data-testid="guru-admin-banner">
-            Anda melihat sebagai Administrator
-          </div>
-        )}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar" data-testid="guru-tabs">
-          {TABS.map((t) => {
+      <div className="mx-auto flex max-w-6xl gap-6 px-4 py-4">
+        {/* Sidebar desktop */}
+        <aside className="hidden w-60 shrink-0 lg:block" data-testid="guru-sidebar">
+          <nav className="space-y-4">
+            {MENU.map((section, i) => (
+              <div key={section.group || `g${i}`}>
+                {section.group && (
+                  <div className="mb-1 px-2 text-[10px] font-bold uppercase tracking-wider text-[#5F6B63]">
+                    {section.group}
+                  </div>
+                )}
+                <div className="space-y-0.5">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const on = tab === item.key;
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        disabled={item.soon}
+                        data-testid={`guru-menu-${item.key}`}
+                        onClick={() => go(item.key)}
+                        className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-colors ${
+                          item.soon
+                            ? "cursor-not-allowed text-[#8A948D]"
+                            : on ? "bg-[#E3F3EA] font-semibold text-[#0E4E31]" : "text-[#5F6B63] hover:bg-[#F0EEE6] hover:text-[#0E4E31]"
+                        }`}
+                      >
+                        <Icon size={17} />
+                        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                        {item.soon && (
+                          <span className="shrink-0 rounded-full bg-[#F0EEE6] px-1.5 py-0.5 text-[10px] font-bold text-[#5F6B63]">
+                            Segera
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        <main className="min-w-0 flex-1">
+          <DemoBanner />
+          {isAdmin && (
+            <div className="mb-3 rounded-xl border border-[#D9F2F4] bg-[#D9F2F4] px-3 py-2 text-[12px] font-semibold text-[#0A5961]" data-testid="guru-admin-banner">
+              Anda melihat sebagai Administrator
+            </div>
+          )}
+          {body()}
+        </main>
+      </div>
+
+      {/* Menu bawah HP */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#E7E3D8] bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+        <div className="mx-auto grid max-w-lg items-end" style={{ gridTemplateColumns: `repeat(${BOTTOM.length}, minmax(0, 1fr))` }}>
+          {BOTTOM.map((t) => {
             const Icon = t.icon;
             const on = tab === t.key;
+            if (t.center) {
+              return (
+                <button key={t.key} type="button" data-testid={`guru-tab-${t.key}`} onClick={() => go(t.key)}
+                  aria-label={t.label} className="flex flex-col items-center justify-end gap-0.5 pb-1.5">
+                  <span className={`-mt-6 flex h-[54px] w-[54px] items-center justify-center rounded-full border-4 border-[#F6F4EE] text-white shadow-[0_8px_20px_-6px_rgba(11,107,82,0.6)] transition-transform active:scale-95 ${on ? "bg-[#0E4E31]" : "bg-[#14633F]"}`}>
+                    <Icon size={24} strokeWidth={2.2} />
+                  </span>
+                  <span className={`text-[11px] ${on ? "font-semibold text-[#0E4E31]" : "font-medium text-[#5F6B63]"}`}>{t.label}</span>
+                </button>
+              );
+            }
             return (
-              <button
-                key={t.key}
-                data-testid={`guru-tab-${t.key}`}
-                onClick={() => setTab(t.key)}
-                className={`shrink-0 h-10 px-3.5 rounded-xl font-semibold text-sm inline-flex items-center gap-2 border-2 transition-colors ${
-                  on ? "bg-[#14633F] text-white border-transparent" : "bg-white text-[#5F6B63] border-[#E7E3D8] hover:border-[#14633F] hover:text-[#0E4E31]"
-                }`}
-              >
-                <Icon size={16} /> {t.label}
+              <button key={t.key} type="button" disabled={t.soon} data-testid={`guru-tab-${t.key}`}
+                onClick={() => go(t.key)}
+                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 ${t.soon ? "text-[#8A948D]" : on ? "text-[#0E4E31]" : "text-[#5F6B63]"}`}>
+                <Icon size={22} strokeWidth={on ? 2.4 : 2} />
+                <span className={`text-[11px] ${on ? "font-semibold" : "font-medium"}`}>{t.label}</span>
+                <span className={`h-1 w-1 rounded-full ${on ? "bg-[#14633F]" : "bg-transparent"}`} />
               </button>
             );
           })}
         </div>
-      </div>
+      </nav>
 
-      <main className="max-w-4xl mx-auto px-4 py-6">
-        <DemoBanner />
-        {tab === "beranda" ? (
-          <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5" data-testid="guru-pertemuan">
-              <div className="flex items-center gap-2 font-bold text-[#14201A]">
-                <CalendarClock size={17} className="text-[#0E4E31]" /> Pertemuan 2 pekan ke depan
-              </div>
-              <p className="text-xs text-[#5F6B63] mt-0.5">
-                Dibuat otomatis dari jadwal Program Pembelajaran.
-              </p>
-              {pertemuan === null ? (
-                <div className="py-8 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={22} /></div>
-              ) : pertemuan.length === 0 ? (
-                <p className="mt-3 text-sm text-[#5F6B63]">Belum ada pertemuan terjadwal.</p>
-              ) : (
-                <div className="mt-3 space-y-2">
-                  {pertemuan.map((k) => (
-                    <div key={k.id} className="rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] p-3" data-testid={`guru-pertemuan-${k.id}`}>
-                      <div className="text-sm font-semibold text-[#14201A]">{k.name}</div>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[#5F6B63]">
-                        <span className="inline-flex items-center gap-1"><CalendarClock size={12} /> {tanggalSingkat(k.date)}</span>
-                        <span className="inline-flex items-center gap-1"><Clock size={12} /> {k.start_time}–{k.end_time} WITA</span>
-                        {k.location && <span className="inline-flex items-center gap-1"><MapPin size={12} /> {k.location}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+      {/* Sheet "Lainnya" */}
+      {more && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-[rgba(20,32,26,0.5)]" onClick={() => setMore(false)} />
+          <div className="absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-4 pb-[calc(1rem_+_env(safe-area-inset-bottom))]">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-heading font-bold text-[#14201A]">Lainnya</span>
+              <button type="button" onClick={() => setMore(false)} aria-label="Tutup"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]">
+                <X size={18} />
+              </button>
             </div>
-
-            <div className="bg-white rounded-2xl border border-[#E7E3D8] p-8 text-center" data-testid="guru-coming-soon">
-              <div className="inline-flex items-center gap-2 bg-[#E3F3EA] text-[#0E4E31] px-3 py-1 rounded-full text-sm font-semibold mb-4">
-                <Sparkles size={16} /> Segera Hadir
-              </div>
-              <h1 className="font-heading text-2xl font-bold text-[#14201A]">Area Guru / Pengajar</h1>
-              <p className="text-[#5F6B63] mt-2 max-w-xl mx-auto leading-relaxed">
-                Halo {user?.name || "Ustadz/Ustadzah"} — area khusus pengajar sedang disiapkan. Nanti
-                di sini tersedia jadwal mengajar, materi pembelajaran, dan catatan perkembangan peserta.
-              </p>
-              <div className="grid sm:grid-cols-2 gap-3 mt-6 text-left max-w-xl mx-auto">
-                <button onClick={() => setTab("program")} data-testid="guru-goto-program"
-                  className="rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] p-4 text-left hover:border-[#14633F] transition-colors">
-                  <BookOpen size={18} className="text-[#0E4E31]" />
-                  <div className="font-semibold text-[#14201A] text-sm mt-2">Program Pembelajaran</div>
-                  <p className="text-xs text-[#5F6B63] mt-1">Sudah aktif — kelola kurikulum, materi, media, dan jadwal per jenjang.</p>
-                </button>
-                <div className="rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] p-4">
-                  <ClipboardList size={18} className="text-[#0E4E31]" />
-                  <div className="font-semibold text-[#14201A] text-sm mt-2">Catatan Peserta</div>
-                  <p className="text-xs text-[#5F6B63] mt-1">Pantau perkembangan dan hafalan peserta per kelompok (segera hadir).</p>
-                </div>
-              </div>
+            <div className="space-y-1">
+              {LAINNYA.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button key={item.key} type="button" disabled={item.soon}
+                    data-testid={`guru-more-${item.key}`}
+                    onClick={() => go(item.key)}
+                    className={`flex w-full items-center gap-2.5 rounded-xl px-2.5 py-3 text-left text-sm ${
+                      item.soon ? "cursor-not-allowed text-[#8A948D]" : "text-[#14201A] hover:bg-[#F6F4EE]"
+                    }`}>
+                    <Icon size={17} />
+                    <span className="min-w-0 flex-1">{item.label}</span>
+                    {item.soon
+                      ? <span className="rounded-full bg-[#F0EEE6] px-1.5 py-0.5 text-[10px] font-bold text-[#5F6B63]">Segera</span>
+                      : <ChevronRight size={16} className="text-[#D9D4C5]" />}
+                  </button>
+                );
+              })}
+              <a href="/roles" data-testid="guru-more-pindah-peran"
+                className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-3 text-left text-sm text-[#14201A] hover:bg-[#F6F4EE]">
+                <ArrowLeftRight size={17} />
+                <span className="min-w-0 flex-1">Pindah peran</span>
+                <ChevronRight size={16} className="text-[#D9D4C5]" />
+              </a>
             </div>
           </div>
-        ) : tab === "program" ? (
-          <ProgramPembelajaran />
-        ) : (
-          <BantuanView />
-        )}
-      </main>
+        </div>
+      )}
     </div>
   );
 }

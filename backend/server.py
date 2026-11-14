@@ -6520,7 +6520,7 @@ async def bantuan_kontak(user: dict = Depends(get_current_user)):
 
 
 # ------------------------- Tutorial video (admin mengisi sendiri) -------------------------
-TUTORIAL_ROLES = ("admin", "pengurus", "peserta")
+TUTORIAL_ROLES = ("admin", "guru", "pengurus", "peserta")
 YOUTUBE_RE = re.compile(
     r"^https?://(www\.|m\.)?(youtube\.com/(watch\?v=|embed/|shorts/)|youtu\.be/)[\w-]{6,}",
     re.IGNORECASE)
@@ -6557,8 +6557,10 @@ async def list_tutorial_video(user: dict = Depends(get_current_user)):
     """Daftar tutorial video. Peserta hanya melihat video untuk perannya."""
     roles = user.get("roles") or []
     q = {}
-    if not ({"admin", "pengurus"} & set(roles)):
+    if not ({"admin", "pengurus", "guru"} & set(roles)):
         q = {"peran": "peserta"}
+    elif "guru" in roles and not ({"admin", "pengurus"} & set(roles)):
+        q = {"peran": "guru"}
     items = await db.tutorial_video.find(q).sort([("urutan", 1), ("dibuat", 1)]).to_list(500)
     return {"items": [serialize_tutorial(v) for v in items],
             "can_manage": "admin" in roles}
@@ -7033,6 +7035,168 @@ async def guru_pertemuan(user: dict = Depends(get_current_user)):
     docs = await db.kegiatans.find(query).sort([("date", 1), ("start_time", 1)]).to_list(500)
     return {"scope": scope,
             "items": [serialize_kegiatan(k, await kegiatan_counts(k)) for k in docs]}
+
+
+@api_router.get("/guru/pertemuan/{kegiatan_id}/rekap")
+async def guru_rekap_pertemuan(kegiatan_id: str, user: dict = Depends(get_current_user)):
+    """Rekap absensi pertemuan — memakai ulang logika rekap admin."""
+    roles = user.get("roles") or []
+    if not ({"admin", "guru"} & set(roles)):
+        raise HTTPException(status_code=403, detail="Akses khusus Administrator dan Guru/Pengajar")
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Pertemuan tidak ditemukan")
+    scope = get_guru_scope(user)
+    if scope["mode"] == "guru" and k.get("guru_id") != scope["guru_id"]:
+        raise HTTPException(status_code=403, detail="Pertemuan ini bukan kelas Anda")
+    return await rekap_kegiatan(kegiatan_id, user)
+
+
+@api_router.post("/guru/pertemuan/{kegiatan_id}/absen")
+async def guru_absen_pertemuan(kegiatan_id: str, body: AbsenInput,
+                               user: dict = Depends(get_current_user)):
+    """Tandai absensi peserta — memakai ulang logika absen admin."""
+    roles = user.get("roles") or []
+    if not ({"admin", "guru"} & set(roles)):
+        raise HTTPException(status_code=403, detail="Akses khusus Administrator dan Guru/Pengajar")
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Pertemuan tidak ditemukan")
+    scope = get_guru_scope(user)
+    if scope["mode"] == "guru" and k.get("guru_id") != scope["guru_id"]:
+        raise HTTPException(status_code=403, detail="Pertemuan ini bukan kelas Anda")
+    return await mark_absen(kegiatan_id, body, user)
+
+
+@api_router.get("/guru/kelas")
+async def guru_kelas(user: dict = Depends(get_current_user)):
+    """Kelas (jenjang) yang diampu + daftar peserta & persentase kehadiran."""
+    roles = user.get("roles") or []
+    if not ({"admin", "guru"} & set(roles)):
+        raise HTTPException(status_code=403, detail="Akses khusus Administrator dan Guru/Pengajar")
+    scope = get_guru_scope(user)
+    jadwal_query = {} if scope["mode"] == "semua" else {"guru_id": scope["guru_id"]}
+    jadwals = await db.program_jadwals.find(jadwal_query).to_list(500)
+    jenjang_ids = list(dict.fromkeys(j.get("jenjang_id") for j in jadwals if j.get("jenjang_id")))
+    if scope["mode"] == "semua" and not jenjang_ids:
+        jenjang_ids = [j["id"] for j in JENJANG]
+    out = []
+    for jid in jenjang_ids:
+        j = JENJANG_BY_ID.get(jid)
+        if not j:
+            continue
+        keg_query = {"type": "pembelajaran", "jenjang": jid}
+        if scope["mode"] == "guru":
+            keg_query["guru_id"] = scope["guru_id"]
+        kegs = await db.kegiatans.find(keg_query).sort([("date", -1)]).to_list(500)
+        kid_ids = [k["_id"] for k in kegs]
+        peserta = await db.users.find({**PESERTA_QUERY, "jenjang": jid}).sort("name", 1).to_list(2000)
+        absens = await db.absensis.find({"kegiatan_id": {"$in": kid_ids}}).to_list(50000) if kid_ids else []
+        by_user: dict = {}
+        for a in absens:
+            by_user.setdefault(a["user_id"], []).append(a)
+        rows = []
+        for p in peserta:
+            pid = str(p["_id"])
+            mine = by_user.get(pid, [])
+            hadir = len([a for a in mine if a.get("status") == "hadir"])
+            total = len(kid_ids)
+            ratio = round((hadir / total) * 100) if total else 0
+            # 3 pertemuan terakhir tidak hadir (alpha / belum diabsen)
+            last3 = kegs[:3]
+            absent3 = bool(last3) and all(
+                next((a.get("status") for a in mine if a.get("kegiatan_id") == k["_id"]), None) != "hadir"
+                for k in last3)
+            rows.append({"user_id": pid, "name": p.get("name"), "ratio": ratio,
+                         "hadir": hadir, "total": total, "tidak_hadir_3x": absent3})
+        out.append({"jenjang": jid, "label": j.get("label"), "peserta": rows,
+                    "total_peserta": len(rows)})
+    return {"scope": scope, "items": out}
+
+
+@api_router.get("/guru/pertemuan/{kegiatan_id}/materi")
+async def guru_materi_pertemuan(kegiatan_id: str, user: dict = Depends(get_current_user)):
+    """Materi berikutnya yang belum tersampaikan + pilihan materi manual."""
+    roles = user.get("roles") or []
+    if not ({"admin", "guru"} & set(roles)):
+        raise HTTPException(status_code=403, detail="Akses khusus Administrator dan Guru/Pengajar")
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Pertemuan tidak ditemukan")
+    scope = get_guru_scope(user)
+    if scope["mode"] == "guru" and k.get("guru_id") != scope["guru_id"]:
+        raise HTTPException(status_code=403, detail="Pertemuan ini bukan kelas Anda")
+    jenjang = k.get("jenjang")
+    materis = await db.program_materis.find({"jenjang_id": jenjang}) \
+        .sort([("pekan", 1), ("created_at", 1)]).to_list(300) if jenjang else []
+    done_ids = set()
+    if jenjang:
+        async for row in db.kegiatans.find({"jenjang": jenjang, "materi_tersampaikan": True}):
+            if row.get("materi_id"):
+                done_ids.add(row["materi_id"])
+    berikutnya = next((m for m in materis if m["_id"] not in done_ids), None)
+    return {
+        "kegiatan_id": kegiatan_id,
+        "materi_id": k.get("materi_id"),
+        "materi_tersampaikan": bool(k.get("materi_tersampaikan", False)),
+        "saran": ({"id": berikutnya["_id"], "title": berikutnya.get("title")} if berikutnya else None),
+        "pilihan": [{"id": m["_id"], "title": m.get("title"), "pekan": m.get("pekan")} for m in materis],
+    }
+
+
+class MateriPertemuanInput(BaseModel):
+    materi_id: Optional[str] = None
+    materi_tersampaikan: bool = False
+
+
+@api_router.post("/guru/pertemuan/{kegiatan_id}/materi")
+async def guru_simpan_materi(kegiatan_id: str, body: MateriPertemuanInput,
+                             user: dict = Depends(get_current_user)):
+    """Simpan materi hari ini + centang materi tersampaikan pada pertemuan."""
+    roles = user.get("roles") or []
+    if not ({"admin", "guru"} & set(roles)):
+        raise HTTPException(status_code=403, detail="Akses khusus Administrator dan Guru/Pengajar")
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Pertemuan tidak ditemukan")
+    scope = get_guru_scope(user)
+    if scope["mode"] == "guru" and k.get("guru_id") != scope["guru_id"]:
+        raise HTTPException(status_code=403, detail="Pertemuan ini bukan kelas Anda")
+    await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": {
+        "materi_id": body.materi_id or None,
+        "materi_tersampaikan": bool(body.materi_tersampaikan),
+    }})
+    return {"ok": True, "materi_id": body.materi_id or None,
+            "materi_tersampaikan": bool(body.materi_tersampaikan)}
+
+
+@api_router.get("/guru/ringkasan")
+async def guru_ringkasan(user: dict = Depends(get_current_user)):
+    """Capaian: materi tersampaikan x dari y + kehadiran rata-rata."""
+    roles = user.get("roles") or []
+    if not ({"admin", "guru"} & set(roles)):
+        raise HTTPException(status_code=403, detail="Akses khusus Administrator dan Guru/Pengajar")
+    scope = get_guru_scope(user)
+    jadwal_query = {} if scope["mode"] == "semua" else {"guru_id": scope["guru_id"]}
+    jadwals = await db.program_jadwals.find(jadwal_query).to_list(500)
+    jenjang_ids = list(dict.fromkeys(j.get("jenjang_id") for j in jadwals if j.get("jenjang_id")))
+    if scope["mode"] == "semua" and not jenjang_ids:
+        jenjang_ids = [j["id"] for j in JENJANG]
+    total_materi = await db.program_materis.count_documents({"jenjang_id": {"$in": jenjang_ids}}) \
+        if jenjang_ids else 0
+    keg_query = {"type": "pembelajaran", "jenjang": {"$in": jenjang_ids}}
+    if scope["mode"] == "guru":
+        keg_query["guru_id"] = scope["guru_id"]
+    kegs = await db.kegiatans.find(keg_query).to_list(2000) if jenjang_ids else []
+    tersampaikan = len([k for k in kegs if k.get("materi_tersampaikan")])
+    kid_ids = [k["_id"] for k in kegs]
+    absens = await db.absensis.find({"kegiatan_id": {"$in": kid_ids}}).to_list(50000) if kid_ids else []
+    hadir = len([a for a in absens if a.get("status") == "hadir"])
+    total_absen = len(absens)
+    rata = round((hadir / total_absen) * 100) if total_absen else 0
+    return {"scope": scope,
+            "materi": {"tersampaikan": tersampaikan, "total": total_materi},
+            "kehadiran": {"rata_rata": rata, "hadir": hadir, "tercatat": total_absen}}
 
 
 @api_router.post("/program/upload")
