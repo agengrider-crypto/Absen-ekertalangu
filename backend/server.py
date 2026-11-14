@@ -241,6 +241,9 @@ def public_user(user: dict, include_photo: bool = False) -> dict:
         "mubaligh": user.get("mubaligh"),
         "marital": user.get("marital"),
         "kelompok_id": user.get("kelompok_id"),
+        "jenjang": user.get("jenjang"),
+        "jenjang_saran": bool(user.get("jenjang_saran", False)),
+        "nomor_wa_wali": user.get("nomor_wa_wali"),
         "roles": user.get("roles", []),
         "status": user.get("status", "active"),
         "must_change_password": bool(user.get("must_change_password", False)),
@@ -297,6 +300,8 @@ class AdminCreateUser(BaseModel):
     kelompok_id: Optional[str] = None
     roles: List[str] = ["peserta"]
     password: Optional[str] = None
+    jenjang: Optional[str] = None
+    nomor_wa_wali: Optional[str] = None
 
 class PendingEntry(BaseModel):
     name: str
@@ -349,6 +354,8 @@ class PesertaUpdate(BaseModel):
     status: Optional[str] = None
     kelompok_id: Optional[str] = None
     needs_completion: Optional[bool] = None
+    jenjang: Optional[str] = None
+    nomor_wa_wali: Optional[str] = None
 
 class MoveInput(BaseModel):
     kelompok_id: Optional[str] = None
@@ -921,6 +928,12 @@ async def activation_complete(body: ActivationComplete, response: Response):
         "address": address, "password_hash": hash_password(body.password),
         "status": "active", "gender": gender,
         "avatar_gender": "female" if gender == "P" else "male"}})
+    # Jenjang kosong → isi saran dari umur sebagai NILAI AWAL (tidak menimpa isian).
+    if not user.get("jenjang"):
+        saran = saran_jenjang(submitted_dob or user.get("dob"))
+        if saran:
+            await db.users.update_one({"_id": user["_id"]},
+                                      {"$set": {"jenjang": saran, "jenjang_saran": True}})
     user = await db.users.find_one({"_id": user["_id"]})
     set_auth_cookies(response, str(user["_id"]), user.get("token_version", 0))
     await log_activity(user, "aktivasi_akun", "Akun diaktivasi & data dilengkapi")
@@ -1067,6 +1080,25 @@ async def admin_delete_user(user_id: str, admin: dict = Depends(require_staff)):
 class RoleUpdate(BaseModel):
     roles: List[str]
 
+class BulkJenjangInput(BaseModel):
+    ids: List[str]
+    jenjang: str
+
+@api_router.post("/admin/users/bulk-jenjang")
+async def admin_bulk_jenjang(body: BulkJenjangInput, admin: dict = Depends(require_staff)):
+    """Atur jenjang massal (koreksi) untuk peserta terpilih."""
+    if body.jenjang not in JENJANG_BY_ID:
+        raise HTTPException(status_code=400, detail="Jenjang tidak valid")
+    ids = [i for i in (body.ids or []) if i]
+    if not ids:
+        raise HTTPException(status_code=400, detail="Pilih minimal satu peserta")
+    res = await db.users.update_many(
+        {"_id": {"$in": [parse_object_id(i) for i in ids]}},
+        {"$set": {"jenjang": body.jenjang, "jenjang_saran": False}})
+    await log_activity(admin, "atur_jenjang",
+                       f"Mengatur jenjang {res.modified_count} peserta → {JENJANG_BY_ID[body.jenjang]['label']}")
+    return {"ok": True, "updated": res.modified_count}
+
 @api_router.patch("/admin/users/{user_id}/roles")
 async def admin_update_roles(user_id: str, body: RoleUpdate, admin: dict = Depends(require_admin)):
     roles = [r for r in body.roles if r in VALID_ROLES]
@@ -1106,6 +1138,18 @@ async def admin_create_user(body: AdminCreateUser, admin: dict = Depends(require
         "avatar_gender": "female" if normalize_gender(body.gender) == "P" else "male",
         "token_version": 0, "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    # Jenjang: pakai isian admin; bila kosong, isi otomatis dari umur sebagai
+    # NILAI AWAL (ditandai jenjang_saran sampai admin mengonfirmasi).
+    jenjang = body.jenjang if body.jenjang in JENJANG_BY_ID else None
+    if jenjang:
+        doc["jenjang"] = jenjang
+        doc["jenjang_saran"] = False
+    else:
+        saran = saran_jenjang(doc.get("dob"))
+        if saran:
+            doc["jenjang"] = saran
+            doc["jenjang_saran"] = True
+    doc["nomor_wa_wali"] = normalize_wa_wali(body.nomor_wa_wali)
     if body.password:
         doc["password_hash"] = hash_password(body.password)
         doc["status"] = "active"
@@ -1309,6 +1353,12 @@ async def admin_update_user(user_id: str, body: PesertaUpdate, admin: dict = Dep
         updates["whatsapp"] = body.whatsapp.strip() or None
     if body.dob is not None:
         updates["dob"] = normalize_dob(body.dob)
+        # Peserta yang BELUM punya jenjang boleh diisi saran dari umur (nilai awal).
+        if not user.get("jenjang"):
+            saran = saran_jenjang(updates["dob"])
+            if saran:
+                updates["jenjang"] = saran
+                updates["jenjang_saran"] = True
     if body.birthplace is not None:
         updates["birthplace"] = body.birthplace.strip() or None
     if body.address is not None:
@@ -1329,6 +1379,13 @@ async def admin_update_user(user_id: str, body: PesertaUpdate, admin: dict = Dep
         updates["kelompok_id"] = body.kelompok_id or None
     if body.needs_completion is not None:
         updates["needs_completion"] = bool(body.needs_completion)
+    if body.jenjang is not None:
+        jenjang = body.jenjang if body.jenjang in JENJANG_BY_ID else None
+        updates["jenjang"] = jenjang
+        # Admin mengonfirmasi/mengubah → bukan lagi saran dari umur.
+        updates["jenjang_saran"] = False
+    if body.nomor_wa_wali is not None:
+        updates["nomor_wa_wali"] = normalize_wa_wali(body.nomor_wa_wali)
     if body.roles is not None:
         roles = [r for r in body.roles if r in VALID_ROLES]
         if not roles:
@@ -1532,7 +1589,7 @@ async def admin_logs(admin: dict = Depends(require_staff), limit: int = 100, act
 import asyncio
 
 WITA = timezone(timedelta(hours=8))
-KEGIATAN_TYPES = ["rutin", "khusus", "asad"]
+KEGIATAN_TYPES = ["rutin", "khusus", "asad", "pembelajaran"]
 ABSEN_STATUS = ["hadir", "izin", "sakit", "alpha"]
 # Daftar peserta untuk absensi & rekap.
 # Termasuk peserta hasil import Excel yang BELUM aktivasi (status "pending") supaya
@@ -1787,6 +1844,12 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
         "session_total": k.get("session_total") or 1,
         "session_required": bool(k.get("session_required", True)),
         "session_participant_ids": list(k.get("session_participant_ids") or []),
+        # Guru — pertemuan otomatis dari jadwal Program Pembelajaran
+        "jadwal_id": k.get("jadwal_id"),
+        "materi_id": k.get("materi_id"),
+        "materi_tersampaikan": bool(k.get("materi_tersampaikan", False)),
+        "guru_id": k.get("guru_id"),
+        "jenjang": k.get("jenjang"),
         "phase": kegiatan_phase(k),
         "created_at": k.get("created_at"),
     }
@@ -6594,6 +6657,68 @@ JENJANG = [
 JENJANG_BY_ID = {j["id"]: j for j in JENJANG}
 HARI = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Ahad"]
 
+# ---------------------------------------------------------------------------
+# Jenjang peserta: pemetaan umur → jenjang (SATU konstanta, mudah diubah).
+# Umur dihitung per 1 Juli tahun ajaran berjalan (tahun ajaran Juli–Juni).
+# ---------------------------------------------------------------------------
+JENJANG_UMUR = [
+    {"jenjang": "paud", "min": 3, "max": 6},
+    *[{"jenjang": f"cabe{i}", "min": 6 + i, "max": 6 + i} for i in range(1, 7)],
+    {"jenjang": "pra_remaja", "min": 13, "max": 15},
+    {"jenjang": "remaja", "min": 16, "max": 18},
+    *[{"jenjang": f"pra_nikah{i}", "min": 18 + i, "max": 200 if i == 4 else 18 + i}
+      for i in range(1, 5)],
+]
+
+
+def normalize_wa_wali(value) -> Optional[str]:
+    """Nomor WA wali → format 62xxxxxxxxxx (awalan 0 / 8 diganti 62)."""
+    if value is None:
+        return None
+    digits = re.sub(r"\D", "", str(value))
+    if not digits:
+        return None
+    if digits.startswith("0"):
+        digits = "62" + digits[1:]
+    elif digits.startswith("8"):
+        digits = "62" + digits
+    return digits
+
+
+def tahun_ajaran_info(ref: Optional[datetime] = None) -> dict:
+    """Tahun ajaran berjalan (Juli–Juni) + semester, dihitung dari tanggal."""
+    now = ref or now_wita()
+    start_year = now.year if now.month >= 7 else now.year - 1
+    semester = 1 if now.month >= 7 else 2
+    return {"label": f"{start_year}/{start_year + 1}", "semester": semester,
+            "mulai": f"{start_year}-07-01"}
+
+
+def umur_per_juli(dob: Optional[str], ref: Optional[datetime] = None) -> Optional[int]:
+    """Umur pada 1 Juli tahun ajaran berjalan."""
+    if not dob:
+        return None
+    try:
+        born = datetime.strptime(str(dob)[:10], "%Y-%m-%d")
+    except Exception:
+        return None
+    now = ref or now_wita()
+    start_year = now.year if now.month >= 7 else now.year - 1
+    ref_date = datetime(start_year, 7, 1)
+    age = ref_date.year - born.year - ((ref_date.month, ref_date.day) < (born.month, born.day))
+    return age if age >= 0 else None
+
+
+def saran_jenjang(dob: Optional[str], ref: Optional[datetime] = None) -> Optional[str]:
+    """Jenjang yang disarankan dari umur (NILAI AWAL saja, tidak pernah menimpa)."""
+    age = umur_per_juli(dob, ref)
+    if age is None:
+        return None
+    for row in JENJANG_UMUR:
+        if row["min"] <= age <= row["max"]:
+            return row["jenjang"]
+    return None
+
 
 async def require_program_editor(user: dict = Depends(get_current_user)) -> dict:
     """Program Pembelajaran hanya boleh diubah Administrator dan Guru/Pengajar."""
@@ -6630,6 +6755,7 @@ class JadwalInput(BaseModel):
     teacher: Optional[str] = None
     location: Optional[str] = None
     note: Optional[str] = None
+    guru_id: Optional[str] = None
 
 
 def _jenjang_or_404(jenjang_id: str) -> dict:
@@ -6691,6 +6817,7 @@ async def program_detail(jenjang_id: str, user: dict = Depends(get_current_user)
         "materi": [await serialize_materi(m) for m in materis],
         "jadwal": [{"id": x["_id"], "day": x.get("day"), "start_time": x.get("start_time"),
                     "end_time": x.get("end_time"), "teacher": x.get("teacher"),
+                    "guru_id": x.get("guru_id"),
                     "location": x.get("location"), "note": x.get("note")} for x in jadwals],
         "can_edit": "admin" in roles or "guru" in roles,
     }
@@ -6760,12 +6887,18 @@ async def add_jadwal(jenjang_id: str, body: JadwalInput,
            "start_time": body.start_time, "end_time": body.end_time,
            "teacher": (body.teacher or "").strip(), "location": (body.location or "").strip(),
            "note": (body.note or "").strip(), "created_at": now_wita().isoformat()}
+    if body.guru_id:
+        guru = await db.users.find_one({"_id": parse_object_id(body.guru_id)})
+        if not guru or "guru" not in (guru.get("roles") or []):
+            raise HTTPException(status_code=400, detail="Pengajar harus akun berperan Guru/Pengajar")
+        doc["guru_id"] = str(guru["_id"])
+        doc["teacher"] = doc["teacher"] or guru.get("name") or ""
     await db.program_jadwals.insert_one(doc)
     await log_activity(editor, "program_pembelajaran",
                        f"Menambah jadwal {body.day} {body.start_time} "
                        f"({JENJANG_BY_ID[jenjang_id]['label']})")
-    return {"id": doc["_id"], **{k: doc[k] for k in
-            ("day", "start_time", "end_time", "teacher", "location", "note")}}
+    return {"id": doc["_id"], **{k: doc.get(k) for k in
+            ("day", "start_time", "end_time", "teacher", "guru_id", "location", "note")}}
 
 
 @api_router.delete("/program/jadwal/{jadwal_id}")
@@ -6775,6 +6908,131 @@ async def delete_jadwal(jadwal_id: str, editor: dict = Depends(require_program_e
         raise HTTPException(status_code=404, detail="Jadwal tidak ditemukan")
     await log_activity(editor, "program_pembelajaran", "Menghapus jadwal pembelajaran")
     return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# GURU — cakupan data + pertemuan otomatis dari jadwal mingguan
+# ---------------------------------------------------------------------------
+def get_guru_scope(user: dict) -> dict:
+    """Cakupan data area Guru.
+
+    Administrator → "semua" (tanpa perlu terdaftar sebagai guru).
+    Guru/Pengajar → hanya jadwal & pertemuan miliknya (guru_id).
+    """
+    roles = user.get("roles") or []
+    if "admin" in roles:
+        return {"mode": "semua", "guru_id": None, "is_admin": True}
+    return {"mode": "guru", "guru_id": str(user["_id"]), "is_admin": False}
+
+
+async def ensure_pertemuan(jadwal_id: Optional[str] = None, weeks: int = 2) -> int:
+    """Buat pertemuan (kegiatan jenis Pembelajaran) 2 pekan ke depan secara LAZY.
+
+    Idempotent: kunci unik (jadwal_id, date) — tidak pernah dobel. Tanpa cron.
+    """
+    query = {"_id": jadwal_id} if jadwal_id else {}
+    jadwals = await db.program_jadwals.find(query).to_list(500)
+    if not jadwals:
+        return 0
+    today = now_wita().date()
+    created = 0
+    for j in jadwals:
+        if j.get("day") not in HARI:
+            continue
+        target_idx = HARI.index(j["day"])
+        for offset in range(weeks * 7 + 1):
+            d = today + timedelta(days=offset)
+            if d.weekday() != target_idx:
+                continue
+            date_str = d.strftime("%Y-%m-%d")
+            exists = await db.kegiatans.find_one({"jadwal_id": j["_id"], "date": date_str})
+            if exists:
+                continue
+            jenjang = JENJANG_BY_ID.get(j.get("jenjang_id")) or {}
+            guru = None
+            if j.get("guru_id"):
+                guru = await db.users.find_one({"_id": parse_object_id(j["guru_id"])})
+            doc = {
+                "_id": str(uuid.uuid4()),
+                "name": f"Pembelajaran {jenjang.get('label') or 'Kelas'}",
+                "base_name": f"Pembelajaran {jenjang.get('label') or 'Kelas'}",
+                "type": "pembelajaran",
+                "date": date_str,
+                "start_time": j.get("start_time"),
+                "end_time": j.get("end_time"),
+                "teacher": (guru or {}).get("name") or j.get("teacher") or None,
+                "location": j.get("location") or None,
+                "audience": "reguler",
+                "gender_filter": "semua",
+                "marital_filter": "semua",
+                "age_filter": [],
+                "participant_ids": [],
+                "status": "open",
+                "closed_at": None,
+                "auto_closed": False,
+                "susulan": False,
+                "share_token": None,
+                "share_expires_at": None,
+                "akses_token": secrets.token_urlsafe(9),
+                "access_code": gen_access_code(),
+                "access_code_at": datetime.now(timezone.utc).isoformat(),
+                "absen_token": None,
+                "absen_expires_at": None,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "created_by": "sistem",
+                # Guru
+                "jadwal_id": j["_id"],
+                "materi_id": None,
+                "materi_tersampaikan": False,
+                "guru_id": j.get("guru_id"),
+                "jenjang": j.get("jenjang_id"),
+            }
+            try:
+                await db.kegiatans.insert_one(doc)
+                created += 1
+            except Exception:  # duplikat (index unik jadwal_id+date) → lewati
+                continue
+    return created
+
+
+@api_router.get("/guru/scope")
+async def guru_scope(user: dict = Depends(get_current_user)):
+    """Cakupan area Guru + daftar pengajar (akun berperan guru)."""
+    roles = user.get("roles") or []
+    if not ({"admin", "guru"} & set(roles)):
+        raise HTTPException(status_code=403, detail="Akses khusus Administrator dan Guru/Pengajar")
+    scope = get_guru_scope(user)
+    gurus = await db.users.find({"roles": "guru", "is_system": {"$ne": True}}) \
+        .sort("name", 1).to_list(500)
+    return {
+        "scope": scope,
+        "pengajar": [{"id": str(g["_id"]), "name": g.get("name")} for g in gurus],
+        "tahun_ajaran": tahun_ajaran_info(),
+        "jenjang": JENJANG,
+    }
+
+
+@api_router.get("/guru/pertemuan")
+async def guru_pertemuan(user: dict = Depends(get_current_user)):
+    """Pertemuan 2 pekan ke depan (dibuat lazy) sesuai cakupan pengguna."""
+    roles = user.get("roles") or []
+    if not ({"admin", "guru"} & set(roles)):
+        raise HTTPException(status_code=403, detail="Akses khusus Administrator dan Guru/Pengajar")
+    scope = get_guru_scope(user)
+    if scope["mode"] == "guru":
+        jadwal_ids = [j["_id"] for j in await db.program_jadwals
+                      .find({"guru_id": scope["guru_id"]}).to_list(500)]
+        for jid in jadwal_ids:
+            await ensure_pertemuan(jid)
+    else:
+        await ensure_pertemuan()
+    today = now_wita().date().strftime("%Y-%m-%d")
+    query = {"type": "pembelajaran", "date": {"$gte": today}}
+    if scope["mode"] == "guru":
+        query["guru_id"] = scope["guru_id"]
+    docs = await db.kegiatans.find(query).sort([("date", 1), ("start_time", 1)]).to_list(500)
+    return {"scope": scope,
+            "items": [serialize_kegiatan(k, await kegiatan_counts(k)) for k in docs]}
 
 
 @api_router.post("/program/upload")
@@ -7094,6 +7352,10 @@ async def _run_init():
     await db.follow_ups.create_index([("kegiatan_id", 1), ("user_id", 1)], unique=True)
     await db.kegiatans.create_index([("date", -1), ("start_time", -1)])
     await db.kegiatans.create_index("access_code")
+    await db.kegiatans.create_index([("jadwal_id", 1), ("date", 1)], unique=True,
+                                    partialFilterExpression={"jadwal_id": {"$type": "string"}})
+    await db.kegiatans.create_index("guru_id")
+    await db.program_jadwals.create_index("guru_id")
     await db.musyawarahs.create_index([("category", 1), ("date", -1)])
     await db.pengumumans.create_index("pinned")
     await db.pengumumans.create_index("pin_roles")

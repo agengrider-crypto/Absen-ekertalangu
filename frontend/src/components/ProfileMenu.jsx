@@ -8,7 +8,7 @@ import ActionModal from "@/components/ActionModal";
 import UpdateModal, { hasUnreadUpdate } from "@/components/UpdateModal";
 import AboutApp, { hasUnseenTour } from "@/components/AboutApp";
 import GuidedTour from "@/components/GuidedTour";
-import { roleLabel, getActiveRole, setActiveRole } from "@/lib/roles";
+import { roleLabel, getActiveRole, setActiveRole, visibleRoles } from "@/lib/roles";
 
 const ROLE_ICON = { admin: Shield, pengurus: Users, guru: GraduationCap, peserta: UserCheck };
 const ROLE_DESC = {
@@ -41,12 +41,13 @@ export default function ProfileMenu({ role }) {
 
   const initials = (user?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
   const roles = user?.roles || [];
-  const multiRole = roles.length > 1;
-  const activeRole = getActiveRole(roles) || role || roles[0];
+  const allowedRoles = visibleRoles(user);
+  const multiRole = allowedRoles.length > 1;
+  const activeRole = getActiveRole(allowedRoles) || role || allowedRoles[0];
   const activeRoleLabel = roleLabel(activeRole);
   const incomplete = (user?.missing_fields || []).length > 0;
   const isStaff = roles.some((r) => r === "admin" || r === "pengurus");
-  const switchable = ROLE_ORDER.filter((r) => roles.includes(r));
+  const switchable = ROLE_ORDER.filter((r) => allowedRoles.includes(r));
 
   useEffect(() => {
     if (!showSwitch) return undefined;

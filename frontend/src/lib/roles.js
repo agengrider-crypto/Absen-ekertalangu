@@ -16,6 +16,24 @@ export function rolesLabel(roles = []) {
 
 const ACTIVE_ROLE_KEY = "e-kertalangu-active-role";
 
+// Urutan peran di layar pilih peran & menu "Pindah ke".
+export const ROLE_ORDER = ["admin", "guru", "pengurus", "peserta"];
+
+/**
+ * Peran yang boleh dibuka pengguna.
+ * Administrator otomatis boleh membuka SEMUA area (tanpa baris data guru baru);
+ * akun lain hanya peran yang benar-benar dimilikinya.
+ */
+export function visibleRoles(user) {
+  const roles = user?.roles || [];
+  if (roles.includes("admin")) return ROLE_ORDER;
+  return ROLE_ORDER.filter((r) => roles.includes(r));
+}
+
+export function canOpenRole(user, role) {
+  return visibleRoles(user).includes(role);
+}
+
 export function getActiveRole(roles = []) {
   const activeRole = localStorage.getItem(ACTIVE_ROLE_KEY);
   return roles.includes(activeRole) ? activeRole : null;

@@ -11,6 +11,20 @@ export function maritalLabel(v) {
   return MARITAL_OPTIONS.find((o) => o.value === v)?.label || "-";
 }
 
+// Label jenjang peserta (id sama dengan Program Pembelajaran).
+export const JENJANG_LABEL = {
+  paud: "PAUD",
+  cabe1: "Cabe Rawit 1", cabe2: "Cabe Rawit 2", cabe3: "Cabe Rawit 3",
+  cabe4: "Cabe Rawit 4", cabe5: "Cabe Rawit 5", cabe6: "Cabe Rawit 6",
+  pra_remaja: "Pra Remaja", remaja: "Remaja",
+  pra_nikah1: "Pra Nikah 1", pra_nikah2: "Pra Nikah 2",
+  pra_nikah3: "Pra Nikah 3", pra_nikah4: "Pra Nikah 4",
+};
+
+export function jenjangLabel(v) {
+  return JENJANG_LABEL[v] || "-";
+}
+
 export const GREEN = "#14201A";
 export const GREEN_DARK = "#000000";
 

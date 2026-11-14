@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Users, Search, Loader2, UserPlus, Trash2, X, Eye, AlertTriangle,
   ClipboardList, CalendarDays, Heart, Printer, QrCode, CheckCircle2, ChevronLeft, ChevronRight,
-  MoreHorizontal, User as UserIcon, History, SlidersHorizontal,
+  MoreHorizontal, User as UserIcon, History, SlidersHorizontal, GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -90,6 +90,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
   const [detailTab, setDetailTab] = useState("profil");
   const [actionsFor, setActionsFor] = useState(null);
   const [modal, setModal] = useState(null); // "add" | "bulk" | null
+  const [bulkJenjang, setBulkJenjang] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
@@ -345,6 +346,12 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
             <Trash2 size={16} /> Hapus Peserta ({deletableSelected.length})
           </button>
         )}
+        {selectedParticipants.length > 0 && (
+          <button data-testid="button-bulk-jenjang" onClick={() => setBulkJenjang(true)}
+            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm hover:bg-[#E3F3EA]">
+            <GraduationCap size={16} /> Atur jenjang ({selectedParticipants.length})
+          </button>
+        )}
         {pendingWithoutDobSelected.length > 0 && (
           <span data-testid={PARTICIPANTS.pendingNoDobNotice} className="text-sm font-medium text-[#6B4500]">
             {pendingWithoutDobSelected.length} akun perlu tanggal lahir valid sebelum diaktifkan.
@@ -552,7 +559,57 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         />
       )}
       {modal === "add" && <AddModal kelompok={kelompok} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
+      {bulkJenjang && (
+        <BulkJenjangModal
+          ids={selectedParticipants.map((u) => u.id)}
+          onClose={() => setBulkJenjang(false)}
+          onDone={() => { setBulkJenjang(false); setSelected(new Set()); load(); }}
+        />
+      )}
     </div>
+  );
+}
+
+/** Atur jenjang massal untuk peserta terpilih (koreksi). */
+function BulkJenjangModal({ ids, onClose, onDone }) {
+  const [jenjangList, setJenjangList] = useState([]);
+  const [pick, setPick] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.get("/program/jenjang").then(({ data }) => setJenjangList(data.items || [])).catch(() => {});
+  }, []);
+
+  const submit = async () => {
+    if (!pick) { toast.error("Pilih jenjang terlebih dahulu."); return; }
+    setSaving(true);
+    try {
+      await api.post("/admin/users/bulk-jenjang", { ids, jenjang: pick });
+      toast.success(`Jenjang ${ids.length} peserta diperbarui.`);
+      onDone();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <ModalShell title="Atur Jenjang" onClose={onClose} testid="bulk-jenjang-modal">
+      <div className="space-y-4">
+        <p className="text-sm text-[#5F6B63]">
+          {ids.length} peserta terpilih akan memakai jenjang yang sama.
+        </p>
+        <label className="block">
+          <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Jenjang</span>
+          <select data-testid="bulk-jenjang-select" value={pick} onChange={(e) => setPick(e.target.value)} className={inp}>
+            <option value="">Pilih jenjang</option>
+            {jenjangList.map((j) => <option key={j.id} value={j.id}>{j.label}</option>)}
+          </select>
+        </label>
+        <button type="button" data-testid="bulk-jenjang-submit" onClick={submit} disabled={saving}
+          className="h-12 w-full rounded-xl bg-[#14633F] font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-60">
+          {saving ? "Menyimpan…" : "Simpan jenjang"}
+        </button>
+      </div>
+    </ModalShell>
   );
 }
 
@@ -572,7 +629,8 @@ function ModalShell({ title, children, onClose, testid, wide = false }) {
 }
 
 function AddModal({ kelompok, onClose, onDone }) {
-  const [f, setF] = useState({ name: "", gender: "", marital: "", birthplace: "", dob: "", phone: "", whatsapp: "", email: "", address: "", kelompok_id: "" });
+  const [f, setF] = useState({ name: "", gender: "", marital: "", birthplace: "", dob: "", phone: "", whatsapp: "", email: "", address: "", kelompok_id: "", jenjang: "", nomor_wa_wali: "" });
+  const [jenjangList, setJenjangList] = useState([]);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState(0);
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
@@ -580,6 +638,10 @@ function AddModal({ kelompok, onClose, onDone }) {
     setReviewConfirmed(false);
     setF((p) => ({ ...p, [k]: v }));
   };
+
+  useEffect(() => {
+    api.get("/program/jenjang").then(({ data }) => setJenjangList(data.items || [])).catch(() => {});
+  }, []);
 
   const nextStep = () => {
     if (step === 0 && !f.name.trim()) {
@@ -608,6 +670,7 @@ function AddModal({ kelompok, onClose, onDone }) {
         dob: f.dob || null, phone: f.phone || null, whatsapp: f.whatsapp || null,
         email: f.email || null, address: f.address || null, kelompok_id: f.kelompok_id || null,
         marital: f.marital || null,
+        jenjang: f.jenjang || null, nomor_wa_wali: f.nomor_wa_wali || null,
         roles: ["peserta"],
       });
       toast.success(`Peserta "${f.name}" ditambahkan (menunggu aktivasi).`);
@@ -680,6 +743,18 @@ function AddModal({ kelompok, onClose, onDone }) {
               <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Tanggal lahir</span>
               <DateField testid={PARTICIPANTS.addDob} value={f.dob} onChange={(v) => set("dob", v)} placeholder="Pilih tanggal lahir" className="h-[46px]" />
               <span className="mt-1 block text-sm text-[#5F6B63]">Diperlukan untuk aktivasi akun.</span>
+            </label>
+            <label>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Jenjang</span>
+              <select data-testid="add-jenjang" value={f.jenjang} onChange={(e) => set("jenjang", e.target.value)} className={inp}>
+                <option value="">Kosongkan (disarankan dari umur)</option>
+                {jenjangList.map((j) => <option key={j.id} value={j.id}>{j.label}</option>)}
+              </select>
+            </label>
+            <label>
+              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Nomor WA wali</span>
+              <input data-testid="add-nomor-wa-wali" value={f.nomor_wa_wali} onChange={(e) => set("nomor_wa_wali", e.target.value)} placeholder="08xxxxxxxxxx" className={inp} />
+              <span className="mt-1 block text-sm text-[#5F6B63]">Disimpan sebagai 62xxxxxxxxxx.</span>
             </label>
           </div>
         </section>

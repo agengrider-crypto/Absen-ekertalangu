@@ -144,8 +144,8 @@ function MateriForm({ jenjangId, initial, onClose, onDone }) {
   );
 }
 
-function JadwalForm({ jenjangId, hari, onDone }) {
-  const [f, setF] = useState({ day: "Ahad", start_time: "08:00", end_time: "10:00", teacher: "", location: "", note: "" });
+function JadwalForm({ jenjangId, hari, onDone, pengajar = [] }) {
+  const [f, setF] = useState({ day: "Ahad", start_time: "08:00", end_time: "10:00", teacher: "", guru_id: "", location: "", note: "" });
   const [busy, setBusy] = useState(false);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
 
@@ -181,8 +181,11 @@ function JadwalForm({ jenjangId, hari, onDone }) {
       </div>
       <div>
         <label className="block text-[11px] font-semibold text-[#5F6B63] mb-1">Pengajar</label>
-        <input data-testid="program-jadwal-teacher" value={f.teacher}
-          onChange={(e) => set("teacher", e.target.value)} placeholder="Nama" className={fld} />
+        <select data-testid="program-jadwal-teacher" value={f.guru_id}
+          onChange={(e) => set("guru_id", e.target.value)} className={fld}>
+          <option value="">Pilih pengajar</option>
+          {pengajar.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
       </div>
       <div>
         <label className="block text-[11px] font-semibold text-[#5F6B63] mb-1">Tempat</label>
@@ -206,10 +209,15 @@ export default function ProgramPembelajaran() {
   const [savingKur, setSavingKur] = useState(false);
   const [showMateri, setShowMateri] = useState(false);
   const [editMateri, setEditMateri] = useState(null);
+  const [pengajar, setPengajar] = useState([]);
 
   const loadList = useCallback(() => {
     api.get("/program/jenjang").then(({ data }) => { setList(data.items || []); setHari(data.hari || []); })
       .catch((e) => { setList([]); toast.error(formatApiErrorDetail(e.response?.data?.detail)); });
+  }, []);
+
+  useEffect(() => {
+    api.get("/guru/scope").then(({ data }) => setPengajar(data.pengajar || [])).catch(() => {});
   }, []);
 
   const loadDetail = useCallback(() => {
@@ -456,7 +464,7 @@ export default function ProgramPembelajaran() {
               </div>
               {canEdit && (
                 <div className="mt-3">
-                  <JadwalForm jenjangId={pick} hari={hari} onDone={() => { loadDetail(); loadList(); }} />
+                  <JadwalForm jenjangId={pick} hari={hari} pengajar={pengajar} onDone={() => { loadDetail(); loadList(); }} />
                 </div>
               )}
             </div>

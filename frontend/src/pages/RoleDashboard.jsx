@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { Logo } from "@/components/Logo";
 import ProfileMenu from "@/components/ProfileMenu";
-import { getActiveRole, setActiveRole } from "@/lib/roles";
+import { getActiveRole, setActiveRole, visibleRoles } from "@/lib/roles";
 
 const ROLE_ROWS = [
   { key: "admin", icon: Shield, title: "Administrator", desc: "Kelola semua" },
@@ -22,10 +22,11 @@ export default function RoleDashboard() {
   if (!user) return null;
 
   const roles = user.roles || [];
+  const allowed = visibleRoles(user);
 
   // Akun dengan satu peran langsung masuk areanya.
-  if (roles.length === 1) return <Navigate to={`/area/${roles[0]}`} replace />;
-  const activeRole = getActiveRole(roles);
+  if (allowed.length === 1) return <Navigate to={`/area/${allowed[0]}`} replace />;
+  const activeRole = getActiveRole(allowed);
   if (activeRole) return <Navigate to={`/area/${activeRole}`} replace />;
   const incomplete = (user.missing_fields || []).length > 0;
 
@@ -72,7 +73,7 @@ export default function RoleDashboard() {
         )}
 
         <div className="overflow-hidden rounded-2xl border border-[#E7E3D8] bg-white" data-testid="role-list">
-          {ROLE_ROWS.filter((r) => roles.includes(r.key)).map((r) => {
+          {ROLE_ROWS.filter((r) => allowed.includes(r.key)).map((r) => {
             const Icon = r.icon;
             const on = r.key === activeRole;
             return (
@@ -101,7 +102,7 @@ export default function RoleDashboard() {
           })}
         </div>
 
-        {roles.length === 0 && (
+        {allowed.length === 0 && (
           <div className="mt-8 text-center text-[#5F6B63]" data-testid="no-roles">
             Akun Anda belum memiliki peran. Hubungi administrator.
           </div>

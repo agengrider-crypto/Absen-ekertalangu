@@ -14,7 +14,7 @@ import ActionModal from "@/components/ActionModal";
 import Modal from "@/components/Modal";
 import {
   EDUCATION_OPTIONS, MUBALIGH_OPTIONS, MARITAL_OPTIONS, ACTION_LABELS,
-  genderLabel, statusBadge, formatTanggal, formatDateTime, maritalLabel, mubalighLabel,
+  genderLabel, statusBadge, formatTanggal, formatDateTime, maritalLabel, mubalighLabel, jenjangLabel,
 } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
@@ -86,7 +86,12 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
   const [moveKeterangan, setMoveKeterangan] = useState("");
   const [report, setReport] = useState(null);
   const [logs, setLogs] = useState(null);
+  const [jenjangList, setJenjangList] = useState([]);
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    api.get("/program/jenjang").then(({ data }) => setJenjangList(data.items || [])).catch(() => {});
+  }, []);
 
   const load = () =>
     api.get(`/admin/users/${userId}`)
@@ -148,6 +153,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
         address: form.address || "", gender: form.gender || null,
         education: form.education || null, mubaligh: form.mubaligh || null,
         marital: form.marital || null,
+        jenjang: form.jenjang || null, nomor_wa_wali: form.nomor_wa_wali || null,
         photo: form.photo ?? null, roles: form.roles, kelompok_id: form.kelompok_id || null,
         needs_completion: false,
       };
@@ -444,6 +450,8 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                         <InfoRow label="Pendidikan" value={data.education} />
                         <InfoRow label="Kemubalighan" value={mubalighLabel(data.mubaligh)} />
                         <InfoRow label="Status pernikahan" value={maritalLabel(data.marital)} />
+                        <InfoRow label="Jenjang" value={jenjangLabel(data.jenjang)} />
+                        <InfoRow label="Nomor WA wali" value={data.nomor_wa_wali} />
                         <InfoRow label="Kelompok" value={kelompokName || "Tanpa kelompok"} />
                         <div className="sm:col-span-2">
                           <InfoRow label="Alamat" value={data.address} />
@@ -551,6 +559,23 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                             <option value="">- Pilih -</option>
                             {MARITAL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                           </select>
+                        </div>
+                        <div>
+                          <label className={lbl}><GraduationCap size={12} className="inline mr-1" />Jenjang</label>
+                          <select data-testid="detail-jenjang" value={form.jenjang || ""} onChange={(e) => set("jenjang", e.target.value)} className={inp}>
+                            <option value="">- Pilih -</option>
+                            {jenjangList.map((j) => <option key={j.id} value={j.id}>{j.label}</option>)}
+                          </select>
+                          {form.jenjang_saran && (
+                            <span className="mt-1 block text-[11px] text-[#6B4500]" data-testid="detail-jenjang-saran">
+                              disarankan dari umur
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <label className={lbl}>Nomor WA wali</label>
+                          <input data-testid="detail-nomor-wa-wali" value={form.nomor_wa_wali || ""}
+                            onChange={(e) => set("nomor_wa_wali", e.target.value)} placeholder="08xxxxxxxxxx" className={inp} />
                         </div>
                       </div>
                     </div>

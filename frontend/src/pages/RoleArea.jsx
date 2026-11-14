@@ -6,7 +6,7 @@ import ProfileMenu from "@/components/ProfileMenu";
 import AdminLayout from "@/pages/admin/AdminLayout";
 import GuruArea from "@/pages/GuruArea";
 import PesertaArea from "@/pages/PesertaArea";
-import { setActiveRole } from "@/lib/roles";
+import { setActiveRole, canOpenRole } from "@/lib/roles";
 
 const META = {
   admin: { icon: Shield, title: "Area Administrator", color: "#5F6B63" },
@@ -20,11 +20,11 @@ export default function RoleArea() {
   const { user } = useAuth();
 
   useEffect(() => {
-    if (user?.roles?.includes(role)) setActiveRole(role);
+    if (canOpenRole(user, role)) setActiveRole(role);
   }, [role, user]);
 
   if (!user) return null;
-  if (!user.roles?.includes(role)) {
+  if (!canOpenRole(user, role)) {
     return <Navigate to="/roles" replace />;
   }
 

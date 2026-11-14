@@ -48,6 +48,7 @@ export const JENIS = {
 /** Area — HANYA dipakai di sheet Ganti Peran. */
 export const AREA = {
   admin: { utama: "#14633F", muda: "#E3F3EA", aktif: "#E3F3EA", teks: "#0E4E31", label: "Administrator" },
+  guru: { utama: "#0A5961", muda: "#D9F2F4", aktif: "#D9F2F4", teks: "#0A5961", label: "Guru / Pengajar" },
   pengurus: { utama: "#1D4F91", muda: "#E3EEFB", aktif: "#E3EEFB", teks: "#1D4F91", label: "Pengurus" },
   peserta: { utama: "#4A5650", muda: "#E7E3D8", aktif: "#F0EEE6", teks: "#3A4540", label: "Peserta" },
 };

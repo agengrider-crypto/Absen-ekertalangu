@@ -4,18 +4,21 @@ export const KEGIATAN_TYPES = [
   { value: "rutin", label: "Pengajian Rutin" },
   { value: "khusus", label: "Pengajian Khusus" },
   { value: "asad", label: "Asad" },
+  { value: "pembelajaran", label: "Pembelajaran" },
 ];
 
 export const TYPE_LABEL = {
   rutin: "Pengajian Rutin",
   khusus: "Pengajian Khusus",
   asad: "Asad",
+  pembelajaran: "Pembelajaran",
 };
 
 export const TYPE_COLOR = {
   rutin: "#0A5961",
   khusus: "#4C2A9B",
   asad: "#8F3008",
+  pembelajaran: "#14633F",
 };
 
 /** Jenis kegiatan → token chip (Layar 29). */
@@ -23,6 +26,7 @@ export const JENIS_CHIP = {
   rutin: { bg: "#D9F2F4", text: "#0A5961", dot: "#0F7C86" },
   khusus: { bg: "#ECE4FB", text: "#4C2A9B", dot: "#6D3FC8" },
   lain: { bg: "#FFE8DB", text: "#8F3008", dot: "#C2410C" },
+  pembelajaran: { bg: "#E3F3EA", text: "#0E4E31", dot: "#14633F" },
 };
 
 // Cadangan bila server mengirim jenis kegiatan yang tidak dikenal / kosong.

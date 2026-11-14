@@ -1,14 +1,15 @@
 // Sheet Ganti Peran (Layar 31) — pindah area tanpa keluar akun.
 // Warna per area HANYA dipakai di sheet ini (lihat src/lib/theme.js → AREA).
 import { useNavigate } from "react-router-dom";
-import { Shield, Users, UserCheck, CheckCircle2 } from "lucide-react";
+import { Shield, Users, UserCheck, GraduationCap, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { setActiveRole } from "@/lib/roles";
+import { setActiveRole, visibleRoles } from "@/lib/roles";
 import { AREA } from "@/lib/theme";
 import Modal from "@/components/Modal";
 
 const META = {
   admin: { icon: Shield, label: "Area Administrator", desc: "Kelola peserta, kegiatan & laporan" },
+  guru: { icon: GraduationCap, label: "Area Guru / Pengajar", desc: "Kelas dan pembelajaran" },
   pengurus: { icon: Users, label: "Area Pengurus", desc: "Presensi, musyawarah & rekap" },
   peserta: { icon: UserCheck, label: "Area Peserta", desc: "QR pribadi, absen & curhat" },
 };
@@ -16,7 +17,7 @@ const META = {
 export default function RoleSwitcher({ current, onClose }) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const roles = (user?.roles || []).filter((r) => META[r]);
+  const roles = visibleRoles(user).filter((r) => META[r]);
 
   return (
     <Modal
