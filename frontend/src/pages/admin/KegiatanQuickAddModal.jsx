@@ -21,7 +21,6 @@ const WAKTU = [
 ];
 const SESI = [
   { key: "satu", label: "Satu sesi" },
-  { key: "pagi-malam", label: "Pagi + Malam" },
   { key: "atur", label: "Atur sesi" },
 ];
 
@@ -137,7 +136,6 @@ export default function KegiatanQuickAddModal({ source = null, mode = "cepat", o
 
   const pilihSesi = (key) => {
     setSesi(key);
-    if (key === "pagi-malam") setSessions(duaSesi());
     if (key === "atur" && sessions.length < 2) setSessions(duaSesi());
   };
 
