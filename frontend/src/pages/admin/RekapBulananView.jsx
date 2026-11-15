@@ -193,12 +193,6 @@ export default function RekapBulananView({ initialFilter = "semua", onOpenHarian
 
   return (
     <div className="space-y-4" data-testid="rekap-bulanan-view">
-      <nav className="text-xs font-semibold text-[#5F6B63]" aria-label="Breadcrumb" data-testid="rekap-bulanan-breadcrumb">
-        E-Kertalangu <span className="px-1 text-[#B4BBB6]">›</span>
-        Rekap &amp; Laporan <span className="px-1 text-[#B4BBB6]">›</span>
-        <span className="text-[#14201A]">Rekap Bulanan</span>
-      </nav>
-
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-heading text-xl font-bold text-[#14201A] inline-flex items-center gap-2 sm:text-2xl">

@@ -80,10 +80,10 @@ export function RingkasanBulanan({ data }) {
           <Ring value={data.summary?.rata_rata || 0} />
           <div className="min-w-0">
             <div className="text-xs font-semibold uppercase tracking-wide text-[#5F6B63]">Total gabungan</div>
-            <div className="mt-1 space-y-0.5 text-sm text-[#14201A]">
-              <div className="inline-flex items-center gap-1.5"><Users size={13} className="text-[#5F6B63]" /> {data.total_peserta} peserta</div>
-              <div className="inline-flex items-center gap-1.5"><CalendarDays size={13} className="text-[#5F6B63]" /> {data.total_pertemuan} pertemuan</div>
-              <div className="inline-flex items-center gap-1.5"><CalendarRange size={13} className="text-[#5F6B63]" /> {data.total_kegiatan} jadwal</div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[#14201A]">
+              <span className="inline-flex items-center gap-1.5"><Users size={13} className="text-[#5F6B63]" /> {data.total_peserta} peserta</span>
+              <span className="inline-flex items-center gap-1.5"><CalendarDays size={13} className="text-[#5F6B63]" /> {data.total_pertemuan} pertemuan</span>
+              <span className="inline-flex items-center gap-1.5"><CalendarRange size={13} className="text-[#5F6B63]" /> {data.total_kegiatan} jadwal</span>
             </div>
           </div>
         </div>
@@ -118,6 +118,13 @@ export function KalenderBulanan({ data, interactive = true, onOpenHarian }) {
     return map;
   }, [data]);
 
+  // Tanggal yang punya kegiatan tapi SEMUA belum berlangsung (dari server).
+  const belumByDate = useMemo(() => {
+    const map = {};
+    (data.tanggal || []).forEach((t) => { if (t?.date) map[t.date] = Boolean(t.berlangsung); });
+    return map;
+  }, [data]);
+
   const [y, m] = String(data.month || "").split("-").map(Number);
   const daysInMonth = y && m ? new Date(y, m, 0).getDate() : 0;
   const firstDow = y && m ? new Date(y, m - 1, 1).getDay() : 0;
@@ -134,8 +141,9 @@ export function KalenderBulanan({ data, interactive = true, onOpenHarian }) {
         <div className="text-sm font-semibold text-[#14201A] inline-flex items-center gap-2">
           <CalendarDays size={16} className="text-[#14633F]" /> Pertemuan {data.label}
         </div>
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#5F6B63]">
-          <span className="h-2.5 w-2.5 rounded-sm bg-[#14633F]" /> Hijau = ada kegiatan
+        <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold text-[#5F6B63]">
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-[#14633F]" /> Sudah berlangsung</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm border border-[#14633F] bg-[#E3F3EA]" /> Belum berlangsung</span>
         </span>
       </div>
 
@@ -147,6 +155,7 @@ export function KalenderBulanan({ data, interactive = true, onOpenHarian }) {
           if (!d) return <div key={`e-${i}`} />;
           const date = ymd(d);
           const has = Boolean(byDate[date]);
+          const sudah = belumByDate[date] !== false;
           const isToday = date === today;
           const isSel = date === selected;
           return (
@@ -156,13 +165,15 @@ export function KalenderBulanan({ data, interactive = true, onOpenHarian }) {
               disabled={!has}
               onClick={() => setSelected(isSel ? null : date)}
               aria-pressed={isSel}
-              aria-label={`${tanggalPanjang(date)}${has ? `, ${byDate[date].length} kegiatan` : ", tidak ada kegiatan"}`}
+              aria-label={`${tanggalPanjang(date)}${has ? `, ${byDate[date].length} kegiatan${sudah ? "" : " (belum berlangsung)"}` : ", tidak ada kegiatan"}`}
               data-testid={`kalender-bulanan-${date}`}
               className={`relative flex h-10 items-center justify-center rounded-lg text-sm font-semibold tabular-nums transition-colors ${
                 has
                   ? isSel
                     ? "bg-[#14633F] text-white"
-                    : "bg-[#E3F3EA] text-[#0E4E31] hover:bg-[#D3EBDD]"
+                    : sudah
+                      ? "bg-[#E3F3EA] text-[#0E4E31] hover:bg-[#D3EBDD]"
+                      : "border border-[#14633F] bg-[#F1F8F4] text-[#0E4E31] hover:bg-[#E3F3EA]"
                   : "text-[#B4BBB6]"
               } ${isToday && !isSel ? "ring-2 ring-[#14633F] ring-offset-1" : ""}`}
             >

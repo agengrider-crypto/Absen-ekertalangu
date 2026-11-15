@@ -5452,6 +5452,31 @@ async def rekap_harian(date: Optional[str] = None, staff: dict = Depends(require
     return await build_rekap_harian(date)
 
 
+async def _tanggal_kegiatan_terdekat(d: str) -> Optional[str]:
+    """Tanggal kegiatan terdekat dari `d` (dua arah, selisih hari terkecil).
+
+    Bila selisihnya sama, pilih yang sudah lewat.
+    """
+    try:
+        base = datetime.strptime(d, "%Y-%m-%d").date()
+    except Exception:
+        return None
+    dates = await db.kegiatans.distinct("date")
+    best = None
+    for value in dates:
+        try:
+            cur = datetime.strptime(str(value)[:10], "%Y-%m-%d").date()
+        except Exception:
+            continue
+        diff = abs((cur - base).days)
+        if diff == 0:
+            continue
+        key = (diff, 0 if cur < base else 1)
+        if best is None or key < best[0]:
+            best = (key, cur.strftime("%Y-%m-%d"))
+    return best[1] if best else None
+
+
 async def build_rekap_harian(date: Optional[str] = None) -> dict:
     """FASE 17 — Rekap absen HARIAN: rincian tiap sesi + status tiap peserta pada 1 tanggal."""
     d = (date or now_wita().strftime("%Y-%m-%d")).strip()
@@ -5462,6 +5487,7 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
 
     if not docs:
         return {"date": d, "total_sesi": 0, "sesi": [], "rows": [],
+                "terdekat": await _tanggal_kegiatan_terdekat(d),
                 "summary": {"peserta": 0, "hadir": 0, "izin": 0, "sakit": 0,
                             "alpha": 0, "belum_diabsen": 0, "ratio": 0.0},
                 "gender": {}, "kegiatan": []}
@@ -5474,8 +5500,10 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
     elig = {k["_id"]: {str(p["_id"]) for p in filter_peserta_for_kegiatan(k, peserta)} for k in docs}
 
     sesi_out = []
+    _now = now_wita()
     for k in sorted(docs, key=lambda x: (x.get("start_time") or "", x.get("session_index") or 0)):
         ids = elig[k["_id"]]
+        berlangsung = kegiatan_sudah_berlangsung(k, _now)
         session_absens = [
             {"user_id": pid, "status": status_by[(k["_id"], pid)]}
             for pid in ids if (k["_id"], pid) in status_by
@@ -5489,6 +5517,7 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
             "teacher": k.get("teacher"), "material": k.get("material"),
             "location": k.get("location"), "status": k.get("status", "open"),
             "required": bool(k.get("session_required", True)),
+            "berlangsung": berlangsung,
             "peserta": counts["total"], "hadir": counts["hadir"], "izin": counts["izin"],
             "sakit": counts["sakit"], "alpha": counts["alpha"],
             "belum_diabsen": counts["belum_diabsen"], "ratio": counts["ratio"],
@@ -5621,7 +5650,20 @@ async def build_rekap_bulanan(month: Optional[str] = None, include_participants:
     date_from = start.strftime("%Y-%m-%d")
     date_to = (nxt - timedelta(days=1)).strftime("%Y-%m-%d")
 
-    kegiatans = await db.kegiatans.find({"date": {"$gte": date_from, "$lte": date_to}}).sort("date", 1).to_list(3000)
+    kegiatans_all = await db.kegiatans.find({"date": {"$gte": date_from, "$lte": date_to}}).sort("date", 1).to_list(3000)
+    # Hanya kegiatan yang SUDAH BERLANGSUNG (waktu mulai <= sekarang WITA) yang
+    # dihitung sebagai pertemuan/jadwal/persentase. Kegiatan yang mulai nanti
+    # hari ini tetap tampil di kalender sebagai "belum berlangsung".
+    _now = now_wita()
+    kegiatans = [k for k in kegiatans_all if kegiatan_sudah_berlangsung(k, _now)]
+    tanggal_info = {}
+    for k in kegiatans_all:
+        d = k.get("date")
+        if not d:
+            continue
+        slot = tanggal_info.setdefault(d, {"date": d, "berlangsung": False})
+        if kegiatan_sudah_berlangsung(k, _now):
+            slot["berlangsung"] = True
     peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
     kelompoks = await db.kelompoks.find().to_list(500)
     kmap = {k["_id"]: k.get("name") for k in kelompoks}
@@ -5846,6 +5888,7 @@ async def build_rekap_bulanan(month: Optional[str] = None, include_participants:
         "total_peserta": len(rows),
         "total_peserta_aktif": len(aktif),
         "bulan_terakhir": bulan_terakhir,
+        "tanggal": sorted(tanggal_info.values(), key=lambda x: x["date"]),
         "summary": {
             "rata_rata": round(sum(r["ratio"] for r in aktif) / len(aktif), 1) if aktif else 0.0,
             "rajin": rajin, "cukup": cukup, "jarang": jarang, "belum_pernah": belum,

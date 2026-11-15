@@ -1,16 +1,16 @@
 // FASE 17 — Rekap Absen Harian: rincian tiap sesi dalam 1 hari + keterangan per peserta.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CalendarCheck, Calendar1, Loader2, Search, Users, Layers, ChevronLeft, ChevronRight,
+  CalendarCheck, Calendar1, CalendarX2, Loader2, Search, Users, Layers, ChevronLeft, ChevronRight,
   Clock, User, MapPin, Info, ChevronDown, Link2, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PercentBar } from "@/pages/PublicRekapGabungan";
-import ReportHeader from "@/components/ReportHeader";
 import StatusGroups from "@/components/StatusGroups";
 import { SkeletonList } from "@/components/GlobalLoading";
 import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "./rekapUtils";
+import { tanggalPanjang } from "./kegiatanUtils";
 
 function todayYmd() {
   return new Date().toISOString().slice(0, 10);
@@ -88,20 +88,13 @@ export default function RekapHarianView({ initialDate = null }) {
 
   return (
     <div className="space-y-5" data-testid="rekap-harian-view">
-      <ReportHeader
-        title="Laporan Harian"
-        subtitle={data?.label || date}
-        showUserIcon
-        compact
-        testid="rekap-harian-header"
-      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-[#0E4E31] inline-flex items-center gap-2">
-            <Calendar1 size={22} className="text-[#14633F]" /> Rekap Absen Harian
+          <h1 className="font-heading text-2xl font-bold text-[#14201A] inline-flex items-center gap-2">
+            <Calendar1 size={22} className="text-[#14633F]" /> Rekap Harian
           </h1>
           <p className="text-sm text-[#5F6B63] mt-0.5">
-            Rincian kehadiran seluruh sesi pada satu tanggal, lengkap dengan keterangan hitungan tiap peserta.
+            Kehadiran seluruh sesi pada satu tanggal.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -114,6 +107,9 @@ export default function RekapHarianView({ initialDate = null }) {
             className="h-11 w-11 rounded-xl border-2 border-[#E7E3D8] flex items-center justify-center text-[#5F6B63] hover:border-[#14633F] hover:text-[#0E4E31]"><ChevronRight size={18} /></button>
         </div>
       </div>
+      <div className="text-sm font-semibold text-[#14201A]" data-testid="harian-tanggal-panjang">
+        {tanggalPanjang(date)}
+      </div>
 
       {loading ? (
         <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
@@ -123,8 +119,22 @@ export default function RekapHarianView({ initialDate = null }) {
           <SkeletonList rows={6} testid="rekap-harian-skeleton" />
         </div>
       ) : !data ? null : data.total_sesi === 0 ? (
-        <div className="rounded-2xl border border-[#E7E3D8] bg-white p-10 text-center text-[#5F6B63]" data-testid="rekap-harian-empty">
-          Tidak ada kegiatan pada tanggal ini.
+        <div className="rounded-2xl border border-[#E7E3D8] bg-white p-8 text-center" data-testid="rekap-harian-empty">
+          <CalendarX2 size={30} className="mx-auto text-[#5F6B63]" />
+          <div className="mt-2 font-heading text-base font-bold text-[#14201A]">Tidak ada kegiatan pada tanggal ini</div>
+          {data.terdekat ? (
+            <>
+              <p className="mx-auto mt-1 max-w-md text-sm text-[#5F6B63]">
+                Pilih tanggal lain, atau langsung ke kegiatan terdekat.
+              </p>
+              <button type="button" onClick={() => setDate(data.terdekat)} data-testid="harian-ke-terdekat"
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
+                <CalendarCheck size={16} /> Ke kegiatan terdekat
+              </button>
+            </>
+          ) : (
+            <p className="mx-auto mt-1 max-w-md text-sm text-[#5F6B63]">Belum ada kegiatan tercatat.</p>
+          )}
         </div>
       ) : (
         <>
@@ -184,15 +194,27 @@ export default function RekapHarianView({ initialDate = null }) {
             </div>
             {data.sesi.map((s) => (
               <div key={s.id} className="rounded-xl border border-[#F0EEE6] p-3.5" data-testid={`harian-sesi-${s.label}`}>
+                {s.berlangsung === false ? (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-[#14201A]">
+                      {s.label}{s.required ? "" : " · opsional"} — {s.start_time}–{s.end_time} WITA
+                    </span>
+                    <span className="rounded-full bg-[#F0EEE6] px-2.5 py-0.5 text-[11px] font-semibold text-[#5F6B63]">
+                      Belum berlangsung
+                    </span>
+                  </div>
+                ) : (
                 <PercentBar
                   label={`${s.label}${s.required ? "" : " · opsional"} — ${s.start_time}–${s.end_time} WITA`}
                   value={s.ratio} sub={`${s.hadir}/${s.peserta}`} color={ratioColor(s.ratio)}
                   testid={`bar-harian-${s.label}`} />
+                )}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-[#5F6B63]">
                   {s.teacher && <span className="inline-flex items-center gap-1"><User size={12} /> {s.teacher}</span>}
                   {s.location && <span className="inline-flex items-center gap-1"><MapPin size={12} /> {s.location}</span>}
                   {s.material && <span className="inline-flex items-center gap-1"><Clock size={12} /> {s.material}</span>}
                 </div>
+                {s.berlangsung !== false && (
                 <div className="mt-3">
                   <StatusGroups
                     counts={{
@@ -207,6 +229,7 @@ export default function RekapHarianView({ initialDate = null }) {
                     testid={`harian-status-${s.label}`}
                   />
                 </div>
+                )}
               </div>
             ))}
           </div>

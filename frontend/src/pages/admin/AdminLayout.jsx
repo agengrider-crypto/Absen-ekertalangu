@@ -134,11 +134,17 @@ const TRAIL_PARENT = {
   "peserta-bulk": "peserta",
   "peserta-duplikat": "peserta",
   kelompok: "peserta",
-  "rekap-bulanan": "laporan-peserta",
-  "rekap-harian": "laporan-peserta",
-  musyawarah: "laporan-peserta",
-  pengaduan: "laporan-peserta",
+  "laporan-peserta": "grup-laporan",
+  "rekap-bulanan": "grup-laporan",
+  "rekap-harian": "grup-laporan",
+  musyawarah: "grup-laporan",
+  pengaduan: "grup-laporan",
 };
+
+/** Nama grup sidebar (induk breadcrumb) — satu sumber dengan MENU. */
+const GROUP_LABEL = Object.fromEntries(
+  MENU.filter((m) => m.group).map((m) => [m.group, m.label]),
+);
 
 function NavButton({ item, active, onNav, collapsed, mobile = false }) {
   const Icon = item.icon;
@@ -379,8 +385,10 @@ export default function AdminLayout({ user, role = "admin" }) {
   const trailItems = (() => {
     const label = TRAIL_LABEL[active] || "Dashboard";
     const parentKey = TRAIL_PARENT[active];
-    const base = parentKey && TRAIL_LABEL[parentKey]
-      ? [{ label: TRAIL_LABEL[parentKey], onClick: () => go(parentKey) }, { label }]
+    const parentLabel = parentKey ? (GROUP_LABEL[parentKey] || TRAIL_LABEL[parentKey]) : null;
+    const parentClickable = parentKey && !GROUP_LABEL[parentKey];
+    const base = parentLabel
+      ? [{ label: parentLabel, ...(parentClickable ? { onClick: () => go(parentKey) } : {}) }, { label }]
       : [{ label }];
     if (active === "kegiatan" && kegiatanSubPage) {
       return [...base, { label: kegiatanSubPage }];
