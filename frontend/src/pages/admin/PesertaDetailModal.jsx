@@ -87,7 +87,59 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
   const [report, setReport] = useState(null);
   const [logs, setLogs] = useState(null);
   const [jenjangList, setJenjangList] = useState([]);
+  const [wali, setWali] = useState(null);
+  const [tautkan, setTautkan] = useState(null); // "ayah" | "ibu" | "wali" | null
+  const [waliQ, setWaliQ] = useState("");
+  const [waliCandidates, setWaliCandidates] = useState([]);
+  const [lepasWali, setLepasWali] = useState(null);
   const fileRef = useRef(null);
+
+  const loadWali = () =>
+    api.get(`/admin/users/${userId}/wali`)
+      .then(({ data }) => setWali(data))
+      .catch(() => setWali({ rows: [], saran: null }));
+
+  useEffect(() => { loadWali(); /* eslint-disable-next-line */ }, [userId]);
+
+  useEffect(() => {
+    if (!tautkan) return undefined;
+    let alive = true;
+    const t = setTimeout(() => {
+      api.get("/admin/users")
+        .then(({ data }) => {
+          if (!alive) return;
+          const term = waliQ.trim().toLowerCase();
+          setWaliCandidates((data || [])
+            .filter((u) => u.id !== userId && u.roles?.includes("peserta"))
+            .filter((u) => !term
+              || (u.name || "").toLowerCase().includes(term)
+              || (u.username || "").toLowerCase().includes(term)
+              || (u.phone || "").toLowerCase().includes(term))
+            .slice(0, 20));
+        })
+        .catch(() => { if (alive) setWaliCandidates([]); });
+    }, 250);
+    return () => { alive = false; clearTimeout(t); };
+  }, [tautkan, waliQ, userId]);
+
+  const tautkanWali = async (waliId, hubungan) => {
+    try {
+      const { data } = await api.post(`/admin/users/${userId}/wali`, { wali_id: waliId, hubungan });
+      setWali((prev) => ({ ...prev, rows: data.rows }));
+      setTautkan(null);
+      setWaliQ("");
+      toast.success("Orang tua ditautkan");
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
+  const lepasTautan = async (hubungan) => {
+    try {
+      const { data } = await api.delete(`/admin/users/${userId}/wali/${hubungan}`);
+      setWali((prev) => ({ ...prev, rows: data.rows }));
+      setLepasWali(null);
+      toast.success("Tautan dilepas");
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
 
   useEffect(() => {
     api.get("/program/jenjang").then(({ data }) => setJenjangList(data.items || [])).catch(() => {});
@@ -580,6 +632,57 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                       </div>
                     </div>
 
+                    <div className={`${card} p-4`} data-testid="detail-orang-tua">
+                      <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-[#14201A]">
+                        <HeartHandshake size={15} /> Orang tua
+                      </div>
+                      {wali === null ? (
+                        <div className="py-3 flex justify-center"><Loader2 size={16} className="animate-spin text-[#0E4E31]" /></div>
+                      ) : (
+                        <div className="space-y-2">
+                          {["ayah", "ibu", "wali"].map((h) => {
+                            const row = (wali.rows || []).find((r) => r.hubungan === h) || {};
+                            const label = h === "ayah" ? "Ayah" : h === "ibu" ? "Ibu" : "Wali";
+                            return (
+                              <div key={h} className="flex items-center gap-2" data-testid={`detail-wali-${h}`}>
+                                <span className="w-12 shrink-0 text-xs font-semibold text-[#5F6B63]">{label}</span>
+                                <span className="min-w-0 flex-1 truncate text-sm text-[#14201A]">
+                                  {row.wali_nama || <span className="text-[#8A948D]">Belum ditautkan</span>}
+                                </span>
+                                {row.wali_nama ? (
+                                  <button type="button" onClick={() => setLepasWali(h)}
+                                    className="min-h-9 shrink-0 rounded-lg px-2 text-xs font-semibold text-[#A32A2A] hover:bg-[#FBE5E3]">
+                                    Lepas
+                                  </button>
+                                ) : (
+                                  <button type="button" onClick={() => setTautkan(h)}
+                                    className="min-h-9 shrink-0 rounded-lg border border-[#14633F] px-2 text-xs font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
+                                    Tautkan
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                          <p className="text-[11px] text-[#5F6B63]">Pilih Wali bila anak tidak punya orang tua.</p>
+                          {wali.saran && !(wali.rows || []).some((r) => r.wali_id === wali.saran.wali_id) && (
+                            <div className="rounded-xl border border-[#EAD596] bg-[#FBF1D6] p-2.5" data-testid="detail-wali-saran">
+                              <p className="text-[11px] leading-relaxed text-[#6B4500]">
+                                Nomor WA wali sama dengan akun {wali.saran.nama}. Tautkan sebagai Ayah / Ibu / Wali?
+                              </p>
+                              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                {["ayah", "ibu", "wali"].map((h) => (
+                                  <button key={h} type="button" onClick={() => tautkanWali(wali.saran.wali_id, h)}
+                                    className="h-8 rounded-lg bg-white px-2.5 text-[11px] font-semibold text-[#6B4500] hover:bg-[#F6F4EE]">
+                                    {h === "ayah" ? "Ayah" : h === "ibu" ? "Ibu" : "Wali"}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     {canManageRoles && (
                       <div className={`${card} p-4`}>
                         <div className="mb-2 text-sm font-semibold text-[#14201A]">Peran</div>
@@ -836,6 +939,38 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
           </div>
         )}
     </Modal>
+
+      {tautkan && (
+        <Modal open onClose={() => { setTautkan(null); setWaliQ(""); }}
+          title={`Tautkan ${tautkan === "ayah" ? "Ayah" : tautkan === "ibu" ? "Ibu" : "Wali"}`}
+          maxWidth={480} testid="detail-wali-picker">
+          <input value={waliQ} onChange={(e) => setWaliQ(e.target.value)} autoFocus
+            placeholder="Cari nama, nama pengguna, atau No HP…"
+            className="h-11 w-full rounded-xl border border-[#8A948D] px-3 text-base outline-none focus:border-[#14633F]" />
+          <div className="mt-2 max-h-64 overflow-y-auto rounded-xl border border-[#E7E3D8]">
+            {waliCandidates.length === 0 ? (
+              <p className="p-3 text-sm text-[#5F6B63]">Tidak ada akun peserta yang cocok.</p>
+            ) : waliCandidates.map((u) => (
+              <button key={u.id} type="button" onClick={() => tautkanWali(u.id, tautkan)}
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-[#14201A] hover:bg-[#F6F4EE]">
+                <span className="min-w-0 flex-1 truncate">{u.name}</span>
+                <span className="shrink-0 text-[11px] text-[#5F6B63]">{u.phone || (u.username ? `@${u.username}` : "")}</span>
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      <Modal open={Boolean(lepasWali)} onClose={() => setLepasWali(null)}
+        title="Lepas tautan orang tua?" maxWidth={420} hideClose testid="detail-wali-lepas">
+        <p className="text-sm text-[#5F6B63]">Akun tetap ada, hanya tautan ke anak ini yang dilepas.</p>
+        <div className="mt-4 flex gap-2">
+          <button type="button" onClick={() => setLepasWali(null)}
+            className="h-11 flex-1 rounded-xl border-2 border-[#E7E3D8] font-semibold text-[#5F6B63] hover:bg-[#F6F4EE]">Batal</button>
+          <button type="button" onClick={() => lepasTautan(lepasWali)}
+            className="h-11 flex-1 rounded-xl bg-[#A32A2A] font-semibold text-white hover:bg-[#8C2323]">Ya, lepas</button>
+        </div>
+      </Modal>
 
       {actionsOpen && (
         <ActionModal

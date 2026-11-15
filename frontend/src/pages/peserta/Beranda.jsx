@@ -9,6 +9,7 @@ import {
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { tanggalPanjang } from "@/pages/admin/kegiatanUtils";
 import KesanPesan from "./KesanPesan";
+import AnakSaya from "./AnakSaya";
 import { profileCompletion } from "@/lib/roles";
 import { keteranganHitungan } from "@/pages/admin/rekapUtils";
 
@@ -208,6 +209,9 @@ export default function Beranda({ user, onGoto }) {
           </div>
         </div>
       </button>
+
+      {/* Anak saya — hanya tampil bila akun ini wali dari anak tertaut */}
+      <AnakSaya />
 
       {/* Kelengkapan profil — disembunyikan bila 100% */}
       {completion.percent < 100 && (

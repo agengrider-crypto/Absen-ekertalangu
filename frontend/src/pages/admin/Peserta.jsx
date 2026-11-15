@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Users, Search, Loader2, UserPlus, Trash2, X, Eye, AlertTriangle,
   ClipboardList, CalendarDays, Heart, Printer, QrCode, CheckCircle2, ChevronLeft, ChevronRight,
-  MoreHorizontal, User as UserIcon, History, SlidersHorizontal, GraduationCap,
+  MoreHorizontal, User as UserIcon, History, SlidersHorizontal, GraduationCap, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -13,7 +13,7 @@ import ActionModal from "@/components/ActionModal";
 import Modal from "@/components/Modal";
 import ListFab, { ListPagination } from "@/components/ListFab";
 import PesertaDetailModal from "./PesertaDetailModal";
-import { genderLabel, statusBadge, MARITAL_OPTIONS, potensiGenerus } from "./adminUtils";
+import { genderLabel, statusBadge, MARITAL_OPTIONS, potensiGenerus, isGenerus, jenjangEfektif, jenjangLabel, umurPerJuli } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 
@@ -80,6 +80,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
   const handledAddRequest = useRef(0);
   const [users, setUsers] = useState(null);
   const [kelompok, setKelompok] = useState([]);
+  const [waliMap, setWaliMap] = useState({});
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("all"); // all | pending | active | incomplete
   const [showStatusFilter, setShowStatusFilter] = useState(false);
@@ -112,6 +113,13 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
     api.get("/admin/kelompok")
       .then(({ data }) => setKelompok(data))
       .catch((e) => toast.error(formatApiErrorDetail(e.response?.data?.detail)));
+    api.get("/admin/wali-anak")
+      .then(({ data }) => {
+        const map = {};
+        (data || []).forEach((r) => { if (r.anak_id) map[r.anak_id] = r.hubungan; });
+        setWaliMap(map);
+      })
+      .catch(() => setWaliMap({}));
   }, []);
 
   useEffect(() => {
@@ -124,7 +132,12 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
 
   const counts = useMemo(() => {
     const all = users || [];
-    const roleUsers = roleFilter === "all" ? all : all.filter((u) => u.roles?.includes(roleFilter));
+    const pesertaOnly = all.filter((u) => u.roles?.includes("peserta"));
+    const roleUsers = roleFilter === "all" ? all
+      : roleFilter === "generus" ? pesertaOnly.filter((u) => isGenerus(u))
+        : roleFilter === "dewasa" ? pesertaOnly.filter((u) => !isGenerus(u))
+          : roleFilter === "wali-belum" ? pesertaOnly.filter((u) => isGenerus(u) && !waliMap[u.id])
+            : all.filter((u) => u.roles?.includes(roleFilter));
     return {
       all: roleUsers.length,
       pending: roleUsers.filter((u) => u.status === "pending").length,
@@ -132,6 +145,10 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
       incomplete: roleUsers.filter((u) => dataMissing(u).length > 0).length,
       missingDob: roleUsers.filter((u) => dataMissing(u).includes("dob")).length,
       missingMarital: roleUsers.filter((u) => dataMissing(u).includes("marital")).length,
+      generus: all.filter((u) => u.roles?.includes("peserta") && isGenerus(u)).length,
+      dewasa: all.filter((u) => u.roles?.includes("peserta") && !isGenerus(u)).length,
+      waliBelum: all.filter((u) => u.roles?.includes("peserta") && isGenerus(u)
+        && !waliMap[u.id]).length,
       roles: {
         peserta: all.filter((u) => u.roles?.includes("peserta")).length,
         pengurus: all.filter((u) => u.roles?.includes("pengurus")).length,
@@ -139,11 +156,16 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         guru: all.filter((u) => u.roles?.includes("guru")).length,
       },
     };
-  }, [users, roleFilter]);
+  }, [users, roleFilter, waliMap]);
 
   const filtered = useMemo(() => {
     if (!users) return [];
     let list = roleFilter === "all" ? users : users.filter((u) => u.roles?.includes(roleFilter));
+    if (roleFilter === "generus") list = users.filter((u) => u.roles?.includes("peserta") && isGenerus(u));
+    else if (roleFilter === "dewasa") list = users.filter((u) => u.roles?.includes("peserta") && !isGenerus(u));
+    else if (roleFilter === "wali-belum") {
+      list = users.filter((u) => u.roles?.includes("peserta") && isGenerus(u) && !waliMap[u.id]);
+    }
     if (statusFilter === "pending") list = list.filter((u) => u.status === "pending");
     else if (statusFilter === "active") list = list.filter((u) => u.status === "active");
     else if (statusFilter === "incomplete") list = list.filter((u) => dataMissing(u).length > 0);
@@ -154,7 +176,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
       (u.username || "").toLowerCase().includes(t) ||
       (u.phone || "").toLowerCase().includes(t) ||
       (u.birthplace || "").toLowerCase().includes(t));
-  }, [users, q, statusFilter, roleFilter]);
+  }, [users, q, statusFilter, roleFilter, waliMap]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
@@ -249,11 +271,12 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
       >
         {[
           { key: "all", label: "Semua", count: users?.length || 0 },
-          { key: "peserta", label: "Peserta", count: counts.roles.peserta },
-          { key: "pengurus", label: "Pengurus", count: counts.roles.pengurus },
-          { key: "admin", label: "Admin", count: counts.roles.admin },
+          { key: "generus", label: "Generus", count: counts.generus },
+          { key: "dewasa", label: "Dewasa", count: counts.dewasa },
           { key: "guru", label: "Guru", count: counts.roles.guru },
-        ].map((tab) => {
+          { key: "pengurus", label: "Pengurus", count: counts.roles.pengurus },
+          { key: "wali-belum", label: "Wali belum tertaut", count: counts.waliBelum },
+        ].filter((tab) => tab.key === "all" || tab.count > 0).map((tab) => {
           const active = roleFilter === tab.key;
           return (
             <button
@@ -468,22 +491,29 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                           </span>
                           {u.needs_completion && <AlertTriangle size={13} className="shrink-0 text-[#5F6B63]" aria-label="Perlu dilengkapi" />}
                         </div>
-                        <div className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-[#5F6B63]">
-                          <span className="truncate">{u.username ? `@${u.username}` : genderLabel(u.gender)}</span>
-                          {u.phone && <span className="hidden shrink-0 sm:inline">· {u.phone}</span>}
+                        <div className="mt-0.5 truncate text-xs text-[#5F6B63]">
+                          {[
+                            u.username ? `@${u.username}` : null,
+                            jenjangEfektif(u) ? jenjangLabel(jenjangEfektif(u)) : null,
+                            umurPerJuli(u.dob) !== null ? `${umurPerJuli(u.dob)} th` : null,
+                          ].filter(Boolean).join(" · ") || genderLabel(u.gender)}
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          {(u.roles || []).map((r) => (
-                            <span key={r} className="inline-flex h-6 items-center rounded-full bg-[#E3F3EA] px-2.5 text-xs font-medium text-[#14201A]">
-                              {ROLE_NAMES[r] || r}
+                          <span className={`inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${b.cls}`}>
+                            {u.status === "active" ? <CheckCircle2 size={11} /> : <Clock size={11} />}
+                            {u.status === "active" ? "Aktif" : "Menunggu"}
+                          </span>
+                          {u.roles?.includes("peserta") && isGenerus(u) && (
+                            <span className="inline-flex h-6 items-center rounded-full bg-[#F0EEE6] px-2.5 text-xs font-semibold text-[#5F6B63]">
+                              {waliMap[u.id] === "ibu" ? "Ibu" : waliMap[u.id] === "ayah" ? "Ayah"
+                                : waliMap[u.id] === "wali" ? "Wali" : "Belum ada wali"}
                             </span>
-                          ))}
-                          <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold ${b.cls}`}>{b.label}</span>
+                          )}
                           {miss.length > 0 && (
-                            <span className="inline-flex h-6 items-center gap-1 rounded-full bg-[#FBE5E3] px-2.5 text-xs font-semibold text-[#A32A2A]">
-                              <ClipboardList size={11} />
-                              {miss.length > 2 ? "Data belum lengkap" : `${miss.map((m) => MISSING_LABEL[m]).join(" & ")} belum diisi`}
-                            </span>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); openDetail(u.id); }}
+                              className="inline-flex h-6 items-center rounded-full bg-[#FBE5E3] px-2.5 text-xs font-semibold text-[#A32A2A]">
+                              Lengkapi {miss.length}
+                            </button>
                           )}
                         </div>
                       </div>

@@ -45,6 +45,31 @@ export function umurPerJuli(dob, ref = new Date()) {
 /** Rentang jenjang generus: PAUD (3) sampai Pra Nikah 4 (22 ke atas). */
 export const GENERUS_UMUR_MIN = 3;
 
+/** Generus = jenjang PAUD, Cabe Rawit 1-6, Pra Remaja, Remaja, Pra Nikah 1-4. */
+export const GENERUS_JENJANG = [
+  "paud", "cabe1", "cabe2", "cabe3", "cabe4", "cabe5", "cabe6",
+  "pra_remaja", "remaja", "pra_nikah1", "pra_nikah2", "pra_nikah3", "pra_nikah4",
+];
+
+/** Jenjang efektif: jenjang tersimpan, atau saran dari umur per 1 Juli. */
+export function jenjangEfektif(user) {
+  if (user?.jenjang) return user.jenjang;
+  const age = umurPerJuli(user?.dob);
+  if (age === null) return null;
+  if (age >= 3 && age <= 6) return "paud";
+  if (age >= 7 && age <= 12) return `cabe${age - 6}`;
+  if (age >= 13 && age <= 15) return "pra_remaja";
+  if (age >= 16 && age <= 18) return "remaja";
+  if (age >= 19 && age <= 22) return `pra_nikah${age - 18}`;
+  if (age >= 23) return "pra_nikah4";
+  return null;
+}
+
+/** Generus = peserta berjenjang PAUD … Pra Nikah 4. */
+export function isGenerus(user) {
+  return GENERUS_JENJANG.includes(jenjangEfektif(user));
+}
+
 /** Tampilkan Jenjang & Nomor WA wali hanya bila berpotensi generus. */
 export function potensiGenerus({ dob, marital }) {
   if (marital === "sudah_menikah") return false;

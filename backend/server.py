@@ -1200,12 +1200,14 @@ async def import_template(admin: dict = Depends(require_staff)):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Peserta"
-    ws.append(["Nama", "Tanggal Lahir"])
-    ws.append(["Budi Santoso", "17-08-1970"])
-    ws.append(["Siti Aminah", "02-05-1965"])
-    ws.append(["Ahmad Fauzi", ""])
-    ws.column_dimensions["A"].width = 32
-    ws.column_dimensions["B"].width = 18
+    ws.append(["Nama", "Tanggal Lahir", "Nama ayah", "HP ayah",
+               "Nama ibu", "HP ibu", "Nama wali", "HP wali"])
+    ws.append(["Budi Santoso", "17-08-1970", "Santoso", "081200000001",
+               "Sri Wahyuni", "081200000002", "", ""])
+    ws.append(["Siti Aminah", "02-05-1965", "", "", "", "", "Ahmad", "081200000003"])
+    ws.append(["Ahmad Fauzi", "", "", "", "", "", "", ""])
+    for col, width in zip("ABCDEFGH", (32, 18, 24, 18, 24, 18, 24, 18)):
+        ws.column_dimensions[col].width = width
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
@@ -1215,25 +1217,71 @@ async def import_template(admin: dict = Depends(require_staff)):
         headers={"Content-Disposition": "attachment; filename=template_peserta_ekertalangu.xlsx"},
     )
 
+
+async def _tautkan_orang_tua(anak_id: str, nama: str, hp: str, hubungan: str,
+                             oleh: dict, hasil: dict) -> None:
+    """Tautkan/buat akun orang tua untuk satu baris impor (satu transaksi logis)."""
+    nama = (nama or "").strip()
+    nomor = normalize_wa_wali(hp)
+    if not nama and not nomor:
+        return
+    if not nomor:
+        hasil["perlu_dicek"].append({"nama_anak": nama or anak_id,
+                                     "alasan": f"{hubungan}: HP kosong, akun tidak dibuat"})
+        return
+    kandidat = await db.users.find(
+        {"phone": nomor, "is_system": {"$ne": True}}, {"name": 1}).to_list(5)
+    if len(kandidat) > 1:
+        hasil["perlu_dicek"].append({"nama_anak": nama or anak_id,
+                                     "alasan": f"{hubungan}: HP {nomor} cocok dengan lebih dari satu akun"})
+        return
+    if kandidat:
+        wali_id = str(kandidat[0]["_id"])
+    else:
+        if not nama:
+            hasil["perlu_dicek"].append({"nama_anak": anak_id,
+                                         "alasan": f"{hubungan}: nama kosong, akun tidak dibuat"})
+            return
+        doc = build_pending_doc(nama, None)
+        doc["username"] = await unique_username_from_name(nama)
+        doc["phone"] = nomor
+        doc["source"] = "import_orang_tua"
+        await db.users.insert_one(doc)
+        wali_id = str(doc["_id"])
+        hasil["akun_baru"] += 1
+    if wali_id == anak_id:
+        hasil["perlu_dicek"].append({"nama_anak": nama,
+                                     "alasan": f"{hubungan}: HP sama dengan akun anak"})
+        return
+    lama = await db.wali_anak.find_one({"anak_id": anak_id, "hubungan": hubungan})
+    if lama:
+        if lama.get("wali_id") != wali_id:
+            hasil["perlu_dicek"].append({"nama_anak": nama,
+                                         "alasan": f"{hubungan}: sudah tertaut akun lain"})
+        return
+    await db.wali_anak.insert_one(_wali_doc(anak_id, wali_id, hubungan, oleh))
+    hasil["tertaut"] += 1
+
+
 @api_router.post("/admin/users/import")
 async def admin_import_users(file: UploadFile = File(...), admin: dict = Depends(require_staff)):
     fname = (file.filename or "").lower()
     data = await file.read()
-    rows = []  # list of (name, dob)
+    rows = []  # (name, dob, ayah_nama, ayah_hp, ibu_nama, ibu_hp, wali_nama, wali_hp)
     try:
         if fname.endswith(".csv") or fname.endswith(".txt"):
             import csv
             text = data.decode("utf-8-sig", errors="ignore")
             for cols in csv.reader(io.StringIO(text)):
                 if cols:
-                    rows.append((cols[0], cols[1] if len(cols) > 1 else None))
+                    rows.append(tuple(list(cols) + [None] * 8)[:8])
         elif fname.endswith(".xlsx") or fname.endswith(".xlsm"):
             import openpyxl
             wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
             ws = wb.active
             for r in ws.iter_rows(values_only=True):
                 if r and r[0] is not None:
-                    rows.append((r[0], r[1] if len(r) > 1 else None))
+                    rows.append(tuple(list(r) + [None] * 8)[:8])
             wb.close()
         else:
             raise HTTPException(status_code=400, detail="Format tidak didukung. Gunakan .xlsx atau .csv")
@@ -1243,7 +1291,12 @@ async def admin_import_users(file: UploadFile = File(...), admin: dict = Depends
         raise HTTPException(status_code=400, detail="Gagal membaca file. Pastikan format .xlsx atau .csv benar.")
 
     created, skipped, invalid_dates, flagged = [], [], [], []
-    for name_val, dob_val in rows:
+    hasil = {"tertaut": 0, "akun_baru": 0, "perlu_dicek": []}
+    for row in rows:
+        name_val, dob_val = row[0], row[1]
+        ayah_nama, ayah_hp = row[2], row[3]
+        ibu_nama, ibu_hp = row[4], row[5]
+        wali_nama, wali_hp = row[6], row[7]
         name = str(name_val).strip()
         if not name or name.lower() in ("nama", "name", "nama lengkap", "nama peserta"):
             continue
@@ -1256,12 +1309,26 @@ async def admin_import_users(file: UploadFile = File(...), admin: dict = Depends
         if duplicate:
             doc["needs_completion"] = True
             flagged.append(name)
-        res = await db.users.insert_one(doc)
+        await db.users.insert_one(doc)
+        anak_id = str(doc["_id"])
         created.append(name)
+        # Satu baris = satu transaksi logis: kegagalan orang tua tidak membatalkan anak.
+        for hubungan, nm, hp in (("ayah", ayah_nama, ayah_hp),
+                                 ("ibu", ibu_nama, ibu_hp),
+                                 ("wali", wali_nama, wali_hp)):
+            try:
+                await _tautkan_orang_tua(anak_id, nm, hp, hubungan, admin, hasil)
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Taut wali gagal (%s): %s", name, exc)
+                hasil["perlu_dicek"].append({"nama_anak": name,
+                                             "alasan": f"{hubungan}: gagal disimpan"})
     await log_activity(admin, "impor_peserta",
-                       f"Impor {len(created)} peserta dari file ({len(flagged)} nama kembar ditandai)")
+                       f"Impor {len(created)} peserta dari file ({len(flagged)} nama kembar ditandai, "
+                       f"{hasil['tertaut']} wali tertaut, {hasil['akun_baru']} akun orang tua baru)")
     return {"count": len(created), "skipped": skipped, "created_names": created,
-            "invalid_dates": invalid_dates, "flagged": flagged}
+            "invalid_dates": invalid_dates, "flagged": flagged,
+            "wali": {"tertaut": hasil["tertaut"], "akun_baru": hasil["akun_baru"],
+                     "perlu_dicek": hasil["perlu_dicek"]}}
 
 # ---------------------------------------------------------------------------
 # Fase 2: Kelompok / Majelis
@@ -7656,6 +7723,170 @@ async def public_tugas_kumpul(token: str):
         await db.tugas_peserta.update_one(
             {"_id": row["_id"]}, {"$set": {"dikumpul_at": now_wita().isoformat()}})
     return {"ok": True, "sudah_kumpul": True}
+
+
+# ---------------------------------------------------------------------------
+# Orang tua / wali ↔ anak (tabel `wali_anak`)
+# ---------------------------------------------------------------------------
+GENERUS_JENJANG = {"paud", *{f"cabe{i}" for i in range(1, 7)},
+                   "pra_remaja", "remaja",
+                   *{f"pra_nikah{i}" for i in range(1, 5)}}
+HUBUNGAN_WALI = ("ayah", "ibu", "wali")
+
+
+def is_generus(user: dict) -> bool:
+    """Generus = peserta berjenjang PAUD … Pra Nikah 4 (termasuk saran dari umur)."""
+    jenjang = user.get("jenjang") or saran_jenjang(user.get("dob"))
+    return jenjang in GENERUS_JENJANG
+
+
+def _wali_doc(anak_id: str, wali_id: str, hubungan: str, oleh: dict) -> dict:
+    return {"_id": str(uuid.uuid4()), "anak_id": anak_id, "wali_id": wali_id,
+            "hubungan": hubungan, "dibuat_oleh": str(oleh["_id"]),
+            "dibuat_at": now_wita().isoformat()}
+
+
+async def _wali_rows(anak_id: str) -> list:
+    rows = await db.wali_anak.find({"anak_id": anak_id}).to_list(10)
+    out = []
+    for r in rows:
+        wali = await db.users.find_one({"_id": r.get("wali_id")}, {"name": 1, "phone": 1})
+        out.append({"id": r["_id"], "hubungan": r.get("hubungan"),
+                    "wali_id": r.get("wali_id"),
+                    "wali_nama": (wali or {}).get("name"),
+                    "wali_phone": (wali or {}).get("phone")})
+    return out
+
+
+@api_router.get("/admin/users/{user_id}/wali")
+async def admin_wali_anak(user_id: str, staff: dict = Depends(require_staff)):
+    """Tiga baris Ayah/Ibu/Wali + saran dari Nomor WA wali anak."""
+    anak = await db.users.find_one({"_id": user_id})
+    if not anak:
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+    rows = await _wali_rows(user_id)
+    terisi = {r["hubungan"]: r for r in rows}
+    saran = None
+    nomor = normalize_wa_wali(anak.get("nomor_wa_wali"))
+    if nomor:
+        kandidat = await db.users.find(
+            {"phone": nomor, "_id": {"$ne": user_id}, "is_system": {"$ne": True}},
+            {"name": 1, "phone": 1}).to_list(5)
+        if len(kandidat) == 1:
+            saran = {"wali_id": str(kandidat[0]["_id"]), "nama": kandidat[0].get("name")}
+    return {"anak_id": user_id, "anak_nama": anak.get("name"),
+            "generus": is_generus(anak),
+            "rows": [{"hubungan": h, **(terisi.get(h) or {})} for h in HUBUNGAN_WALI],
+            "saran": saran}
+
+
+class WaliAnakInput(BaseModel):
+    wali_id: str
+    hubungan: str
+
+
+@api_router.post("/admin/users/{user_id}/wali")
+async def admin_tautkan_wali(user_id: str, body: WaliAnakInput,
+                             staff: dict = Depends(require_staff)):
+    """Tautkan akun peserta sebagai Ayah/Ibu/Wali anak (tanpa kode/persetujuan)."""
+    hubungan = (body.hubungan or "").strip()
+    if hubungan not in HUBUNGAN_WALI:
+        raise HTTPException(status_code=400, detail="Hubungan tidak valid")
+    if body.wali_id == user_id:
+        raise HTTPException(status_code=400, detail="Anak dan wali tidak boleh akun yang sama")
+    anak = await db.users.find_one({"_id": user_id})
+    wali = await db.users.find_one({"_id": body.wali_id})
+    if not anak or not wali:
+        raise HTTPException(status_code=404, detail="Akun tidak ditemukan")
+    lama = await db.wali_anak.find_one({"anak_id": user_id, "hubungan": hubungan})
+    if lama and lama.get("wali_id") != body.wali_id:
+        raise HTTPException(status_code=409,
+                            detail="Hubungan ini sudah terisi akun lain. Lepas terlebih dahulu.")
+    if not lama:
+        await db.wali_anak.insert_one(_wali_doc(user_id, body.wali_id, hubungan, staff))
+    await log_activity(staff, "tautkan_wali",
+                       f"Menautkan {wali.get('name')} sebagai {hubungan} dari {anak.get('name')}",
+                       user_id)
+    return {"ok": True, "rows": await _wali_rows(user_id)}
+
+
+@api_router.delete("/admin/users/{user_id}/wali/{hubungan}")
+async def admin_lepas_wali(user_id: str, hubungan: str, staff: dict = Depends(require_staff)):
+    if hubungan not in HUBUNGAN_WALI:
+        raise HTTPException(status_code=400, detail="Hubungan tidak valid")
+    res = await db.wali_anak.delete_one({"anak_id": user_id, "hubungan": hubungan})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Tautan tidak ditemukan")
+    await log_activity(staff, "lepas_wali", f"Melepas tautan {hubungan}", user_id)
+    return {"ok": True, "rows": await _wali_rows(user_id)}
+
+
+@api_router.get("/admin/wali-anak")
+async def admin_wali_map(staff: dict = Depends(require_staff)):
+    """Peta anak → hubungan wali (untuk chip status wali di daftar peserta)."""
+    rows = await db.wali_anak.find().to_list(20000)
+    return [{"anak_id": r.get("anak_id"), "hubungan": r.get("hubungan"),
+             "wali_id": r.get("wali_id")} for r in rows]
+
+
+@api_router.get("/me/anak")
+async def my_anak(user: dict = Depends(get_current_user)):
+    """Anak saya — hanya anak yang tertaut ke akun yang login (wali_anak.wali_id)."""
+    uid = str(user["_id"])
+    links = await db.wali_anak.find({"wali_id": uid}).to_list(50)
+    if not links:
+        return {"items": []}
+    now = now_wita()
+    bulan = now.strftime("%Y-%m")
+    items = []
+    for link in links:
+        anak_id = link.get("anak_id")
+        anak = await db.users.find_one({"_id": anak_id}, {"name": 1, "jenjang": 1})
+        if not anak:
+            continue
+        # Kehadiran bulan ini: hanya kegiatan yang sudah berlangsung, sesi digabung.
+        date_from = f"{bulan}-01"
+        date_to = now.strftime("%Y-%m-%d")
+        rows, _ = await build_peserta_attendance_rows(date_from, date_to)
+        ringkas = rows.get(anak_id) or {"hadir": 0, "total_pertemuan": 0, "ratio": 0.0}
+        # Lima pertemuan terakhir (yang sudah berlangsung).
+        kegs = await db.kegiatans.find(
+            {"date": {"$lte": date_to}}).sort([("date", -1), ("start_time", -1)]).to_list(500)
+        peserta_all = await db.users.find(PESERTA_QUERY).to_list(10000)
+        absens = await db.absensis.find({"user_id": anak_id}).to_list(5000)
+        status_by = {(a["kegiatan_id"], a["user_id"]): a.get("status") for a in absens}
+        elig_by_doc = {k["_id"]: {str(p["_id"]) for p in filter_peserta_for_kegiatan(k, peserta_all)}
+                       for k in kegs}
+        terakhir = []
+        for mt in group_pertemuan(kegs):
+            if not any(kegiatan_sudah_berlangsung(d, now) for d in mt["docs"]):
+                continue
+            st = pertemuan_status(mt, anak_id, status_by, elig_by_doc)
+            if st is None:
+                continue
+            terakhir.append({"date": mt["date"], "name": mt["name"], "status": st})
+            if len(terakhir) >= 5:
+                break
+        # Tugas dari guru (bila tabel tugas sudah ada) — tanpa token.
+        tugas_rows = await db.tugas_peserta.find({"peserta_id": anak_id}).to_list(200)
+        tugas = []
+        for tr in tugas_rows:
+            t = await db.tugas.find_one({"_id": tr.get("tugas_id")})
+            if not t:
+                continue
+            tugas.append({"judul": t.get("judul"), "batas_kumpul": t.get("batas_kumpul"),
+                          "sudah": bool(tr.get("dikumpul_at"))})
+        tugas.sort(key=lambda x: x.get("batas_kumpul") or "", reverse=True)
+        items.append({
+            "id": anak_id, "nama": anak.get("name"), "jenjang": anak.get("jenjang"),
+            "hubungan": link.get("hubungan"),
+            "kehadiran": {"hadir": ringkas["hadir"],
+                          "total": ringkas["total_pertemuan"],
+                          "ratio": ringkas["ratio"]},
+            "terakhir": terakhir,
+            "tugas": tugas[:10],
+        })
+    return {"items": items}
 
 
 @api_router.post("/program/upload")

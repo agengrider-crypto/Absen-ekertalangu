@@ -1,8 +1,8 @@
 // FASE 15 — Halaman "Bulk Data": entri banyak peserta sekaligus (manual / tempel dari Excel).
 import { useRef, useState } from "react";
-import { ListPlus, Loader2, Trash2, Plus } from "lucide-react";
+import { ListPlus, Loader2, Trash2, Plus, Download, Upload, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { api, formatApiErrorDetail } from "@/lib/api";
+import { api, API, formatApiErrorDetail } from "@/lib/api";
 
 const cell = "h-10 px-2.5 rounded-lg border border-[#E7E3D8] text-sm outline-none focus:border-[#14633F] bg-white w-full";
 const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
@@ -22,6 +22,9 @@ export default function PesertaBulkView() {
   const [kid, setKid] = useState("");
   const [saving, setSaving] = useState(false);
   const [lastResult, setLastResult] = useState(null);
+  const [importResult, setImportResult] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef(null);
   const loaded = useRef(false);
 
   if (!loaded.current) {
@@ -56,8 +59,41 @@ export default function PesertaBulkView() {
     });
   };
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const unduhTemplate = () => {
+    window.open(`${API}/admin/import-template`, "_blank", "noopener");
+  };
+
+  const unduhPerluDicek = () => {
+    const rows = importResult?.wali?.perlu_dicek || [];
+    if (rows.length === 0) return;
+    const csv = ["Nama anak,Alasan", ...rows.map((r) => `"${(r.nama_anak || "").replace(/"/g, '""')}","${(r.alasan || "").replace(/"/g, '""')}"`)].join("\n");
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "perlu-dicek-orang-tua.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const imporFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const { data } = await api.post("/admin/users/import", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setImportResult(data);
+      toast.success(`${data.count} peserta diimpor.`);
+    } catch (e2) {
+      toast.error(formatApiErrorDetail(e2.response?.data?.detail));
+    } finally { setImporting(false); }
+  };
+
+  const submit = async (e) => {    e.preventDefault();
     const entries = rows
       .map((r) => ({
         name: (r.name || "").trim(), gender: r.gender || null,
@@ -98,6 +134,50 @@ export default function PesertaBulkView() {
           {lastResult.invalid_dates?.length ? ` ${lastResult.invalid_dates.length} tanggal tidak terbaca.` : ""}
         </div>
       )}
+
+      <div className="mb-4 rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="bulk-impor">
+        <div className="text-sm font-bold text-[#14201A]">Impor dari Excel</div>
+        <p className="mt-1 text-xs text-[#5F6B63]">
+          Kolom opsional: Nama ayah, HP ayah, Nama ibu, HP ibu, Nama wali, HP wali.
+          HP yang sudah ada akan ditautkan; HP baru dibuatkan akun Menunggu Aktivasi.
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button type="button" onClick={unduhTemplate} data-testid="bulk-unduh-template"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border-2 border-[#14633F] px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
+            <Download size={15} /> Unduh template
+          </button>
+          <button type="button" onClick={() => fileRef.current?.click()} disabled={importing}
+            data-testid="bulk-impor-file"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-[#14633F] px-3 text-sm font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-60">
+            {importing ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />} Impor file
+          </button>
+          <input ref={fileRef} type="file" accept=".xlsx,.xlsm,.csv,.txt" onChange={imporFile} className="hidden" />
+        </div>
+
+        {importResult && (
+          <div className="mt-3 rounded-xl bg-[#F6F4EE] p-3 text-sm text-[#14201A]" data-testid="bulk-impor-hasil">
+            <div className="font-semibold">
+              {importResult.wali?.tertaut || 0} tertaut, {importResult.wali?.akun_baru || 0} akun baru,{" "}
+              {(importResult.wali?.perlu_dicek || []).length} perlu dicek
+            </div>
+            {(importResult.wali?.perlu_dicek || []).length > 0 && (
+              <>
+                <ul className="mt-2 space-y-1 text-xs text-[#6B4500]">
+                  {importResult.wali.perlu_dicek.map((r, i) => (
+                    <li key={i} className="inline-flex items-start gap-1">
+                      <AlertTriangle size={12} className="mt-0.5 shrink-0" /> {r.nama_anak} — {r.alasan}
+                    </li>
+                  ))}
+                </ul>
+                <button type="button" onClick={unduhPerluDicek} data-testid="bulk-unduh-perlu-dicek"
+                  className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#6B4500] px-2.5 text-xs font-semibold text-[#6B4500] hover:bg-[#FBF1D6]">
+                  <Download size={13} /> Unduh daftar yang perlu dicek
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       <form onSubmit={submit} className="bg-white rounded-2xl border border-[#E7E3D8] p-4">
         <div className="overflow-x-auto -mx-1 px-1">
