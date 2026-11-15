@@ -12,6 +12,7 @@ import PublicRekapGabungan from "@/pages/PublicRekapGabungan";
 import PublicRekapBulanan from "@/pages/PublicRekapBulanan";
 import PublicRekapHarian from "@/pages/PublicRekapHarian";
 import PublicMusyawarah from "@/pages/PublicMusyawarah";
+import PublicTugas from "@/pages/PublicTugas";
 import PublicLaporan from "@/pages/PublicLaporan";
 import PublicLaporanPeserta from "@/pages/PublicLaporanPeserta";
 import SelfAbsen from "@/pages/SelfAbsen";
@@ -130,6 +131,7 @@ function AppRoutes() {
       <Route path="/rekap-bulanan/:token" element={<PublicRekapBulanan />} />
       <Route path="/rekap-harian/:token" element={<PublicRekapHarian />} />
       <Route path="/musyawarah/:token" element={<PublicMusyawarah />} />
+      <Route path="/tugas/:token" element={<PublicTugas />} />
       <Route path="/laporan/:token" element={<PublicLaporan />} />
       <Route path="/laporan-peserta/:token" element={<PublicLaporanPeserta />} />
       {/* Absen mandiri: wajib login & fokus 1 peserta (halaman menangani sesinya sendiri) */}

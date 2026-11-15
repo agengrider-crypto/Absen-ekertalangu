@@ -7198,6 +7198,13 @@ async def guru_kelas(user: dict = Depends(get_current_user)):
         by_user: dict = {}
         for a in absens:
             by_user.setdefault(a["user_id"], []).append(a)
+        # Titik kecil: ada catatan "Perhatian" dalam 30 hari terakhir.
+        batas_perhatian = (now_wita() - timedelta(days=30)).isoformat()
+        perhatian_ids = set()
+        async for c in db.catatan_peserta.find(
+                {"jenjang": jid, "jenis": "perhatian",
+                 "created_at": {"$gte": batas_perhatian}}, {"peserta_id": 1}):
+            perhatian_ids.add(c.get("peserta_id"))
         rows = []
         for p in peserta:
             pid = str(p["_id"])
@@ -7211,7 +7218,8 @@ async def guru_kelas(user: dict = Depends(get_current_user)):
                 next((a.get("status") for a in mine if a.get("kegiatan_id") == k["_id"]), None) != "hadir"
                 for k in last3)
             rows.append({"user_id": pid, "name": p.get("name"), "ratio": ratio,
-                         "hadir": hadir, "total": total, "tidak_hadir_3x": absent3})
+                         "hadir": hadir, "total": total, "tidak_hadir_3x": absent3,
+                         "perhatian_30h": pid in perhatian_ids})
         out.append({"jenjang": jid, "label": j.get("label"), "peserta": rows,
                     "total_peserta": len(rows),
                     "pertemuan_terlaksana": len([k for k in kegs
@@ -7299,6 +7307,283 @@ async def guru_ringkasan(user: dict = Depends(get_current_user)):
     return {"scope": scope,
             "pertemuan": {"terlaksana_bulan_ini": terlaksana},
             "kehadiran": {"rata_rata": rata, "hadir": hadir, "tercatat": total_absen}}
+
+
+# ---------------------------------------------------------------------------
+# Catatan Peserta (privat: guru kelas + administrator saja)
+# ---------------------------------------------------------------------------
+CATATAN_JENIS = ("perhatian", "perkembangan", "catatan")
+CATATAN_MAX = 300
+
+
+class CatatanInput(BaseModel):
+    peserta_id: str
+    jenis: str = "catatan"
+    isi: str
+
+
+def _guru_jenjang_ids(scope: dict, jadwals: list) -> list:
+    ids = list(dict.fromkeys(j.get("jenjang_id") for j in jadwals if j.get("jenjang_id")))
+    if scope["mode"] == "semua" and not ids:
+        ids = [j["id"] for j in JENJANG]
+    return ids
+
+
+async def _guru_scope_jenjang(user: dict) -> tuple:
+    """(scope, daftar jenjang yang boleh diakses guru/admin)."""
+    scope = get_guru_scope(user)
+    q = {} if scope["mode"] == "semua" else {"guru_id": scope["guru_id"]}
+    jadwals = await db.program_jadwals.find(q).to_list(500)
+    return scope, _guru_jenjang_ids(scope, jadwals)
+
+
+def _require_guru(user: dict) -> None:
+    roles = user.get("roles") or []
+    if not ({"admin", "guru"} & set(roles)):
+        raise HTTPException(status_code=403, detail="Akses khusus Administrator dan Guru/Pengajar")
+
+
+def serialize_catatan(c: dict, nama: Optional[str] = None) -> dict:
+    return {"id": c["_id"], "peserta_id": c.get("peserta_id"),
+            "peserta_nama": nama, "guru_id": c.get("guru_id"),
+            "guru_nama": c.get("guru_nama"), "jenjang": c.get("jenjang"),
+            "jenis": c.get("jenis", "catatan"), "isi": c.get("isi"),
+            "created_at": c.get("created_at")}
+
+
+@api_router.get("/guru/catatan")
+async def guru_catatan(user: dict = Depends(get_current_user), jenjang: str = "",
+                       peserta_id: str = "", limit: int = 100):
+    """Riwayat catatan peserta — hanya guru kelas itu dan Administrator."""
+    _require_guru(user)
+    scope, jenjang_ids = await _guru_scope_jenjang(user)
+    q: dict = {}
+    if scope["mode"] == "guru":
+        q["jenjang"] = {"$in": jenjang_ids}
+    if jenjang.strip():
+        if scope["mode"] == "guru" and jenjang.strip() not in jenjang_ids:
+            raise HTTPException(status_code=403, detail="Kelas ini bukan kelas Anda")
+        q["jenjang"] = jenjang.strip()
+    if peserta_id.strip():
+        q["peserta_id"] = peserta_id.strip()
+    limit = max(1, min(limit, 300))
+    items = await db.catatan_peserta.find(q).sort("created_at", -1).to_list(limit)
+    pids = list({c.get("peserta_id") for c in items if c.get("peserta_id")})
+    nama = {}
+    if pids:
+        async for u in db.users.find({"_id": {"$in": pids}}, {"name": 1}):
+            nama[str(u["_id"])] = u.get("name")
+    return {"scope": scope, "jenjang": jenjang_ids,
+            "rows": [serialize_catatan(c, nama.get(c.get("peserta_id"))) for c in items]}
+
+
+@api_router.post("/guru/catatan")
+async def guru_simpan_catatan(body: CatatanInput, user: dict = Depends(get_current_user)):
+    _require_guru(user)
+    scope, jenjang_ids = await _guru_scope_jenjang(user)
+    jenis = (body.jenis or "catatan").strip()
+    if jenis not in CATATAN_JENIS:
+        raise HTTPException(status_code=400, detail="Jenis catatan tidak valid")
+    isi = (body.isi or "").strip()
+    if not isi:
+        raise HTTPException(status_code=400, detail="Isi catatan tidak boleh kosong")
+    peserta = await db.users.find_one({"_id": body.peserta_id})
+    if not peserta:
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+    jenjang = peserta.get("jenjang")
+    if scope["mode"] == "guru" and jenjang not in jenjang_ids:
+        raise HTTPException(status_code=403, detail="Peserta ini bukan dari kelas Anda")
+    doc = {"_id": str(uuid.uuid4()), "peserta_id": body.peserta_id,
+           "guru_id": str(user["_id"]), "guru_nama": user.get("name"),
+           "jenjang": jenjang, "jenis": jenis, "isi": isi[:CATATAN_MAX],
+           "created_at": now_wita().isoformat()}
+    await db.catatan_peserta.insert_one(doc)
+    return serialize_catatan(doc, peserta.get("name"))
+
+
+@api_router.delete("/guru/catatan/{catatan_id}")
+async def guru_hapus_catatan(catatan_id: str, user: dict = Depends(get_current_user)):
+    """Guru hanya boleh menghapus catatannya sendiri; Administrator boleh semua."""
+    _require_guru(user)
+    c = await db.catatan_peserta.find_one({"_id": catatan_id})
+    if not c:
+        raise HTTPException(status_code=404, detail="Catatan tidak ditemukan")
+    if "admin" not in (user.get("roles") or []) and c.get("guru_id") != str(user["_id"]):
+        raise HTTPException(status_code=403, detail="Hanya catatan Anda sendiri yang bisa dihapus")
+    await db.catatan_peserta.delete_one({"_id": catatan_id})
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Tugas ke WhatsApp wali
+# ---------------------------------------------------------------------------
+TUGAS_JUDUL_MAX = 100
+TUGAS_LINK_DAYS = 7
+
+
+class TugasInput(BaseModel):
+    jenjang: str
+    judul: str
+    keterangan: Optional[str] = None
+    batas_kumpul: str
+
+
+def _nama_depan(nama: Optional[str]) -> str:
+    return (str(nama or "").strip().split(" ")[0] or "Ananda")
+
+
+def _tugas_status(row: dict, ada_nomor: bool) -> str:
+    if row.get("dikumpul_at"):
+        return "kumpul"
+    if row.get("wa_dibuka_at") or row.get("dibuka_at"):
+        return "dibuka"
+    return "belum" if ada_nomor else "tanpa_nomor"
+
+
+@api_router.get("/guru/tugas")
+async def guru_tugas(user: dict = Depends(get_current_user), jenjang: str = ""):
+    """Daftar tugas kelas guru + antrean kirim per peserta."""
+    _require_guru(user)
+    scope, jenjang_ids = await _guru_scope_jenjang(user)
+    q: dict = {}
+    if scope["mode"] == "guru":
+        q["jenjang"] = {"$in": jenjang_ids}
+    if jenjang.strip():
+        if scope["mode"] == "guru" and jenjang.strip() not in jenjang_ids:
+            raise HTTPException(status_code=403, detail="Kelas ini bukan kelas Anda")
+        q["jenjang"] = jenjang.strip()
+    tugas_list = await db.tugas.find(q).sort("created_at", -1).to_list(100)
+    out = []
+    for t in tugas_list:
+        rows = await db.tugas_peserta.find({"tugas_id": t["_id"]}).to_list(2000)
+        pids = [r.get("peserta_id") for r in rows if r.get("peserta_id")]
+        users = {}
+        if pids:
+            async for u in db.users.find({"_id": {"$in": pids}},
+                                         {"name": 1, "nomor_wa_wali": 1}):
+                users[str(u["_id"])] = u
+        antrean = []
+        for r in rows:
+            u = users.get(r.get("peserta_id")) or {}
+            nomor = normalize_wa_wali(u.get("nomor_wa_wali"))
+            antrean.append({
+                "peserta_id": r.get("peserta_id"),
+                "nama": u.get("name"),
+                "nama_depan": _nama_depan(u.get("name")),
+                "nomor_wa": nomor,
+                "token": r.get("token"),
+                "status": _tugas_status(r, bool(nomor)),
+                "dikumpul_at": r.get("dikumpul_at"),
+            })
+        antrean.sort(key=lambda x: (x["nama"] or "").lower())
+        kumpul = len([a for a in antrean if a["status"] == "kumpul"])
+        out.append({"id": t["_id"], "jenjang": t.get("jenjang"),
+                    "judul": t.get("judul"), "keterangan": t.get("keterangan"),
+                    "batas_kumpul": t.get("batas_kumpul"),
+                    "created_at": t.get("created_at"),
+                    "total": len(antrean), "kumpul": kumpul, "antrean": antrean})
+    return {"scope": scope, "jenjang": jenjang_ids, "items": out}
+
+
+@api_router.post("/guru/tugas")
+async def guru_simpan_tugas(body: TugasInput, user: dict = Depends(get_current_user)):
+    """Simpan tugas + satu baris tugas_peserta (token acak) per peserta kelas."""
+    _require_guru(user)
+    scope, jenjang_ids = await _guru_scope_jenjang(user)
+    jenjang = (body.jenjang or "").strip()
+    if scope["mode"] == "guru" and jenjang not in jenjang_ids:
+        raise HTTPException(status_code=403, detail="Kelas ini bukan kelas Anda")
+    if jenjang not in JENJANG_BY_ID:
+        raise HTTPException(status_code=400, detail="Kelas tidak valid")
+    judul = (body.judul or "").strip()
+    if not judul:
+        raise HTTPException(status_code=400, detail="Judul tugas tidak boleh kosong")
+    batas = (body.batas_kumpul or "").strip()
+    try:
+        datetime.strptime(batas, "%Y-%m-%d")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Batas kumpul harus tanggal YYYY-MM-DD")
+    tugas_id = str(uuid.uuid4())
+    await db.tugas.insert_one({
+        "_id": tugas_id, "guru_id": str(user["_id"]), "guru_nama": user.get("name"),
+        "jenjang": jenjang, "judul": judul[:TUGAS_JUDUL_MAX],
+        "keterangan": (body.keterangan or "").strip()[:1000] or None,
+        "batas_kumpul": batas, "created_at": now_wita().isoformat()})
+    peserta = await db.users.find({**PESERTA_QUERY, "jenjang": jenjang}).to_list(2000)
+    rows = [{"_id": str(uuid.uuid4()), "tugas_id": tugas_id,
+             "peserta_id": str(p["_id"]), "token": secrets.token_urlsafe(16),
+             "dibuka_at": None, "wa_dibuka_at": None, "dikumpul_at": None}
+            for p in peserta]
+    if rows:
+        await db.tugas_peserta.insert_many(rows)
+    return {"id": tugas_id, "total": len(rows)}
+
+
+@api_router.post("/guru/tugas/{tugas_id}/peserta/{peserta_id}/wa-dibuka")
+async def guru_tugas_wa_dibuka(tugas_id: str, peserta_id: str,
+                               user: dict = Depends(get_current_user)):
+    """Catat bahwa guru sudah membuka WhatsApp untuk peserta ini."""
+    _require_guru(user)
+    scope, jenjang_ids = await _guru_scope_jenjang(user)
+    t = await db.tugas.find_one({"_id": tugas_id})
+    if not t:
+        raise HTTPException(status_code=404, detail="Tugas tidak ditemukan")
+    if scope["mode"] == "guru" and t.get("jenjang") not in jenjang_ids:
+        raise HTTPException(status_code=403, detail="Tugas ini bukan kelas Anda")
+    await db.tugas_peserta.update_one(
+        {"tugas_id": tugas_id, "peserta_id": peserta_id},
+        {"$set": {"wa_dibuka_at": now_wita().isoformat()}})
+    return {"ok": True}
+
+
+@api_router.get("/tugas/{token}")
+async def public_tugas(token: str):
+    """Halaman publik tugas (tanpa login). Hanya nama depan + data tugas."""
+    row = await db.tugas_peserta.find_one({"token": token})
+    if not row:
+        raise HTTPException(status_code=404, detail="Tautan tugas tidak ditemukan")
+    t = await db.tugas.find_one({"_id": row.get("tugas_id")})
+    if not t:
+        raise HTTPException(status_code=404, detail="Tautan tugas tidak ditemukan")
+    peserta = await db.users.find_one({"_id": row.get("peserta_id")}, {"name": 1})
+    if not row.get("dibuka_at"):
+        await db.tugas_peserta.update_one({"_id": row["_id"]},
+                                          {"$set": {"dibuka_at": now_wita().isoformat()}})
+    try:
+        batas = datetime.strptime(t.get("batas_kumpul"), "%Y-%m-%d").replace(tzinfo=WITA)
+    except Exception:
+        batas = None
+    berlaku = bool(batas and now_wita() <= batas + timedelta(days=TUGAS_LINK_DAYS))
+    body = {
+        "nama_depan": _nama_depan((peserta or {}).get("name")),
+        "judul": t.get("judul"), "keterangan": t.get("keterangan"),
+        "batas_kumpul": t.get("batas_kumpul"),
+        "sudah_kumpul": bool(row.get("dikumpul_at")),
+        "berlaku": berlaku,
+    }
+    return JSONResponse(content=body, headers={
+        "X-Robots-Tag": "noindex, nofollow",
+        "Referrer-Policy": "no-referrer",
+        "Cache-Control": "no-store",
+    })
+
+
+@api_router.post("/tugas/{token}/kumpul")
+async def public_tugas_kumpul(token: str):
+    row = await db.tugas_peserta.find_one({"token": token})
+    if not row:
+        raise HTTPException(status_code=404, detail="Tautan tugas tidak ditemukan")
+    t = await db.tugas.find_one({"_id": row.get("tugas_id")})
+    try:
+        batas = datetime.strptime((t or {}).get("batas_kumpul"), "%Y-%m-%d").replace(tzinfo=WITA)
+    except Exception:
+        batas = None
+    if not batas or now_wita() > batas + timedelta(days=TUGAS_LINK_DAYS):
+        raise HTTPException(status_code=410, detail="Tautan sudah tidak berlaku.")
+    if not row.get("dikumpul_at"):
+        await db.tugas_peserta.update_one(
+            {"_id": row["_id"]}, {"$set": {"dikumpul_at": now_wita().isoformat()}})
+    return {"ok": True, "sudah_kumpul": True}
 
 
 @api_router.post("/program/upload")

@@ -14,6 +14,7 @@ import GuruBeranda from "./guru/GuruBeranda";
 import GuruJadwal from "./guru/GuruJadwal";
 import GuruAbsenKelas from "./guru/GuruAbsenKelas";
 import GuruKelas from "./guru/GuruKelas";
+import GuruCatatan from "./guru/GuruCatatan";
 
 const MENU = [
   { group: null, items: [{ key: "beranda", label: "Beranda", icon: Home }] },
@@ -27,7 +28,7 @@ const MENU = [
   },
   {
     group: "PERKEMBANGAN",
-    items: [{ key: "catatan", label: "Catatan Peserta", icon: NotebookPen, soon: true }],
+    items: [{ key: "catatan", label: "Catatan Peserta", icon: NotebookPen }],
   },
   {
     group: "KOMUNIKASI",
@@ -46,7 +47,7 @@ const BOTTOM = [
   { key: "beranda", label: "Beranda", icon: Home },
   { key: "kelas", label: "Kelas", icon: Users },
   { key: "absen", label: "Absen", icon: ClipboardCheck, center: true },
-  { key: "catatan", label: "Catatan", icon: NotebookPen, soon: true },
+  { key: "catatan", label: "Catatan", icon: NotebookPen },
   { key: "lainnya", label: "Lainnya", icon: LayoutGrid },
 ];
 
@@ -77,6 +78,7 @@ export default function GuruArea({ user }) {
     if (tab === "jadwal") return <GuruJadwal onOpenAbsen={openAbsen} />;
     if (tab === "absen") return <GuruAbsenKelas key={absenId || "auto"} initialId={absenId} />;
     if (tab === "kelas") return <GuruKelas />;
+    if (tab === "catatan") return <GuruCatatan />;
     if (tab === "program") return <ProgramPembelajaran />;
     if (tab === "bantuan") return <BantuanView role="guru" />;
     return null;
