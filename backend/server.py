@@ -5035,6 +5035,51 @@ def peserta_report_range(month: str, week: str = "bulanan") -> tuple:
     return start.strftime("%Y-%m-%d"), min(end, today).strftime("%Y-%m-%d")
 
 
+def kegiatan_sudah_berlangsung(k: dict, now: Optional[datetime] = None) -> bool:
+    """True bila waktu mulai kegiatan sudah lewat/berjalan (WITA)."""
+    ref = now or now_wita()
+    start = kegiatan_end_dt(k.get("date"), k.get("start_time"))
+    if start is None:
+        # Tanpa jam mulai: anggap berlangsung bila tanggalnya sudah lewat/hari ini.
+        return str(k.get("date") or "") <= ref.strftime("%Y-%m-%d")
+    return start <= ref
+
+
+def group_pertemuan(kegiatan_list: list) -> list:
+    """Gabungkan sesi dalam satu hari menjadi SATU pertemuan.
+
+    Aturan sama dengan Rekap Bulanan: kunci = session_group_id atau _id kegiatan.
+    """
+    meetings: dict = {}
+    for k in kegiatan_list:
+        key = k.get("session_group_id") or k["_id"]
+        mt = meetings.setdefault(key, {"date": k.get("date"),
+                                       "name": k.get("base_name") or k.get("name"),
+                                       "type": k.get("type", "rutin"),
+                                       "docs": []})
+        mt["docs"].append(k)
+    return sorted(meetings.values(), key=lambda x: (x["date"] or "", x["name"] or ""))
+
+
+def pertemuan_status(mt: dict, user_id: str, status_by: dict,
+                     elig_by_doc: dict) -> Optional[str]:
+    """Status peserta pada satu pertemuan (sesi digabung). None = tidak wajib."""
+    docs_p = [
+        d for d in mt["docs"]
+        if user_id in elig_by_doc.get(d["_id"], set()) and (
+            session_requires_participant(d, user_id)
+            or status_by.get((d["_id"], user_id)) in ABSEN_STATUS
+        )
+    ]
+    if not docs_p:
+        return None
+    sts = [status_by.get((d["_id"], user_id), "belum_diabsen") for d in docs_p]
+    for st in ("hadir", "izin", "sakit", "alpha"):
+        if st in sts:
+            return st
+    return "belum_diabsen"
+
+
 async def build_peserta_attendance_rows(date_from: str, date_to: str,
                                         detail_user_id: Optional[str] = None,
                                         group_by_month: bool = False) -> tuple:
@@ -5058,20 +5103,37 @@ async def build_peserta_attendance_rows(date_from: str, date_to: str,
         {"kegiatan_id": {"$in": kegiatan_ids}}
     ).to_list(100000) if kegiatan_ids else []
     status_by = {(a["kegiatan_id"], a["user_id"]): a.get("status") for a in absensi}
+    elig_by_doc = {k["_id"]: {str(p["_id"]) for p in filter_peserta_for_kegiatan(k, participants)}
+                   for k in kegiatan}
+    now = now_wita()
     activities = []
 
-    for k in kegiatan:
-        for participant in filter_peserta_for_kegiatan(k, participants):
+    for mt in group_pertemuan(kegiatan):
+        berlangsung = any(kegiatan_sudah_berlangsung(d, now) for d in mt["docs"])
+        month_key = str(mt["date"] or "")[:7]
+        for participant in participants:
             user_id = str(participant["_id"])
-            status = status_by.get((k["_id"], user_id))
-            if not session_requires_participant(k, user_id) and status not in ABSEN_STATUS:
+            status = pertemuan_status(mt, user_id, status_by, elig_by_doc)
+            if status is None:
                 continue
-            status = status if status in ABSEN_STATUS else "belum_diabsen"
+            if not berlangsung:
+                # Belum mulai: tampil di daftar, tidak dihitung sama sekali.
+                if detail_user_id == user_id:
+                    activities.append({
+                        "id": str(mt["docs"][0]["_id"]),
+                        "name": mt["name"] or "Kegiatan",
+                        "date": mt["date"],
+                        "start_time": mt["docs"][0].get("start_time"),
+                        "end_time": mt["docs"][0].get("end_time"),
+                        "session_label": None,
+                        "status": "belum_berlangsung",
+                        "type": mt["type"],
+                    })
+                continue
             row = rows[user_id]
             row[status] += 1
             row["total_pertemuan"] += 1
             if group_by_month:
-                month_key = str(k.get("date") or "")[:7]
                 month_row = row["by_month"].setdefault(
                     month_key,
                     {"hadir": 0, "izin": 0, "sakit": 0, "alpha": 0,
@@ -5081,10 +5143,14 @@ async def build_peserta_attendance_rows(date_from: str, date_to: str,
                 month_row["total_pertemuan"] += 1
             if detail_user_id == user_id:
                 activities.append({
-                    "id": str(k["_id"]), "name": k.get("base_name") or k.get("name") or "Kegiatan",
-                    "date": k.get("date"), "start_time": k.get("start_time"),
-                    "end_time": k.get("end_time"), "session_label": k.get("session_label"),
-                    "status": status, "type": k.get("type"),
+                    "id": str(mt["docs"][0]["_id"]),
+                    "name": mt["name"] or "Kegiatan",
+                    "date": mt["date"],
+                    "start_time": mt["docs"][0].get("start_time"),
+                    "end_time": mt["docs"][0].get("end_time"),
+                    "session_label": None,
+                    "status": status,
+                    "type": mt["type"],
                 })
 
     for row in rows.values():
@@ -5107,12 +5173,15 @@ async def admin_laporan_peserta(admin: dict = Depends(require_staff),
     result = list(rows.values())
     if term:
         result = [row for row in result if term in row["name"].casefold()]
+    now = now_wita()
+    periode = await db.kegiatans.find(
+        {"date": {"$gte": date_from, "$lte": date_to}}).to_list(5000)
+    total_pertemuan = len([mt for mt in group_pertemuan(periode)
+                           if any(kegiatan_sudah_berlangsung(d, now) for d in mt["docs"])])
     return {
         "month": selected_month, "week": selected_week,
         "date_from": date_from, "date_to": date_to,
-        "total_pertemuan": await db.kegiatans.count_documents(
-            {"date": {"$gte": date_from, "$lte": date_to}}
-        ) if date_to >= date_from else 0,
+        "total_pertemuan": total_pertemuan,
         "rows": result,
     }
 
@@ -5158,6 +5227,8 @@ async def build_peserta_report_detail(user_id: str, month: str, week: str) -> di
         })
         month_row["month"] = month_key
         month_row["label"] = BULAN_ID[month_start.month - 1]
+        # Bulan tanpa pertemuan berlangsung = "Belum ada data" (bukan 0%).
+        month_row["ada_data"] = month_row["total_pertemuan"] > 0
         monthly_history.append(month_row)
         month_start = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
 
@@ -5169,6 +5240,7 @@ async def build_peserta_report_detail(user_id: str, month: str, week: str) -> di
         round(total_six_months["hadir"] / total_six_months["total_pertemuan"] * 100, 1)
         if total_six_months["total_pertemuan"] else 0.0
     )
+    total_six_months["bulan_ada_data"] = len([r for r in monthly_history if r["ada_data"]])
     return {
         "participant": {
             "id": user_id, "name": participant.get("name") or "Peserta",

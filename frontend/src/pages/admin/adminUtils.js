@@ -25,6 +25,35 @@ export function jenjangLabel(v) {
   return JENJANG_LABEL[v] || "-";
 }
 
+/** Umur per 1 Juli tahun ajaran berjalan (Juli–Juni). */
+export function umurPerJuli(dob, ref = new Date()) {
+  const p = String(dob || "").slice(0, 10).split("-");
+  if (p.length !== 3) return null;
+  const [y, m, d] = p.map(Number);
+  if (!y || !m || !d) return null;
+  const startYear = ref.getMonth() + 1 >= 7 ? ref.getFullYear() : ref.getFullYear() - 1;
+  const refDate = new Date(startYear, 6, 1);
+  const born = new Date(y, m - 1, d);
+  let age = refDate.getFullYear() - born.getFullYear();
+  if (refDate.getMonth() < born.getMonth()
+    || (refDate.getMonth() === born.getMonth() && refDate.getDate() < born.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
+
+/** Rentang jenjang generus: PAUD (3) sampai Pra Nikah 4 (22 ke atas). */
+export const GENERUS_UMUR_MIN = 3;
+
+/** Tampilkan Jenjang & Nomor WA wali hanya bila berpotensi generus. */
+export function potensiGenerus({ dob, marital }) {
+  if (marital === "sudah_menikah") return false;
+  if (!String(dob || "").trim()) return true;
+  const age = umurPerJuli(dob);
+  if (age === null) return true;
+  return age >= GENERUS_UMUR_MIN;
+}
+
 export const GREEN = "#14201A";
 export const GREEN_DARK = "#000000";
 

@@ -13,7 +13,7 @@ import ActionModal from "@/components/ActionModal";
 import Modal from "@/components/Modal";
 import ListFab, { ListPagination } from "@/components/ListFab";
 import PesertaDetailModal from "./PesertaDetailModal";
-import { genderLabel, statusBadge, MARITAL_OPTIONS } from "./adminUtils";
+import { genderLabel, statusBadge, MARITAL_OPTIONS, potensiGenerus } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 
@@ -614,6 +614,15 @@ function BulkJenjangModal({ ids, onClose, onDone }) {
 }
 
 function ModalShell({ title, children, onClose, testid, wide = false }) {
+  const bodyRef = useRef(null);
+  useEffect(() => {
+    // Selalu mulai dari paling atas saat dialog dibuka (induk = area gulir Modal).
+    const el = bodyRef.current;
+    if (el) {
+      el.scrollTop = 0;
+      if (el.parentElement) el.parentElement.scrollTop = 0;
+    }
+  }, []);
   return (
     <Modal
       onClose={onClose}
@@ -623,7 +632,7 @@ function ModalShell({ title, children, onClose, testid, wide = false }) {
       maxWidth={wide ? 960 : 640}
       bodyClassName="bg-[#F6F4EE] p-5"
     >
-      {children}
+      <div ref={bodyRef}>{children}</div>
     </Modal>
   );
 }
@@ -634,6 +643,7 @@ function AddModal({ kelompok, onClose, onDone }) {
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState(0);
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
+  const tampilGenerus = potensiGenerus({ dob: f.dob, marital: f.marital });
   const set = (k, v) => {
     setReviewConfirmed(false);
     setF((p) => ({ ...p, [k]: v }));
@@ -712,7 +722,6 @@ function AddModal({ kelompok, onClose, onDone }) {
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#14633F] text-sm font-bold text-white">1</span>
             <div>
               <h3 className="font-bold text-[#14201A]">Data utama peserta</h3>
-              <p className="text-sm text-[#5F6B63]">Isi nama terlebih dahulu. Data lainnya bisa dilengkapi nanti.</p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -744,18 +753,23 @@ function AddModal({ kelompok, onClose, onDone }) {
               <DateField testid={PARTICIPANTS.addDob} value={f.dob} onChange={(v) => set("dob", v)} placeholder="Pilih tanggal lahir" className="h-[46px]" />
               <span className="mt-1 block text-sm text-[#5F6B63]">Diperlukan untuk aktivasi akun.</span>
             </label>
-            <label>
-              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Jenjang</span>
-              <select data-testid="add-jenjang" value={f.jenjang} onChange={(e) => set("jenjang", e.target.value)} className={inp}>
-                <option value="">Kosongkan (disarankan dari umur)</option>
-                {jenjangList.map((j) => <option key={j.id} value={j.id}>{j.label}</option>)}
-              </select>
-            </label>
-            <label>
-              <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Nomor WA wali</span>
-              <input data-testid="add-nomor-wa-wali" value={f.nomor_wa_wali} onChange={(e) => set("nomor_wa_wali", e.target.value)} placeholder="08xxxxxxxxxx" className={inp} />
-              <span className="mt-1 block text-sm text-[#5F6B63]">Disimpan sebagai 62xxxxxxxxxx.</span>
-            </label>
+            {tampilGenerus && (
+              <>
+                <label>
+                  <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Jenjang</span>
+                  <select data-testid="add-jenjang" value={f.jenjang} onChange={(e) => set("jenjang", e.target.value)} className={inp}>
+                    <option value="">Otomatis dari umur</option>
+                    {jenjangList.map((j) => <option key={j.id} value={j.id}>{j.label}</option>)}
+                  </select>
+                  <span className="mt-1 block text-sm text-[#5F6B63]">Jenjang dihitung dari tanggal lahir per 1 Juli.</span>
+                </label>
+                <label>
+                  <span className="mb-1.5 block text-base font-semibold text-[#14201A]">Nomor WA wali (opsional)</span>
+                  <input data-testid="add-nomor-wa-wali" value={f.nomor_wa_wali} onChange={(e) => set("nomor_wa_wali", e.target.value)} placeholder="08xxxxxxxxxx" className={inp} />
+                  <span className="mt-1 block text-sm text-[#5F6B63]">Disimpan sebagai 62xxxxxxxxxx.</span>
+                </label>
+              </>
+            )}
           </div>
         </section>
         </>}

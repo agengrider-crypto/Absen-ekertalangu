@@ -7,7 +7,6 @@ import {
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { PARTICIPANT_REPORT } from "@/constants/testIds";
-import ReportHeader from "@/components/ReportHeader";
 import ShareManyLinksModal from "./ShareManyLinksModal";
 
 const MONTHS = [
@@ -20,7 +19,16 @@ const STATUS = {
   sakit: { label: "Sakit", color: "text-[#1D4F91]", bg: "bg-[#E3EEFB]" },
   alpha: { label: "Alpha", color: "text-[#A32A2A]", bg: "bg-[#FBE5E3]" },
   belum_diabsen: { label: "Belum diabsen", color: "text-[#5F6B63]", bg: "bg-[#F0EEE6]" },
+  belum_berlangsung: { label: "Belum berlangsung", color: "text-[#5F6B63]", bg: "bg-[#F0EEE6]" },
 };
+
+/** Warna persen lembut: hijau ≥80%, merah <50%, netral di antaranya. */
+function ratioCls(ratio) {
+  const v = Number(ratio) || 0;
+  if (v >= 80) return "text-[#0E4E31]";
+  if (v < 50) return "text-[#A32A2A]";
+  return "text-[#5F6B63]";
+}
 
 function currentMonth() {
   const now = new Date();
@@ -163,13 +171,13 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
   const six = data.six_months;
   return (
     <div className="space-y-4" data-testid={PARTICIPANT_REPORT.detail}>
-      <ReportHeader
-        title="Laporan per Peserta"
-        subtitle={`${monthLabel(month)}${week !== "bulanan" ? ` · Pekan ${week}` : ""}`}
-        showUserIcon
-        compact
-        testid="laporan-peserta-admin-header"
-      />
+      <nav className="text-xs font-semibold text-[#5F6B63]" aria-label="Breadcrumb">
+        E-Kertalangu <span className="px-1 text-[#B4BBB6]">›</span>
+        Rekap &amp; Laporan <span className="px-1 text-[#B4BBB6]">›</span>
+        <span className="text-[#14201A]">Laporan per Peserta</span>
+        <span className="px-1 text-[#B4BBB6]">›</span>
+        <span className="text-[#14201A]">{data.participant.name}</span>
+      </nav>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <button type="button" data-testid={PARTICIPANT_REPORT.back} onClick={onBack}
@@ -177,6 +185,9 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
             <ArrowLeft size={17} /> Daftar peserta
           </button>
           <h1 className="truncate font-heading text-2xl font-bold text-[#14201A]">{data.participant.name}</h1>
+          <p className="mt-0.5 text-sm text-[#5F6B63]">
+            {monthLabel(month)}{week !== "bulanan" ? ` · Pekan ${week}` : ""}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" data-testid={PARTICIPANT_REPORT.copyLink} onClick={copyLink}
@@ -214,14 +225,23 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
           {six.months.map((item) => (
             <div key={item.month} className="grid grid-cols-[5.5rem_1fr_3rem] items-center gap-3">
               <span className="text-base font-semibold text-[#5F6B63]">{item.label}</span>
-              <div className="h-3 overflow-hidden rounded-full bg-[#E3F3EA]">
-                <div className="h-full origin-left rounded-full bg-[#14633F] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
-                  style={{ width: `${Math.min(Math.max(item.ratio || 0, 0), 100)}%` }} />
-              </div>
-              <span className="text-right text-base font-bold text-[#14201A]">{item.ratio}%</span>
+              {item.ada_data === false ? (
+                <div className="h-3 rounded-full border border-dashed border-[#B4BBB6] bg-transparent" aria-label="Belum ada data" />
+              ) : (
+                <div className="h-3 overflow-hidden rounded-full bg-[#E3F3EA]">
+                  <div className="h-full origin-left rounded-full bg-[#14633F] motion-safe:animate-[rekap-bar-grow_700ms_ease-out_both]"
+                    style={{ width: `${Math.min(Math.max(item.ratio || 0, 0), 100)}%` }} />
+                </div>
+              )}
+              <span className={`text-right text-base font-bold ${item.ada_data === false ? "text-[#8A948D]" : "text-[#14201A]"}`}>
+                {item.ada_data === false ? "—" : `${item.ratio}%`}
+              </span>
             </div>
           ))}
         </div>
+        {six.months.some((m) => m.ada_data === false) && (
+          <p className="text-sm text-[#5F6B63]">Bulan bergaris putus-putus: belum ada data.</p>
+        )}
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-[#E7E3D8] bg-white" data-testid={PARTICIPANT_REPORT.activityList}>
@@ -229,7 +249,9 @@ function ParticipantDetail({ participantId, month, week, onBack }) {
           <h2 className="inline-flex items-center gap-2 font-bold text-[#14201A]">
             <ClipboardList size={18} /> Kegiatan yang diikuti
           </h2>
-          <span className="text-base text-[#5F6B63]">{data.activities.length} pertemuan</span>
+          <span className="text-base text-[#5F6B63]">
+            {data.activities.filter((a) => a.status !== "belum_berlangsung").length} pertemuan
+          </span>
         </div>
         {data.activities.length ? (
           <ul className="divide-y divide-[#E7E3D8]">
@@ -265,7 +287,7 @@ export default function LaporanPesertaView() {
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState("tertinggi");
   const [selected, setSelected] = useState(() => new Set());
-  const [selectedOnly, setSelectedOnly] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
   const [participantId, setParticipantId] = useState(() => searchParams.get("laporanPesertaId"));
   const [shareManyOpen, setShareManyOpen] = useState(false);
 
@@ -288,14 +310,14 @@ export default function LaporanPesertaView() {
   const filteredRows = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("id");
     return (rows || []).filter((row) => {
-      if (selectedOnly && !selected.has(row.user_id)) return false;
       return !term || (row.name || "").toLocaleLowerCase("id").includes(term);
     }).sort((a, b) => {
+      if (sortOrder === "nama") return a.name.localeCompare(b.name, "id");
       const ratioDifference = Number(b.ratio || 0) - Number(a.ratio || 0);
       return (sortOrder === "tertinggi" ? ratioDifference : -ratioDifference)
         || a.name.localeCompare(b.name, "id");
     });
-  }, [rows, search, selected, selectedOnly, sortOrder]);
+  }, [rows, search, sortOrder]);
 
   const allVisibleSelected = filteredRows.length > 0
     && filteredRows.every((row) => selected.has(row.user_id));
@@ -331,6 +353,11 @@ export default function LaporanPesertaView() {
 
   return (
     <div className="space-y-4" data-testid={PARTICIPANT_REPORT.page}>
+      <nav className="text-xs font-semibold text-[#5F6B63]" aria-label="Breadcrumb">
+        E-Kertalangu <span className="px-1 text-[#B4BBB6]">›</span>
+        Rekap &amp; Laporan <span className="px-1 text-[#B4BBB6]">›</span>
+        <span className="text-[#14201A]">Laporan per Peserta</span>
+      </nav>
       <header className="flex items-center gap-2 font-heading text-xl font-bold text-[#14201A]">
         <Users size={21} /> Laporan per Peserta
       </header>
@@ -385,38 +412,37 @@ export default function LaporanPesertaView() {
             aria-label="Nama peserta" placeholder="Nama peserta" className="h-12 w-full rounded-xl border border-[#8A948D] bg-white pl-11 pr-3 text-base outline-none focus:border-[#14633F]" />
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <label className="inline-flex min-h-11 items-center gap-2 text-base font-semibold text-[#14201A]">
-            <input data-testid={PARTICIPANT_REPORT.selectAll} type="checkbox" checked={allVisibleSelected}
-              onChange={toggleAll} className="h-5 w-5 accent-[#14633F]" />
-            Pilih semua yang tampil
-          </label>
           <div className="flex flex-wrap items-center gap-2">
             <label htmlFor="laporan-peserta-sort" className="text-base font-semibold text-[#14201A]">Urutkan</label>
             <select id="laporan-peserta-sort" data-testid={PARTICIPANT_REPORT.sort} value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
               className="min-h-11 rounded-xl border-2 border-[#E7E3D8] bg-white px-3 text-base">
-              <option value="tertinggi">Tertinggi</option>
-              <option value="terendah">Terendah</option>
+              <option value="tertinggi">Kehadiran tertinggi</option>
+              <option value="terendah">Kehadiran terendah</option>
+              <option value="nama">Nama A-Z</option>
             </select>
-            <button type="button" data-testid={PARTICIPANT_REPORT.selectedOnly} aria-pressed={selectedOnly}
-              onClick={() => setSelectedOnly((value) => !value)}
-              className={`min-h-11 rounded-xl border px-3 text-base font-semibold ${selectedOnly ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]" : "border-[#E7E3D8] text-[#5F6B63]"}`}>
-              {selectedOnly ? "Tampilkan semua" : `Pilihan (${selected.size})`}
-            </button>
-            {selected.size > 0 && (
-              <button type="button" data-testid={PARTICIPANT_REPORT.clearSelection} onClick={() => { setSelected(new Set()); setSelectedOnly(false); }}
-                className="min-h-11 rounded-xl px-3 text-base font-semibold text-[#A32A2A] hover:bg-[#FBE5E3]">
-                Hapus pilihan
-              </button>
-            )}
-            {selected.size > 0 && (
-              <button type="button" data-testid="laporan-peserta-share-many" onClick={() => setShareManyOpen(true)}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-3.5 text-base font-semibold text-white hover:bg-[#0E4E31]">
-                <Share2 size={16} /> Bagikan {selected.size} tautan
-              </button>
-            )}
           </div>
+          <button type="button" data-testid={PARTICIPANT_REPORT.selectedOnly}
+            aria-pressed={selectMode}
+            onClick={() => {
+              setSelectMode((v) => {
+                if (v) setSelected(new Set());
+                return !v;
+              });
+            }}
+            className={`min-h-11 rounded-xl border px-4 text-base font-semibold ${selectMode ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]" : "border-[#E7E3D8] text-[#5F6B63]"}`}>
+            {selectMode ? "Selesai" : "Pilih"}
+          </button>
         </div>
+        {selectMode && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <label className="inline-flex min-h-11 items-center gap-2 text-base font-semibold text-[#14201A]">
+              <input data-testid={PARTICIPANT_REPORT.selectAll} type="checkbox" checked={allVisibleSelected}
+                onChange={toggleAll} className="h-5 w-5 accent-[#14633F]" />
+              Pilih semua ({filteredRows.length})
+            </label>
+          </div>
+        )}
       </section>
 
       {rows === null ? (
@@ -438,29 +464,55 @@ export default function LaporanPesertaView() {
           </div>
           {filteredRows.length ? (
             <ul className="divide-y divide-[#E7E3D8]">
-              {filteredRows.map((row) => (
+              {filteredRows.map((row) => {
+                const isSel = selected.has(row.user_id);
+                return (
                 <li key={row.user_id} data-testid={`${PARTICIPANT_REPORT.rowPrefix}-${row.user_id}`}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-[#F6F4EE]">
-                  <input type="checkbox" aria-label={`Pilih ${row.name}`} data-testid={`${PARTICIPANT_REPORT.checkboxPrefix}-${row.user_id}`}
-                    checked={selected.has(row.user_id)} onChange={() => toggleSelected(row.user_id)}
-                    className="h-5 w-5 shrink-0 accent-[#14633F]" />
+                  className={`flex items-center gap-3 px-4 py-3 ${isSel ? "bg-[#E3F3EA]" : "hover:bg-[#F6F4EE]"}`}>
+                  {selectMode && (
+                    <label className="flex h-11 w-11 shrink-0 items-center justify-center">
+                      <input type="checkbox" aria-label={`Pilih ${row.name}`} data-testid={`${PARTICIPANT_REPORT.checkboxPrefix}-${row.user_id}`}
+                        checked={isSel} onChange={() => toggleSelected(row.user_id)}
+                        className="h-5 w-5 accent-[#14633F]" />
+                    </label>
+                  )}
                   <button type="button" data-testid={`${PARTICIPANT_REPORT.namePrefix}-${row.user_id}`}
-                    onClick={() => setParticipantId(row.user_id)} className="min-w-0 flex-1 text-left">
+                    onClick={() => (selectMode ? toggleSelected(row.user_id) : setParticipantId(row.user_id))}
+                    className="min-w-0 flex-1 text-left">
                     <span className="block truncate font-semibold text-[#14201A]">{row.name}</span>
                   </button>
                   <div className="shrink-0 text-right">
-                    <div className="font-bold text-[#0E4E31]">{row.ratio}%</div>
+                    <div className={`font-bold ${ratioCls(row.ratio)}`}>{row.ratio}%</div>
                     <div className="text-base text-[#5F6B63]">{row.hadir}/{row.total_pertemuan} hadir</div>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           ) : (
             <p className="p-10 text-center text-base text-[#5F6B63]">
-              {rows.length ? "Tidak ada peserta yang cocok dengan pencarian atau pilihan." : "Belum ada peserta pada periode ini."}
+              {rows.length ? "Tidak ada peserta yang cocok dengan pencarian." : "Belum ada peserta pada periode ini."}
             </p>
           )}
         </section>
+      )}
+
+      {selectMode && selected.size > 0 && (
+        <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#E7E3D8] bg-white px-4 py-3 shadow-[0_-4px_16px_rgba(20,32,26,0.08)]"
+          data-testid="laporan-peserta-aksi">
+          <span className="text-base font-semibold text-[#14201A]">{selected.size} dipilih</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" data-testid="laporan-peserta-share-many" onClick={() => setShareManyOpen(true)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-3.5 text-base font-semibold text-white hover:bg-[#0E4E31]">
+              <Share2 size={16} /> Bagikan
+            </button>
+            <button type="button" data-testid={PARTICIPANT_REPORT.clearSelection}
+              onClick={() => setSelected(new Set())}
+              className="min-h-11 rounded-xl px-3 text-base font-semibold text-[#5F6B63] hover:bg-[#F0EEE6]">
+              Batal
+            </button>
+          </div>
+        </div>
       )}
 
       {shareManyOpen && (
