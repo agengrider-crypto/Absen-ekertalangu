@@ -6724,68 +6724,90 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
     items = []
     today = now_wita().strftime("%Y-%m-%d")
     uid = str(user["_id"])
+    roles = user.get("roles") or []
 
-    kegs = await db.kegiatans.find({"date": {"$gte": today}}).sort("created_at", -1).to_list(60)
-    for k in kegs:
-        if not staff and not match_gender_filter(k, user):
-            continue
-        items.append({
-            "type": "kegiatan", "id": k["_id"], "title": k.get("name"),
-            "subtitle": f"{k.get('date')} · {k.get('start_time')}–{k.get('end_time')} WITA"
-                        + (f" · {k.get('location')}" if k.get("location") else ""),
-            "at": to_utc_iso(k.get("created_at")), "target": "kegiatan",
-        })
+    try:
+        kegs = await db.kegiatans.find({"date": {"$gte": today}}).sort("created_at", -1).to_list(60)
+        for k in kegs:
+            if not staff and not match_gender_filter(k, user):
+                continue
+            items.append({
+                "type": "kegiatan", "id": k["_id"], "title": k.get("name"),
+                "subtitle": f"{k.get('date')} · {k.get('start_time')}–{k.get('end_time')} WITA"
+                            + (f" · {k.get('location')}" if k.get("location") else ""),
+                "at": to_utc_iso(k.get("created_at")), "target": "kegiatan",
+            })
+    except Exception:
+        logger.exception("Notifikasi gagal pada sumber 'kegiatan'")
 
-    for p in await db.pengumumans.find().sort("created_at", -1).to_list(30):
-        items.append({"type": "pengumuman", "id": p["_id"], "title": p.get("title"),
-                      "subtitle": (p.get("body") or "")[:90],
-                      "important": bool(p.get("important")),
-                      "at": to_utc_iso(p.get("created_at")), "target": "pengumuman"})
+    try:
+        for p in await db.pengumumans.find().sort("created_at", -1).to_list(30):
+            items.append({"type": "pengumuman", "id": p["_id"], "title": p.get("title"),
+                          "subtitle": (p.get("body") or "")[:90],
+                          "important": bool(p.get("important")),
+                          "at": to_utc_iso(p.get("created_at")), "target": "pengumuman"})
+    except Exception:
+        logger.exception("Notifikasi gagal pada sumber 'pengumuman'")
 
-    for d in await db.undangans.find({} if staff else {"user_ids": uid}) \
-            .sort("created_at", -1).to_list(30):
-        k = await db.kegiatans.find_one({"_id": d.get("kegiatan_id")}) or {}
-        items.append({"type": "undangan", "id": d.get("kegiatan_id"),
-                      "title": f"Undangan penting: {k.get('name') or 'Kegiatan'}",
-                      "subtitle": (d.get("message") or
-                                   f"{k.get('date')} · {k.get('start_time')}–{k.get('end_time')} WITA"),
-                      "at": to_utc_iso(d.get("created_at")), "target": "kegiatan"})
+    try:
+        for d in await db.undangans.find({} if staff else {"user_ids": uid}) \
+                .sort("created_at", -1).to_list(30):
+            k = await db.kegiatans.find_one({"_id": d.get("kegiatan_id")}) or {}
+            items.append({"type": "undangan", "id": d.get("kegiatan_id"),
+                          "title": f"Undangan penting: {k.get('name') or 'Kegiatan'}",
+                          "subtitle": (d.get("message") or
+                                       f"{k.get('date')} · {k.get('start_time')}–{k.get('end_time')} WITA"),
+                          "at": to_utc_iso(d.get("created_at")), "target": "kegiatan"})
+    except Exception:
+        logger.exception("Notifikasi gagal pada sumber 'undangan'")
 
     if staff:
-        for m in await db.musyawarahs.find().sort("created_at", -1).to_list(20):
-            items.append({"type": "musyawarah", "id": m["_id"],
-                          "title": MUSY_LABEL.get(m.get("category"), "Musyawarah"),
-                          "subtitle": (m.get("content") or "")[:90],
-                          "at": to_utc_iso(m.get("created_at")), "target": "musyawarah"})
-        for p in await db.pengaduans.find({"read_by": {"$size": 0}}) \
-                .sort("at", -1).to_list(30):
-            who = "Anonim" if p.get("anonymous") else (p.get("name") or "Peserta")
-            items.append({"type": "pengaduan", "id": p["_id"],
-                          "title": f"Cerita Ruang Teduh dari {who}",
-                          "subtitle": (p.get("judul") or p.get("message") or "")[:90],
-                          "at": to_utc_iso(p.get("at")), "target": "pengaduan"})
+        try:
+            for m in await db.musyawarahs.find().sort("created_at", -1).to_list(20):
+                items.append({"type": "musyawarah", "id": m["_id"],
+                              "title": MUSY_LABEL.get(m.get("category"), "Musyawarah"),
+                              "subtitle": (m.get("content") or "")[:90],
+                              "at": to_utc_iso(m.get("created_at")), "target": "musyawarah"})
+        except Exception:
+            logger.exception("Notifikasi gagal pada sumber 'musyawarah'")
+        try:
+            for p in await db.pengaduans.find({"read_by": {"$size": 0}}) \
+                    .sort("at", -1).to_list(30):
+                who = "Anonim" if p.get("anonymous") else (p.get("name") or "Peserta")
+                items.append({"type": "pengaduan", "id": p["_id"],
+                              "title": f"Cerita Ruang Teduh dari {who}",
+                              "subtitle": (p.get("judul") or p.get("message") or "")[:90],
+                              "at": to_utc_iso(p.get("at")), "target": "pengaduan"})
+        except Exception:
+            logger.exception("Notifikasi gagal pada sumber 'pengaduan'")
 
     # Izin guru: permintaan menggantikan untuk saya + ringkasan untuk pengurus.
     if "guru" in roles:
-        for i in await db.izin_guru.find({"pengganti_id": uid, "status": "menunggu"}) \
-                .sort("dibuat_at", -1).to_list(20):
-            k = await db.kegiatans.find_one({"_id": i.get("kegiatan_id")}) or {}
-            items.append({
-                "type": "izin", "id": i["_id"],
-                "title": f"{i.get('guru_nama') or 'Guru'} meminta Anda menggantikan {k.get('name') or 'kelas'}",
-                "subtitle": f"{_tanggal_indo(k.get('date'))} · {k.get('start_time')}–{k.get('end_time')} WITA",
-                "at": to_utc_iso(i.get("dibuat_at")), "target": "izin",
-            })
+        try:
+            for i in await db.izin_guru.find({"pengganti_id": uid, "status": "menunggu"}) \
+                    .sort("dibuat_at", -1).to_list(20):
+                k = await db.kegiatans.find_one({"_id": i.get("kegiatan_id")}) or {}
+                items.append({
+                    "type": "izin", "id": i["_id"],
+                    "title": f"{i.get('guru_nama') or 'Guru'} meminta Anda menggantikan {k.get('name') or 'kelas'}",
+                    "subtitle": f"{_tanggal_indo(k.get('date'))} · {k.get('start_time')}–{k.get('end_time')} WITA",
+                    "at": to_utc_iso(i.get("dibuat_at")), "target": "izin",
+                })
+        except Exception:
+            logger.exception("Notifikasi gagal pada sumber 'izin (pengganti)'")
     if staff:
-        for i in await db.izin_guru.find({"status": {"$in": ["menunggu", "tanpa_pengganti"]}}) \
-                .sort("dibuat_at", -1).to_list(20):
-            k = await db.kegiatans.find_one({"_id": i.get("kegiatan_id")}) or {}
-            items.append({
-                "type": "izin", "id": i["_id"],
-                "title": f"Izin guru: {i.get('guru_nama') or 'Guru'} · {k.get('name') or 'kelas'}",
-                "subtitle": f"{_tanggal_indo(k.get('date'))} · {i.get('status')}",
-                "at": to_utc_iso(i.get("dibuat_at")), "target": "izin",
-            })
+        try:
+            for i in await db.izin_guru.find({"status": {"$in": ["menunggu", "tanpa_pengganti"]}}) \
+                    .sort("dibuat_at", -1).to_list(20):
+                k = await db.kegiatans.find_one({"_id": i.get("kegiatan_id")}) or {}
+                items.append({
+                    "type": "izin", "id": i["_id"],
+                    "title": f"Izin guru: {i.get('guru_nama') or 'Guru'} · {k.get('name') or 'kelas'}",
+                    "subtitle": f"{_tanggal_indo(k.get('date'))} · {i.get('status')}",
+                    "at": to_utc_iso(i.get("dibuat_at")), "target": "izin",
+                })
+        except Exception:
+            logger.exception("Notifikasi gagal pada sumber 'izin (pengurus)'")
 
     items = [i for i in items if i.get("at")]
     items.sort(key=lambda x: x["at"], reverse=True)

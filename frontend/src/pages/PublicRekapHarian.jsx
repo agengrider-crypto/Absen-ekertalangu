@@ -10,11 +10,21 @@ import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "@/pages/ad
 import ReportHeader from "@/components/ReportHeader";
 import StatusGroups from "@/components/StatusGroups";
 
+const STATUS_NETRAL = { t: "Belum diabsen", cls: "bg-[#F0EEE6] text-[#5F6B63]" };
+
 const STATUS_CHIP = {
   hadir: { t: "Hadir", cls: "bg-[#E3F3EA] text-[#0E4E31]" },
   izin: { t: "Izin", cls: "bg-[#FBF1D6] text-[#6B4500]" },
+  sakit: { t: "Sakit", cls: "bg-[#E3EEFB] text-[#1D4F91]" },
   alpha: { t: "Alpha", cls: "bg-[#FBE5E3] text-[#A32A2A]" },
+  belum_diabsen: { t: "Belum diabsen", cls: "bg-[#F0EEE6] text-[#5F6B63]" },
+  belum_berlangsung: { t: "Belum berlangsung", cls: "bg-[#F0EEE6] text-[#5F6B63]" },
 };
+
+/** Gaya chip aman: status tak dikenal / kosong → netral. */
+function chipOf(status) {
+  return STATUS_CHIP[status] || STATUS_NETRAL;
+}
 
 export default function PublicRekapHarian() {
   const { token } = useParams();
@@ -154,7 +164,8 @@ export default function PublicRekapHarian() {
                 {rows.length === 0 ? (
                   <div className="p-8 text-center text-[#5F6B63]">Nama tidak ditemukan.</div>
                 ) : rows.map((r) => {
-                  const chip = STATUS_CHIP[r.status_hari];
+                  if (!r) return null;
+                  const chip = chipOf(r.status_hari);
                   const expanded = open === r.user_id;
                   return (
                     <div key={r.user_id} className="py-3" data-testid={`pub-harian-row-${r.user_id}`}>
@@ -173,8 +184,9 @@ export default function PublicRekapHarian() {
                       </button>
                       {expanded && (
                         <div className="mt-2 flex flex-wrap gap-1.5">
-                          {r.detail.map((x, i) => {
-                            const c = STATUS_CHIP[x.status];
+                          {(r.detail || []).map((x, i) => {
+                            if (!x) return null;
+                            const c = chipOf(x.status);
                             return (
                               <span key={i} className={`text-[11px] font-semibold px-2 py-1 rounded-lg ${c.cls}`}>
                                 {x.label} {x.start_time}–{x.end_time}{x.required ? "" : " (opsional)"} · {c.t}

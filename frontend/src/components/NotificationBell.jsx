@@ -2,25 +2,62 @@
 // Musyawarah, dan Undangan Penting.
 // Tampilan sengaja dibuat SIMPLE: satu baris per notifikasi, tanpa ikon
 // berwarna dan tanpa label kategori yang panjang.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, X } from "lucide-react";
 import { api } from "@/lib/api";
+
+// Jeda bertahap setelah gagal: 30s → 60s → 120s, kembali normal setelah sukses.
+const RETRY_DELAYS = [30000, 60000, 120000];
+const NORMAL_DELAY = 45000;
 
 export default function NotificationBell({ onNavigate }) {
   const [items, setItems] = useState([]);
   const [count, setCount] = useState(0);
   const [open, setOpen] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const timerRef = useRef(null);
+  const failRef = useRef(0);
+
+  const schedule = useCallback((delay) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => { loadRef.current?.(); }, delay);
+  }, []);
 
   const load = useCallback(() => {
+    // Jangan memanggil saat tab tidak terlihat.
+    if (typeof document !== "undefined" && document.hidden) {
+      schedule(NORMAL_DELAY);
+      return;
+    }
     api.get("/notifications")
-      .then(({ data }) => { setItems(data.items || []); setCount(data.count || 0); })
-      .catch(() => {});
-  }, []);
+      .then(({ data }) => {
+        setItems(data.items || []);
+        setCount(data.count || 0);
+        setFailed(false);
+        failRef.current = 0;
+        schedule(NORMAL_DELAY);
+      })
+      .catch(() => {
+        // Gagal: lonceng tampil tanpa angka, tidak melempar galat ke tampilan.
+        setFailed(true);
+        setCount(0);
+        const delay = RETRY_DELAYS[Math.min(failRef.current, RETRY_DELAYS.length - 1)];
+        failRef.current += 1;
+        schedule(delay);
+      });
+  }, [schedule]);
+
+  const loadRef = useRef(load);
+  useEffect(() => { loadRef.current = load; }, [load]);
 
   useEffect(() => {
     load();
-    const iv = setInterval(load, 45000);
-    return () => clearInterval(iv);
+    const onVisible = () => { if (!document.hidden) load(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [load]);
 
   const toggle = async () => {
@@ -37,7 +74,7 @@ export default function NotificationBell({ onNavigate }) {
       <button
         data-testid="bell-notifikasi"
         onClick={toggle}
-        title={count > 0 ? `${count} notifikasi baru` : "Notifikasi"}
+        title={failed ? "Notifikasi tidak dapat dimuat" : count > 0 ? `${count} notifikasi baru` : "Notifikasi"}
         className="relative h-10 w-10 flex items-center justify-center rounded-xl border border-[#E7E3D8] text-[#5F6B63] hover:border-[#14633F] hover:text-[#0E4E31] transition-colors"
       >
         <Bell size={18} />
