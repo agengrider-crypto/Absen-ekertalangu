@@ -104,7 +104,7 @@ export default function GuruBeranda({ user, onGoto, onOpenAbsen }) {
       <button
         type="button"
         onClick={() => onGoto?.("jadwal")}
-        className="w-full rounded-2xl border border-[#E7E3D8] bg-white p-4 text-left text-sm font-semibold text-[#0E4E31] hover:border-[#14633F]"
+        className="w-full rounded-2xl border border-[#E7E3D8] bg-white p-4 text-left text-sm font-semibold text-[#0E4E31] focus-visible:border-[#14633F] sm:hover:border-[#14633F]"
       >
         Lihat Jadwal Saya
       </button>

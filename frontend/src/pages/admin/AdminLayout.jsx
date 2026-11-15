@@ -7,7 +7,7 @@ import {
   MonitorSmartphone, ListPlus, CopyCheck, KeyRound, ScanLine,
   ClipboardList, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
   Calendar1,
-  PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle, BarChart3, LayoutGrid,
+  PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle, BarChart3, LayoutGrid, Home,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { K1Mark, K1Wordmark } from "@/components/Logo";
@@ -273,7 +273,7 @@ function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
   };
   const activeSection = Object.keys(sections).find((key) => sections[key].includes(active));
   const items = [
-    { key: "dashboard", label: "Beranda", icon: LayoutDashboard, action: () => onNavigate("dashboard") },
+    { key: "dashboard", label: "Beranda", icon: Home, action: () => onNavigate("dashboard") },
     { key: "peserta", label: "Peserta", icon: Users, action: () => onNavigate("peserta") },
     { key: "kegiatan", label: "Kegiatan", icon: CalendarDays, action: () => onNavigate("kegiatan") },
     { key: "rekap", label: "Rekap", icon: BarChart3, action: () => onNavigate("rekap-bulanan") },

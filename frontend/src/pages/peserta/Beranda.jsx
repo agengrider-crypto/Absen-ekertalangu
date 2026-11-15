@@ -178,7 +178,7 @@ export default function Beranda({ user, onGoto }) {
         type="button"
         data-testid="peserta-kehadiran-card"
         onClick={() => document.getElementById("riwayat-kehadiran")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        className="w-full rounded-2xl border border-[#E7E3D8] bg-white p-4 text-left transition-colors hover:border-[#14633F]"
+        className="w-full rounded-2xl border border-[#E7E3D8] bg-white p-4 text-left transition-colors focus-visible:border-[#14633F] sm:hover:border-[#14633F]"
       >
         <div className="flex items-center gap-4">
           <Ring value={data?.attendance?.ratio ?? 0} />

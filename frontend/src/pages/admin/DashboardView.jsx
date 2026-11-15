@@ -104,8 +104,8 @@ export default function DashboardView({
                 onClick={off ? undefined : s.action}
                 aria-disabled={off || undefined}
                 disabled={off}
-                className={`flex min-h-14 items-center gap-3 rounded-xl border border-[#E7E3D8] bg-white px-4 py-3 text-left transition-colors ${
-                  off ? "cursor-not-allowed opacity-55" : "hover:border-[#14633F] hover:bg-[#F6F4EE]"
+                className={`flex min-h-14 items-center gap-3 rounded-xl border border-[#E7E3D8] bg-white px-4 py-3 text-left transition-colors focus-visible:border-[#14633F] ${
+                  off ? "cursor-not-allowed opacity-55" : "sm:hover:border-[#14633F] sm:hover:bg-[#F6F4EE]"
                 }`}
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E3F3EA] text-[#14633F]"><Icon size={20} /></span>
