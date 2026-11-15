@@ -6,6 +6,7 @@ import {
   NotebookPen, Megaphone, Home, LayoutGrid, ArrowLeftRight, X, ChevronRight,
 } from "lucide-react";
 import ProfileMenu from "@/components/ProfileMenu";
+import NotificationBell from "@/components/NotificationBell";
 import BantuanView from "@/components/BantuanView";
 import DemoBanner from "@/components/DemoBanner";
 import ProgramPembelajaran from "@/pages/admin/ProgramPembelajaran";
@@ -15,6 +16,7 @@ import GuruJadwal from "./guru/GuruJadwal";
 import GuruAbsenKelas from "./guru/GuruAbsenKelas";
 import GuruKelas from "./guru/GuruKelas";
 import GuruCatatan from "./guru/GuruCatatan";
+import GuruPengumuman from "./guru/GuruPengumuman";
 
 const MENU = [
   { group: null, items: [{ key: "beranda", label: "Beranda", icon: Home }] },
@@ -32,7 +34,7 @@ const MENU = [
   },
   {
     group: "KOMUNIKASI",
-    items: [{ key: "pengumuman", label: "Pengumuman Kelas", icon: Megaphone, soon: true }],
+    items: [{ key: "pengumuman", label: "Pengumuman Kelas", icon: Megaphone }],
   },
   {
     group: "PROGRAM",
@@ -53,7 +55,7 @@ const BOTTOM = [
 
 const LAINNYA = [
   { key: "jadwal", label: "Jadwal Saya", icon: CalendarClock },
-  { key: "pengumuman", label: "Pengumuman Kelas", icon: Megaphone, soon: true },
+  { key: "pengumuman", label: "Pengumuman Kelas", icon: Megaphone },
   { key: "program", label: "Program Pembelajaran", icon: BookOpen },
   { key: "bantuan", label: "Bantuan", icon: LifeBuoy },
 ];
@@ -79,6 +81,7 @@ export default function GuruArea({ user }) {
     if (tab === "absen") return <GuruAbsenKelas key={absenId || "auto"} initialId={absenId} />;
     if (tab === "kelas") return <GuruKelas />;
     if (tab === "catatan") return <GuruCatatan />;
+    if (tab === "pengumuman") return <GuruPengumuman />;
     if (tab === "program") return <ProgramPembelajaran />;
     if (tab === "bantuan") return <BantuanView role="guru" />;
     return null;
@@ -97,7 +100,10 @@ export default function GuruArea({ user }) {
               <div className="text-[11px] text-[#5F6B63]">Area Guru / Pengajar</div>
             </div>
           </div>
-          <ProfileMenu role="guru" />
+          <div className="flex items-center gap-2">
+            <NotificationBell onNavigate={(target) => { if (target === "izin") go("beranda"); }} />
+            <ProfileMenu role="guru" />
+          </div>
         </div>
       </header>
 

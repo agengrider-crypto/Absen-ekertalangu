@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Users, CalendarDays } from "lucide-react";
 import { api } from "@/lib/api";
 import { ProgressBar } from "@/components/StatusGroups";
+import TeksPengumuman from "@/components/TeksPengumuman";
 import { tanggalSingkat } from "@/pages/admin/kegiatanUtils";
 
 const STATUS = {
@@ -84,6 +85,23 @@ export default function AnakSaya() {
           </ul>
         )}
       </div>
+
+      {(anak.pengumuman || []).length > 0 && (
+        <div className="mt-3">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-[#5F6B63]">Pengumuman kelas</div>
+          <ul className="mt-1 space-y-1.5">
+            {anak.pengumuman.map((p) => (
+              <li key={p.id} className="rounded-xl border border-[#F0EEE6] p-2.5">
+                <div className="text-xs font-semibold text-[#14201A]">{p.judul}</div>
+                <TeksPengumuman text={p.isi} className="mt-0.5 text-[11px] leading-relaxed text-[#5F6B63]" />
+                <div className="mt-1 text-[10px] text-[#5F6B63]">
+                  {p.guru_nama} · {tanggalSingkat(String(p.dibuat_at || "").slice(0, 10))}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {(anak.tugas || []).length > 0 && (
         <div className="mt-3">

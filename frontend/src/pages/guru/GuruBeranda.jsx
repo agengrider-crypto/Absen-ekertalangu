@@ -18,12 +18,27 @@ function Bar({ value, tone = "#14633F" }) {
 export default function GuruBeranda({ user, onGoto, onOpenAbsen }) {
   const [pertemuan, setPertemuan] = useState(null);
   const [ringkasan, setRingkasan] = useState(null);
+  const [izin, setIzin] = useState(null);
+  const [pengumuman, setPengumuman] = useState([]);
   const today = nowWita().date;
+
+  const loadIzin = () =>
+    api.get("/guru/izin").then(({ data }) => setIzin(data)).catch(() => setIzin({ masuk: [], keluar: [], ringkas: [], jumlah_perlu_keputusan: 0 }));
 
   useEffect(() => {
     api.get("/guru/pertemuan").then(({ data }) => setPertemuan(data.items || [])).catch(() => setPertemuan([]));
     api.get("/guru/ringkasan").then(({ data }) => setRingkasan(data)).catch(() => setRingkasan(false));
+    loadIzin();
+    api.get("/guru/pengumuman").then(({ data }) => setPengumuman((data.items || []).slice(0, 1))).catch(() => setPengumuman([]));
   }, []);
+
+  const putuskan = async (id, keputusan) => {
+    try {
+      await api.post(`/guru/izin/${id}/putuskan`, { keputusan });
+      loadIzin();
+      api.get("/guru/pertemuan").then(({ data }) => setPertemuan(data.items || [])).catch(() => {});
+    } catch { /* biarkan daftar apa adanya */ }
+  };
 
   const hariIni = (pertemuan || []).filter((k) => k.date === today);
   const berikutnya = (pertemuan || []).find((k) => k.date > today);
@@ -78,8 +93,54 @@ export default function GuruBeranda({ user, onGoto, onOpenAbsen }) {
         )}
       </div>
 
-      <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="guru-capaian">
-        <div className="text-sm font-bold text-[#14201A]">Capaian</div>
+      {(izin?.masuk || []).length > 0 && (
+        <div className="rounded-2xl border border-[#EAD596] bg-[#FBF1D6] p-4" data-testid="guru-izin-masuk">
+          <div className="text-sm font-bold text-[#6B4500]">Permintaan menggantikan</div>
+          <div className="mt-2 space-y-2">
+            {izin.masuk.map((i) => (
+              <div key={i.id} className="rounded-xl bg-white p-3" data-testid={`guru-izin-${i.id}`}>
+                <p className="text-sm text-[#14201A]">
+                  {i.guru_nama} meminta Anda menggantikan {i.kelas}, {tanggalPanjang(i.date)}, {i.start_time}–{i.end_time}
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <button type="button" onClick={() => putuskan(i.id, "terima")}
+                    className="h-9 rounded-lg bg-[#14633F] px-3 text-xs font-semibold text-white hover:bg-[#0E4E31]">Terima</button>
+                  <button type="button" onClick={() => putuskan(i.id, "tolak")}
+                    className="h-9 rounded-lg border border-[#A32A2A] px-3 text-xs font-semibold text-[#A32A2A] hover:bg-[#FBE5E3]">Tolak</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {izin?.jumlah_perlu_keputusan > 0 && (
+        <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="guru-izin-ringkas">
+          <div className="text-sm font-bold text-[#14201A]">Izin guru {izin.jumlah_perlu_keputusan}</div>
+          <ul className="mt-2 divide-y divide-[#F0EEE6]">
+            {izin.ringkas.slice(0, 5).map((i) => (
+              <li key={i.id} className="flex items-center gap-2 py-1.5 text-xs text-[#5F6B63]">
+                <span className="min-w-0 flex-1 truncate">{i.guru_nama} · {i.kelas}</span>
+                <span className="shrink-0">{tanggalPanjang(i.date)}</span>
+                <span className="shrink-0 rounded-full bg-[#F0EEE6] px-2 py-0.5 font-semibold">{i.status}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {pengumuman.length > 0 && (
+        <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="guru-pengumuman-terbaru">
+          <div className="text-sm font-bold text-[#14201A]">Pengumuman terbaru</div>
+          <div className="mt-1 text-sm font-semibold text-[#14201A]">{pengumuman[0].judul}</div>
+          <p className="mt-0.5 line-clamp-2 text-xs text-[#5F6B63]">{pengumuman[0].isi}</p>
+          <div className="mt-1 text-[11px] text-[#5F6B63]">
+            {pengumuman[0].jenjang_label} · {tanggalPanjang(String(pengumuman[0].dibuat_at || "").slice(0, 10))}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="guru-capaian">        <div className="text-sm font-bold text-[#14201A]">Capaian</div>
         {ringkasan === null ? (
           <div className="py-6 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={22} /></div>
         ) : (

@@ -10,6 +10,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { tanggalPanjang } from "@/pages/admin/kegiatanUtils";
 import KesanPesan from "./KesanPesan";
 import AnakSaya from "./AnakSaya";
+import TeksPengumuman from "@/components/TeksPengumuman";
 import { profileCompletion } from "@/lib/roles";
 import { keteranganHitungan } from "@/pages/admin/rekapUtils";
 
@@ -107,11 +108,14 @@ export default function Beranda({ user, onGoto }) {
   const [delegs, setDelegs] = useState([]);
   const [fill, setFill] = useState(null);
   const [history, setHistory] = useState(null);
+  const [kelas, setKelas] = useState([]);
+  const [bukaPeng, setBukaPeng] = useState(null);
 
   useEffect(() => {
     api.get("/me/dashboard").then(({ data }) => setData(data)).catch(() => setData(false));
     api.get("/me/delegations").then(({ data }) => setDelegs(data || [])).catch(() => {});
     api.get("/me/attendance-history?months=6").then(({ data }) => setHistory(data)).catch(() => {});
+    api.get("/me/pengumuman-kelas").then(({ data }) => setKelas((data.items || []).slice(0, 2))).catch(() => setKelas([]));
   }, []);
 
   const greeting = (() => {
@@ -209,6 +213,37 @@ export default function Beranda({ user, onGoto }) {
           </div>
         </div>
       </button>
+
+      {/* Pengumuman kelas — dua terbaru yang masih berlaku */}
+      {kelas.length > 0 && (
+        <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid="peserta-pengumuman-kelas">
+          <div className="text-[11px] font-bold uppercase tracking-wide text-[#5F6B63]">Pengumuman kelas</div>
+          <div className="mt-1.5 space-y-2">
+            {kelas.map((p) => (
+              <button key={p.id} type="button" onClick={() => setBukaPeng(p)}
+                className="block w-full rounded-xl border border-[#F0EEE6] p-2.5 text-left hover:bg-[#F6F4EE]">
+                <div className="text-sm font-semibold text-[#14201A]">{p.judul}</div>
+                <p className="mt-0.5 line-clamp-2 text-xs text-[#5F6B63]">{p.isi}</p>
+                <div className="mt-1 text-[11px] text-[#5F6B63]">
+                  {p.guru_nama} · {tanggalPanjang(String(p.dibuat_at || "").slice(0, 10))}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <Modal open={Boolean(bukaPeng)} onClose={() => setBukaPeng(null)}
+        title={bukaPeng?.judul || "Pengumuman"} maxWidth={520} testid="peserta-pengumuman-modal">
+        {bukaPeng && (
+          <>
+            <TeksPengumuman text={bukaPeng.isi} className="text-sm leading-relaxed text-[#14201A]" />
+            <div className="mt-3 text-[11px] text-[#5F6B63]">
+              {bukaPeng.guru_nama} · {tanggalPanjang(String(bukaPeng.dibuat_at || "").slice(0, 10))}
+            </div>
+          </>
+        )}
+      </Modal>
 
       {/* Anak saya — hanya tampil bila akun ini wali dari anak tertaut */}
       <AnakSaya />

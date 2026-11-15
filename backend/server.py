@@ -6716,6 +6716,7 @@ NOTIF_SOURCE_LABEL = {
     "pengumuman": "Pengumuman",
     "musyawarah": "Musyawarah",
     "undangan": "Undangan penting",
+    "izin": "Izin guru",
 }
 
 
@@ -6763,6 +6764,28 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
                           "title": f"Cerita Ruang Teduh dari {who}",
                           "subtitle": (p.get("judul") or p.get("message") or "")[:90],
                           "at": to_utc_iso(p.get("at")), "target": "pengaduan"})
+
+    # Izin guru: permintaan menggantikan untuk saya + ringkasan untuk pengurus.
+    if "guru" in roles:
+        for i in await db.izin_guru.find({"pengganti_id": uid, "status": "menunggu"}) \
+                .sort("dibuat_at", -1).to_list(20):
+            k = await db.kegiatans.find_one({"_id": i.get("kegiatan_id")}) or {}
+            items.append({
+                "type": "izin", "id": i["_id"],
+                "title": f"{i.get('guru_nama') or 'Guru'} meminta Anda menggantikan {k.get('name') or 'kelas'}",
+                "subtitle": f"{_tanggal_indo(k.get('date'))} · {k.get('start_time')}–{k.get('end_time')} WITA",
+                "at": to_utc_iso(i.get("dibuat_at")), "target": "izin",
+            })
+    if staff:
+        for i in await db.izin_guru.find({"status": {"$in": ["menunggu", "tanpa_pengganti"]}}) \
+                .sort("dibuat_at", -1).to_list(20):
+            k = await db.kegiatans.find_one({"_id": i.get("kegiatan_id")}) or {}
+            items.append({
+                "type": "izin", "id": i["_id"],
+                "title": f"Izin guru: {i.get('guru_nama') or 'Guru'} · {k.get('name') or 'kelas'}",
+                "subtitle": f"{_tanggal_indo(k.get('date'))} · {i.get('status')}",
+                "at": to_utc_iso(i.get("dibuat_at")), "target": "izin",
+            })
 
     items = [i for i in items if i.get("at")]
     items.sort(key=lambda x: x["at"], reverse=True)
@@ -7318,8 +7341,17 @@ async def guru_pertemuan(user: dict = Depends(get_current_user)):
     if scope["mode"] == "guru":
         query["guru_id"] = scope["guru_id"]
     docs = await db.kegiatans.find(query).sort([("date", 1), ("start_time", 1)]).to_list(500)
-    return {"scope": scope,
-            "items": [serialize_kegiatan(k, await kegiatan_counts(k)) for k in docs]}
+    items = []
+    for k in docs:
+        row = serialize_kegiatan(k, await kegiatan_counts(k))
+        izin = await _izin_aktif(k["_id"])
+        if izin:
+            row["izin"] = {"status": izin.get("status"),
+                           "pengganti_nama": izin.get("pengganti_nama"),
+                           "guru_nama": izin.get("guru_nama"),
+                           "id": izin["_id"]}
+        items.append(row)
+    return {"scope": scope, "items": items}
 
 
 @api_router.get("/guru/pertemuan/{kegiatan_id}/rekap")
@@ -7928,8 +7960,310 @@ async def my_anak(user: dict = Depends(get_current_user)):
                           "ratio": ringkas["ratio"]},
             "terakhir": terakhir,
             "tugas": tugas[:10],
+            "pengumuman": await _pengumuman_untuk_jenjang(anak.get("jenjang"), 2),
         })
     return {"items": items}
+
+
+# ---------------------------------------------------------------------------
+# Pengumuman Kelas (guru → peserta jenjang)
+# ---------------------------------------------------------------------------
+PENGUMUMAN_JUDUL_MAX = 80
+PENGUMUMAN_ISI_MAX = 500
+
+
+def serialize_pengumuman_kelas(p: dict) -> dict:
+    return {"id": p["_id"], "guru_id": p.get("guru_id"), "guru_nama": p.get("guru_nama"),
+            "jenjang": p.get("jenjang"),
+            "jenjang_label": (JENJANG_BY_ID.get(p.get("jenjang")) or {}).get("label"),
+            "judul": p.get("judul"), "isi": p.get("isi"),
+            "berlaku_sampai": p.get("berlaku_sampai"),
+            "dibuat_at": p.get("dibuat_at")}
+
+
+def _pengumuman_aktif_query(jenjang: str) -> dict:
+    today = now_wita().strftime("%Y-%m-%d")
+    return {"jenjang": jenjang, "dihapus_at": None,
+            "$or": [{"berlaku_sampai": None}, {"berlaku_sampai": {"$gte": today}}]}
+
+
+async def _pengumuman_untuk_jenjang(jenjang: Optional[str], limit: int = 2) -> list:
+    """Pengumuman kelas yang masih berlaku untuk satu jenjang (terbaru dulu)."""
+    if not jenjang:
+        return []
+    docs = await db.pengumuman_kelas.find(_pengumuman_aktif_query(jenjang)) \
+        .sort("dibuat_at", -1).to_list(limit)
+    return [serialize_pengumuman_kelas(p) for p in docs]
+
+
+class PengumumanKelasInput(BaseModel):
+    jenjang: List[str] = []
+    judul: str
+    isi: str
+    berlaku_sampai: Optional[str] = None
+
+
+@api_router.get("/guru/pengumuman")
+async def guru_pengumuman(user: dict = Depends(get_current_user)):
+    """Daftar pengumuman kelas. Guru: miliknya; Administrator/Pengurus: semua."""
+    _require_guru(user)
+    scope, jenjang_ids = await _guru_scope_jenjang(user)
+    q: dict = {"dihapus_at": None}
+    if scope["mode"] == "guru":
+        q["guru_id"] = scope["guru_id"]
+    docs = await db.pengumuman_kelas.find(q).sort("dibuat_at", -1).to_list(300)
+    return {"scope": scope, "jenjang": jenjang_ids,
+            "items": [serialize_pengumuman_kelas(p) for p in docs]}
+
+
+@api_router.post("/guru/pengumuman")
+async def guru_buat_pengumuman(body: PengumumanKelasInput,
+                               user: dict = Depends(get_current_user)):
+    """Buat pengumuman untuk satu atau beberapa kelas yang diajar guru itu."""
+    _require_guru(user)
+    scope, jenjang_ids = await _guru_scope_jenjang(user)
+    judul = (body.judul or "").strip()
+    isi = (body.isi or "").strip()
+    if not judul:
+        raise HTTPException(status_code=400, detail="Judul pengumuman wajib diisi")
+    if not isi:
+        raise HTTPException(status_code=400, detail="Isi pengumuman wajib diisi")
+    target = [j for j in dict.fromkeys(body.jenjang or []) if j]
+    if not target:
+        raise HTTPException(status_code=400, detail="Pilih minimal satu kelas")
+    for j in target:
+        if j not in JENJANG_BY_ID:
+            raise HTTPException(status_code=400, detail="Kelas tidak valid")
+        if scope["mode"] == "guru" and j not in jenjang_ids:
+            raise HTTPException(status_code=403, detail="Kelas ini bukan kelas Anda")
+    berlaku = (body.berlaku_sampai or "").strip() or None
+    if berlaku:
+        try:
+            datetime.strptime(berlaku, "%Y-%m-%d")
+        except Exception:
+            raise HTTPException(status_code=400, detail="Tanggal berlaku harus YYYY-MM-DD")
+    dibuat = now_wita().isoformat()
+    ids = []
+    for j in target:
+        pid = str(uuid.uuid4())
+        await db.pengumuman_kelas.insert_one({
+            "_id": pid, "guru_id": str(user["_id"]), "guru_nama": user.get("name"),
+            "jenjang": j, "judul": judul[:PENGUMUMAN_JUDUL_MAX],
+            "isi": isi[:PENGUMUMAN_ISI_MAX], "berlaku_sampai": berlaku,
+            "dibuat_at": dibuat, "dihapus_at": None})
+        ids.append(pid)
+    return {"ok": True, "ids": ids, "count": len(ids)}
+
+
+@api_router.patch("/guru/pengumuman/{pengumuman_id}")
+async def guru_ubah_pengumuman(pengumuman_id: str, body: PengumumanKelasInput,
+                               user: dict = Depends(get_current_user)):
+    _require_guru(user)
+    p = await db.pengumuman_kelas.find_one({"_id": pengumuman_id, "dihapus_at": None})
+    if not p:
+        raise HTTPException(status_code=404, detail="Pengumuman tidak ditemukan")
+    if "admin" not in (user.get("roles") or []) and p.get("guru_id") != str(user["_id"]):
+        raise HTTPException(status_code=403, detail="Hanya pengumuman Anda sendiri yang bisa diubah")
+    judul = (body.judul or "").strip()
+    isi = (body.isi or "").strip()
+    if not judul or not isi:
+        raise HTTPException(status_code=400, detail="Judul dan isi wajib diisi")
+    berlaku = (body.berlaku_sampai or "").strip() or None
+    if berlaku:
+        try:
+            datetime.strptime(berlaku, "%Y-%m-%d")
+        except Exception:
+            raise HTTPException(status_code=400, detail="Tanggal berlaku harus YYYY-MM-DD")
+    await db.pengumuman_kelas.update_one({"_id": pengumuman_id}, {"$set": {
+        "judul": judul[:PENGUMUMAN_JUDUL_MAX], "isi": isi[:PENGUMUMAN_ISI_MAX],
+        "berlaku_sampai": berlaku}})
+    doc = await db.pengumuman_kelas.find_one({"_id": pengumuman_id})
+    return serialize_pengumuman_kelas(doc)
+
+
+@api_router.delete("/guru/pengumuman/{pengumuman_id}")
+async def guru_hapus_pengumuman(pengumuman_id: str, user: dict = Depends(get_current_user)):
+    """Hapus lunak (isi dihapus_at). Administrator/Pengurus boleh semua."""
+    roles = user.get("roles") or []
+    if not ({"admin", "pengurus", "guru"} & set(roles)):
+        raise HTTPException(status_code=403, detail="Akses khusus guru, pengurus, dan administrator")
+    p = await db.pengumuman_kelas.find_one({"_id": pengumuman_id, "dihapus_at": None})
+    if not p:
+        raise HTTPException(status_code=404, detail="Pengumuman tidak ditemukan")
+    if not ({"admin", "pengurus"} & set(roles)) and p.get("guru_id") != str(user["_id"]):
+        raise HTTPException(status_code=403, detail="Hanya pengumuman Anda sendiri yang bisa dihapus")
+    await db.pengumuman_kelas.update_one({"_id": pengumuman_id},
+                                         {"$set": {"dihapus_at": now_wita().isoformat()}})
+    return {"ok": True}
+
+
+@api_router.get("/me/pengumuman-kelas")
+async def my_pengumuman_kelas(user: dict = Depends(get_current_user)):
+    """Pengumuman kelas untuk jenjang peserta yang login (hanya baca)."""
+    return {"items": await _pengumuman_untuk_jenjang(user.get("jenjang"), 20)}
+
+
+# ---------------------------------------------------------------------------
+# Izin guru + guru pengganti
+# ---------------------------------------------------------------------------
+IZIN_STATUS = ("menunggu", "diterima", "ditolak", "tanpa_pengganti", "batal")
+
+
+def serialize_izin(i: dict, k: Optional[dict] = None) -> dict:
+    k = k or {}
+    return {"id": i["_id"], "kegiatan_id": i.get("kegiatan_id"),
+            "guru_id": i.get("guru_id"), "guru_nama": i.get("guru_nama"),
+            "alasan": i.get("alasan"), "pengganti_id": i.get("pengganti_id"),
+            "pengganti_nama": i.get("pengganti_nama"), "status": i.get("status"),
+            "dibuat_at": i.get("dibuat_at"), "diputuskan_at": i.get("diputuskan_at"),
+            "kelas": k.get("name"), "jenjang": k.get("jenjang"),
+            "date": k.get("date"), "start_time": k.get("start_time"),
+            "end_time": k.get("end_time"), "location": k.get("location")}
+
+
+async def _izin_aktif(kegiatan_id: str) -> Optional[dict]:
+    return await db.izin_guru.find_one(
+        {"kegiatan_id": kegiatan_id, "status": {"$in": ["menunggu", "diterima", "tanpa_pengganti"]}})
+
+
+class IzinGuruInput(BaseModel):
+    alasan: Optional[str] = None
+    pengganti_id: Optional[str] = None
+
+
+@api_router.post("/guru/pertemuan/{kegiatan_id}/izin")
+async def guru_ajukan_izin(kegiatan_id: str, body: IzinGuruInput,
+                           user: dict = Depends(get_current_user)):
+    """Guru pemilik pertemuan mengajukan izin (dengan atau tanpa pengganti)."""
+    _require_guru(user)
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Pertemuan tidak ditemukan")
+    if k.get("guru_id") != str(user["_id"]):
+        raise HTTPException(status_code=403, detail="Hanya guru pemilik pertemuan yang bisa mengajukan izin")
+    if kegiatan_sudah_berlangsung(k):
+        raise HTTPException(status_code=400, detail="Pertemuan sudah berlangsung")
+    if await _izin_aktif(kegiatan_id):
+        raise HTTPException(status_code=409, detail="Sudah ada izin aktif untuk pertemuan ini")
+    pengganti_id = (body.pengganti_id or "").strip() or None
+    pengganti_nama = None
+    if pengganti_id:
+        if pengganti_id == str(user["_id"]):
+            raise HTTPException(status_code=400, detail="Tidak bisa menggantikan diri sendiri")
+        g = await db.users.find_one({"_id": pengganti_id, "roles": "guru"})
+        if not g:
+            raise HTTPException(status_code=404, detail="Guru pengganti tidak ditemukan")
+        pengganti_nama = g.get("name")
+    doc = {"_id": str(uuid.uuid4()), "kegiatan_id": kegiatan_id,
+           "guru_id": str(user["_id"]), "guru_nama": user.get("name"),
+           "alasan": (body.alasan or "").strip()[:200] or None,
+           "pengganti_id": pengganti_id, "pengganti_nama": pengganti_nama,
+           "status": "menunggu" if pengganti_id else "tanpa_pengganti",
+           "dibuat_at": now_wita().isoformat(), "diputuskan_at": None}
+    await db.izin_guru.insert_one(doc)
+    return serialize_izin(doc, k)
+
+
+@api_router.delete("/guru/pertemuan/{kegiatan_id}/izin")
+async def guru_batalkan_izin(kegiatan_id: str, user: dict = Depends(get_current_user)):
+    """Batalkan izin selama pertemuan belum berlangsung; kembalikan pengajar semula."""
+    _require_guru(user)
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Pertemuan tidak ditemukan")
+    izin = await _izin_aktif(kegiatan_id)
+    if not izin:
+        raise HTTPException(status_code=404, detail="Tidak ada izin aktif")
+    if izin.get("guru_id") != str(user["_id"]) and "admin" not in (user.get("roles") or []):
+        raise HTTPException(status_code=403, detail="Hanya guru pemilik pertemuan yang bisa membatalkan")
+    if kegiatan_sudah_berlangsung(k):
+        raise HTTPException(status_code=400, detail="Pertemuan sudah berlangsung")
+    if izin.get("status") == "diterima" and izin.get("pengganti_id"):
+        await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": {
+            "guru_id": izin.get("guru_id"), "teacher": izin.get("guru_nama")}})
+    await db.izin_guru.update_one({"_id": izin["_id"]}, {"$set": {
+        "status": "batal", "diputuskan_at": now_wita().isoformat()}})
+    return {"ok": True}
+
+
+@api_router.get("/guru/izin")
+async def guru_izin(user: dict = Depends(get_current_user)):
+    """Izin untuk saya (pengganti) + izin yang saya ajukan + ringkasan pengurus."""
+    _require_guru(user)
+    uid = str(user["_id"])
+    roles = user.get("roles") or []
+    staff = bool({"admin", "pengurus"} & set(roles))
+    masuk = await db.izin_guru.find({"pengganti_id": uid, "status": "menunggu"}) \
+        .sort("dibuat_at", -1).to_list(50)
+    keluar = await db.izin_guru.find({"guru_id": uid,
+                                      "status": {"$in": ["menunggu", "diterima", "tanpa_pengganti"]}}) \
+        .sort("dibuat_at", -1).to_list(50)
+    out_masuk, out_keluar = [], []
+    for i in masuk:
+        k = await db.kegiatans.find_one({"_id": i.get("kegiatan_id")})
+        if k and not kegiatan_sudah_berlangsung(k):
+            out_masuk.append(serialize_izin(i, k))
+    for i in keluar:
+        k = await db.kegiatans.find_one({"_id": i.get("kegiatan_id")})
+        if k:
+            out_keluar.append(serialize_izin(i, k))
+    ringkas = []
+    if staff:
+        today = now_wita().strftime("%Y-%m-%d")
+        batas = (now_wita() + timedelta(days=14)).strftime("%Y-%m-%d")
+        docs = await db.izin_guru.find({
+            "status": {"$in": ["menunggu", "tanpa_pengganti"]}}).sort("dibuat_at", -1).to_list(200)
+        for i in docs:
+            k = await db.kegiatans.find_one({"_id": i.get("kegiatan_id")})
+            if not k or not (today <= (k.get("date") or "") <= batas):
+                continue
+            ringkas.append(serialize_izin(i, k))
+    return {"masuk": out_masuk, "keluar": out_keluar, "ringkas": ringkas,
+            "jumlah_perlu_keputusan": len(ringkas)}
+
+
+@api_router.post("/guru/izin/{izin_id}/putuskan")
+async def guru_putuskan_izin(izin_id: str, body: dict,
+                             user: dict = Depends(get_current_user)):
+    """Pengganti menerima/menolak. Terima = pengajar pertemuan diganti."""
+    _require_guru(user)
+    keputusan = str((body or {}).get("keputusan") or "").strip()
+    if keputusan not in ("terima", "tolak"):
+        raise HTTPException(status_code=400, detail="Keputusan tidak valid")
+    izin = await db.izin_guru.find_one({"_id": izin_id})
+    if not izin:
+        raise HTTPException(status_code=404, detail="Izin tidak ditemukan")
+    if izin.get("pengganti_id") != str(user["_id"]):
+        raise HTTPException(status_code=403, detail="Hanya guru pengganti yang dituju yang bisa memutuskan")
+    if izin.get("status") != "menunggu":
+        raise HTTPException(status_code=400, detail="Izin ini sudah diputuskan")
+    k = await db.kegiatans.find_one({"_id": izin.get("kegiatan_id")})
+    if not k:
+        raise HTTPException(status_code=404, detail="Pertemuan tidak ditemukan")
+    if kegiatan_sudah_berlangsung(k):
+        raise HTTPException(status_code=400, detail="Pertemuan sudah berlangsung")
+    now_iso = now_wita().isoformat()
+    if keputusan == "terima":
+        await db.kegiatans.update_one({"_id": k["_id"]}, {"$set": {
+            "guru_id": str(user["_id"]), "teacher": user.get("name")}})
+        await db.izin_guru.update_one({"_id": izin_id}, {"$set": {
+            "status": "diterima", "diputuskan_at": now_iso}})
+    else:
+        await db.izin_guru.update_one({"_id": izin_id}, {"$set": {
+            "status": "ditolak", "diputuskan_at": now_iso}})
+    doc = await db.izin_guru.find_one({"_id": izin_id})
+    return serialize_izin(doc, k)
+
+
+@api_router.get("/guru/pengganti")
+async def guru_pengganti_list(user: dict = Depends(get_current_user)):
+    """Daftar guru aktif yang bisa dipilih sebagai pengganti."""
+    _require_guru(user)
+    uid = str(user["_id"])
+    gurus = await db.users.find({"roles": "guru", "status": "active",
+                                 "is_system": {"$ne": True}}).sort("name", 1).to_list(500)
+    return {"items": [{"id": str(g["_id"]), "name": g.get("name")}
+                      for g in gurus if str(g["_id"]) != uid]}
 
 
 @api_router.post("/program/upload")

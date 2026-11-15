@@ -1,17 +1,60 @@
 // Jadwal Saya — daftar pertemuan (kegiatan jenis Pembelajaran) pekan ini & berikutnya.
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, CalendarClock, Clock, MapPin, Users, ChevronRight } from "lucide-react";
-import { api } from "@/lib/api";
+import { Loader2, CalendarClock, Clock, MapPin, Users, ChevronRight, UserMinus } from "lucide-react";
+import { toast } from "sonner";
+import { api, formatApiErrorDetail } from "@/lib/api";
+import Modal from "@/components/Modal";
 import { nowWita, tanggalPanjang } from "@/pages/admin/kegiatanUtils";
+
+const IZIN_CHIP = (izin) => {
+  if (!izin) return null;
+  if (izin.status === "diterima") return `Izin, digantikan ${izin.pengganti_nama || "guru lain"}`;
+  if (izin.status === "menunggu") return "Izin, menunggu pengganti";
+  return "Izin tanpa pengganti";
+};
 
 export default function GuruJadwal({ onOpenAbsen }) {
   const [items, setItems] = useState(null);
   const [pick, setPick] = useState(null);
+  const [gurus, setGurus] = useState([]);
+  const [form, setForm] = useState(null); // { id, alasan, pengganti_id }
+  const [saving, setSaving] = useState(false);
+  const [batal, setBatal] = useState(null);
   const today = nowWita().date;
 
-  useEffect(() => {
+  const load = () => {
     api.get("/guru/pertemuan").then(({ data }) => setItems(data.items || [])).catch(() => setItems([]));
+  };
+
+  useEffect(() => {
+    load();
+    api.get("/guru/pengganti").then(({ data }) => setGurus(data.items || [])).catch(() => setGurus([]));
   }, []);
+
+  const ajukan = async () => {
+    if (!form) return;
+    setSaving(true);
+    try {
+      await api.post(`/guru/pertemuan/${form.id}/izin`, {
+        alasan: form.alasan || null,
+        pengganti_id: form.pengganti_id || null,
+      });
+      toast.success("Izin diajukan");
+      setForm(null);
+      load();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally { setSaving(false); }
+  };
+
+  const batalkan = async (id) => {
+    try {
+      await api.delete(`/guru/pertemuan/${id}/izin`);
+      toast.success("Izin dibatalkan");
+      setBatal(null);
+      load();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
 
   const groups = useMemo(() => {
     const out = [];
@@ -68,11 +111,32 @@ export default function GuruJadwal({ onOpenAbsen }) {
                           Pokok bahasan: <b className="text-[#14201A]">{k.pokok_bahasan}</b>
                         </p>
                       )}
-                      <button type="button" data-testid={`guru-jadwal-absen-${k.id}`}
-                        onClick={() => onOpenAbsen?.(k.id)}
-                        className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#14633F] px-3.5 text-sm font-semibold text-white hover:bg-[#0E4E31]">
-                        <CalendarClock size={15} /> Buka absen kelas
-                      </button>
+                      {k.izin && (
+                        <span className="inline-flex rounded-full bg-[#FBF1D6] px-2.5 py-0.5 text-[11px] font-semibold text-[#6B4500]"
+                          data-testid={`guru-jadwal-izin-${k.id}`}>
+                          {IZIN_CHIP(k.izin)}
+                        </span>
+                      )}
+                      <div className="flex flex-wrap gap-2">
+                        <button type="button" data-testid={`guru-jadwal-absen-${k.id}`}
+                          onClick={() => onOpenAbsen?.(k.id)}
+                          className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#14633F] px-3.5 text-sm font-semibold text-white hover:bg-[#0E4E31]">
+                          <CalendarClock size={15} /> Buka absen kelas
+                        </button>
+                        {!k.izin && k.date >= today && (
+                          <button type="button" data-testid={`guru-jadwal-izin-btn-${k.id}`}
+                            onClick={() => setForm({ id: k.id, alasan: "", pengganti_id: "" })}
+                            className="inline-flex h-10 items-center gap-1.5 rounded-xl border-2 border-[#14633F] px-3.5 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
+                            <UserMinus size={15} /> Ajukan izin
+                          </button>
+                        )}
+                        {k.izin && k.date >= today && (
+                          <button type="button" onClick={() => setBatal(k.id)}
+                            className="inline-flex h-10 items-center rounded-xl px-3 text-sm font-semibold text-[#A32A2A] hover:bg-[#FBE5E3]">
+                            Batalkan izin
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -81,6 +145,51 @@ export default function GuruJadwal({ onOpenAbsen }) {
           </div>
         </div>
       ))}
+
+      <Modal open={Boolean(form)} onClose={() => setForm(null)} title="Ajukan izin" maxWidth={480}
+        testid="guru-izin-form"
+        footer={
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setForm(null)}
+              className="h-11 flex-1 rounded-xl border-2 border-[#E7E3D8] font-semibold text-[#5F6B63] hover:bg-[#F6F4EE]">Batal</button>
+            <button type="button" onClick={ajukan} disabled={saving}
+              className="h-11 flex-1 rounded-xl bg-[#14633F] font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-60">
+              {saving ? "Mengirim…" : "Ajukan izin"}
+            </button>
+          </div>
+        }>
+        {form && (
+          <div className="space-y-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-[#5F6B63]">Alasan (opsional)</span>
+              <textarea rows={2} maxLength={200} value={form.alasan}
+                onChange={(e) => setForm((f) => ({ ...f, alasan: e.target.value }))}
+                placeholder="Mis. sakit"
+                className="w-full resize-none rounded-xl border border-[#8A948D] px-3 py-2 text-sm outline-none focus:border-[#14633F]" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-[#5F6B63]">Guru pengganti</span>
+              <select value={form.pengganti_id}
+                onChange={(e) => setForm((f) => ({ ...f, pengganti_id: e.target.value }))}
+                className="h-11 w-full rounded-xl border border-[#8A948D] bg-white px-3 text-base outline-none focus:border-[#14633F]">
+                <option value="">Tanpa pengganti</option>
+                {gurus.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </label>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={batal !== null} onClose={() => setBatal(null)} title="Batalkan izin?" maxWidth={420}
+        hideClose testid="guru-izin-batal">
+        <p className="text-sm text-[#5F6B63]">Pengajar pertemuan dikembalikan ke Anda.</p>
+        <div className="mt-4 flex gap-2">
+          <button type="button" onClick={() => setBatal(null)}
+            className="h-11 flex-1 rounded-xl border-2 border-[#E7E3D8] font-semibold text-[#5F6B63] hover:bg-[#F6F4EE]">Batal</button>
+          <button type="button" onClick={() => batalkan(batal)}
+            className="h-11 flex-1 rounded-xl bg-[#A32A2A] font-semibold text-white hover:bg-[#8C2323]">Ya, batalkan</button>
+        </div>
+      </Modal>
     </div>
   );
 }
