@@ -8357,6 +8357,174 @@ async def notifications_read(user: dict = Depends(get_current_user)):
     return {"ok": True, "seen_at": now_iso}
 
 
+# ---------------------------------------------------------------------------
+# PERIKSA APLIKASI (khusus administrator) — HANYA MEMBACA.
+# Setiap pemeriksaan dibungkus try/except + batas waktu sendiri supaya satu
+# kegagalan tidak menggagalkan yang lain. Tidak ada penulisan data.
+# ---------------------------------------------------------------------------
+PERIKSA_TIMEOUT = 5.0
+
+
+def kenali_qr_kartu(content: str) -> Optional[str]:
+    """Kenali QR permanen kartu nama (EKT:<user_id>) → user_id atau None."""
+    raw = (content or "").strip()
+    if not raw.startswith("EKT:"):
+        return None
+    user_id = raw[4:].strip()
+    return user_id if ObjectId.is_valid(user_id) else None
+
+
+async def _periksa_jalan(kelompok: str, nama: str, fn) -> dict:
+    """Jalankan satu pemeriksaan dengan batas waktu; galat jadi kalimat pendek."""
+    mulai = time.perf_counter()
+    try:
+        hasil = await asyncio.wait_for(fn(), timeout=PERIKSA_TIMEOUT)
+    except asyncio.TimeoutError:
+        return {"kelompok": kelompok, "nama": nama, "status": "error",
+                "keterangan": "Gagal: waktu tunggu habis (batas 5 detik)."}
+    except Exception:
+        logger.exception("Periksa aplikasi gagal pada '%s'", nama)
+        return {"kelompok": kelompok, "nama": nama, "status": "error",
+                "keterangan": "Gagal: kesalahan server."}
+    ms = int((time.perf_counter() - mulai) * 1000)
+    if isinstance(hasil, dict) and hasil.get("status"):
+        return {"kelompok": kelompok, "nama": nama,
+                "status": hasil["status"],
+                "keterangan": hasil.get("keterangan") or "Baik."}
+    return {"kelompok": kelompok, "nama": nama, "status": "ok",
+            "keterangan": f"Baik ({ms} ms)."}
+
+
+async def _contoh_akun(role: str) -> Optional[dict]:
+    return await db.users.find_one({"roles": role, "status": "active",
+                                    "is_system": {"$ne": True}})
+
+
+@api_router.get("/admin/periksa-aplikasi")
+async def periksa_aplikasi(admin: dict = Depends(require_admin)):
+    """Pemeriksaan otomatis kondisi aplikasi. Hanya membaca, tidak menulis apa pun."""
+    items: list = []
+
+    async def cek_db():
+        t0 = time.perf_counter()
+        await client.admin.command("ping")
+        ms = int((time.perf_counter() - t0) * 1000)
+        return {"status": "ok", "keterangan": f"Server dan database menjawab normal ({ms} ms)."}
+
+    async def cek_notifikasi():
+        rows = await _notif_items_for(admin, True)
+        return {"status": "ok", "keterangan": f"Notifikasi terbentuk ({len(rows)} baris)."}
+
+    async def cek_rekap_harian():
+        data = await build_rekap_harian()
+        return {"status": "ok",
+                "keterangan": f"Rekap harian terbentuk ({data.get('total_sesi', 0)} sesi)."}
+
+    async def cek_rekap_bulanan():
+        data = await build_rekap_bulanan()
+        return {"status": "ok",
+                "keterangan": f"Rekap bulanan terbentuk ({len(data.get('rows') or [])} baris)."}
+
+    async def cek_peserta():
+        rows = await db.users.find(PESERTA_QUERY).to_list(10000)
+        return {"status": "ok", "keterangan": f"Daftar peserta terbentuk ({len(rows)} peserta)."}
+
+    async def cek_kegiatan():
+        rows = await list_kegiatan(admin)
+        return {"status": "ok", "keterangan": f"Daftar kegiatan terbentuk ({len(rows)} kegiatan)."}
+
+    async def cek_laporan_masuk():
+        data = await staff_pengaduan(admin)
+        return {"status": "ok",
+                "keterangan": f"Laporan masuk terbentuk ({data.get('total', 0)} laporan)."}
+
+    async def cek_qr_kartu():
+        peserta = await db.users.find_one(PESERTA_QUERY)
+        if not peserta:
+            return {"status": "warn", "keterangan": "Belum ada peserta untuk diuji."}
+        uid = str(peserta["_id"])
+        if kenali_qr_kartu(f"EKT:{uid}") != uid:
+            return {"status": "error", "keterangan": "QR kartu tidak dikenali."}
+        ada = await db.users.find_one({"_id": ObjectId(uid)})
+        if not ada:
+            return {"status": "error", "keterangan": "Peserta pemilik kartu tidak ditemukan."}
+        return {"status": "ok", "keterangan": "QR kartu peserta dikenali (tanpa mencatat kehadiran)."}
+
+    async def cek_qr_berputar():
+        if not (callable(make_personal_token) and callable(verify_personal_token)):
+            return {"status": "error", "keterangan": "Pengenal QR berputar tidak tersedia."}
+        return {"status": "ok", "keterangan": "Pengenal QR berputar tersedia."}
+
+    async def cek_peran(role: str, label: str):
+        akun = await _contoh_akun(role)
+        if not akun:
+            return {"status": "warn", "keterangan": f"Belum ada akun contoh {label}."}
+        staff = bool({"admin", "pengurus"} & set(akun.get("roles") or []))
+        await _notif_items_for(akun, staff)
+        if role == "peserta":
+            await peserta_dashboard(akun)
+        elif role == "guru":
+            await guru_ringkasan(akun)
+        return {"status": "ok", "keterangan": f"Notifikasi dan beranda {label} terbentuk."}
+
+    async def cek_kualitas_data():
+        rows = await db.users.find(PESERTA_QUERY).to_list(10000)
+        tanpa_nikah = menikah_tanpa_gender = 0
+        nama = {}
+        hp_salah = 0
+        for u in rows:
+            marital = u.get("marital")
+            if marital not in MARITAL_OPTIONS:
+                tanpa_nikah += 1
+            elif marital == "sudah_menikah" and u.get("gender") not in GENDER_OPTIONS:
+                menikah_tanpa_gender += 1
+            kunci = re.sub(r"\s+", " ", str(u.get("name") or "").strip().lower())
+            if kunci:
+                nama[kunci] = nama.get(kunci, 0) + 1
+            for nilai in (u.get("phone"), u.get("whatsapp")):
+                if not nilai:
+                    continue
+                nomor = normalize_wa_wali(nilai)
+                if not nomor or not nomor.startswith("62") or not (10 <= len(nomor) <= 15):
+                    hp_salah += 1
+                    break
+        kembar = len([k for k, n in nama.items() if n > 1])
+        masalah = []
+        if tanpa_nikah:
+            masalah.append(f"{tanpa_nikah} peserta tanpa status pernikahan (lengkapi lewat Bulk Data)")
+        if menikah_tanpa_gender:
+            masalah.append(f"{menikah_tanpa_gender} peserta menikah tanpa jenis kelamin (lengkapi lewat Bulk Data)")
+        if kembar:
+            masalah.append(f"{kembar} nama kembar (periksa di Cek Duplikat)")
+        if hp_salah:
+            masalah.append(f"{hp_salah} nomor HP tidak valid (perbaiki di data peserta)")
+        if not masalah:
+            return {"status": "ok", "keterangan": "Data peserta rapi."}
+        return {"status": "warn", "keterangan": "; ".join(masalah) + "."}
+
+    items.append(await _periksa_jalan("Server", "Server dan database", cek_db))
+    items.append(await _periksa_jalan("Halaman utama", "Notifikasi", cek_notifikasi))
+    items.append(await _periksa_jalan("Halaman utama", "Rekap harian", cek_rekap_harian))
+    items.append(await _periksa_jalan("Halaman utama", "Rekap bulanan", cek_rekap_bulanan))
+    items.append(await _periksa_jalan("Halaman utama", "Daftar peserta", cek_peserta))
+    items.append(await _periksa_jalan("Halaman utama", "Daftar kegiatan", cek_kegiatan))
+    items.append(await _periksa_jalan("Halaman utama", "Laporan masuk", cek_laporan_masuk))
+    items.append(await _periksa_jalan("Scan", "QR kartu peserta", cek_qr_kartu))
+    items.append(await _periksa_jalan("Scan", "QR berputar", cek_qr_berputar))
+    items.append(await _periksa_jalan("Peran", "Pengurus", lambda: cek_peran("pengurus", "pengurus")))
+    items.append(await _periksa_jalan("Peran", "Guru", lambda: cek_peran("guru", "guru")))
+    items.append(await _periksa_jalan("Peran", "Peserta", lambda: cek_peran("peserta", "peserta")))
+    items.append(await _periksa_jalan("Kualitas data", "Kelengkapan data peserta", cek_kualitas_data))
+
+    ringkasan = {
+        "ok": len([i for i in items if i["status"] == "ok"]),
+        "warn": len([i for i in items if i["status"] == "warn"]),
+        "error": len([i for i in items if i["status"] == "error"]),
+    }
+    return {"items": items, "ringkasan": ringkasan,
+            "diperiksa_at": now_wita().isoformat()}
+
+
 
 @api_router.get("/health")
 async def health():

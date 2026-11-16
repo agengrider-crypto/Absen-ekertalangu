@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { User as UserIcon, LogOut, AlertCircle, Sparkles, Info, RefreshCw, Shield, Users, UserCheck, GraduationCap } from "lucide-react";
+import { User as UserIcon, LogOut, AlertCircle, Sparkles, Info, RefreshCw, Shield, Users, UserCheck, GraduationCap, Activity } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import ProfileModal from "@/components/ProfileModal";
@@ -180,6 +180,14 @@ export default function ProfileMenu({ role }) {
               badge: unreadUpdate ? "Baru" : null,
               onClick: () => setShowUpdates(true),
             },
+            ...(roles.includes("admin") ? [{
+              key: "periksa-aplikasi",
+              testid: "menu-periksa-aplikasi",
+              label: "Periksa aplikasi",
+              desc: "Cek otomatis kondisi aplikasi (hanya membaca)",
+              icon: Activity,
+              onClick: () => navigate("/area/admin?tab=periksa-aplikasi"),
+            }] : []),
             {
               key: "tentang",
               testid: "menu-about",

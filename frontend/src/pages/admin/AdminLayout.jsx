@@ -8,6 +8,7 @@ import {
   ClipboardList, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
   Calendar1,
   PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle, BarChart3, LayoutGrid, Home,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { K1Mark, K1Wordmark } from "@/components/Logo";
@@ -40,6 +41,7 @@ import PantauLoginView from "./PantauLoginView";
 import RekapBulananView from "./RekapBulananView";
 import RekapHarianView from "./RekapHarianView";
 import MaintenanceSettings from "./MaintenanceSettings";
+import PeriksaAplikasiView from "./PeriksaAplikasiView";
 
 const MENU = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "pengurus"] },
@@ -84,6 +86,7 @@ const MENU = [
     group: "grup-pengaturan", label: "Pengaturan", icon: ShieldCheck, roles: ["admin"],
     items: [
       { key: "pemeliharaan", label: "Pemeliharaan", icon: Wrench, roles: ["admin"] },
+      { key: "periksa-aplikasi", label: "Periksa aplikasi", icon: Activity, roles: ["admin"] },
       { key: "pantau-login", label: "Aktivitas Login", icon: MonitorSmartphone, roles: ["admin"] },
       { key: "log", label: "Log Aktivitas", icon: ScrollText, roles: ["admin"] },
       { key: "hakakses", label: "Hak Akses", icon: ShieldCheck, roles: ["admin"] },
@@ -119,6 +122,7 @@ const TRAIL_LABEL = {
   bantuan: "Pusat Bantuan",
   "tutorial-video": "Tutorial video",
   pemeliharaan: "Pemeliharaan",
+  "periksa-aplikasi": "Periksa aplikasi",
   "pantau-login": "Aktivitas Login",
   log: "Log Aktivitas",
   hakakses: "Hak Akses",
@@ -503,6 +507,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "bantuan" && <BantuanView role={role} />}
           {active === "tutorial-video" && <TutorialVideoView role={role} />}
           {active === "pemeliharaan" && role === "admin" && <MaintenanceSettings />}
+          {active === "periksa-aplikasi" && role === "admin" && <PeriksaAplikasiView />}
           {active === "kode-akses" && <KodeAksesView onLeave={leaveGuard} />}
           {active === "scan-presensi" && <ScanPresensiView />}
           {active === "musyawarah" && <MusyawarahView />}
