@@ -11,21 +11,22 @@ import Modal from "@/components/Modal";
 
 const STORAGE_PREFIX = "ekertalangu.updateSeen";
 
-function storageKey(userId) {
-  return `${STORAGE_PREFIX}.${userId || "umum"}`;
+/** Kunci localStorage memuat id pengguna DAN id pembaruan. */
+function entryKey(userId, updateId) {
+  return `${STORAGE_PREFIX}.${userId || "umum"}.${updateId}`;
 }
 
 /** Daftar id pembaruan yang sudah dibuka akun ini (aman bila localStorage gagal). */
 export function readSeenUpdates(userId) {
   try {
-    const raw = localStorage.getItem(storageKey(userId));
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+    return CHANGELOG
+      .filter((u) => localStorage.getItem(entryKey(userId, u.id)) === "1")
+      .map((u) => u.id);
   } catch { return []; }
 }
 
-function writeSeenUpdates(userId, ids) {
-  try { localStorage.setItem(storageKey(userId), JSON.stringify(ids)); } catch { /* abaikan */ }
+function markSeen(userId, updateId) {
+  try { localStorage.setItem(entryKey(userId, updateId), "1"); } catch { /* abaikan */ }
 }
 
 /** Pembaruan yang relevan untuk peran aktif (tanpa penanda peran = tampil semua). */
@@ -44,7 +45,7 @@ export function hasUnreadUpdate(userId, role) {
 
 /** Tandai semua pembaruan sudah dibaca. */
 export function markUpdatesRead(userId) {
-  writeSeenUpdates(userId, CHANGELOG.map((u) => u.id));
+  CHANGELOG.forEach((u) => markSeen(userId, u.id));
 }
 
 const ICON_BY_TUJUAN = {
@@ -72,9 +73,8 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose, us
 
   const tandai = (id) => {
     if (seen.includes(id)) return;
-    const next = [...seen, id];
-    setSeen(next);
-    writeSeenUpdates(user?.id, next);
+    setSeen((prev) => [...prev, id]);
+    markSeen(user?.id, id);
   };
 
   const close = () => {
