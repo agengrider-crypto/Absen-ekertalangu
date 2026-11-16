@@ -3,11 +3,11 @@
 // lalu meninjau isian yang masuk. Semua perubahan baru berlaku setelah disetujui.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Link2, Loader2, Copy, UserPlus, Check, X, AlertTriangle, RefreshCw, Power,
+  Link2, Loader2, Copy, UserPlus, Check, X, AlertTriangle, RefreshCw, Power, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
-import { tanggalIndonesia } from "@/lib/wa";
+import { tanggalIndonesia, tautanWhatsApp, nomorTersamar } from "@/lib/wa";
 
 const MARITAL_LABEL = { belum_menikah: "Belum menikah", sudah_menikah: "Sudah menikah" };
 const GENDER_LABEL = { L: "Laki-laki", P: "Perempuan" };
@@ -130,16 +130,34 @@ export default function PendataanView() {
     }
   };
 
-  const teksPerOrang = (item) =>
-    `Lengkapi data berikut:\n${item.nama}\n${item.url}\nBerlaku sampai ${tanggalIndonesia(hasilOrang?.berlaku_sampai)}.`;
+  const teksPerOrang = (item, batas = hasilOrang?.berlaku_sampai) =>
+    `Lengkapi data berikut:\n${item.nama}\n${item.url}\nBerlaku sampai ${tanggalIndonesia(batas)}.`;
 
-  const teksGabungan = () => {
-    const baris = (hasilOrang?.items || []).map((it, i) => `${i + 1}. ${it.nama}\n${it.url}`);
-    return `Lengkapi data berikut (pilih tautan sesuai nama Anda):\n${baris.join("\n")}\nBerlaku sampai ${tanggalIndonesia(hasilOrang?.berlaku_sampai)}.`;
+  const teksGabunganDari = (items, batas) => {
+    const baris = items.map((it, i) => `${i + 1}. ${it.nama}\n${it.url}`);
+    return `Lengkapi data berikut (pilih tautan sesuai nama Anda):\n${baris.join("\n")}\nBerlaku sampai ${tanggalIndonesia(batas)}.`;
   };
 
-  const teksBaru = () =>
-    `Peserta baru, silakan isi data lengkap di sini:\n${hasilBaru?.items?.[0]?.url || ""}\nBerlaku sampai ${tanggalIndonesia(hasilBaru?.berlaku_sampai)}.`;
+  const teksBaru = (batas = hasilBaru?.berlaku_sampai, url = hasilBaru?.items?.[0]?.url) =>
+    `Peserta baru, silakan isi data lengkap di sini:\n${url || ""}\nBerlaku sampai ${tanggalIndonesia(batas)}.`;
+
+  // Pesan gabungan dipecah bila terlalu panjang (maks 10 nama per pesan).
+  const pesanGabungan = useMemo(() => {
+    const semua = hasilOrang?.items || [];
+    if (!semua.length) return [];
+    const batas = hasilOrang?.berlaku_sampai;
+    const utuh = teksGabunganDari(semua, batas);
+    if (encodeURIComponent(utuh).length <= 1800) return [{ teks: utuh, items: semua }];
+    const potongan = [];
+    for (let i = 0; i < semua.length; i += 10) {
+      const bagian = semua.slice(i, i + 10);
+      potongan.push({ teks: teksGabunganDari(bagian, batas), items: bagian });
+    }
+    return potongan;
+  }, [hasilOrang]);
+
+  const urlTautan = (token) =>
+    `${typeof window !== "undefined" ? window.location.origin : ""}/data/${token}`;
 
   return (
     <div className="space-y-5" data-testid="pendataan-view">
@@ -205,23 +223,52 @@ export default function PendataanView() {
 
         {hasilOrang && (
           <div className="mt-3 space-y-2 rounded-xl border border-[#E3F3EA] bg-[#E3F3EA] p-3">
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => salin(teksGabungan())}
-                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31]">
-                <Copy size={15} /> Salin teks gabungan
-              </button>
-            </div>
+            {pesanGabungan.length > 1 && (
+              <p className="text-xs text-[#0E4E31]">Dibagi supaya muat di WhatsApp.</p>
+            )}
+            {pesanGabungan.map((pesan, idx) => (
+              <div key={`gab-${idx}`} className="space-y-1.5">
+                {pesanGabungan.length > 1 && (
+                  <p className="text-xs font-semibold text-[#0E4E31]">
+                    Pesan {idx + 1} dari {pesanGabungan.length}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => salin(pesan.teks)}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31]">
+                    <Copy size={15} /> Salin teks gabungan
+                  </button>
+                  <a href={tautanWhatsApp("", pesan.teks)} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#14633F] px-3 text-sm font-semibold text-white hover:bg-[#0E4E31]">
+                    <Send size={15} /> Kirim lewat WhatsApp
+                  </a>
+                </div>
+              </div>
+            ))}
             <p className="text-xs font-semibold text-[#0E4E31]">Salin teks per orang</p>
             <div className="space-y-1.5">
-              {hasilOrang.items.map((it) => (
-                <div key={it.token} className="flex items-center gap-2 rounded-lg bg-white px-2.5 py-2">
-                  <span className="min-w-0 flex-1 truncate text-sm text-[#14201A]">{it.nama}</span>
-                  <button type="button" onClick={() => salin(teksPerOrang(it))}
-                    className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#E7E3D8] px-2.5 text-xs font-semibold text-[#0E4E31]">
-                    <Copy size={13} /> Salin
-                  </button>
-                </div>
-              ))}
+              {hasilOrang.items.map((it) => {
+                const nomor = nomorTersamar(it.nomor_hp);
+                return (
+                  <div key={it.token} className="rounded-lg bg-white px-2.5 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate text-sm text-[#14201A]">{it.nama}</span>
+                      <button type="button" onClick={() => salin(teksPerOrang(it))}
+                        className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#E7E3D8] px-2.5 text-xs font-semibold text-[#0E4E31]">
+                        <Copy size={13} /> Salin
+                      </button>
+                      <a href={tautanWhatsApp(it.nomor_hp, teksPerOrang(it))}
+                        target="_blank" rel="noopener noreferrer"
+                        className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[#14633F] px-2.5 text-xs font-semibold text-white hover:bg-[#0E4E31]">
+                        <Send size={13} /> WhatsApp
+                      </a>
+                    </div>
+                    <p className="mt-0.5 text-[11px] text-[#5F6B63]">
+                      {nomor ? `Ke ${nomor}` : "Nomor belum ada, pilih kontak sendiri"}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -229,10 +276,16 @@ export default function PendataanView() {
         {hasilBaru && (
           <div className="mt-3 space-y-2 rounded-xl border border-[#E3F3EA] bg-[#E3F3EA] p-3">
             <p className="break-all text-sm text-[#0E4E31]">{hasilBaru.items?.[0]?.url}</p>
-            <button type="button" onClick={() => salin(teksBaru())}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31]">
-              <Copy size={15} /> Salin teks peserta baru
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => salin(teksBaru())}
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31]">
+                <Copy size={15} /> Salin teks peserta baru
+              </button>
+              <a href={tautanWhatsApp("", teksBaru())} target="_blank" rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#14633F] px-3 text-sm font-semibold text-white hover:bg-[#0E4E31]">
+                <Send size={15} /> Kirim lewat WhatsApp
+              </a>
+            </div>
           </div>
         )}
       </section>
@@ -312,20 +365,30 @@ export default function PendataanView() {
         <h2 className="border-b border-[#E7E3D8] px-4 py-3 text-sm font-bold text-[#14201A]">Tautan aktif</h2>
         {tautan.length ? (
           <div className="divide-y divide-[#E7E3D8]">
-            {tautan.map((t) => (
-              <div key={t.id} className="flex flex-wrap items-center gap-2 px-4 py-2.5">
-                <span className="min-w-0 flex-1 truncate text-sm text-[#14201A]">
-                  {t.jenis === "baru" ? "Peserta baru" : (t.nama || "-")}
-                  <span className="ml-2 text-xs text-[#5F6B63]">
-                    sampai {tanggalIndonesia(t.berlaku_sampai)}
+            {tautan.map((t) => {
+              const url = urlTautan(t.token);
+              const teks = t.jenis === "baru"
+                ? teksBaru(t.berlaku_sampai, url)
+                : teksPerOrang({ nama: t.nama || "", url }, t.berlaku_sampai);
+              return (
+                <div key={t.id} className="flex flex-wrap items-center gap-2 px-4 py-2.5">
+                  <span className="min-w-0 flex-1 truncate text-sm text-[#14201A]">
+                    {t.jenis === "baru" ? "Peserta baru" : (t.nama || "-")}
+                    <span className="ml-2 text-xs text-[#5F6B63]">
+                      sampai {tanggalIndonesia(t.berlaku_sampai)}
+                    </span>
                   </span>
-                </span>
-                <button type="button" onClick={() => matikan(t.id)}
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#E7E3D8] px-2.5 text-xs font-semibold text-[#A32A2A] hover:border-[#A32A2A]">
-                  <Power size={13} /> Matikan tautan
-                </button>
-              </div>
-            ))}
+                  <a href={tautanWhatsApp(t.nomor_hp, teks)} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#E7E3D8] px-2.5 text-xs font-semibold text-[#0E4E31] hover:border-[#14633F]">
+                    <Send size={13} /> Kirim ulang lewat WhatsApp
+                  </a>
+                  <button type="button" onClick={() => matikan(t.id)}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#E7E3D8] px-2.5 text-xs font-semibold text-[#A32A2A] hover:border-[#A32A2A]">
+                    <Power size={13} /> Matikan tautan
+                  </button>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <p className="p-6 text-center text-sm text-[#5F6B63]">Belum ada tautan aktif.</p>

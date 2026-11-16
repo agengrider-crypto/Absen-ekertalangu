@@ -52,3 +52,18 @@ export function bukaWhatsApp(nomor, teks) {
   window.open(`https://wa.me/${n}?text=${encodeURIComponent(teks)}`, "_blank", "noopener");
   return true;
 }
+
+/** URL wa.me dengan teks terisi. Tanpa nomor → pengurus memilih kontak sendiri. */
+export function tautanWhatsApp(nomor, teks) {
+  const n = normalisasiNomor(nomor);
+  return `https://wa.me/${n}?text=${encodeURIComponent(teks)}`;
+}
+
+/** Nomor tersamar untuk ditampilkan, mis. 6281234567890 → 0812****6789. */
+export function nomorTersamar(value) {
+  const n = normalisasiNomor(value);
+  if (!n) return "";
+  const lokal = n.startsWith("62") ? `0${n.slice(2)}` : n;
+  if (lokal.length < 9) return lokal;
+  return `${lokal.slice(0, 4)}****${lokal.slice(-4)}`;
+}

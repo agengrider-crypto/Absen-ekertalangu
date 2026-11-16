@@ -8839,8 +8839,10 @@ async def pendataan_buat_tautan(body: PendataanTautanInput, request: Request,
         if not ids:
             raise HTTPException(status_code=400, detail="Pilih minimal satu peserta.")
         oids = [ObjectId(i) for i in ids if ObjectId.is_valid(i)]
-        peserta = await db.users.find({"_id": {"$in": oids}}, {"name": 1}).to_list(500)
+        peserta = await db.users.find({"_id": {"$in": oids}},
+                                      {"name": 1, "phone": 1, "whatsapp": 1}).to_list(500)
         nama_by = {str(p["_id"]): p.get("name") for p in peserta}
+        hp_by = {str(p["_id"]): (p.get("phone") or p.get("whatsapp")) for p in peserta}
         for pid in ids:
             if pid not in nama_by:
                 continue
@@ -8851,6 +8853,7 @@ async def pendataan_buat_tautan(body: PendataanTautanInput, request: Request,
                 "dibuat_oleh": oleh, "dibuat_pada": dibuat,
             })
             hasil.append({"token": token, "nama": nama_by[pid],
+                          "nomor_hp": hp_by.get(pid),
                           "url": _pendataan_url(request, token)})
     await log_activity(staff, "pendataan_tautan",
                        f"Membuat {len(hasil)} tautan pendataan ({jenis})")
@@ -8873,10 +8876,14 @@ async def pendataan_daftar_tautan(staff: dict = Depends(require_staff)):
         if sekarang > batas:
             continue
         nama = None
+        nomor = None
         if r.get("peserta_id"):
-            p = await db.users.find_one({"_id": _oid(r["peserta_id"])}, {"name": 1})
+            p = await db.users.find_one({"_id": _oid(r["peserta_id"])},
+                                        {"name": 1, "phone": 1, "whatsapp": 1})
             nama = (p or {}).get("name")
+            nomor = (p or {}).get("phone") or (p or {}).get("whatsapp")
         items.append({"id": r["_id"], "jenis": r.get("jenis"), "nama": nama,
+                      "token": r.get("token"), "nomor_hp": nomor,
                       "berlaku_sampai": r.get("berlaku_sampai"),
                       "dibuat_pada": r.get("dibuat_pada")})
     return {"items": items}
