@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   BellRing, CalendarDays, X, ArrowRight, ChevronDown, Sparkles, BarChart3,
-  HeartHandshake, Users, ClipboardList, CalendarPlus,
+  HeartHandshake, Users, ClipboardList, CalendarPlus, QrCode,
 } from "lucide-react";
 import { CHANGELOG, formatChangelogDate } from "@/lib/appInfo";
 import Modal from "@/components/Modal";
@@ -55,6 +55,7 @@ const ICON_BY_TUJUAN = {
   "laporan-peserta": ClipboardList,
   kalender: CalendarDays,
   kegiatan: CalendarPlus,
+  "kartu-nama": QrCode,
 };
 
 export default function UpdateModal({ onNavigate, forceOpen = false, onClose, user, role }) {

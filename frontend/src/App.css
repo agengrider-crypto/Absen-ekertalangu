@@ -2,23 +2,15 @@
     min-height: 100vh;
 }
 
-/* Pratinjau kamera scan: memenuhi lebar kartu, rasio 4:3, tidak melebihi layar. */
+/* Pratinjau kamera scan: memenuhi lebar kartu. Ukuran video TIDAK dipaksa
+   agar pemetaan area pindai html5-qrcode tetap tepat. */
 .qr-reader-box {
-    aspect-ratio: 4 / 3;
-    max-height: 70vh;
-}
-
-.qr-reader-box video {
-    display: block;
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover;
+    width: 100%;
 }
 
 .qr-reader-box-large {
-    aspect-ratio: auto;
-    height: min(72vh, 640px);
     max-height: 72vh;
+    overflow: hidden;
 }
 
 /* Lapisan hasil pindai di atas kamera (maks 1 detik, hormati reduced motion). */

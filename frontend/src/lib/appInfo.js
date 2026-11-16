@@ -19,6 +19,24 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-16-kartu-nama",
+    date: "2026-11-16",
+    title: "Kartu nama diperbarui",
+    keterangan: "Tombol cetak menempel di bawah saat daftar digulir.",
+    tujuan: "kartu-nama",
+    peran: ["admin", "pengurus"],
+    items: ["Tombol cetak menempel di bawah saat daftar digulir."],
+  },
+  {
+    id: "2026-11-16-presensi-kartu",
+    date: "2026-11-16",
+    title: "Presensi dengan kartu",
+    keterangan: "Peserta cukup menunjukkan kartu ke kamera di kegiatan yang berlangsung. Kamera dibuat lebih besar dan hasilnya tampil jelas.",
+    tujuan: "kegiatan",
+    peran: ["admin", "pengurus"],
+    items: ["Peserta cukup menunjukkan kartu ke kamera di kegiatan yang berlangsung."],
+  },
+  {
     id: "2026-11-16-rekap-bulanan",
     date: "2026-11-16",
     title: "Rekap bulanan baru",

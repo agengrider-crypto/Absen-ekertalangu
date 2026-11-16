@@ -671,7 +671,7 @@ function ScanTabPanel({ kegiatanId, closed, onReload }) {
             </div>
           ) : (
             <div className={`relative overflow-hidden rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] ${expanded ? "min-h-[60vh]" : "min-h-[360px]"}`}>
-              <QrScanner onDetected={onDetected} large={expanded} />
+              <QrScanner onDetected={onDetected} large={expanded} wide />
               {flash && (
                 <div className="scan-flash pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/45 px-4 text-center">
                   {flash.kind === "bad" ? (
