@@ -900,6 +900,24 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
   const [orientation, setOrientation] = useState("portrait");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selected, setSelected] = useState(new Set());
+  const [toolbarVisible, setToolbarVisible] = useState(true);
+  const toolbarRef = useRef(null);
+
+  // Bar bawah hanya tampil saat toolbar atas tidak terlihat di layar.
+  useEffect(() => {
+    const node = toolbarRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      // Tanpa IntersectionObserver: tampilkan bar seperti sebelumnya.
+      setToolbarVisible(false);
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      ([entry]) => setToolbarVisible(Boolean(entry?.isIntersecting)),
+      { threshold: 0 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -987,7 +1005,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
           </label>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div ref={toolbarRef} className="flex flex-wrap items-center justify-between gap-3">
           <label className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#14201A]">
             <input
               type="checkbox"
@@ -1006,7 +1024,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
               </button>
             )}
             <div className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#5F6B63]">Arah kartu</span>
+              <span className="text-[11px] font-semibold tracking-wide text-[#5F6B63]">Arah kartu</span>
               <div className="flex items-center gap-2">
                 <button type="button" aria-pressed={orientation === "portrait"} onClick={() => setOrientation("portrait")}
                   data-testid={PARTICIPANTS.nameTagPortrait}
@@ -1064,7 +1082,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
             Tidak ada peserta yang cocok dengan pencarian atau filter.
           </div>
         ) : (
-          <div className={`name-tag-selection-list grid gap-3 ${orientation === "portrait" ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`} data-orientation={orientation}>
+          <div className={`name-tag-selection-list grid gap-3 pb-24 ${orientation === "portrait" ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`} data-orientation={orientation}>
             {filtered.map((user) => (
               <label key={user.id} className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium text-[#14201A] name-tag-screen-only ${selected.has(user.id) ? "border-[#14633F] bg-[#E3F3EA]" : "border-[#E7E3D8] bg-white"}`}>
                 <input
@@ -1092,9 +1110,9 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
           ))}
         </div>
       </div>
-      {visibleSelected.length > 0 && (
+      {visibleSelected.length > 0 && !toolbarVisible && (
         <div
-          className="name-tag-screen-only sticky bottom-0 z-20 mt-2 flex flex-wrap items-center justify-between gap-2 rounded-t-2xl border-t border-[#E7E3D8] bg-white/95 px-3 py-2.5 backdrop-blur transition-transform duration-200 motion-reduce:transition-none"
+          className="name-tag-screen-only sticky bottom-0 z-20 mt-2 flex flex-wrap items-center justify-between gap-2 rounded-t-2xl border-t border-[#E7E3D8] bg-white/95 px-3 py-2.5 backdrop-blur transition-all duration-200 motion-reduce:transition-none"
           style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom))" }}
           data-testid="name-tag-sticky-actions"
         >
