@@ -944,7 +944,8 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
       </header>
       <div className="name-tag-screen-only space-y-4">
         <div className="rounded-2xl border border-[#E3F3EA] bg-[#E3F3EA] p-4 text-sm leading-relaxed text-[#0E4E31]">
-          Barcode QR ini permanen untuk identifikasi nama tag. QR presensi peserta tetap memakai barcode berputar dari menu peserta.
+          QR di kartu ini permanen dan dipakai presensi lewat scan di kegiatan, untuk peserta yang tidak memakai HP.
+          Peserta yang memakai HP tetap memakai QR berputar dari menu peserta.
         </div>
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px_190px]">
           <label className="relative">
@@ -978,7 +979,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
               onChange={(event) => setStatusFilter(event.target.value)}
               className="h-11 w-full rounded-xl border border-[#8A948D] bg-white px-3 text-base outline-none focus:border-[#14633F]"
             >
-              <option value="all">Semua status</option>
+              <option value="all">Semua status akun</option>
               <option value="active">Sudah aktif</option>
               <option value="pending">Belum aktivasi</option>
               <option value="nonaktif">Nonaktif</option>
@@ -1004,16 +1005,21 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
                 Hapus pilihan
               </button>
             )}
-            <button type="button" aria-pressed={orientation === "portrait"} onClick={() => setOrientation("portrait")}
-              data-testid={PARTICIPANTS.nameTagPortrait}
-              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "portrait" ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]" : "border-[#E7E3D8] bg-white text-[#5F6B63]"}`}>
-              Vertikal
-            </button>
-            <button type="button" aria-pressed={orientation === "landscape"} onClick={() => setOrientation("landscape")}
-              data-testid={PARTICIPANTS.nameTagLandscape}
-              className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "landscape" ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]" : "border-[#E7E3D8] bg-white text-[#5F6B63]"}`}>
-              Horizontal
-            </button>
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#5F6B63]">Arah kartu</span>
+              <div className="flex items-center gap-2">
+                <button type="button" aria-pressed={orientation === "portrait"} onClick={() => setOrientation("portrait")}
+                  data-testid={PARTICIPANTS.nameTagPortrait}
+                  className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "portrait" ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]" : "border-[#E7E3D8] bg-white text-[#5F6B63]"}`}>
+                  Vertikal
+                </button>
+                <button type="button" aria-pressed={orientation === "landscape"} onClick={() => setOrientation("landscape")}
+                  data-testid={PARTICIPANTS.nameTagLandscape}
+                  className={`min-h-11 rounded-lg border px-3 text-sm font-semibold ${orientation === "landscape" ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]" : "border-[#E7E3D8] bg-white text-[#5F6B63]"}`}>
+                  Horizontal
+                </button>
+              </div>
+            </div>
             <button type="button" aria-expanded={previewOpen} onClick={() => setPreviewOpen((open) => !open)}
               data-testid={PARTICIPANTS.nameTagPreviewToggle} disabled={!visibleSelected.length}
               className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-50">
@@ -1060,7 +1066,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
         ) : (
           <div className={`name-tag-selection-list grid gap-3 ${orientation === "portrait" ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`} data-orientation={orientation}>
             {filtered.map((user) => (
-              <label key={user.id} className="flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 py-2 text-sm font-medium text-[#14201A] name-tag-screen-only">
+              <label key={user.id} className={`flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium text-[#14201A] name-tag-screen-only ${selected.has(user.id) ? "border-[#14633F] bg-[#E3F3EA]" : "border-[#E7E3D8] bg-white"}`}>
                 <input
                   type="checkbox"
                   checked={selected.has(user.id)}
@@ -1086,6 +1092,25 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
           ))}
         </div>
       </div>
+      {visibleSelected.length > 0 && (
+        <div
+          className="name-tag-screen-only sticky bottom-0 z-20 mt-2 flex flex-wrap items-center justify-between gap-2 rounded-t-2xl border-t border-[#E7E3D8] bg-white/95 px-3 py-2.5 backdrop-blur transition-transform duration-200 motion-reduce:transition-none"
+          style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom))" }}
+          data-testid="name-tag-sticky-actions"
+        >
+          <span className="text-sm font-semibold text-[#14201A]">{visibleSelected.length} dipilih</span>
+          <div className="flex items-center gap-2">
+            <button type="button" aria-expanded={previewOpen} onClick={() => setPreviewOpen((open) => !open)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F]">
+              <Eye size={16} /> Pratinjau cetak
+            </button>
+            <button type="button" onClick={printTags}
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
+              <Printer size={16} /> Cetak
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

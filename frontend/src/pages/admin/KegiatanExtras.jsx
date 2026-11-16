@@ -268,8 +268,8 @@ export function ScanPesertaModal({ kegiatan, onClose, onChanged }) {
 
   const onDetected = async (text) => {
     if (busy) return;
-    if (!text || !text.startsWith("EKP:")) {
-      toast.error("Mohon maaf, QR ini bukan QR pribadi peserta. Mohon peserta membuka menu “QR Saya”.");
+    if (!text || (!text.startsWith("EKP:") && !text.startsWith("EKT:"))) {
+      toast.error("Mohon maaf, QR ini bukan QR peserta. Mohon peserta membuka menu “QR Saya” atau gunakan kartu peserta.");
       return;
     }
     setBusy(true);

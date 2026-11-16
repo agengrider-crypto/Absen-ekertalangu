@@ -4741,36 +4741,53 @@ async def my_personal_qr(user: dict = Depends(get_current_user)):
 
 @api_router.post("/staff/kegiatan/{kegiatan_id}/scan-personal")
 async def scan_personal_qr(kegiatan_id: str, body: ScanPersonalInput, staff: dict = Depends(require_staff)):
+    """Scan QR peserta: QR berputar (EKP:) atau QR permanen kartu nama (EKT:)."""
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
     if k.get("status", "open") != "open":
         raise HTTPException(status_code=403, detail="Kegiatan sudah ditutup")
+    # Hanya kegiatan yang sedang berlangsung (WITA).
+    now = now_wita()
+    if not kegiatan_sudah_berlangsung(k, now):
+        raise HTTPException(status_code=400,
+                            detail="Kegiatan ini belum dimulai. Scan hanya bisa saat kegiatan berlangsung.")
+    end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
+    if end and now > end:
+        raise HTTPException(status_code=400,
+                            detail="Kegiatan ini sudah berakhir. Scan hanya bisa saat kegiatan berlangsung.")
     content = (body.content or "").strip()
-    if content.startswith("EKP:"):
-        content = content[4:]
-    user_id = verify_personal_token(content)
-    if not user_id:
-        raise HTTPException(
-            status_code=400,
-            detail="Mohon maaf, QR pribadi ini tidak dikenali atau sudah kadaluarsa. "
-                   "Mohon peserta menampilkan ulang QR-nya.")
+    kartu = content.startswith("EKT:")
+    if kartu:
+        # QR permanen pada kartu nama peserta: EKT:<user_id>
+        user_id = content[4:].strip()
+        if not ObjectId.is_valid(user_id):
+            raise HTTPException(status_code=400, detail="Kartu tidak dikenali")
+    else:
+        if content.startswith("EKP:"):
+            content = content[4:]
+        user_id = verify_personal_token(content)
+        if not user_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Mohon maaf, QR pribadi ini tidak dikenali atau sudah kadaluarsa. "
+                       "Mohon peserta menampilkan ulang QR-nya.")
     u = await db.users.find_one({"_id": ObjectId(user_id)}) if ObjectId.is_valid(user_id) else None
     if not u or "peserta" not in (u.get("roles") or []):
-        raise HTTPException(
-            status_code=404,
-            detail="Mohon maaf, data peserta untuk QR ini tidak ditemukan.")
+        raise HTTPException(status_code=400, detail="Kartu tidak dikenali")
     assert_gender_eligible(k, u)
     existing = await db.absensis.find_one({"kegiatan_id": kegiatan_id, "user_id": user_id})
     if existing and existing.get("status") == "hadir":
         return {"name": u.get("name"), "status": "hadir",
                 "arrival_time": existing.get("arrival_time"), "already": True,
-                "message": f"{u.get('name')} sudah tercatat hadir sebelumnya. Terima kasih."}
+                "message": f"{u.get('name')} sudah tercatat tadi."}
     arrival = now_wita().isoformat()
     await db.absensis.update_one(
         {"kegiatan_id": kegiatan_id, "user_id": user_id},
         {"$set": {"kegiatan_id": kegiatan_id, "user_id": user_id, "status": "hadir",
-                  "arrival_time": arrival, "marked_by": f"Dibantu: {staff.get('name')}",
+                  "arrival_time": arrival,
+                  "marked_by": (f"Kartu: {staff.get('name')}" if kartu
+                                else f"Dibantu: {staff.get('name')}"),
                   "marked_by_id": str(staff["_id"]), "updated_at": arrival}},
         upsert=True)
     return {"name": u.get("name"), "status": "hadir", "arrival_time": arrival, "already": False,

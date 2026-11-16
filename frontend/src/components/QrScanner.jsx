@@ -19,8 +19,9 @@ async function safeStop(scanner) {
  * Props:
  *  - onDetected(text): called when a QR is decoded (debounced for identical reads)
  *  - paused: when true, scanning is temporarily halted
+ *  - large: pratinjau memenuhi lebar kartu (dipakai mode "Perbesar")
  */
-export default function QrScanner({ onDetected, paused = false }) {
+export default function QrScanner({ onDetected, paused = false, large = false }) {
   const idRef = useRef(`qr-reader-${Math.random().toString(36).slice(2)}`);
   const scannerRef = useRef(null);
   const startedRef = useRef(false);
@@ -50,14 +51,37 @@ export default function QrScanner({ onDetected, paused = false }) {
 
       try {
         await scanner.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 240, height: 240 } },
+          {
+            facingMode: "environment",
+            // Resolusi ideal (bukan wajib). Fokus kontinu diterapkan terpisah
+            // agar perangkat yang tidak mendukung tetap bisa memakai kamera.
+            videoConstraints: {
+              facingMode: "environment",
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+            // Jangan cerminkan pratinjau agar tulisan pada kartu terbaca benar.
+            disableFlip: true,
+          },
+          {
+            fps: 10,
+            qrbox: (w, h) => {
+              const edge = Math.floor(Math.min(w, h) * 0.7);
+              return { width: edge, height: edge };
+            },
+          },
           handle,
           () => {}
         );
         if (cancelled) { await safeStop(scanner); scannerRef.current = null; return; }
         startedRef.current = true;
         setStatus("running");
+        // Fokus kontinu (best effort) — perangkat yang tidak mendukung tetap jalan.
+        try {
+          await scanner.applyVideoConstraints({
+            advanced: [{ focusMode: "continuous" }],
+          });
+        } catch (_) { /* abaikan */ }
       } catch (e) {
         if (cancelled) return;
         setStatus("error");
@@ -92,11 +116,11 @@ export default function QrScanner({ onDetected, paused = false }) {
   }, [paused]);
 
   return (
-    <div className="relative w-full max-w-xs mx-auto">
+    <div className={`relative w-full ${large ? "" : "max-w-xs mx-auto"}`}>
       {/* Reader container: MUST stay free of React-rendered children */}
       <div
         id={idRef.current}
-        className="w-full rounded-2xl overflow-hidden bg-black/5 min-h-[240px]"
+        className={`qr-reader-box w-full overflow-hidden rounded-2xl bg-black/5 ${large ? "qr-reader-box-large min-h-[360px]" : "min-h-[240px]"}`}
       />
       {status !== "running" && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-4 text-center">

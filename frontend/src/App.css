@@ -2,6 +2,41 @@
     min-height: 100vh;
 }
 
+/* Pratinjau kamera scan: memenuhi lebar kartu, rasio 4:3, tidak melebihi layar. */
+.qr-reader-box {
+    aspect-ratio: 4 / 3;
+    max-height: 70vh;
+}
+
+.qr-reader-box video {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+}
+
+.qr-reader-box-large {
+    aspect-ratio: auto;
+    height: min(72vh, 640px);
+    max-height: 72vh;
+}
+
+/* Lapisan hasil pindai di atas kamera (maks 1 detik, hormati reduced motion). */
+@keyframes scan-flash-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.scan-flash {
+    animation: scan-flash-in 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scan-flash {
+        animation: none;
+    }
+}
+
 .name-tag-print-area {
     display: none;
 }

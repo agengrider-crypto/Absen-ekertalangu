@@ -5,6 +5,7 @@ import {
   Copy, RefreshCw, Download, Send, Trash2, CheckCircle2, AlertTriangle,
   Users, PhoneOff, ClipboardList, MoreHorizontal, Pencil,
   Share2, RotateCcw, Layers, FileBarChart2, CheckCheck, ChevronLeft, ChevronRight,
+  Maximize2, Minimize2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ACTIVITIES } from "@/constants/testIds";
@@ -597,25 +598,47 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
 /* ------------------------- Scan barcode peserta ------------------------- */
 function ScanTabPanel({ kegiatanId, closed, onReload }) {
   const [recent, setRecent] = useState([]);
+  const [expanded, setExpanded] = useState(false);
+  const [flash, setFlash] = useState(null);
   const lock = useRef(false);
+  const flashTimer = useRef(null);
+
+  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
+
+  const showFlash = (payload) => {
+    setFlash(payload);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlash(null), 2000);
+  };
 
   const onDetected = async (text) => {
     if (lock.current) return;
-    if (!text || !text.startsWith("EKP:")) {
-      toast.error("QR ini bukan QR pribadi peserta. Mohon minta peserta membuka menu 'QR Saya'.");
+    const raw = (text || "").trim();
+    // Dua jenis QR: berputar (EKP:) dan permanen kartu (EKT:).
+    if (!raw.startsWith("EKP:") && !raw.startsWith("EKT:")) {
+      showFlash({ kind: "bad", name: "Kartu tidak dikenali" });
       return;
     }
     lock.current = true;
     try {
-      const { data } = await api.post(`/staff/kegiatan/${kegiatanId}/scan-personal`, { content: text });
+      const { data } = await api.post(`/staff/kegiatan/${kegiatanId}/scan-personal`, { content: raw });
       setRecent((previous) => [
         { ...data, id: `${data.user_id || data.name}-${Date.now()}` },
         ...previous,
       ].slice(0, 10));
-      if (data.already) toast.info(data.message); else toast.success(data.message);
+      showFlash({
+        kind: data.already ? "dup" : "ok",
+        name: data.name,
+        label: data.already ? "Sudah tercatat tadi" : "Hadir",
+      });
       onReload();
     } catch (e) {
-      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+      const detail = formatApiErrorDetail(e.response?.data?.detail);
+      if (e.response?.status === 400 && /tidak dikenali/i.test(detail || "")) {
+        showFlash({ kind: "bad", name: "Kartu tidak dikenali" });
+      } else {
+        toast.error(detail);
+      }
     } finally {
       setTimeout(() => { lock.current = false; }, 1500);
     }
@@ -623,18 +646,50 @@ function ScanTabPanel({ kegiatanId, closed, onReload }) {
 
   return (
     <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4" data-testid="detail-scan-panel">
-      <p className="text-sm text-[#5F6B63] mb-3">
-        <ScanLine size={16} className="text-[#0E4E31] inline mr-1.5 -mt-0.5" />
-        Arahkan kamera ke <b>QR pribadi peserta</b> (menu &quot;QR Saya&quot;) untuk mencatat kehadiran.
-        Mode ini memerlukan internet.
-      </p>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <p className="text-sm text-[#5F6B63]">
+          <ScanLine size={16} className="text-[#0E4E31] inline mr-1.5 -mt-0.5" />
+          Arahkan kamera ke kartu peserta atau ke QR dari menu &quot;QR Saya&quot; untuk mencatat kehadiran.
+          Mode ini memerlukan internet.
+        </p>
+        {!closed && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-[#E7E3D8] bg-white px-2.5 py-1.5 text-xs font-bold text-[#0E4E31] hover:bg-[#F0EEE6]"
+          >
+            {expanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            {expanded ? "Perkecil" : "Perbesar"}
+          </button>
+        )}
+      </div>
+      <div className={expanded ? "grid gap-3" : "grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)]"}>
         <div className="min-w-0">
           {closed ? (
             <div className="rounded-xl border border-[#FBE5E3] bg-[#FBE5E3] p-4 text-sm text-[#A32A2A]">
               Kegiatan sudah ditutup sehingga scan barcode dinonaktifkan.
             </div>
-          ) : <QrScanner onDetected={onDetected} />}
+          ) : (
+            <div className={`relative overflow-hidden rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] ${expanded ? "min-h-[60vh]" : "min-h-[360px]"}`}>
+              <QrScanner onDetected={onDetected} large={expanded} />
+              {flash && (
+                <div className="scan-flash pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/45 px-4 text-center">
+                  {flash.kind === "bad" ? (
+                    <span className="rounded-full bg-[#FBE5E3] px-4 py-2 text-lg font-extrabold text-[#A32A2A]">
+                      {flash.name}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-2xl font-extrabold text-white">{flash.name}</span>
+                      <span className={`rounded-full px-3 py-1 text-sm font-bold ${flash.kind === "dup" ? "bg-[#FBF1D6] text-[#6B4500]" : "bg-[#E3F3EA] text-[#0E4E31]"}`}>
+                        {flash.label}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <section className="min-h-48 overflow-hidden rounded-xl border border-[#E7E3D8] bg-[#F6F4EE]" data-testid={ACTIVITIES.scanResults}>
           <div className="flex items-center justify-between border-b border-[#E7E3D8] bg-white px-3.5 py-3">
@@ -642,9 +697,9 @@ function ScanTabPanel({ kegiatanId, closed, onReload }) {
             <span className="rounded-full bg-[#E3F3EA] px-2 py-0.5 text-xs font-bold text-[#0E4E31]">{recent.length}</span>
           </div>
           {recent.length ? (
-            <div className="max-h-64 divide-y divide-[#E7E3D8] overflow-y-auto">
+            <div className={`divide-y divide-[#E7E3D8] overflow-y-auto ${expanded ? "max-h-40" : "max-h-64"}`}>
               {recent.map((result) => (
-                <div key={result.id} className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm" data-testid={`${ACTIVITIES.scanResultPrefix}-${result.id}`}>
+                <div key={result.id} className={`flex items-center gap-2.5 px-3.5 text-sm ${expanded ? "py-1.5" : "py-2.5"}`} data-testid={`${ACTIVITIES.scanResultPrefix}-${result.id}`}>
                   <CheckCircle2 size={18} className="shrink-0 text-[#0E4E31]" />
                   <span className="min-w-0 flex-1 truncate font-semibold text-[#14201A]">{result.name}</span>
                   <span className="shrink-0 text-xs text-[#5F6B63]">
