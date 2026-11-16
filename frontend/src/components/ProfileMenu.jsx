@@ -35,7 +35,7 @@ export default function ProfileMenu({ role }) {
   const [showUpdates, setShowUpdates] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
-  const [unreadUpdate, setUnreadUpdate] = useState(() => hasUnreadUpdate());
+  const [unreadUpdate, setUnreadUpdate] = useState(() => hasUnreadUpdate(user?.id, role));
   const [photo, setPhoto] = useState(null);
   const switchRef = useRef(null);
 
@@ -177,7 +177,7 @@ export default function ProfileMenu({ role }) {
               label: "Update Terbaru",
               desc: unreadUpdate ? "Ada update baru — ketuk untuk melihat" : "Lihat fitur baru & perbaikan aplikasi",
               icon: Sparkles,
-              badge: unreadUpdate,
+              badge: unreadUpdate ? "Baru" : null,
               onClick: () => setShowUpdates(true),
             },
             {
@@ -216,10 +216,12 @@ export default function ProfileMenu({ role }) {
       {showUpdates && (
         <UpdateModal
           forceOpen
-          onClose={() => { setShowUpdates(false); setUnreadUpdate(false); }}
+          user={user}
+          role={activeRole}
+          onClose={() => { setShowUpdates(false); setUnreadUpdate(hasUnreadUpdate(user?.id, role)); }}
           onNavigate={(key) => {
             setShowUpdates(false);
-            setUnreadUpdate(false);
+            setUnreadUpdate(hasUnreadUpdate(user?.id, role));
             if (key) navigate(`/area/admin?tab=${key}`);
           }}
         />

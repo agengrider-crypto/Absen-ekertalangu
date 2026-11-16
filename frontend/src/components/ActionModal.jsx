@@ -62,9 +62,10 @@ export default function ActionModal({ title, subtitle, actions = [], onClose, te
                 {a.badge && (
                   <span
                     data-testid={`${a.testid || `action-${a.key}`}-badge`}
-                    className="h-2 w-2 shrink-0 rounded-full bg-[#A32A2A]"
-                    aria-label="baru"
-                  />
+                    className="shrink-0 rounded-full bg-[#E3F3EA] px-1.5 py-0.5 text-[10px] font-bold text-[#0E4E31]"
+                  >
+                    {typeof a.badge === "string" ? a.badge : "Baru"}
+                  </span>
                 )}
               </span>
               {a.desc && <span className="mt-0.5 block text-xs text-[#5F6B63]">{a.desc}</span>}

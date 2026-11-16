@@ -1,61 +1,85 @@
-// Popup "Pembaruan Terbaru": daftar perubahan aplikasi berbentuk kartu.
-// Setiap kartu punya tombol "Coba Sekarang" yang langsung membuka fitur terkait.
+// Popup "Pembaruan Terbaru": daftar baris ringkas yang bisa diklik.
 // Sumber data changelog ada di @/lib/appInfo (dipakai juga oleh Tentang Aplikasi).
-import { useEffect, useState } from "react";
-import { BellRing, CalendarDays, X, ArrowRight } from "lucide-react";
+// Status "sudah dibuka" disimpan per akun di localStorage (kunci memuat id pengguna).
+import { useEffect, useMemo, useState } from "react";
+import {
+  BellRing, CalendarDays, X, ArrowRight, ChevronDown, Sparkles, BarChart3,
+  HeartHandshake, Users, ClipboardList, CalendarPlus,
+} from "lucide-react";
 import { CHANGELOG, formatChangelogDate } from "@/lib/appInfo";
 import Modal from "@/components/Modal";
 
-const STORAGE_KEY = "ekertalangu.updateSeen";
+const STORAGE_PREFIX = "ekertalangu.updateSeen";
 
-// Tujuan tombol "Coba Sekarang" per entri changelog.
-// `nav` = key tab di AdminLayout (dibuka lewat /area/admin?tab=<nav>).
-const ACTION_BY_ID = {
-  "2026-11-11-logo": { label: "Coba Sekarang", nav: "dashboard" },
-  "2026-11-09-tema": { label: "Coba Sekarang", nav: "dashboard" },
-  "2026-11-09-profil": { label: "Coba Sekarang", nav: "peserta" },
-  "2026-11-09-filter-fab": { label: "Coba Sekarang", nav: "peserta" },
-  "2026-11-09-rapi": { label: "Coba Sekarang", nav: "kegiatan" },
-  "2026-11-09-bottom-bar": { label: "Coba Sekarang", nav: "peserta" },
-  "2026-11-09-fab": { label: "Coba Sekarang", nav: "peserta" },
-  "2026-11-09-aktivasi": { label: "Coba Sekarang", nav: "dashboard" },
-  "2026-11-09-tentang": { label: "Coba Sekarang", nav: "dashboard" },
-  "2026-11-08-user": { label: "Coba Sekarang", nav: "peserta" },
-  "2026-11-07-absensi": { label: "Coba Sekarang", nav: "kegiatan" },
-  "2026-11-06-rekap": { label: "Coba Sekarang", nav: "rekap-bulanan" },
+function storageKey(userId) {
+  return `${STORAGE_PREFIX}.${userId || "umum"}`;
+}
+
+/** Daftar id pembaruan yang sudah dibuka akun ini (aman bila localStorage gagal). */
+export function readSeenUpdates(userId) {
+  try {
+    const raw = localStorage.getItem(storageKey(userId));
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch { return []; }
+}
+
+function writeSeenUpdates(userId, ids) {
+  try { localStorage.setItem(storageKey(userId), JSON.stringify(ids)); } catch { /* abaikan */ }
+}
+
+/** Pembaruan yang relevan untuk peran aktif (tanpa penanda peran = tampil semua). */
+export function updatesForRole(role) {
+  return CHANGELOG
+    .filter((u) => !u.peran || u.peran.includes(role))
+    .slice()
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+}
+
+/** True bila masih ada pembaruan yang belum dibuka akun ini. */
+export function hasUnreadUpdate(userId, role) {
+  const seen = readSeenUpdates(userId);
+  return updatesForRole(role).some((u) => !seen.includes(u.id));
+}
+
+/** Tandai semua pembaruan sudah dibaca. */
+export function markUpdatesRead(userId) {
+  writeSeenUpdates(userId, CHANGELOG.map((u) => u.id));
+}
+
+const ICON_BY_TUJUAN = {
+  "rekap-bulanan": BarChart3,
+  pengaduan: HeartHandshake,
+  peserta: Users,
+  "laporan-peserta": ClipboardList,
+  kalender: CalendarDays,
+  kegiatan: CalendarPlus,
 };
 
-export const UPDATES = CHANGELOG.map((entry) => ({
-  ...entry,
-  action: ACTION_BY_ID[entry.id] || { label: "Coba Sekarang", nav: "dashboard" },
-}));
-
-/** True bila ada update yang belum pernah dibuka pengguna. */
-export function hasUnreadUpdate() {
-  try {
-    return localStorage.getItem(STORAGE_KEY) !== (UPDATES[0]?.id || "");
-  } catch { return false; }
-}
-
-/** Tandai semua update sudah dibaca (dipakai saat modal dibuka manual). */
-export function markUpdatesRead() {
-  try { localStorage.setItem(STORAGE_KEY, UPDATES[0]?.id || ""); } catch { /* abaikan */ }
-}
-
-export default function UpdateModal({ onNavigate, forceOpen = false, onClose }) {
+export default function UpdateModal({ onNavigate, forceOpen = false, onClose, user, role }) {
   const [open, setOpen] = useState(forceOpen);
+  const [seen, setSeen] = useState(() => readSeenUpdates(user?.id));
+  const [expanded, setExpanded] = useState(null);
+
+  const activeRole = role || (user?.roles || [])[0] || "peserta";
+  const rows = useMemo(() => updatesForRole(activeRole), [activeRole]);
 
   useEffect(() => {
     if (forceOpen) { setOpen(true); return; }
-    let seen = null;
-    try { seen = localStorage.getItem(STORAGE_KEY); } catch { /* abaikan */ }
-    const latest = UPDATES[0]?.id;
-    if (latest && seen !== latest) setOpen(true);
-  }, [forceOpen]);
+    const latest = rows[0]?.id;
+    if (latest && !readSeenUpdates(user?.id).includes(latest)) setOpen(true);
+  }, [forceOpen, rows, user?.id]);
+
+  const tandai = (id) => {
+    if (seen.includes(id)) return;
+    const next = [...seen, id];
+    setSeen(next);
+    writeSeenUpdates(user?.id, next);
+  };
 
   const close = () => {
     setOpen(false);
-    try { localStorage.setItem(STORAGE_KEY, UPDATES[0]?.id || ""); } catch { /* abaikan */ }
+    markUpdatesRead(user?.id);
     onClose?.();
   };
 
@@ -66,7 +90,31 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose }) 
 
   if (!open) return null;
 
-  const content = (
+  const header = (
+    <div className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0B6B52] text-white">
+          <BellRing size={19} />
+        </span>
+        <div className="min-w-0">
+          <h2 className="font-heading text-lg font-bold leading-tight text-[#14201A]">Pembaruan terbaru</h2>
+          <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-[#5F6B63]">
+            <CalendarDays size={12} /> {rows[0]?.date ? formatChangelogDate(rows[0].date) : "—"}
+          </p>
+        </div>
+      </div>
+      <button
+        data-testid="update-modal-close"
+        onClick={close}
+        aria-label="Tutup"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]"
+      >
+        <X size={20} />
+      </button>
+    </div>
+  );
+
+  return (
     <Modal
       onClose={close}
       testid="update-modal"
@@ -74,30 +122,8 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose }) 
       maxWidth={640}
       zIndex={9999}
       hideClose
-      bodyClassName="px-4 py-4 space-y-3"
-      header={(
-        <div className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0B6B52] text-white">
-              <BellRing size={19} />
-            </span>
-            <div className="min-w-0">
-              <h2 className="font-heading text-lg font-bold leading-tight text-[#14201A]">Pembaruan Terbaru</h2>
-              <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-[#5F6B63]">
-                <CalendarDays size={12} /> {formatChangelogDate(UPDATES[0]?.date)}
-              </p>
-            </div>
-          </div>
-          <button
-            data-testid="update-modal-close"
-            onClick={close}
-            aria-label="Tutup"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]"
-          >
-            <X size={20} />
-          </button>
-        </div>
-      )}
+      bodyClassName="px-4 py-2"
+      header={header}
       footer={(
         <button
           onClick={close}
@@ -107,30 +133,75 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose }) 
         </button>
       )}
     >
-          {UPDATES.map((u) => (
-            <div
-              key={u.id}
-              data-testid={`update-item-${u.id}`}
-              className="rounded-2xl border border-[#E7E3D8] bg-white p-4"
-            >
-              <h3 className="font-bold text-[#14201A] text-[15px] leading-snug">{u.title}</h3>
-              <p className="mt-1 text-[13px] leading-relaxed text-[#5F6B63]">
-                {u.items[0]}
-              </p>
-              <button
-                type="button"
-                data-testid={`update-try-${u.id}`}
-                onClick={() => go(u.action?.nav)}
-                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-bold text-white hover:bg-[#0E4E31]"
-              >
-                {u.action?.label || "Coba Sekarang"} <ArrowRight size={16} />
-              </button>
-            </div>
-          ))}
+      <ul className="divide-y divide-[#F0EEE6]" data-testid="update-list">
+        {rows.map((u) => {
+          const unread = !seen.includes(u.id);
+          const Icon = ICON_BY_TUJUAN[u.tujuan] || Sparkles;
+          const hasTujuan = Boolean(u.tujuan);
+          const longText = (u.keterangan || "").length > 60;
+          const expandable = !hasTujuan && longText;
+          const clickable = hasTujuan || expandable;
+          const isOpen = expanded === u.id;
+          const ringkas = u.keterangan || u.items?.[0] || "";
+
+          const body = (
+            <>
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E3F3EA] text-[#0E4E31]">
+                <Icon size={15} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="min-w-0 truncate text-[14px] font-semibold text-[#14201A]">{u.title}</span>
+                  {unread && (
+                    <span className="shrink-0 rounded-full bg-[#E3F3EA] px-1.5 py-0.5 text-[10px] font-bold text-[#0E4E31]">
+                      Baru
+                    </span>
+                  )}
+                </span>
+                <span className="mt-0.5 block truncate text-[12.5px] text-[#5F6B63]">{ringkas}</span>
+                {hasTujuan && (
+                  <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-semibold text-[#0E4E31]">
+                    Coba sekarang <ArrowRight size={12} />
+                  </span>
+                )}
+              </span>
+              {expandable && (
+                <ChevronDown
+                  size={16}
+                  className={`mt-1 shrink-0 text-[#5F6B63] transition-transform duration-200 motion-reduce:transition-none ${isOpen ? "rotate-180" : ""}`}
+                />
+              )}
+            </>
+          );
+
+          return (
+            <li key={u.id} data-testid={`update-item-${u.id}`}>
+              {clickable ? (
+                <button
+                  type="button"
+                  data-testid={`update-row-${u.id}`}
+                  aria-expanded={expandable ? isOpen : undefined}
+                  onClick={() => {
+                    tandai(u.id);
+                    if (hasTujuan) go(u.tujuan);
+                    else setExpanded(isOpen ? null : u.id);
+                  }}
+                  className="flex min-h-[44px] w-full items-start gap-3 px-1 py-3 text-left transition-colors hover:bg-[#F6F4EE]"
+                >
+                  {body}
+                </button>
+              ) : (
+                <div className="flex min-h-[44px] w-full items-start gap-3 px-1 py-3">{body}</div>
+              )}
+              {expandable && isOpen && (
+                <p className="px-1 pb-3 pl-12 text-[13px] leading-relaxed text-[#5F6B63] motion-safe:animate-[reportCardIn_0.3s_ease-out_both]">
+                  {u.keterangan}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </Modal>
   );
-
-  // Portal ke <body> agar tidak terpotong oleh ancestor ber-overflow (AdminLayout).
-  if (typeof document === "undefined" || !document.body) return content;
-  return content;
 }
