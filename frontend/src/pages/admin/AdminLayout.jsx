@@ -8,7 +8,7 @@ import {
   ClipboardList, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
   Calendar1,
   PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle, BarChart3, LayoutGrid, Home,
-  Activity,
+  Activity, Link2,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { K1Mark, K1Wordmark } from "@/components/Logo";
@@ -42,6 +42,7 @@ import RekapBulananView from "./RekapBulananView";
 import RekapHarianView from "./RekapHarianView";
 import MaintenanceSettings from "./MaintenanceSettings";
 import PeriksaAplikasiView from "./PeriksaAplikasiView";
+import PendataanView from "./PendataanView";
 
 const MENU = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "pengurus"] },
@@ -52,6 +53,7 @@ const MENU = [
       { key: "kartu-nama", label: "Kartu Nama", icon: QrCode, roles: ["admin", "pengurus"] },
       { key: "peserta-bulk", label: "Bulk Data", icon: ListPlus, roles: ["admin", "pengurus"] },
       { key: "peserta-duplikat", label: "Cek Duplikat", icon: CopyCheck, roles: ["admin", "pengurus"] },
+      { key: "pendataan", label: "Pendataan", icon: Link2, roles: ["admin", "pengurus"] },
       { key: "kelompok", label: "Kelompok Sambung", icon: Layers, roles: ["admin", "pengurus"] },
     ],
   },
@@ -108,6 +110,7 @@ const TRAIL_LABEL = {
   "kartu-nama": "Kartu Nama",
   "peserta-bulk": "Bulk Data",
   "peserta-duplikat": "Cek Duplikat",
+  pendataan: "Pendataan",
   kelompok: "Kelompok Sambung",
   kegiatan: "Kegiatan",
   kalender: "Kalender Kegiatan",
@@ -137,6 +140,7 @@ const TRAIL_PARENT = {
   "kartu-nama": "peserta",
   "peserta-bulk": "peserta",
   "peserta-duplikat": "peserta",
+  pendataan: "peserta",
   kelompok: "peserta",
   "laporan-peserta": "grup-laporan",
   "rekap-bulanan": "grup-laporan",
@@ -277,7 +281,7 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
 function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
   const sections = {
     dashboard: ["dashboard"],
-    peserta: ["peserta", "kartu-nama", "peserta-bulk", "peserta-duplikat", "kelompok"],
+    peserta: ["peserta", "kartu-nama", "peserta-bulk", "peserta-duplikat", "pendataan", "kelompok"],
     kegiatan: ["kegiatan", "kalender", "kode-akses", "scan-presensi", "pengumuman"],
     rekap: ["laporan-peserta", "rekap-bulanan", "rekap-harian", "musyawarah", "pengaduan"],
   };
@@ -494,6 +498,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "kartu-nama" && <KartuNamaView />}
           {active === "peserta-bulk" && <PesertaBulkView />}
           {active === "peserta-duplikat" && <PesertaDuplikat />}
+          {active === "pendataan" && <PendataanView />}
           {active === "kegiatan" && (
             <KegiatanView
               addRequest={addKegiatanRequest}

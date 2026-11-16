@@ -15,6 +15,7 @@ import PublicMusyawarah from "@/pages/PublicMusyawarah";
 import PublicTugas from "@/pages/PublicTugas";
 import PublicLaporan from "@/pages/PublicLaporan";
 import PublicLaporanPeserta from "@/pages/PublicLaporanPeserta";
+import PublicPendataan from "@/pages/PublicPendataan";
 import SelfAbsen from "@/pages/SelfAbsen";
 import PublicAbsensi from "@/pages/PublicAbsensi";
 import PublicHadir from "@/pages/PublicHadir";
@@ -53,6 +54,7 @@ const MAINTENANCE_EXEMPT = [
   "/musyawarah",
   "/laporan",
   "/laporan-peserta",
+  "/data",
   "/absen",
   "/absensi",
   "/hadir",
@@ -134,6 +136,7 @@ function AppRoutes() {
       <Route path="/tugas/:token" element={<PublicTugas />} />
       <Route path="/laporan/:token" element={<PublicLaporan />} />
       <Route path="/laporan-peserta/:token" element={<PublicLaporanPeserta />} />
+      <Route path="/data/:token" element={<PublicPendataan />} />
       {/* Absen mandiri: wajib login & fokus 1 peserta (halaman menangani sesinya sendiri) */}
       <Route path="/absen/:token" element={<SelfAbsen />} />
       <Route path="/absensi/:token" element={<PublicAbsensi />} />

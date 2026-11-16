@@ -8656,6 +8656,392 @@ async def maintenance_update(body: MaintenanceInput, user: dict = Depends(requir
     return maintenance_state(doc)
 
 
+# ---------------------------------------------------------------------------
+# PENDATAAN — tautan publik untuk melengkapi data peserta lama / pendaftaran baru.
+# Semua isian masuk ke `pendataan_isian` dan baru berlaku setelah disetujui.
+# Rute publik TIDAK PERNAH menulis ke `users`.
+# ---------------------------------------------------------------------------
+PENDATAAN_JENIS = ("orang", "baru")
+PENDATAAN_MARITAL = {"belum menikah": "belum_menikah", "sudah menikah": "sudah_menikah"}
+PENDATAAN_GENDER = {"laki-laki": "L", "perempuan": "P"}
+PENDATAAN_MARITAL_LABEL = {"belum_menikah": "Belum menikah", "sudah_menikah": "Sudah menikah"}
+PENDATAAN_GENDER_LABEL = {"L": "Laki-laki", "P": "Perempuan"}
+PENDATAAN_MAX_MENUNGGU = 100
+PENDATAAN_BERLAKU_HARI = {"7": 7, "14": 14, "30": 30}
+
+
+def _bersih_teks(value, maks: int = 100) -> str:
+    """Buang tag HTML dan rapikan spasi ganda."""
+    teks = re.sub(r"<[^>]*>", " ", str(value or ""))
+    teks = re.sub(r"\s+", " ", teks).strip()
+    return teks[:maks]
+
+
+def _oid(value):
+    """String id → ObjectId (None bila tidak valid)."""
+    if isinstance(value, ObjectId):
+        return value
+    return ObjectId(value) if value and ObjectId.is_valid(str(value)) else None
+
+
+def _pendataan_tidak_berlaku():
+    """Pesan SAMA untuk semua penyebab (tidak ada / dimatikan / kedaluwarsa)."""
+    return HTTPException(status_code=410, detail="Tautan sudah tidak berlaku")
+
+
+async def _pendataan_tautan_aktif(token: str) -> dict:
+    row = await db.pendataan_tautan.find_one({"token": token})
+    if not row or not row.get("aktif"):
+        raise _pendataan_tidak_berlaku()
+    try:
+        batas = datetime.fromisoformat(str(row.get("berlaku_sampai")))
+    except Exception:
+        raise _pendataan_tidak_berlaku()
+    if batas.tzinfo is None:
+        batas = batas.replace(tzinfo=WITA)
+    if now_wita() > batas:
+        raise _pendataan_tidak_berlaku()
+    return row
+
+
+def _validasi_isian(body: dict, jenis: str) -> dict:
+    """Daftar putih isian. Mengembalikan data bersih atau melempar HTTPException."""
+    data: dict = {}
+    marital_raw = str(body.get("status_pernikahan") or "").strip().lower()
+    if marital_raw not in PENDATAAN_MARITAL:
+        raise HTTPException(status_code=400, detail="Status pernikahan wajib dipilih.")
+    data["status_pernikahan"] = PENDATAAN_MARITAL[marital_raw]
+
+    gender_raw = str(body.get("jenis_kelamin") or "").strip().lower()
+    if gender_raw not in PENDATAAN_GENDER:
+        raise HTTPException(status_code=400, detail="Jenis kelamin wajib dipilih.")
+    data["jenis_kelamin"] = PENDATAAN_GENDER[gender_raw]
+
+    if jenis == "baru":
+        nama = _bersih_teks(body.get("nama"), 100)
+        if len(nama) < 3:
+            raise HTTPException(status_code=400, detail="Nama lengkap minimal 3 huruf.")
+        data["nama"] = nama
+
+    dob_raw = str(body.get("tanggal_lahir") or "").strip()
+    if dob_raw:
+        dob = normalize_dob(dob_raw)
+        if not dob:
+            raise HTTPException(status_code=400, detail="Tanggal lahir tidak valid.")
+        try:
+            lahir = datetime.strptime(dob, "%Y-%m-%d").replace(tzinfo=WITA)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Tanggal lahir tidak valid.")
+        hari_ini = now_wita()
+        if lahir > hari_ini:
+            raise HTTPException(status_code=400, detail="Tanggal lahir tidak boleh di masa depan.")
+        umur = hari_ini.year - lahir.year - ((hari_ini.month, hari_ini.day) < (lahir.month, lahir.day))
+        if umur < 1 or umur > 120:
+            raise HTTPException(status_code=400, detail="Tanggal lahir tidak wajar.")
+        data["tanggal_lahir"] = dob
+
+    hp_raw = str(body.get("nomor_hp") or "").strip()
+    if hp_raw:
+        nomor = normalize_wa_wali(hp_raw)
+        if not nomor or not nomor.startswith("62") or not (10 <= len(nomor) <= 15):
+            raise HTTPException(status_code=400, detail="Nomor HP tidak valid.")
+        data["nomor_hp"] = nomor
+    return data
+
+
+@api_router.get("/publik/pendataan/{token}")
+async def publik_pendataan(token: str):
+    """Info tautan publik. Hanya jenis + nama peserta (tanpa data pribadi lain)."""
+    row = await _pendataan_tautan_aktif(token)
+    body = {"jenis": row.get("jenis"), "nama": None}
+    if row.get("jenis") == "orang" and row.get("peserta_id"):
+        peserta = await db.users.find_one({"_id": _oid(row["peserta_id"])}, {"name": 1})
+        body["nama"] = (peserta or {}).get("name")
+    return JSONResponse(content=body, headers={
+        "X-Robots-Tag": "noindex, nofollow",
+        "Referrer-Policy": "no-referrer",
+        "Cache-Control": "no-store",
+    })
+
+
+@api_router.post("/publik/pendataan/{token}")
+async def publik_pendataan_kirim(token: str, body: dict):
+    """Simpan isian ke `pendataan_isian` saja (tidak menyentuh tabel peserta)."""
+    row = await _pendataan_tautan_aktif(token)
+    jenis = row.get("jenis")
+    data = _validasi_isian(body, jenis)
+    sekarang = now_wita().isoformat()
+    if jenis == "orang":
+        peserta_id = row.get("peserta_id")
+        if not peserta_id:
+            raise _pendataan_tidak_berlaku()
+        ada = await db.pendataan_isian.find_one(
+            {"tautan_id": row["_id"], "status": "menunggu"})
+        if ada:
+            await db.pendataan_isian.update_one(
+                {"_id": ada["_id"]},
+                {"$set": {"data": data, "dikirim_pada": sekarang}})
+            return {"ok": True, "diperbarui": True}
+        await db.pendataan_isian.insert_one({
+            "_id": str(uuid.uuid4()), "tautan_id": row["_id"], "jenis": "pembaruan",
+            "peserta_id": peserta_id, "data": data, "status": "menunggu",
+            "dikirim_pada": sekarang, "ditinjau_oleh": None, "ditinjau_pada": None,
+        })
+        return {"ok": True, "diperbarui": False}
+    jumlah = await db.pendataan_isian.count_documents(
+        {"tautan_id": row["_id"], "status": "menunggu"})
+    if jumlah >= PENDATAAN_MAX_MENUNGGU:
+        raise HTTPException(status_code=429,
+                            detail="Isian untuk tautan ini sudah penuh. Hubungi pengurus.")
+    await db.pendataan_isian.insert_one({
+        "_id": str(uuid.uuid4()), "tautan_id": row["_id"], "jenis": "calon",
+        "peserta_id": None, "data": data, "status": "menunggu",
+        "dikirim_pada": sekarang, "ditinjau_oleh": None, "ditinjau_pada": None,
+    })
+    return {"ok": True, "diperbarui": False}
+
+
+class PendataanTautanInput(BaseModel):
+    jenis: str = "orang"
+    peserta_ids: List[str] = []
+    berlaku_hari: int = 7
+
+
+class PendataanPutusanInput(BaseModel):
+    aksi: str = "setujui"          # setujui | tolak | gabungkan
+    peserta_id: Optional[str] = None
+
+
+def _pendataan_url(request: Request, token: str) -> str:
+    return f"{resolve_base_url(request)}/data/{token}"
+
+
+@api_router.post("/staff/pendataan/tautan")
+async def pendataan_buat_tautan(body: PendataanTautanInput, request: Request,
+                                staff: dict = Depends(require_staff)):
+    """Buat tautan pendataan (jenis 'orang' untuk banyak peserta, atau 'baru')."""
+    jenis = body.jenis if body.jenis in PENDATAAN_JENIS else "orang"
+    hari = body.berlaku_hari if body.berlaku_hari in (7, 14, 30) else 7
+    batas = (now_wita() + timedelta(days=hari)).isoformat()
+    dibuat = now_wita().isoformat()
+    oleh = str(staff["_id"])
+    hasil = []
+    if jenis == "baru":
+        token = secrets.token_urlsafe(24)
+        await db.pendataan_tautan.insert_one({
+            "_id": str(uuid.uuid4()), "token": token, "jenis": "baru",
+            "peserta_id": None, "berlaku_sampai": batas, "aktif": True,
+            "dibuat_oleh": oleh, "dibuat_pada": dibuat,
+        })
+        hasil.append({"token": token, "nama": None, "url": _pendataan_url(request, token)})
+    else:
+        ids = [i for i in dict.fromkeys(body.peserta_ids or []) if i]
+        if not ids:
+            raise HTTPException(status_code=400, detail="Pilih minimal satu peserta.")
+        oids = [ObjectId(i) for i in ids if ObjectId.is_valid(i)]
+        peserta = await db.users.find({"_id": {"$in": oids}}, {"name": 1}).to_list(500)
+        nama_by = {str(p["_id"]): p.get("name") for p in peserta}
+        for pid in ids:
+            if pid not in nama_by:
+                continue
+            token = secrets.token_urlsafe(24)
+            await db.pendataan_tautan.insert_one({
+                "_id": str(uuid.uuid4()), "token": token, "jenis": "orang",
+                "peserta_id": pid, "berlaku_sampai": batas, "aktif": True,
+                "dibuat_oleh": oleh, "dibuat_pada": dibuat,
+            })
+            hasil.append({"token": token, "nama": nama_by[pid],
+                          "url": _pendataan_url(request, token)})
+    await log_activity(staff, "pendataan_tautan",
+                       f"Membuat {len(hasil)} tautan pendataan ({jenis})")
+    return {"jenis": jenis, "berlaku_sampai": batas, "items": hasil}
+
+
+@api_router.get("/staff/pendataan/tautan")
+async def pendataan_daftar_tautan(staff: dict = Depends(require_staff)):
+    rows = await db.pendataan_tautan.find({"aktif": True}) \
+        .sort("dibuat_pada", -1).to_list(200)
+    sekarang = now_wita()
+    items = []
+    for r in rows:
+        try:
+            batas = datetime.fromisoformat(str(r.get("berlaku_sampai")))
+            if batas.tzinfo is None:
+                batas = batas.replace(tzinfo=WITA)
+        except Exception:
+            continue
+        if sekarang > batas:
+            continue
+        nama = None
+        if r.get("peserta_id"):
+            p = await db.users.find_one({"_id": _oid(r["peserta_id"])}, {"name": 1})
+            nama = (p or {}).get("name")
+        items.append({"id": r["_id"], "jenis": r.get("jenis"), "nama": nama,
+                      "berlaku_sampai": r.get("berlaku_sampai"),
+                      "dibuat_pada": r.get("dibuat_pada")})
+    return {"items": items}
+
+
+@api_router.post("/staff/pendataan/tautan/{tautan_id}/matikan")
+async def pendataan_matikan_tautan(tautan_id: str, staff: dict = Depends(require_staff)):
+    res = await db.pendataan_tautan.update_one({"_id": tautan_id}, {"$set": {"aktif": False}})
+    if not res.matched_count:
+        raise HTTPException(status_code=404, detail="Tautan tidak ditemukan")
+    await log_activity(staff, "pendataan_matikan", "Mematikan tautan pendataan", tautan_id)
+    return {"ok": True}
+
+
+async def _pendataan_kemungkinan(data: dict) -> list:
+    """Cari peserta yang mungkin sudah terdaftar (nama atau nomor HP)."""
+    kandidat: dict = {}
+    nama = _bersih_teks(data.get("nama"), 100)
+    if nama:
+        pola = re.escape(nama)
+        pola = pola.replace(r"\ ", r"\s+")
+        async for u in db.users.find({"name": {"$regex": f"^{pola}$", "$options": "i"}},
+                                     {"name": 1, "phone": 1}):
+            kandidat[str(u["_id"])] = {"id": str(u["_id"]), "nama": u.get("name"),
+                                       "alasan": "nama sama"}
+    nomor = data.get("nomor_hp")
+    if nomor:
+        async for u in db.users.find({"$or": [{"phone": nomor}, {"whatsapp": nomor}]},
+                                     {"name": 1, "phone": 1}):
+            kandidat[str(u["_id"])] = {"id": str(u["_id"]), "nama": u.get("name"),
+                                       "alasan": "nomor HP sama"}
+    return list(kandidat.values())
+
+
+@api_router.get("/staff/pendataan/isian")
+async def pendataan_daftar_isian(staff: dict = Depends(require_staff)):
+    rows = await db.pendataan_isian.find({"status": "menunggu"}) \
+        .sort("dikirim_pada", 1).to_list(300)
+    items = []
+    for r in rows:
+        peserta = None
+        if r.get("peserta_id"):
+            p = await db.users.find_one({"_id": _oid(r["peserta_id"])},
+                                        {"name": 1, "marital": 1, "gender": 1,
+                                         "dob": 1, "phone": 1})
+            if p:
+                peserta = {"id": str(p["_id"]), "nama": p.get("name"),
+                           "status_pernikahan": p.get("marital"),
+                           "jenis_kelamin": p.get("gender"),
+                           "tanggal_lahir": p.get("dob"), "nomor_hp": p.get("phone")}
+        kemungkinan = await _pendataan_kemungkinan(r.get("data") or {}) if r.get("jenis") == "calon" else []
+        items.append({"id": r["_id"], "jenis": r.get("jenis"),
+                      "peserta": peserta, "data": r.get("data") or {},
+                      "dikirim_pada": r.get("dikirim_pada"),
+                      "kemungkinan": kemungkinan})
+    return {"items": items}
+
+
+async def _terapkan_pembaruan(peserta_id: str, data: dict) -> None:
+    """Terapkan HANYA kolom daftar putih ke peserta (dipakai setujui & gabungkan)."""
+    upd: dict = {}
+    if data.get("status_pernikahan") in MARITAL_OPTIONS:
+        upd["marital"] = data["status_pernikahan"]
+    if data.get("jenis_kelamin") in GENDER_OPTIONS:
+        upd["gender"] = data["jenis_kelamin"]
+        upd["avatar_gender"] = "female" if data["jenis_kelamin"] == "P" else "male"
+    if data.get("tanggal_lahir"):
+        dob = normalize_dob(data["tanggal_lahir"])
+        if dob:
+            upd["dob"] = dob
+    if data.get("nomor_hp"):
+        nomor = normalize_wa_wali(data["nomor_hp"])
+        if nomor:
+            bentrok = await db.users.find_one(
+                {"_id": {"$ne": _oid(peserta_id)},
+                 "$or": [{"phone": nomor}, {"whatsapp": nomor}]}, {"name": 1})
+            if bentrok:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Nomor HP sudah dipakai peserta lain ({bentrok.get('name')}).")
+            upd["phone"] = nomor
+    if upd:
+        await db.users.update_one({"_id": _oid(peserta_id)}, {"$set": upd})
+
+
+@api_router.post("/staff/pendataan/isian/{isian_id}/putuskan")
+async def pendataan_putuskan(isian_id: str, body: PendataanPutusanInput,
+                             staff: dict = Depends(require_staff)):
+    row = await db.pendataan_isian.find_one({"_id": isian_id})
+    if not row:
+        raise HTTPException(status_code=404, detail="Isian tidak ditemukan")
+    if row.get("status") != "menunggu":
+        raise HTTPException(status_code=400, detail="Isian ini sudah ditinjau.")
+    aksi = body.aksi if body.aksi in ("setujui", "tolak", "gabungkan") else "setujui"
+    data = row.get("data") or {}
+    sekarang = now_wita().isoformat()
+    oleh = str(staff["_id"])
+
+    if aksi == "tolak":
+        await db.pendataan_isian.update_one(
+            {"_id": isian_id},
+            {"$set": {"status": "ditolak", "ditinjau_oleh": oleh, "ditinjau_pada": sekarang}})
+        await log_activity(staff, "pendataan_tolak", "Menolak isian pendataan", isian_id)
+        return {"ok": True, "status": "ditolak"}
+
+    if aksi == "gabungkan":
+        target = body.peserta_id
+        if not target or not ObjectId.is_valid(target):
+            raise HTTPException(status_code=400, detail="Pilih peserta yang akan digabungkan.")
+        await _terapkan_pembaruan(target, data)
+        await db.pendataan_isian.update_one(
+            {"_id": isian_id},
+            {"$set": {"status": "disetujui", "ditinjau_oleh": oleh,
+                      "ditinjau_pada": sekarang, "peserta_id": target}})
+        await log_activity(staff, "pendataan_gabung",
+                           "Menggabungkan isian pendataan ke peserta", target)
+        return {"ok": True, "status": "disetujui", "peserta_id": target}
+
+    if row.get("jenis") == "pembaruan":
+        target = row.get("peserta_id")
+        if not target:
+            raise HTTPException(status_code=400, detail="Peserta tidak ditemukan.")
+        await _terapkan_pembaruan(target, data)
+        await db.pendataan_isian.update_one(
+            {"_id": isian_id},
+            {"$set": {"status": "disetujui", "ditinjau_oleh": oleh, "ditinjau_pada": sekarang}})
+        await log_activity(staff, "pendataan_setujui",
+                           "Menyetujui pembaruan data peserta", target)
+        return {"ok": True, "status": "disetujui", "peserta_id": target}
+
+    # calon → buat peserta baru (status belum aktivasi) lewat fungsi pembuat peserta.
+    nama = _bersih_teks(data.get("nama"), 100)
+    if len(nama) < 3:
+        raise HTTPException(status_code=400, detail="Nama calon peserta tidak valid.")
+    nomor = normalize_wa_wali(data.get("nomor_hp")) if data.get("nomor_hp") else None
+    if nomor:
+        bentrok = await db.users.find_one({"$or": [{"phone": nomor}, {"whatsapp": nomor}]},
+                                          {"name": 1})
+        if bentrok:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Nomor HP sudah dipakai peserta lain ({bentrok.get('name')}).")
+    doc = build_pending_doc(nama, data.get("tanggal_lahir"))
+    doc["username"] = await unique_username_from_name(nama)
+    doc["marital"] = data.get("status_pernikahan") if data.get("status_pernikahan") in MARITAL_OPTIONS else None
+    gender = data.get("jenis_kelamin") if data.get("jenis_kelamin") in GENDER_OPTIONS else None
+    doc["gender"] = gender
+    doc["avatar_gender"] = "female" if gender == "P" else "male"
+    doc["phone"] = nomor
+    doc["source"] = "pendataan"
+    saran = saran_jenjang(doc.get("dob"))
+    if saran:
+        doc["jenjang"] = saran
+        doc["jenjang_saran"] = True
+    res = await db.users.insert_one(doc)
+    baru_id = str(res.inserted_id)
+    await db.pendataan_isian.update_one(
+        {"_id": isian_id},
+        {"$set": {"status": "disetujui", "ditinjau_oleh": oleh,
+                  "ditinjau_pada": sekarang, "peserta_id": baru_id}})
+    await log_activity(staff, "pendataan_setujui",
+                       f"Menyetujui calon peserta '{nama}'", baru_id)
+    return {"ok": True, "status": "disetujui", "peserta_id": baru_id}
+
+
 app.include_router(api_router)
 
 _allowed_origins = {FRONTEND_URL, "http://localhost:3000"}
@@ -8800,6 +9186,11 @@ async def _run_init():
     await db.delegations.create_index([("kegiatan_id", 1), ("grantee_id", 1), ("active", 1)])
     await db.delegations.create_index("grantee_id")
     await db.tutorial_video.create_index([("peran", 1), ("urutan", 1)])
+    # Pendataan: tautan publik + isian menunggu tinjauan.
+    await db.pendataan_tautan.create_index("token", unique=True)
+    await db.pendataan_tautan.create_index([("aktif", 1), ("dibuat_pada", -1)])
+    await db.pendataan_isian.create_index([("status", 1), ("dikirim_pada", 1)])
+    await db.pendataan_isian.create_index([("tautan_id", 1), ("status", 1)])
 
 
 _init_done = False
