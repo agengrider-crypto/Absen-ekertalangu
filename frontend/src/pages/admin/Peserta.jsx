@@ -13,7 +13,7 @@ import ActionModal from "@/components/ActionModal";
 import Modal from "@/components/Modal";
 import ListFab, { ListPagination } from "@/components/ListFab";
 import PesertaDetailModal from "./PesertaDetailModal";
-import { genderLabel, statusBadge, MARITAL_OPTIONS, potensiGenerus, isGenerus, jenjangEfektif, jenjangLabel, umurPerJuli } from "./adminUtils";
+import { genderLabel, statusBadge, MARITAL_OPTIONS, potensiGenerus, isGenerus, jenjangEfektif, jenjangLabel, umurPerJuli, golonganPeserta } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 
@@ -933,6 +933,32 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
   const visibleSelected = filtered.filter((user) => selected.has(user.id));
   const allVisibleSelected = filtered.length > 0 && visibleSelected.length === filtered.length;
 
+  // Keterangan nama kembar: bandingkan nama tanpa huruf besar/kecil & spasi ganda.
+  const namaKunci = (user) => String(user?.name || "").trim().toLowerCase().replace(/\s+/g, " ");
+  const kelompokNama = useMemo(() => {
+    const map = new Map();
+    (kelompok || []).forEach((group) => map.set(group.id, group.name));
+    return map;
+  }, [kelompok]);
+  const keteranganKembar = useMemo(() => {
+    const hitung = new Map();
+    filtered.forEach((user) => {
+      const key = namaKunci(user);
+      hitung.set(key, (hitung.get(key) || 0) + 1);
+    });
+    const hasil = new Map();
+    filtered.forEach((user) => {
+      const key = namaKunci(user);
+      if ((hitung.get(key) || 0) < 2) return;
+      const kategori = golonganPeserta(user);
+      const samaKategori = filtered.filter((other) => namaKunci(other) === key
+        && golonganPeserta(other) === kategori).length;
+      const namaKelompok = samaKategori > 1 ? (kelompokNama.get(user.kelompok_id) || "") : "";
+      hasil.set(user.id, { kategori, kelompok: namaKelompok });
+    });
+    return hasil;
+  }, [filtered, kelompokNama]);
+
   const toggleVisible = () => {
     setSelected((previous) => {
       const next = new Set(previous);
@@ -1097,7 +1123,19 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
                   data-testid={`${PARTICIPANTS.nameTagCheckboxPrefix}-${user.id}`}
                   className="h-5 w-5 accent-[#14633F]"
                 />
-                <span className="truncate">{user.name}</span>
+                <span className="min-w-0 truncate">
+                  {user.name}
+                  {keteranganKembar.get(user.id)?.kategori && (
+                    <span className="ml-1 text-xs font-normal text-[#5F6B63]">
+                      ({keteranganKembar.get(user.id).kategori})
+                    </span>
+                  )}
+                  {keteranganKembar.get(user.id)?.kelompok && (
+                    <span className="ml-1 text-xs font-normal text-[#5F6B63]">
+                      · {keteranganKembar.get(user.id).kelompok}
+                    </span>
+                  )}
+                </span>
               </label>
             ))}
           </div>
@@ -1134,10 +1172,18 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
 }
 
 function NameTagCard({ user, orientation, preview = false }) {
+  const kategori = golonganPeserta(user);
   return (
     <div className={`name-tag-card name-tag-card-${orientation}${preview ? " name-tag-preview-card" : ""}`}>
-      <div className="name-tag-card-name">{user.name}</div>
+      <span className="name-tag-card-merek">E-Kertalangu</span>
+      <div className="name-tag-card-identitas">
+        <div className="name-tag-card-name">{user.name}</div>
+        {kategori && <div className="name-tag-card-kategori">{kategori}</div>}
+      </div>
       <QRCodeSVG value={`EKT:${user.id}`} title={`Barcode identitas ${user.name}`} size={108} level="M" fgColor="#000000" bgColor="#FFFFFF" />
+      {orientation === "portrait" && (
+        <span className="name-tag-card-petunjuk">Tunjukkan ke kamera saat absen</span>
+      )}
     </div>
   );
 }

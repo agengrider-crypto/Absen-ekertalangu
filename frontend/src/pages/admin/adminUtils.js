@@ -11,6 +11,22 @@ export function maritalLabel(v) {
   return MARITAL_OPTIONS.find((o) => o.value === v)?.label || "-";
 }
 
+/**
+ * Kategori peserta untuk kartu nama (absensi hanya muda-mudi & orang tua).
+ * Generus/Caberawit tidak dihitung, jadi umur tidak dipakai.
+ * Status pernikahan / jenis kelamin kosong → tanpa kategori (jangan menebak).
+ */
+export function golonganPeserta(peserta) {
+  const marital = peserta?.marital;
+  if (!marital) return "";
+  if (marital === "belum_menikah") return "Muda-mudi";
+  if (marital !== "sudah_menikah") return "";
+  const gender = peserta?.gender;
+  if (gender === "L") return "Bapak-bapak";
+  if (gender === "P") return "Ibu-ibu";
+  return "";
+}
+
 // Label jenjang peserta (id sama dengan Program Pembelajaran).
 export const JENJANG_LABEL = {
   paud: "PAUD",
