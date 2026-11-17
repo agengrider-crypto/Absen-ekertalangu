@@ -8704,6 +8704,23 @@ async def _pendataan_tautan_aktif(token: str) -> dict:
     return row
 
 
+def _nama_valid(nama: str) -> bool:
+    """Hanya huruf (termasuk berdiakritik), spasi, titik, koma, apostrof, tanda hubung."""
+    if not nama:
+        return False
+    for ch in nama:
+        if ch.isalpha() or ch in " .,'-":
+            continue
+        return False
+    return True
+
+
+def _nama_sama(a, b) -> bool:
+    """Bandingkan nama tanpa huruf besar/kecil dan spasi ganda."""
+    rapikan = lambda v: re.sub(r"\s+", " ", str(v or "").strip().lower())
+    return rapikan(a) == rapikan(b)
+
+
 def _validasi_isian(body: dict, jenis: str) -> dict:
     """Daftar putih isian. Mengembalikan data bersih atau melempar HTTPException."""
     data: dict = {}
@@ -8717,28 +8734,30 @@ def _validasi_isian(body: dict, jenis: str) -> dict:
         raise HTTPException(status_code=400, detail="Jenis kelamin wajib dipilih.")
     data["jenis_kelamin"] = PENDATAAN_GENDER[gender_raw]
 
-    if jenis == "baru":
-        nama = _bersih_teks(body.get("nama"), 100)
-        if len(nama) < 3:
-            raise HTTPException(status_code=400, detail="Nama lengkap minimal 3 huruf.")
-        data["nama"] = nama
+    nama = _bersih_teks(body.get("nama"), 100)
+    if len(nama) < 3:
+        raise HTTPException(status_code=400, detail="Nama lengkap minimal 3 huruf.")
+    if not _nama_valid(nama):
+        raise HTTPException(status_code=400, detail="Nama hanya boleh berisi huruf.")
+    data["nama"] = nama
 
     dob_raw = str(body.get("tanggal_lahir") or "").strip()
-    if dob_raw:
-        dob = normalize_dob(dob_raw)
-        if not dob:
-            raise HTTPException(status_code=400, detail="Tanggal lahir tidak valid.")
-        try:
-            lahir = datetime.strptime(dob, "%Y-%m-%d").replace(tzinfo=WITA)
-        except Exception:
-            raise HTTPException(status_code=400, detail="Tanggal lahir tidak valid.")
-        hari_ini = now_wita()
-        if lahir > hari_ini:
-            raise HTTPException(status_code=400, detail="Tanggal lahir tidak boleh di masa depan.")
-        umur = hari_ini.year - lahir.year - ((hari_ini.month, hari_ini.day) < (lahir.month, lahir.day))
-        if umur < 1 or umur > 120:
-            raise HTTPException(status_code=400, detail="Tanggal lahir tidak wajar.")
-        data["tanggal_lahir"] = dob
+    if not dob_raw:
+        raise HTTPException(status_code=400, detail="Tanggal lahir wajib diisi.")
+    dob = normalize_dob(dob_raw)
+    if not dob:
+        raise HTTPException(status_code=400, detail="Tanggal lahir tidak valid.")
+    try:
+        lahir = datetime.strptime(dob, "%Y-%m-%d").replace(tzinfo=WITA)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Tanggal lahir tidak valid.")
+    hari_ini = now_wita()
+    if lahir > hari_ini:
+        raise HTTPException(status_code=400, detail="Tanggal lahir tidak boleh di masa depan.")
+    umur = hari_ini.year - lahir.year - ((hari_ini.month, hari_ini.day) < (lahir.month, lahir.day))
+    if umur < 1 or umur > 120:
+        raise HTTPException(status_code=400, detail="Tanggal lahir tidak wajar.")
+    data["tanggal_lahir"] = dob
 
     hp_raw = str(body.get("nomor_hp") or "").strip()
     if hp_raw:
@@ -8775,6 +8794,10 @@ async def publik_pendataan_kirim(token: str, body: dict):
         peserta_id = row.get("peserta_id")
         if not peserta_id:
             raise _pendataan_tidak_berlaku()
+        # Nama hanya disimpan bila berbeda dari nama sekarang.
+        peserta = await db.users.find_one({"_id": _oid(peserta_id)}, {"name": 1})
+        if _nama_sama(data.get("nama"), (peserta or {}).get("name")):
+            data.pop("nama", None)
         ada = await db.pendataan_isian.find_one(
             {"tautan_id": row["_id"], "status": "menunggu"})
         if ada:
@@ -8898,6 +8921,35 @@ async def pendataan_matikan_tautan(tautan_id: str, staff: dict = Depends(require
     return {"ok": True}
 
 
+class PendataanMassalInput(BaseModel):
+    ids: List[str] = []
+    aksi: str = "matikan"          # matikan | hapus
+
+
+@api_router.post("/staff/pendataan/tautan/massal")
+async def pendataan_massal(body: PendataanMassalInput, staff: dict = Depends(require_staff)):
+    """Aksi massal tautan pendataan: matikan atau hapus (hapus = lunak + hilang dari daftar).
+
+    Isian di `pendataan_isian` TIDAK diubah/dihapus.
+    """
+    aksi = body.aksi if body.aksi in ("matikan", "hapus") else "matikan"
+    ids = [i for i in dict.fromkeys(body.ids or []) if i]
+    if not ids:
+        raise HTTPException(status_code=400, detail="Pilih minimal satu tautan.")
+    rows = await db.pendataan_tautan.find({"_id": {"$in": ids}}).to_list(500)
+    if not rows:
+        raise HTTPException(status_code=404, detail="Tautan tidak ditemukan.")
+    valid_ids = [r["_id"] for r in rows]
+    # Penghapusan lunak memakai kolom yang sudah ada: aktif=false. Daftar hanya
+    # menampilkan tautan aktif, jadi tautan langsung hilang dari daftar.
+    await db.pendataan_tautan.update_many(
+        {"_id": {"$in": valid_ids}}, {"$set": {"aktif": False}})
+    await log_activity(staff, f"pendataan_{aksi}",
+                       f"{'Menghapus' if aksi == 'hapus' else 'Mematikan'} "
+                       f"{len(valid_ids)} tautan pendataan", ",".join(valid_ids)[:500])
+    return {"ok": True, "jumlah": len(valid_ids), "aksi": aksi}
+
+
 async def _pendataan_kemungkinan(data: dict) -> list:
     """Cari peserta yang mungkin sudah terdaftar (nama atau nomor HP)."""
     kandidat: dict = {}
@@ -8935,16 +8987,29 @@ async def pendataan_daftar_isian(staff: dict = Depends(require_staff)):
                            "jenis_kelamin": p.get("gender"),
                            "tanggal_lahir": p.get("dob"), "nomor_hp": p.get("phone")}
         kemungkinan = await _pendataan_kemungkinan(r.get("data") or {}) if r.get("jenis") == "calon" else []
+        # Peringatan (tidak menghalangi): nama baru sama dengan peserta LAIN.
+        nama_bentrok = []
+        nama_baru = _bersih_teks((r.get("data") or {}).get("nama"), 100)
+        if r.get("jenis") == "pembaruan" and nama_baru:
+            pola = re.escape(nama_baru).replace(r"\ ", r"\s+")
+            async for u in db.users.find(
+                    {"name": {"$regex": f"^{pola}$", "$options": "i"},
+                     "_id": {"$ne": _oid(r.get("peserta_id"))}}, {"name": 1}):
+                nama_bentrok.append(u.get("name"))
         items.append({"id": r["_id"], "jenis": r.get("jenis"),
+                      "tautan_id": r.get("tautan_id"),
                       "peserta": peserta, "data": r.get("data") or {},
                       "dikirim_pada": r.get("dikirim_pada"),
-                      "kemungkinan": kemungkinan})
+                      "kemungkinan": kemungkinan, "nama_bentrok": nama_bentrok})
     return {"items": items}
 
 
 async def _terapkan_pembaruan(peserta_id: str, data: dict) -> None:
     """Terapkan HANYA kolom daftar putih ke peserta (dipakai setujui & gabungkan)."""
     upd: dict = {}
+    nama = _bersih_teks(data.get("nama"), 100)
+    if len(nama) >= 3 and _nama_valid(nama):
+        upd["name"] = nama
     if data.get("status_pernikahan") in MARITAL_OPTIONS:
         upd["marital"] = data["status_pernikahan"]
     if data.get("jenis_kelamin") in GENDER_OPTIONS:

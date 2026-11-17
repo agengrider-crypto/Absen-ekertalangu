@@ -18,6 +18,36 @@ const GENDER = [
 const inputCls =
   "h-12 w-full rounded-xl border border-[#8A948D] bg-white px-3.5 text-base text-[#14201A] outline-none focus:border-[#14633F]";
 
+const NAMA_POLA = /^[\p{L} .,'-]+$/u;
+
+/** Validasi nama: 3–100 karakter, hanya huruf/spasi/titik/koma/apostrof/tanda hubung. */
+function periksaNama(nilai) {
+  const nama = String(nilai || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  if (nama.length < 3) return "Nama lengkap minimal 3 huruf.";
+  if (nama.length > 100) return "Nama lengkap maksimal 100 huruf.";
+  if (!NAMA_POLA.test(nama)) return "Nama hanya boleh berisi huruf.";
+  return "";
+}
+
+function Label({ children, wajib = false }) {
+  return (
+    <span className="mb-1 block text-sm font-semibold text-[#14201A]">
+      {children}
+      {wajib && (
+        <>
+          <span aria-hidden="true" className="ml-0.5 text-[#A32A2A]">*</span>
+          <span className="sr-only"> wajib</span>
+        </>
+      )}
+    </span>
+  );
+}
+
+function Galat({ pesan }) {
+  if (!pesan) return null;
+  return <span className="mt-1 block text-xs font-semibold text-[#A32A2A]">{pesan}</span>;
+}
+
 export default function PublicPendataan() {
   const { token } = useParams();
   const [info, setInfo] = useState(null);
@@ -26,6 +56,7 @@ export default function PublicPendataan() {
   const [saving, setSaving] = useState(false);
   const [selesai, setSelesai] = useState(false);
   const [pesan, setPesan] = useState("");
+  const [galat, setGalat] = useState({});
   const [form, setForm] = useState({
     nama: "", status_pernikahan: "", jenis_kelamin: "", tanggal_lahir: "", nomor_hp: "",
   });
@@ -47,22 +78,33 @@ export default function PublicPendataan() {
 
   useEffect(() => {
     api.get(`/publik/pendataan/${token}`)
-      .then(({ data }) => setInfo(data))
+      .then(({ data }) => {
+        setInfo(data);
+        // Tautan peserta lama: nama sekarang terisi dan bisa diperbaiki.
+        if (data?.jenis === "orang" && data?.nama) {
+          setForm((f) => ({ ...f, nama: data.nama }));
+        }
+      })
       .catch(() => setErr("Tautan sudah tidak berlaku. Hubungi pengurus."))
       .finally(() => setLoading(false));
   }, [token]);
 
-  const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+  const set = (key, value) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setGalat((g) => ({ ...g, [key]: "" }));
+  };
 
   const kirim = async (e) => {
     e.preventDefault();
     setPesan("");
-    if (info?.jenis === "baru" && form.nama.trim().length < 3) {
-      setPesan("Nama lengkap minimal 3 huruf.");
-      return;
-    }
-    if (!form.status_pernikahan) { setPesan("Pilih status pernikahan."); return; }
-    if (!form.jenis_kelamin) { setPesan("Pilih jenis kelamin."); return; }
+    const salah = {};
+    const namaSalah = periksaNama(form.nama);
+    if (namaSalah) salah.nama = namaSalah;
+    if (!form.status_pernikahan) salah.status_pernikahan = "Pilih status pernikahan.";
+    if (!form.jenis_kelamin) salah.jenis_kelamin = "Pilih jenis kelamin.";
+    if (!form.tanggal_lahir) salah.tanggal_lahir = "Tanggal lahir wajib diisi.";
+    setGalat(salah);
+    if (Object.keys(salah).length) return;
     setSaving(true);
     try {
       await api.post(`/publik/pendataan/${token}`, form);
@@ -120,56 +162,74 @@ export default function PublicPendataan() {
         </div>
 
         <form onSubmit={kirim} className="mt-6 space-y-4 rounded-2xl border border-[#E7E3D8] bg-white p-4">
-          {info?.jenis === "baru" && (
-            <label className="block">
-              <span className="mb-1 block text-sm font-semibold text-[#14201A]">Nama lengkap</span>
-              <input
-                value={form.nama}
-                onChange={(e) => set("nama", e.target.value)}
-                maxLength={100}
-                placeholder="Nama lengkap"
-                className={inputCls}
-              />
-            </label>
-          )}
+          <p className="text-xs text-[#5F6B63]">
+            <span aria-hidden="true" className="text-[#A32A2A]">*</span> wajib diisi
+          </p>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-[#14201A]">Status pernikahan</span>
+            <Label wajib>Nama lengkap</Label>
+            <input
+              value={form.nama}
+              onChange={(e) => set("nama", e.target.value)}
+              maxLength={100}
+              placeholder="Nama lengkap"
+              aria-required="true"
+              aria-invalid={Boolean(galat.nama)}
+              className={inputCls}
+            />
+            {info?.jenis === "orang" && (
+              <span className="mt-1 block text-xs text-[#5F6B63]">
+                Perbaiki jika penulisan nama belum benar. Perubahan nama ditinjau pengurus.
+              </span>
+            )}
+            <Galat pesan={galat.nama} />
+          </label>
+
+          <label className="block">
+            <Label wajib>Status pernikahan</Label>
             <select
               value={form.status_pernikahan}
               onChange={(e) => set("status_pernikahan", e.target.value)}
+              aria-required="true"
+              aria-invalid={Boolean(galat.status_pernikahan)}
               className={inputCls}
             >
               <option value="">Pilih status</option>
               {MARITAL.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
+            <Galat pesan={galat.status_pernikahan} />
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-[#14201A]">Jenis kelamin</span>
+            <Label wajib>Jenis kelamin</Label>
             <select
               value={form.jenis_kelamin}
               onChange={(e) => set("jenis_kelamin", e.target.value)}
+              aria-required="true"
+              aria-invalid={Boolean(galat.jenis_kelamin)}
               className={inputCls}
             >
               <option value="">Pilih jenis kelamin</option>
               {GENDER.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
+            <Galat pesan={galat.jenis_kelamin} />
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-[#14201A]">Tanggal lahir</span>
+            <Label wajib>Tanggal lahir</Label>
             <input
               type="date"
               value={form.tanggal_lahir}
               onChange={(e) => set("tanggal_lahir", e.target.value)}
+              aria-required="true"
+              aria-invalid={Boolean(galat.tanggal_lahir)}
               className={inputCls}
             />
-            <span className="mt-1 block text-xs text-[#5F6B63]">Boleh dikosongkan.</span>
+            <Galat pesan={galat.tanggal_lahir} />
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-[#14201A]">Nomor HP</span>
+            <Label>Nomor HP</Label>
             <input
               type="tel"
               inputMode="tel"
@@ -182,7 +242,7 @@ export default function PublicPendataan() {
           </label>
 
           <p className="text-xs leading-relaxed text-[#5F6B63]">
-            Nama dan kelompok tidak bisa diubah dari halaman ini.
+            Kelompok tidak bisa diubah dari halaman ini.
           </p>
 
           {pesan && (

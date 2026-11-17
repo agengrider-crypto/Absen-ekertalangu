@@ -3,11 +3,12 @@
 // lalu meninjau isian yang masuk. Semua perubahan baru berlaku setelah disetujui.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Link2, Loader2, Copy, UserPlus, Check, X, AlertTriangle, RefreshCw, Power, Send,
+  Link2, Loader2, Copy, UserPlus, Check, X, AlertTriangle, RefreshCw, Power, Send, Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { tanggalIndonesia, tautanWhatsApp, nomorTersamar } from "@/lib/wa";
+import Modal from "@/components/Modal";
 
 const MARITAL_LABEL = { belum_menikah: "Belum menikah", sudah_menikah: "Sudah menikah" };
 const GENDER_LABEL = { L: "Laki-laki", P: "Perempuan" };
@@ -46,6 +47,9 @@ export default function PendataanView() {
   const [sibuk, setSibuk] = useState(false);
   const [hasilOrang, setHasilOrang] = useState(null);
   const [hasilBaru, setHasilBaru] = useState(null);
+  const [tautanDipilih, setTautanDipilih] = useState(new Set());
+  const [massalAksi, setMassalAksi] = useState(null);
+  const [massalSibuk, setMassalSibuk] = useState(false);
 
   const muat = useCallback(async () => {
     setLoading(true);
@@ -66,6 +70,48 @@ export default function PendataanView() {
   }, []);
 
   useEffect(() => { muat(); }, [muat]);
+
+  const semuaTautanDipilih = tautan.length > 0 && tautanDipilih.size === tautan.length;
+
+  const toggleTautan = (id) => setTautanDipilih((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const toggleSemuaTautan = () => setTautanDipilih(
+    semuaTautanDipilih ? new Set() : new Set(tautan.map((t) => t.id)),
+  );
+
+  // Jumlah tautan terpilih yang masih punya isian menunggu tinjauan.
+  const tautanMenunggu = useMemo(() => {
+    const denganIsian = new Set(isian.map((r) => r.tautan_id).filter(Boolean));
+    return Array.from(tautanDipilih).filter((id) => denganIsian.has(id)).length;
+  }, [isian, tautanDipilih]);
+
+  const mintaMassal = (aksi) => {
+    if (!tautanDipilih.size) return;
+    setMassalAksi(aksi);
+  };
+
+  const jalankanMassal = async (aksi) => {
+    if (!aksi || !tautanDipilih.size) return;
+    setMassalSibuk(true);
+    try {
+      const { data } = await api.post("/staff/pendataan/tautan/massal", {
+        ids: Array.from(tautanDipilih), aksi,
+      });
+      const jumlah = data?.jumlah ?? tautanDipilih.size;
+      toast.success(aksi === "hapus" ? `${jumlah} tautan dihapus` : `${jumlah} tautan dimatikan`);
+      setMassalAksi(null);
+      setTautanDipilih(new Set());
+      await muat();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setMassalSibuk(false);
+    }
+  };
 
   const daftar = useMemo(() => {
     const term = cari.trim().toLowerCase();
@@ -312,6 +358,8 @@ export default function PendataanView() {
               const baris = Object.keys(FIELD_LABEL)
                 .filter((f) => data[f])
                 .map((f) => `${nilaiTampil(f, lama[f])} menjadi ${nilaiTampil(f, data[f])}`);
+              const namaBerubah = row.jenis === "pembaruan" && data.nama
+                && data.nama.trim().toLowerCase() !== String(lama.nama || "").trim().toLowerCase();
               return (
                 <div key={row.id} className="space-y-2 p-4">
                   <div className="flex flex-wrap items-center gap-2">
@@ -319,8 +367,20 @@ export default function PendataanView() {
                     <span className="text-sm font-semibold text-[#14201A]">{nama || "(tanpa nama)"}</span>
                   </div>
                   <ul className="space-y-0.5 text-[13px] text-[#5F6B63]">
+                    {namaBerubah && <li>Nama: {lama.nama || "kosong"} menjadi {data.nama}</li>}
                     {baris.map((b) => <li key={b}>{b}</li>)}
                   </ul>
+                  {namaBerubah && (
+                    <p className="text-xs text-[#5F6B63]">
+                      Kartu nama yang sudah dicetak masih memakai nama lama. QR tetap berlaku.
+                    </p>
+                  )}
+                  {row.nama_bentrok?.length > 0 && (
+                    <p className="flex items-start gap-1.5 rounded-xl bg-[#FBF1D6] p-2.5 text-[13px] text-[#6B4500]">
+                      <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                      Nama sama dengan peserta lain: {row.nama_bentrok.join(", ")}
+                    </p>
+                  )}
                   {row.kemungkinan?.length > 0 && (
                     <div className="rounded-xl bg-[#FBF1D6] p-2.5 text-[13px] text-[#6B4500]">
                       <p className="flex items-start gap-1.5 font-semibold">
@@ -362,7 +422,39 @@ export default function PendataanView() {
 
       {/* (c) Tautan aktif */}
       <section className="rounded-2xl border border-[#E7E3D8] bg-white">
-        <h2 className="border-b border-[#E7E3D8] px-4 py-3 text-sm font-bold text-[#14201A]">Tautan aktif</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E7E3D8] px-4 py-3">
+          <h2 className="text-sm font-bold text-[#14201A]">Tautan aktif</h2>
+          {tautan.length > 0 && (
+            <label className="inline-flex min-h-9 items-center gap-2 text-xs font-semibold text-[#14201A]">
+              <input
+                type="checkbox"
+                checked={semuaTautanDipilih}
+                onChange={toggleSemuaTautan}
+                className="h-4 w-4 accent-[#14633F]"
+              />
+              Pilih semua ({tautan.length})
+            </label>
+          )}
+        </div>
+
+        {tautanDipilih.size > 0 && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#E7E3D8] bg-[#F6F4EE] px-4 py-2.5">
+            <span className="text-sm font-semibold text-[#14201A]">{tautanDipilih.size} dipilih</span>
+            <button type="button" onClick={() => mintaMassal("matikan")}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F]">
+              <Power size={14} /> Matikan ({tautanDipilih.size})
+            </button>
+            <button type="button" onClick={() => mintaMassal("hapus")}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#A32A2A] px-3 text-sm font-semibold text-white hover:bg-[#8C2323]">
+              <Trash2 size={14} /> Hapus ({tautanDipilih.size})
+            </button>
+            <button type="button" onClick={() => setTautanDipilih(new Set())}
+              className="text-xs font-semibold text-[#5F6B63] underline">
+              Batalkan pilihan
+            </button>
+          </div>
+        )}
+
         {tautan.length ? (
           <div className="divide-y divide-[#E7E3D8]">
             {tautan.map((t) => {
@@ -370,8 +462,16 @@ export default function PendataanView() {
               const teks = t.jenis === "baru"
                 ? teksBaru(t.berlaku_sampai, url)
                 : teksPerOrang({ nama: t.nama || "", url }, t.berlaku_sampai);
+              const dipilih = tautanDipilih.has(t.id);
               return (
-                <div key={t.id} className="flex flex-wrap items-center gap-2 px-4 py-2.5">
+                <div key={t.id} className={`flex flex-wrap items-center gap-2 px-4 py-2.5 ${dipilih ? "bg-[#E3F3EA]" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={dipilih}
+                    onChange={() => toggleTautan(t.id)}
+                    aria-label={`Pilih tautan ${t.jenis === "baru" ? "peserta baru" : (t.nama || "")}`}
+                    className="h-4 w-4 shrink-0 accent-[#14633F]"
+                  />
                   <span className="min-w-0 flex-1 truncate text-sm text-[#14201A]">
                     {t.jenis === "baru" ? "Peserta baru" : (t.nama || "-")}
                     <span className="ml-2 text-xs text-[#5F6B63]">
@@ -394,6 +494,40 @@ export default function PendataanView() {
           <p className="p-6 text-center text-sm text-[#5F6B63]">Belum ada tautan aktif.</p>
         )}
       </section>
+
+      <Modal
+        open={Boolean(massalAksi)}
+        onClose={() => setMassalAksi(null)}
+        title={massalAksi === "hapus" ? "Hapus tautan" : "Matikan tautan"}
+        testid="pendataan-massal-dialog"
+        maxWidth={520}
+        footer={(
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setMassalAksi(null)}
+              className="h-12 flex-1 rounded-2xl bg-[#F0EEE6] font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]">
+              Batal
+            </button>
+            <button type="button" onClick={() => jalankanMassal(massalAksi)} disabled={massalSibuk}
+              className={`h-12 flex-1 rounded-2xl font-semibold text-white disabled:opacity-60 ${massalAksi === "hapus" ? "bg-[#A32A2A] hover:bg-[#8C2323]" : "bg-[#14633F] hover:bg-[#0E4E31]"}`}>
+              {massalSibuk ? "Memproses…" : "Ya"}
+            </button>
+          </div>
+        )}
+      >
+        <div className="space-y-2 p-4">
+          <p className="text-sm text-[#14201A]">
+            {massalAksi === "hapus"
+              ? `Hapus ${tautanDipilih.size} tautan? Tautan berhenti berlaku dan hilang dari daftar. Isian yang sudah dikirim tetap ada di Menunggu tinjauan.`
+              : `Matikan ${tautanDipilih.size} tautan? Siapa pun yang membukanya akan melihat bahwa tautan sudah tidak berlaku.`}
+          </p>
+          {tautanMenunggu > 0 && (
+            <p className="flex items-start gap-1.5 rounded-xl bg-[#FBF1D6] p-2.5 text-[13px] text-[#6B4500]">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+              {tautanMenunggu} tautan masih punya isian yang menunggu tinjauan. Isiannya tetap tersimpan.
+            </p>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
