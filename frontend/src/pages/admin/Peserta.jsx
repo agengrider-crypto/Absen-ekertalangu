@@ -893,14 +893,20 @@ function AddModal({ kelompok, onClose, onDone }) {
   );
 }
 
-export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
+export function NameTagView({ users, kelompok, cetak = {}, onPrinted, loading, loadError, onRetry }) {
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [cetakFilter, setCetakFilter] = useState("all");
   const [orientation, setOrientation] = useState("portrait");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [selected, setSelected] = useState(new Set());
   const [toolbarVisible, setToolbarVisible] = useState(true);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [alasan, setAlasan] = useState("");
+  const [alasanLain, setAlasanLain] = useState("");
+  const [printError, setPrintError] = useState("");
+  const [printing, setPrinting] = useState(false);
   const toolbarRef = useRef(null);
 
   // Bar bawah hanya tampil saat toolbar atas tidak terlihat di layar.
@@ -925,10 +931,12 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
       .filter((user) => {
         if (groupFilter !== "all" && user.kelompok_id !== groupFilter) return false;
         if (statusFilter !== "all" && user.status !== statusFilter) return false;
+        if (cetakFilter === "belum" && cetak[user.id]) return false;
+        if (cetakFilter === "sudah" && !cetak[user.id]) return false;
         return !term || (user.name || "").toLowerCase().includes(term);
       })
       .sort((a, b) => (a.name || "").localeCompare(b.name || "", "id"));
-  }, [users, search, groupFilter, statusFilter]);
+  }, [users, search, groupFilter, statusFilter, cetakFilter, cetak]);
 
   const visibleSelected = filtered.filter((user) => selected.has(user.id));
   const allVisibleSelected = filtered.length > 0 && visibleSelected.length === filtered.length;
@@ -970,10 +978,48 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
 
   const printTags = () => {
     if (!visibleSelected.length) {
-      toast.error("Pilih minimal satu peserta untuk dicetak.");
+      toast.error("Pilih peserta dulu");
       return;
     }
-    window.print();
+    setAlasan("");
+    setAlasanLain("");
+    setPrintError("");
+    setPrintOpen(true);
+  };
+
+  const jalankanCetak = async () => {
+    if (!alasan) { setPrintError("Pilih alasan dulu."); return; }
+    if (alasan === "Lainnya" && alasanLain.trim().length < 3) {
+      setPrintError("Tulis alasannya.");
+      return;
+    }
+    setPrintError("");
+    setPrinting(true);
+    try {
+      await api.post("/staff/kartu-cetak", {
+        peserta_ids: visibleSelected.map((u) => u.id),
+        alasan,
+        alasan_lain: alasan === "Lainnya" ? alasanLain.trim() : null,
+      });
+      setPrintOpen(false);
+      const jumlah = visibleSelected.length;
+      toast.success(`${jumlah} kartu dikirim ke cetak. Alasan: ${alasan}.`);
+      window.print();
+      onPrinted?.();
+    } catch (e) {
+      setPrintError("Gagal mencatat alasan. Coba lagi.");
+    } finally {
+      setPrinting(false);
+    }
+  };
+
+  const tanggalSingkat = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("id-ID", {
+      timeZone: "Asia/Makassar", day: "numeric", month: "short",
+    });
   };
 
   return (
@@ -991,7 +1037,7 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
           QR di kartu ini permanen dan dipakai presensi lewat scan di kegiatan, untuk peserta yang tidak memakai HP.
           Peserta yang memakai HP tetap memakai QR berputar dari menu peserta.
         </div>
-        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px_190px]">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px_170px_160px]">
           <label className="relative">
             <span className="sr-only">Cari nama peserta</span>
             <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
@@ -1027,6 +1073,18 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
               <option value="active">Sudah aktif</option>
               <option value="pending">Belum aktivasi</option>
               <option value="nonaktif">Nonaktif</option>
+            </select>
+          </label>
+          <label>
+            <span className="sr-only">Filter kartu</span>
+            <select
+              value={cetakFilter}
+              onChange={(event) => setCetakFilter(event.target.value)}
+              className="h-11 w-full rounded-xl border border-[#8A948D] bg-white px-3 text-base outline-none focus:border-[#14633F]"
+            >
+              <option value="all">Semua kartu</option>
+              <option value="belum">Belum dicetak</option>
+              <option value="sudah">Sudah dicetak</option>
             </select>
           </label>
         </div>
@@ -1123,16 +1181,23 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
                   data-testid={`${PARTICIPANTS.nameTagCheckboxPrefix}-${user.id}`}
                   className="h-5 w-5 accent-[#14633F]"
                 />
-                <span className="min-w-0 truncate">
-                  {user.name}
-                  {keteranganKembar.get(user.id)?.kategori && (
-                    <span className="ml-1 text-xs font-normal text-[#5F6B63]">
-                      ({keteranganKembar.get(user.id).kategori})
-                    </span>
-                  )}
-                  {keteranganKembar.get(user.id)?.kelompok && (
-                    <span className="ml-1 text-xs font-normal text-[#5F6B63]">
-                      · {keteranganKembar.get(user.id).kelompok}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">
+                    {user.name}
+                    {keteranganKembar.get(user.id)?.kategori && (
+                      <span className="ml-1 text-xs font-normal text-[#5F6B63]">
+                        ({keteranganKembar.get(user.id).kategori})
+                      </span>
+                    )}
+                    {keteranganKembar.get(user.id)?.kelompok && (
+                      <span className="ml-1 text-xs font-normal text-[#5F6B63]">
+                        · {keteranganKembar.get(user.id).kelompok}
+                      </span>
+                    )}
+                  </span>
+                  {cetak[user.id] && (
+                    <span className="block truncate text-[11px] font-normal text-[#5F6B63]">
+                      Kartu dicetak: {tanggalSingkat(cetak[user.id].dicetak_pada)}, {cetak[user.id].alasan}
                     </span>
                   )}
                 </span>
@@ -1167,6 +1232,60 @@ export function NameTagView({ users, kelompok, loading, loadError, onRetry }) {
           </div>
         </div>
       )}
+
+      <Modal
+        open={printOpen}
+        onClose={() => setPrintOpen(false)}
+        title={`Cetak ${visibleSelected.length} kartu`}
+        testid="name-tag-print-dialog"
+        maxWidth={480}
+        footer={(
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setPrintOpen(false)}
+              className="h-12 flex-1 rounded-2xl bg-[#F0EEE6] font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]">
+              Batalkan
+            </button>
+            <button type="button" onClick={jalankanCetak} disabled={printing}
+              className="h-12 flex-1 rounded-2xl bg-[#14633F] font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-60">
+              {printing ? "Mencatat…" : "Cetak"}
+            </button>
+          </div>
+        )}
+      >
+        <div className="space-y-3 p-4">
+          <p className="text-sm text-[#5F6B63]">
+            Alasan ini dicatat untuk semua kartu yang dipilih.
+          </p>
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-[#14201A]">Kenapa perlu kartu fisik?</span>
+            <select
+              value={alasan}
+              onChange={(event) => { setAlasan(event.target.value); setPrintError(""); }}
+              className="h-12 w-full rounded-xl border border-[#8A948D] bg-white px-3 text-base outline-none focus:border-[#14633F]"
+            >
+              <option value="">Pilih alasan</option>
+              <option value="Tidak punya device">Tidak punya device</option>
+              <option value="Sudah sepuh">Sudah sepuh</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </label>
+          {alasan === "Lainnya" && (
+            <label className="block">
+              <span className="mb-1 block text-sm font-semibold text-[#14201A]">Tulis alasannya</span>
+              <input
+                value={alasanLain}
+                onChange={(event) => { setAlasanLain(event.target.value); setPrintError(""); }}
+                maxLength={100}
+                placeholder="Tulis alasannya"
+                className="h-12 w-full rounded-xl border border-[#8A948D] bg-white px-3 text-base outline-none focus:border-[#14633F]"
+              />
+            </label>
+          )}
+          {printError && (
+            <p className="rounded-xl bg-[#FBE5E3] p-2.5 text-sm text-[#A32A2A]">{printError}</p>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

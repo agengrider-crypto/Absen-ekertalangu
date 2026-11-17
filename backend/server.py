@@ -9118,6 +9118,69 @@ async def pendataan_putuskan(isian_id: str, body: PendataanPutusanInput,
     return {"ok": True, "status": "disetujui", "peserta_id": baru_id}
 
 
+# ---------------------------------------------------------------------------
+# KARTU NAMA — catatan alasan & tanggal cetak kartu fisik.
+# Setiap pencetakan menambah satu catatan (tidak menimpa).
+# ---------------------------------------------------------------------------
+KARTU_CETAK_ALASAN = ("Tidak punya device", "Sudah sepuh", "Lainnya")
+
+
+class KartuCetakInput(BaseModel):
+    peserta_ids: List[str] = []
+    alasan: str = ""
+    alasan_lain: Optional[str] = None
+
+
+@api_router.post("/staff/kartu-cetak")
+async def kartu_cetak_catat(body: KartuCetakInput, staff: dict = Depends(require_staff)):
+    """Catat alasan pencetakan kartu fisik untuk daftar peserta (maks 200)."""
+    alasan = (body.alasan or "").strip()
+    if alasan not in KARTU_CETAK_ALASAN:
+        raise HTTPException(status_code=400, detail="Pilih alasan dulu.")
+    alasan_lain = None
+    if alasan == "Lainnya":
+        alasan_lain = _bersih_teks(body.alasan_lain, 100)
+        if len(alasan_lain) < 3:
+            raise HTTPException(status_code=400, detail="Tulis alasannya.")
+    ids = [i for i in dict.fromkeys(body.peserta_ids or []) if i]
+    if not ids:
+        raise HTTPException(status_code=400, detail="Pilih peserta dulu.")
+    if len(ids) > 200:
+        raise HTTPException(status_code=400, detail="Maksimal 200 peserta sekali cetak.")
+    oids = [ObjectId(i) for i in ids if ObjectId.is_valid(i)]
+    if len(oids) != len(ids):
+        raise HTTPException(status_code=400, detail="Ada peserta yang tidak dikenali.")
+    ada = await db.users.find({"_id": {"$in": oids}, "roles": "peserta"},
+                              {"_id": 1}).to_list(300)
+    if len(ada) != len(oids):
+        raise HTTPException(status_code=400, detail="Ada peserta yang tidak dikenali.")
+    sekarang = now_wita().isoformat()
+    oleh = str(staff["_id"])
+    docs = [{
+        "_id": str(uuid.uuid4()), "peserta_id": str(o["_id"]), "alasan": alasan,
+        "alasan_lain": alasan_lain, "dicetak_oleh": oleh, "dicetak_pada": sekarang,
+    } for o in ada]
+    await db.kartu_cetak.insert_many(docs)
+    await log_activity(staff, "kartu_cetak",
+                       f"Mencetak {len(docs)} kartu nama ({alasan})")
+    return {"ok": True, "jumlah": len(docs), "alasan": alasan,
+            "alasan_lain": alasan_lain, "dicetak_pada": sekarang}
+
+
+@api_router.get("/staff/kartu-cetak")
+async def kartu_cetak_terakhir(staff: dict = Depends(require_staff)):
+    """Catatan cetak TERAKHIR per peserta (tanggal + alasan)."""
+    rows = await db.kartu_cetak.find().sort("dicetak_pada", -1).to_list(5000)
+    hasil: dict = {}
+    for r in rows:
+        pid = r.get("peserta_id")
+        if pid and pid not in hasil:
+            hasil[pid] = {"dicetak_pada": r.get("dicetak_pada"),
+                          "alasan": r.get("alasan"),
+                          "alasan_lain": r.get("alasan_lain")}
+    return {"items": hasil}
+
+
 app.include_router(api_router)
 
 _allowed_origins = {FRONTEND_URL, "http://localhost:3000"}
@@ -9267,6 +9330,9 @@ async def _run_init():
     await db.pendataan_tautan.create_index([("aktif", 1), ("dibuat_pada", -1)])
     await db.pendataan_isian.create_index([("status", 1), ("dikirim_pada", 1)])
     await db.pendataan_isian.create_index([("tautan_id", 1), ("status", 1)])
+    # Kartu Nama: catatan alasan & tanggal cetak kartu fisik.
+    await db.kartu_cetak.create_index("peserta_id")
+    await db.kartu_cetak.create_index("dicetak_pada")
 
 
 _init_done = False

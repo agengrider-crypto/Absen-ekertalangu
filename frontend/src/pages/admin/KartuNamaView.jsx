@@ -6,16 +6,19 @@ import { NameTagView } from "./Peserta";
 export default function KartuNamaView() {
   const [users, setUsers] = useState(null);
   const [kelompok, setKelompok] = useState([]);
+  const [cetak, setCetak] = useState({});
 
   const load = useCallback(async () => {
     setUsers(null);
     try {
-      const [usersResponse, groupsResponse] = await Promise.all([
+      const [usersResponse, groupsResponse, cetakResponse] = await Promise.all([
         api.get("/admin/users"),
         api.get("/admin/kelompok"),
+        api.get("/staff/kartu-cetak"),
       ]);
       setUsers(usersResponse.data);
       setKelompok(groupsResponse.data);
+      setCetak(cetakResponse.data.items || {});
     } catch (e) {
       setUsers(false);
       toast.error(formatApiErrorDetail(e.response?.data?.detail));
@@ -28,6 +31,8 @@ export default function KartuNamaView() {
     <NameTagView
       users={(users || []).filter((user) => user.roles?.includes("peserta"))}
       kelompok={kelompok}
+      cetak={cetak}
+      onPrinted={load}
       loading={users === null}
       loadError={users === false}
       onRetry={load}
