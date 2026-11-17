@@ -4775,6 +4775,10 @@ async def scan_personal_qr(kegiatan_id: str, body: ScanPersonalInput, staff: dic
     u = await db.users.find_one({"_id": ObjectId(user_id)}) if ObjectId.is_valid(user_id) else None
     if not u or "peserta" not in (u.get("roles") or []):
         raise HTTPException(status_code=400, detail="Kartu tidak dikenali")
+    # Status akun login (pending/active) TIDAK menghalangi scan kartu.
+    # Hanya peserta yang ditandai nonaktif/pindah yang ditolak.
+    if (u.get("status") or "") in ("nonaktif", "pindah"):
+        raise HTTPException(status_code=400, detail="Peserta nonaktif")
     assert_gender_eligible(k, u)
     existing = await db.absensis.find_one({"kegiatan_id": kegiatan_id, "user_id": user_id})
     if existing and existing.get("status") == "hadir":
