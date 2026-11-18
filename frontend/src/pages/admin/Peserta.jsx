@@ -510,6 +510,11 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                                 : waliMap[u.id] === "wali" ? "Wali" : "Belum ada wali"}
                             </span>
                           )}
+                          {u.pengajar && (
+                            <span data-testid={`badge-pengajar-${u.id}`} className="inline-flex h-6 items-center rounded-full bg-[#E3F3EA] px-2.5 text-xs font-semibold text-[#0E4E31]">
+                              Pengajar
+                            </span>
+                          )}
                           {miss.length > 0 && (
                             <button type="button" onClick={(e) => { e.stopPropagation(); openDetail(u.id); }}
                               className="inline-flex h-6 items-center rounded-full bg-[#FBE5E3] px-2.5 text-xs font-semibold text-[#A32A2A]">

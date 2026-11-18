@@ -527,6 +527,11 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
                       belum ditinjau
                     </span>
                   )}
+                  {r.tidak_dihitung && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#F0EEE6] px-1.5 py-0.5 text-[11px] font-semibold text-[#5F6B63]">
+                      tidak dihitung (pengajar)
+                    </span>
+                  )}
                   {r.attended_other && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[#E3F3EA] text-[#0E4E31]">
                       Sudah hadir sesi {r.attended_other_label}

@@ -206,6 +206,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
         education: form.education || null, mubaligh: form.mubaligh || null,
         marital: form.marital || null,
         jenjang: form.jenjang || null, nomor_wa_wali: form.nomor_wa_wali || null,
+        pengajar: Boolean(form.pengajar),
         photo: form.photo ?? null, roles: form.roles, kelompok_id: form.kelompok_id || null,
         needs_completion: false,
       };
@@ -629,6 +630,12 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                           <input data-testid="detail-nomor-wa-wali" value={form.nomor_wa_wali || ""}
                             onChange={(e) => set("nomor_wa_wali", e.target.value)} placeholder="08xxxxxxxxxx" className={inp} />
                         </div>
+                        <label className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl border border-[#E7E3D8] bg-white px-3 py-2 sm:col-span-2">
+                          <input data-testid="detail-pengajar" type="checkbox" className="h-4 w-4 accent-[#14633F]"
+                            checked={Boolean(form.pengajar)} onChange={(e) => set("pengajar", e.target.checked)} />
+                          <span className="text-sm font-semibold text-[#14201A]">Pengajar</span>
+                          <span className="text-[11px] text-[#5F6B63]">Tidak dihitung di kegiatan yang menyetel pengajar tidak wajib absen.</span>
+                        </label>
                       </div>
                     </div>
 
