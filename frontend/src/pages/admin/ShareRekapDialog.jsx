@@ -18,6 +18,28 @@ function tanggalWita(iso) {
   return tanggalIndonesia(d.toLocaleDateString("sv-SE", { timeZone: "Asia/Makassar" }));
 }
 
+/** "2026-11-18" → "Selasa, 18 Nov 2026" (WITA). */
+function hariTanggalWita(ymd) {
+  const s = String(ymd || "").slice(0, 10);
+  if (!s) return "-";
+  const d = new Date(`${s}T12:00:00+08:00`);
+  if (Number.isNaN(d.getTime())) return s;
+  return d.toLocaleDateString("id-ID", {
+    timeZone: "Asia/Makassar", weekday: "long", day: "numeric", month: "short", year: "numeric",
+  });
+}
+
+/** Pesan WhatsApp ringkas: judul tebal, nama kegiatan, tanggal, tautan. */
+function pesanWa(info, mode) {
+  const tanggal = hariTanggalWita(info?.tanggal);
+  if (mode === "kegiatan") {
+    return `*Rekap kehadiran*\n${info?.nama || "-"}\n${tanggal}\n${info?.link || ""}`;
+  }
+  const daftar = (info?.kegiatan || []).filter(Boolean);
+  const nama = daftar.length > 1 ? daftar.join(", ") : (info?.nama || daftar[0] || "-");
+  return `*Rekap kehadiran harian*\n${nama}\n${tanggal}\n${info?.link || ""}`;
+}
+
 function Saklar({ checked, onChange, label, testid }) {
   return (
     <button
@@ -106,7 +128,7 @@ export default function ShareRekapDialog({ open, onClose, mode, id, date }) {
   };
 
   const wa = () => {
-    const teks = `Rekap kehadiran:\n${info.link}`;
+    const teks = pesanWa(info, mode);
     window.open(`https://wa.me/?text=${encodeURIComponent(teks)}`, "_blank", "noopener,noreferrer");
   };
 

@@ -377,6 +377,18 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
   const [reasonFor, setReasonFor] = useState(null); // { user_id, name }
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
+  const [batalIzin, setBatalIzin] = useState(null);
+
+  const tinjauIzin = async (row, aksi) => {
+    try {
+      await api.post(`/staff/kegiatan/${kegiatanId}/izin/${row.user_id}/tinjau`, { aksi });
+      toast.success(aksi === "setujui" ? "Izin disetujui." : "Izin dibatalkan.");
+      setBatalIzin(null);
+      onReload();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    }
+  };
 
   const sender = useCallback(async (items) => {
     await api.post(`/admin/kegiatan/${kegiatanId}/absen-batch`, { items });
@@ -510,6 +522,11 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
                       Alasan: {r.absence_reason}{r.absence_note ? ` · ${r.absence_note}` : ""}
                     </span>
                   )}
+                  {r.status === "izin" && r.tinjauan === "belum_ditinjau" && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#FBF1D6] px-1.5 py-0.5 text-[11px] font-bold text-[#6B4500]">
+                      belum ditinjau
+                    </span>
+                  )}
                   {r.attended_other && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-[#E3F3EA] text-[#0E4E31]">
                       Sudah hadir sesi {r.attended_other_label}
@@ -528,23 +545,39 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
               <div className="ml-auto flex w-full items-center justify-end gap-1 shrink-0 sm:w-auto">
                 {r.attended_other ? (
                   <span className="text-[11px] font-semibold text-[#5F6B63]" data-testid={`detail-locked-${r.user_id}`}>tidak perlu diabsen lagi</span>
-                ) : ["hadir", "izin", "sakit", "alpha"].map((s) => {
-                  const on = r.status === s;
-                  const cfg = STATUS_BTN[s];
-                  return (
-                    <button
-                      key={s}
-                      data-testid={`detail-btn-${s}-${r.user_id}`}
-                      disabled={busy === r.user_id + s || (s === "alpha" && !alphaAllowed)}
-                      onClick={() => (s === "izin" ? openReason(r) : mark(r.user_id, s))}
-                      title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.full}
-                      aria-label={cfg.full}
-                      className={`h-11 w-11 rounded-full text-sm font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#D9D4C5] hover:border-current`}`}
-                    >
-                      {cfg.label}
-                    </button>
-                  );
-                })}
+                ) : (
+                  <>
+                    {r.status === "izin" && r.tinjauan === "belum_ditinjau" && (
+                      <div className="mr-1 flex items-center gap-1">
+                        <button type="button" onClick={() => tinjauIzin(r, "setujui")}
+                          className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-[#14633F] px-2 text-[11px] font-semibold text-white">
+                          <Check size={12} /> Setujui
+                        </button>
+                        <button type="button" onClick={() => setBatalIzin(r)}
+                          className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-[#E7E3D8] px-2 text-[11px] font-semibold text-[#A32A2A]">
+                          <X size={12} /> Batalkan
+                        </button>
+                      </div>
+                    )}
+                    {["hadir", "izin", "sakit", "alpha"].map((s) => {
+                      const on = r.status === s;
+                      const cfg = STATUS_BTN[s];
+                      return (
+                        <button
+                          key={s}
+                          data-testid={`detail-btn-${s}-${r.user_id}`}
+                          disabled={busy === r.user_id + s || (s === "alpha" && !alphaAllowed)}
+                          onClick={() => (s === "izin" ? openReason(r) : mark(r.user_id, s))}
+                          title={s === "alpha" && !alphaAllowed ? "Alpha tersedia setelah kegiatan berakhir" : cfg.full}
+                          aria-label={cfg.full}
+                          className={`h-11 w-11 rounded-full text-sm font-bold border-2 transition-colors disabled:opacity-50 ${on ? `${cfg.on} border-transparent` : `bg-white ${cfg.off} border-[#D9D4C5] hover:border-current`}`}
+                        >
+                          {cfg.label}
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -611,6 +644,30 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
             </div>
         </Modal>
       )}
+
+      <Modal
+        open={Boolean(batalIzin)}
+        onClose={() => setBatalIzin(null)}
+        title="Batalkan izin"
+        testid="batal-izin-dialog"
+        maxWidth={440}
+        footer={(
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setBatalIzin(null)}
+              className="h-12 flex-1 rounded-2xl bg-[#F0EEE6] font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]">
+              Batal
+            </button>
+            <button type="button" onClick={() => tinjauIzin(batalIzin, "batalkan")}
+              className="h-12 flex-1 rounded-2xl bg-[#A32A2A] font-semibold text-white hover:bg-[#8C2323]">
+              Ya
+            </button>
+          </div>
+        )}
+      >
+        <p className="p-4 text-sm text-[#14201A]">
+          Batalkan izin {batalIzin?.name}? Status kembali tanpa catatan dan pengajuan ditandai ditolak.
+        </p>
+      </Modal>
     </div>
   );
 }

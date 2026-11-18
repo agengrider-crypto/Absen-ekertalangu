@@ -2815,6 +2815,8 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
             "reason": a.get("reason") if a else None,
             "note": a.get("note") if a else None,
             "marked_by": a.get("marked_by") if a else None,
+            "sumber": a.get("sumber") if a else None,
+            "tinjauan": a.get("tinjauan") if a else None,
             "absence_reason": a.get("reason") if a else None,
             "absence_note": a.get("note") if a else None,
             "required_for_session": required,
@@ -2835,6 +2837,9 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
         "gender_status": gender_status,
         "rows": rows,
         "guests": [serialize_guest(g) for g in guests],
+        "izin_belum_ditinjau": len([r for r in rows
+                                    if r.get("status") == "izin"
+                                    and r.get("tinjauan") == "belum_ditinjau"]),
     }
 
 
@@ -3036,7 +3041,11 @@ async def share_gabungan_info(token: str, request: Request,
     return {"token": token, "link": f"{resolve_base_url(request)}/rekap-gabungan/{token}",
             "expires_at": first.get("group_share_expires_at"),
             "tampilkan_jam": bool(first.get("group_share_tampilkan_jam")),
-            "aktif": first.get("group_share_aktif") is not False}
+            "aktif": first.get("group_share_aktif") is not False,
+            "nama": first.get("base_name") or first.get("name"),
+            "tanggal": first.get("date"),
+            "kegiatan": [d.get("session_label") or d.get("name") for d in
+                         sorted(docs, key=lambda d: (d.get("start_time") or ""))]}
 
 
 @api_router.patch("/admin/kegiatan/share-gabungan/{token}")
@@ -3365,6 +3374,8 @@ async def share_info(kegiatan_id: str, request: Request, admin: dict = Depends(r
         "expires_at": exp,
         "tampilkan_jam": bool(k.get("share_tampilkan_jam")),
         "aktif": k.get("share_aktif") is not False,
+        "nama": k.get("name"),
+        "tanggal": k.get("date"),
     }
 
 
@@ -6173,14 +6184,19 @@ async def share_rekap_harian_info(request: Request, date: Optional[str] = None,
     doc = await db.harian_links.find_one({"date": d})
     if not doc:
         return {"token": None, "link": None, "expires_at": None,
-                "tampilkan_jam": False, "aktif": True}
+                "tampilkan_jam": False, "aktif": True,
+                "nama": None, "tanggal": d, "kegiatan": []}
     valid = bool(doc.get("expires_at") and not is_expired_iso(doc.get("expires_at")))
+    kegs = await db.kegiatans.find({"date": d}).sort("start_time", 1).to_list(50)
     return {
         "token": doc["_id"] if valid else None,
         "link": f"{resolve_base_url(request)}/rekap-harian/{doc['_id']}" if valid else None,
         "expires_at": doc.get("expires_at"),
         "tampilkan_jam": bool(doc.get("tampilkan_jam")),
         "aktif": doc.get("aktif") is not False,
+        "nama": None,
+        "tanggal": d,
+        "kegiatan": [k.get("session_label") or k.get("name") for k in kegs],
     }
 
 
@@ -9415,8 +9431,8 @@ async def kartu_cetak_terakhir(staff: dict = Depends(require_staff)):
 # IZIN LEWAT HP PESERTA — tautan publik per kegiatan (tanpa login).
 # ---------------------------------------------------------------------------
 IZIN_ALASAN = ("Sakit", "Bekerja", "Keperluan keluarga", "Lainnya")
-IZIN_LAJU_MAKS = 12          # maksimal kiriman per IP per menit
-IZIN_LAJU_JENDELA = 60       # detik
+IZIN_LAJU_MAKS = 10          # maksimal pengajuan per IP & per token
+IZIN_LAJU_JENDELA = 600      # detik (10 menit)
 
 
 def _izin_tautan_aktif(k: dict) -> bool:
@@ -9427,15 +9443,20 @@ def _izin_tautan_aktif(k: dict) -> bool:
     return now_wita() <= end
 
 
-async def _izin_laju_ok(ip: Optional[str]) -> bool:
-    """Pembatas laju sederhana per alamat IP (tanpa koleksi baru)."""
-    if not ip:
-        return True
-    batas = now_wita() - timedelta(seconds=IZIN_LAJU_JENDELA)
-    jumlah = await db.izin_laju.count_documents({"ip": ip, "at": {"$gte": batas.isoformat()}})
-    if jumlah >= IZIN_LAJU_MAKS:
+async def _izin_laju_ok(ip: Optional[str], token: str) -> bool:
+    """Pembatas laju per alamat IP DAN per token (10 pengajuan / 10 menit)."""
+    batas = (now_wita() - timedelta(seconds=IZIN_LAJU_JENDELA)).isoformat()
+    if ip:
+        jumlah = await db.izin_laju.count_documents(
+            {"ip": ip, "at": {"$gte": batas}})
+        if jumlah >= IZIN_LAJU_MAKS:
+            return False
+    jumlah_token = await db.izin_laju.count_documents(
+        {"token": token, "at": {"$gte": batas}})
+    if jumlah_token >= IZIN_LAJU_MAKS:
         return False
-    await db.izin_laju.insert_one({"ip": ip, "at": now_wita().isoformat()})
+    await db.izin_laju.insert_one(
+        {"ip": ip, "token": token, "at": now_wita().isoformat()})
     return True
 
 
@@ -9480,10 +9501,24 @@ async def izin_putuskan(izin_id: str, body: IzinPutusanInput,
     row = await db.izin_kegiatan.find_one({"_id": izin_id})
     if not row:
         raise HTTPException(status_code=404, detail="Izin tidak ditemukan")
+    sekarang = now_wita().isoformat()
     await db.izin_kegiatan.update_one(
         {"_id": izin_id},
         {"$set": {"status": body.status, "ditinjau_oleh": str(staff["_id"]),
-                  "ditinjau_pada": now_wita().isoformat()}})
+                  "ditinjau_pada": sekarang}})
+    # Sinkronkan tanda tinjauan pada absen manual (izin dari tautan).
+    if body.status == "disetujui":
+        await db.absensis.update_one(
+            {"kegiatan_id": row.get("kegiatan_id"), "user_id": row.get("peserta_id"),
+             "status": "izin"},
+            {"$set": {"tinjauan": "disetujui", "ditinjau_oleh": str(staff["_id"]),
+                      "ditinjau_pada": sekarang, "updated_at": sekarang}})
+    else:
+        # Ditolak: hapus catatan izin yang berasal dari tautan agar tidak
+        # terhitung Izin di rekap. Catatan manual pengurus tidak disentuh.
+        await db.absensis.delete_one(
+            {"kegiatan_id": row.get("kegiatan_id"), "user_id": row.get("peserta_id"),
+             "status": "izin", "sumber": "izin_tautan"})
     await log_activity(staff, f"izin_{body.status}", "Meninjau izin kegiatan", izin_id)
     return {"ok": True, "status": body.status}
 
@@ -9506,18 +9541,28 @@ async def publik_izin_info(token: str):
 
 @api_router.post("/publik/izin/{token}")
 async def publik_izin_kirim(token: str, body: dict, request: Request):
-    """Kirim izin dari HP peserta. Kirim ulang menimpa yang masih menunggu."""
+    """Kirim izin dari HP peserta.
+
+    Pengajuan disimpan di `izin_kegiatan` DAN langsung dicatat sebagai status
+    "izin" pada absen manual (sumber `izin_tautan`, tinjauan `belum_ditinjau`),
+    sehingga peserta tidak terhitung Alpha.
+    """
     k = await db.kegiatans.find_one({"izin_token": token})
     if not k or not _izin_tautan_aktif(k):
         raise HTTPException(status_code=410, detail="Tautan sudah tidak berlaku")
-    if not await _izin_laju_ok(client_ip(request)):
-        raise HTTPException(status_code=429, detail="Terlalu banyak kiriman. Coba lagi nanti.")
+    if not await _izin_laju_ok(client_ip(request), token):
+        raise HTTPException(status_code=429, detail="Terlalu banyak percobaan. Coba lagi nanti.")
     peserta_id = str(body.get("peserta_id") or "").strip()
     if not ObjectId.is_valid(peserta_id):
         raise HTTPException(status_code=400, detail="Pilih nama Anda dulu.")
     peserta = await db.users.find_one({"_id": ObjectId(peserta_id)}, {"name": 1, "roles": 1})
     if not peserta or "peserta" not in (peserta.get("roles") or []):
         raise HTTPException(status_code=400, detail="Pilih nama Anda dulu.")
+    # Sudah tercatat hadir → tidak boleh mengajukan izin.
+    absen = await db.absensis.find_one(
+        {"kegiatan_id": k["_id"], "user_id": peserta_id})
+    if absen and absen.get("status") == "hadir":
+        raise HTTPException(status_code=400, detail="Anda sudah tercatat hadir.")
     alasan = str(body.get("alasan") or "").strip()
     if alasan not in IZIN_ALASAN:
         raise HTTPException(status_code=400, detail="Pilih alasan dulu.")
@@ -9527,19 +9572,69 @@ async def publik_izin_kirim(token: str, body: dict, request: Request):
         if len(alasan_lain) < 3:
             raise HTTPException(status_code=400, detail="Tulis alasannya.")
     sekarang = now_wita().isoformat()
+    # Satu peserta satu izin per kegiatan: pengajuan ulang menimpa baris yang ada.
     ada = await db.izin_kegiatan.find_one(
-        {"kegiatan_id": k["_id"], "peserta_id": peserta_id, "status": "menunggu"})
+        {"kegiatan_id": k["_id"], "peserta_id": peserta_id})
     if ada:
         await db.izin_kegiatan.update_one(
             {"_id": ada["_id"]},
-            {"$set": {"alasan": alasan, "alasan_lain": alasan_lain, "dibuat_pada": sekarang}})
-        return {"ok": True, "diperbarui": True}
-    await db.izin_kegiatan.insert_one({
-        "_id": str(uuid.uuid4()), "kegiatan_id": k["_id"], "peserta_id": peserta_id,
-        "alasan": alasan, "alasan_lain": alasan_lain, "status": "menunggu",
-        "dibuat_pada": sekarang, "ditinjau_oleh": None, "ditinjau_pada": None,
-    })
-    return {"ok": True, "diperbarui": False}
+            {"$set": {"alasan": alasan, "alasan_lain": alasan_lain,
+                      "status": "menunggu", "dibuat_pada": sekarang,
+                      "ditinjau_oleh": None, "ditinjau_pada": None}})
+    else:
+        await db.izin_kegiatan.insert_one({
+            "_id": str(uuid.uuid4()), "kegiatan_id": k["_id"], "peserta_id": peserta_id,
+            "alasan": alasan, "alasan_lain": alasan_lain, "status": "menunggu",
+            "dibuat_pada": sekarang, "ditinjau_oleh": None, "ditinjau_pada": None,
+        })
+    # Catat status Izin di absen manual (jalur yang sama dengan pencatatan pengurus).
+    await db.absensis.update_one(
+        {"kegiatan_id": k["_id"], "user_id": peserta_id},
+        {"$set": {"kegiatan_id": k["_id"], "user_id": peserta_id, "status": "izin",
+                  "arrival_time": None,
+                  "reason": alasan_lain or alasan,
+                  "note": None,
+                  "sumber": "izin_tautan", "tinjauan": "belum_ditinjau",
+                  "marked_by": "Izin lewat tautan", "marked_by_id": None,
+                  "updated_at": sekarang}},
+        upsert=True)
+    return {"ok": True, "diperbarui": bool(ada)}
+
+
+class IzinTinjauInput(BaseModel):
+    aksi: str = "setujui"          # setujui | batalkan
+
+
+@api_router.post("/staff/kegiatan/{kegiatan_id}/izin/{peserta_id}/tinjau")
+async def izin_tinjau_absen(kegiatan_id: str, peserta_id: str, body: IzinTinjauInput,
+                            staff: dict = Depends(require_staff)):
+    """Setujui (hapus tanda belum ditinjau) atau batalkan izin dari tautan."""
+    if body.aksi not in ("setujui", "batalkan"):
+        raise HTTPException(status_code=400, detail="Aksi tidak valid")
+    absen = await db.absensis.find_one(
+        {"kegiatan_id": kegiatan_id, "user_id": peserta_id})
+    if not absen or absen.get("status") != "izin":
+        raise HTTPException(status_code=404, detail="Izin tidak ditemukan")
+    sekarang = now_wita().isoformat()
+    if body.aksi == "setujui":
+        await db.absensis.update_one(
+            {"_id": absen["_id"]},
+            {"$set": {"tinjauan": "disetujui", "ditinjau_oleh": str(staff["_id"]),
+                      "ditinjau_pada": sekarang, "updated_at": sekarang}})
+        await db.izin_kegiatan.update_one(
+            {"kegiatan_id": kegiatan_id, "peserta_id": peserta_id},
+            {"$set": {"status": "disetujui", "ditinjau_oleh": str(staff["_id"]),
+                      "ditinjau_pada": sekarang}})
+        await log_activity(staff, "izin_setujui", "Menyetujui izin dari tautan", kegiatan_id)
+        return {"ok": True, "aksi": "setujui"}
+    # Batalkan: status kembali tanpa catatan, pengajuan ditandai ditolak.
+    await db.absensis.delete_one({"_id": absen["_id"]})
+    await db.izin_kegiatan.update_one(
+        {"kegiatan_id": kegiatan_id, "peserta_id": peserta_id},
+        {"$set": {"status": "ditolak", "ditinjau_oleh": str(staff["_id"]),
+                  "ditinjau_pada": sekarang}})
+    await log_activity(staff, "izin_batalkan", "Membatalkan izin dari tautan", kegiatan_id)
+    return {"ok": True, "aksi": "batalkan"}
 
 
 # ---------------------------------------------------------------------------
