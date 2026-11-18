@@ -2853,8 +2853,14 @@ async def sesi_group_docs(kegiatan_id: str) -> list:
     return docs
 
 
-async def build_rekap_gabungan(docs: list) -> dict:
-    """Rekap semua sesi dalam satu hari dengan status tetap dipisahkan per sesi."""
+async def build_rekap_gabungan(docs: list, tampilkan_jam: bool = False) -> dict:
+    """Rekap gabungan beberapa kegiatan: SATU ORANG DIHITUNG HADIR SEKALI.
+
+    Kegiatan diurutkan menurut jam mulai. Peserta dihitung hadir hanya di kegiatan
+    pertama yang ia hadiri; kegiatan berikutnya memakai penyebut peserta yang belum
+    hadir sebelumnya.
+    """
+    docs = sorted(docs, key=lambda d: (d.get("start_time") or "", d.get("session_index") or 0))
     ids = [d["_id"] for d in docs]
     all_users = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
     absens = await db.absensis.find({"kegiatan_id": {"$in": ids}}).to_list(50000)
@@ -2866,24 +2872,27 @@ async def build_rekap_gabungan(docs: list) -> dict:
     for g in guests:
         guest_by_keg[g["kegiatan_id"]] = guest_by_keg.get(g["kegiatan_id"], 0) + 1
 
-    # Peserta per sesi (filter bisa berbeda tiap sesi walau umumnya sama)
     hadir_by_keg = {kid: {pid for pid, a in m.items() if a.get("status") == "hadir"}
                     for kid, m in abs_by_keg.items()}
     sessions_out = []
     peserta_union: dict = {}
     eligible_by_keg: dict = {}
+    sudah_hadir: set = set()
+    hadir_di: dict = {}
     for d in docs:
         peserta = filter_peserta_for_kegiatan(d, all_users)
         eligible_by_keg[d["_id"]] = {str(p["_id"]) for p in peserta}
         for p in peserta:
             peserta_union[str(p["_id"])] = p
-        skip: set = set()
-        for o in docs:
-            if o["_id"] != d["_id"]:
-                skip |= hadir_by_keg.get(o["_id"], set())
+        penyebut = {str(p["_id"]) for p in peserta if str(p["_id"]) not in sudah_hadir}
         counts = compute_counts(
-            peserta, list(abs_by_keg.get(d["_id"], {}).values()),
-            guest_by_keg.get(d["_id"], 0), skip, d)
+            [p for p in peserta if str(p["_id"]) in penyebut],
+            list(abs_by_keg.get(d["_id"], {}).values()),
+            guest_by_keg.get(d["_id"], 0), set(), d)
+        for pid in hadir_by_keg.get(d["_id"], set()):
+            if pid in penyebut:
+                sudah_hadir.add(pid)
+                hadir_di.setdefault(pid, d.get("session_label") or d.get("name"))
         sessions_out.append({
             "id": d["_id"],
             "label": d.get("session_label") or d.get("name"),
@@ -2895,6 +2904,7 @@ async def build_rekap_gabungan(docs: list) -> dict:
             "status": d.get("status", "open"),
             "required": bool(d.get("session_required", True)),
             "counts": counts,
+            "sebelumnya_hadir": len(eligible_by_keg[d["_id"]]) - len(penyebut),
         })
 
     rows = []
@@ -2902,39 +2912,39 @@ async def build_rekap_gabungan(docs: list) -> dict:
         per = []
         for d in docs:
             if pid not in eligible_by_keg[d["_id"]]:
-                per.append(None)   # tidak termasuk daftar sesi ini
+                per.append(None)
                 continue
-            is_req = session_requires_participant(d, pid)
             a = abs_by_keg.get(d["_id"], {}).get(pid)
             st = a.get("status") if a else None
-            if not is_req and not st:
-                attended_elsewhere = any(
-                    pid in hadir_by_keg.get(other["_id"], set()) and other["_id"] != d["_id"]
-                    for other in docs
-                )
-                per.append({
-                    "status": "exempt" if attended_elsewhere else "optional",
-                    "arrival_time": None,
-                })
-                continue
-            if not st:
-                st = "belum_diabsen"
-            per.append({
-                "status": st,
-                "arrival_time": a.get("arrival_time") if a else None,
-                "reason": a.get("reason") if a else None,
-                "note": a.get("note") if a else None,
-            })
+            cell = {"status": st or "belum_diabsen",
+                    "reason": a.get("reason") if a else None,
+                    "note": a.get("note") if a else None}
+            if tampilkan_jam:
+                cell["arrival_time"] = a.get("arrival_time") if a else None
+            per.append(cell)
+        statuses = [c["status"] for c in per if c]
+        if pid in sudah_hadir:
+            hari = "hadir"
+        elif "izin" in statuses:
+            hari = "izin"
+        elif "sakit" in statuses:
+            hari = "sakit"
+        elif "alpha" in statuses:
+            hari = "alpha"
+        else:
+            hari = "belum_diabsen"
         rows.append({
             "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
             "account_status": p.get("status", "active"),
+            "status_hari": hari,
+            "hadir_di": hadir_di.get(pid),
             "sessions": per,
         })
 
     total_guests = sum(guest_by_keg.values())
     first = docs[0]
-    total_hadir = sum((s["counts"] or {}).get("hadir", 0) for s in sessions_out)
-    total_peserta = sum((s["counts"] or {}).get("total", 0) for s in sessions_out)
+    unik = len(rows)
+    hadir_hari = sum(1 for r in rows if r["status_hari"] == "hadir")
     return {
         "date": first.get("date"),
         "base_name": first.get("base_name") or first.get("name"),
@@ -2945,11 +2955,16 @@ async def build_rekap_gabungan(docs: list) -> dict:
         "filter_labels": kegiatan_filter_labels(first),
         "sessions": sessions_out,
         "total": {
-            "hadir": total_hadir,
-            "total": total_peserta,
-            "ratio": round(total_hadir / total_peserta * 100) if total_peserta else 0,
+            "hadir": hadir_hari,
+            "total": unik,
+            "izin": sum(1 for r in rows if r["status_hari"] == "izin"),
+            "sakit": sum(1 for r in rows if r["status_hari"] == "sakit"),
+            "alpha": sum(1 for r in rows if r["status_hari"] == "alpha"),
+            "belum_diabsen": sum(1 for r in rows if r["status_hari"] == "belum_diabsen"),
+            "ratio": round(hadir_hari / unik * 100) if unik else 0,
         },
         "tamu": total_guests,
+        "tampilkan_jam": tampilkan_jam,
         "rows": rows,
     }
 
@@ -2976,6 +2991,83 @@ async def ensure_share_gabungan(kegiatan_id: str, request: Optional[Request] = N
             "link": f"{resolve_base_url(request)}/rekap-gabungan/{token}"}
 
 
+class GabunganInput(BaseModel):
+    kegiatan_ids: List[str] = []
+
+
+class ShareSettingInput(BaseModel):
+    tampilkan_jam: Optional[bool] = None
+    aktif: Optional[bool] = None
+
+
+@api_router.post("/admin/kegiatan/share-gabungan")
+async def share_gabungan_pilih(body: GabunganInput, request: Request,
+                               admin: dict = Depends(require_staff)):
+    """Buat tautan gabungan HANYA untuk kegiatan yang dipilih (hari yang sama)."""
+    ids = [i for i in dict.fromkeys(body.kegiatan_ids or []) if i]
+    if len(ids) < 2:
+        raise HTTPException(status_code=400, detail="Pilih minimal dua kegiatan.")
+    docs = await db.kegiatans.find({"_id": {"$in": ids}}).to_list(50)
+    if len(docs) != len(ids):
+        raise HTTPException(status_code=400, detail="Ada kegiatan yang tidak ditemukan.")
+    if len({d.get("date") for d in docs}) != 1:
+        raise HTTPException(status_code=400, detail="Kegiatan harus pada hari yang sama.")
+    token = secrets.token_urlsafe(10)
+    exp = (datetime.now(timezone.utc) + timedelta(days=SHARE_EXPIRE_DAYS)).isoformat()
+    await db.kegiatans.update_many(
+        {"_id": {"$in": ids}},
+        {"$set": {"group_share_token": token, "group_share_expires_at": exp,
+                  "group_share_aktif": True, "group_share_tampilkan_jam": False}})
+    first = sorted(docs, key=lambda d: (d.get("start_time") or ""))[0]
+    judul = f"rekap gabungan {first.get('base_name') or first.get('name')} ({first.get('date')})"
+    link = f"{resolve_base_url(request)}/rekap-gabungan/{token}"
+    await log_activity(admin, "bagikan_rekap_gabungan", f"Membuat tautan gabungan {judul}")
+    return {"token": token, "link": link, "expires_at": exp,
+            "wa_text": wa_template_laporan(judul, link)}
+
+
+@api_router.get("/admin/kegiatan/share-gabungan/{token}")
+async def share_gabungan_info(token: str, request: Request,
+                              admin: dict = Depends(require_staff)):
+    docs = await db.kegiatans.find({"group_share_token": token}).to_list(20)
+    if not docs:
+        raise HTTPException(status_code=404, detail="Tautan tidak ditemukan")
+    first = docs[0]
+    return {"token": token, "link": f"{resolve_base_url(request)}/rekap-gabungan/{token}",
+            "expires_at": first.get("group_share_expires_at"),
+            "tampilkan_jam": bool(first.get("group_share_tampilkan_jam")),
+            "aktif": first.get("group_share_aktif") is not False}
+
+
+@api_router.patch("/admin/kegiatan/share-gabungan/{token}")
+async def share_gabungan_update(token: str, body: ShareSettingInput,
+                                admin: dict = Depends(require_staff)):
+    docs = await db.kegiatans.find({"group_share_token": token}).to_list(20)
+    if not docs:
+        raise HTTPException(status_code=404, detail="Tautan tidak ditemukan")
+    upd = {}
+    if body.tampilkan_jam is not None:
+        upd["group_share_tampilkan_jam"] = bool(body.tampilkan_jam)
+    if body.aktif is not None:
+        upd["group_share_aktif"] = bool(body.aktif)
+    if upd:
+        await db.kegiatans.update_many({"group_share_token": token}, {"$set": upd})
+        await log_activity(admin, "atur_tautan_gabungan", "Mengatur tautan gabungan")
+    return {"ok": True, **upd}
+
+
+@api_router.delete("/admin/kegiatan/share-gabungan/{token}")
+async def share_gabungan_delete(token: str, admin: dict = Depends(require_staff)):
+    res = await db.kegiatans.update_many(
+        {"group_share_token": token},
+        {"$set": {"group_share_token": None, "group_share_expires_at": None,
+                  "group_share_aktif": True, "group_share_tampilkan_jam": False}})
+    if not res.matched_count:
+        raise HTTPException(status_code=404, detail="Tautan tidak ditemukan")
+    await log_activity(admin, "hapus_tautan_gabungan", "Menghapus tautan gabungan")
+    return {"ok": True}
+
+
 @api_router.post("/admin/kegiatan/{kegiatan_id}/share-gabungan")
 async def share_kegiatan_gabungan(kegiatan_id: str, request: Request,
                                   admin: dict = Depends(require_staff)):
@@ -2993,8 +3085,11 @@ async def public_rekap_gabungan(token: str):
         raise HTTPException(status_code=404, detail="Tautan rekap gabungan tidak ditemukan")
     if is_expired_iso(docs[0].get("group_share_expires_at")):
         raise HTTPException(status_code=410, detail="Tautan rekap gabungan sudah kadaluarsa")
-    docs.sort(key=lambda d: (d.get("session_index") or 0, d.get("start_time") or ""))
-    return await build_rekap_gabungan(docs)
+    if docs[0].get("group_share_aktif") is False:
+        raise HTTPException(status_code=410, detail="Tautan rekap gabungan sudah tidak berlaku")
+    docs.sort(key=lambda d: (d.get("start_time") or "", d.get("session_index") or 0))
+    tampilkan_jam = bool(docs[0].get("group_share_tampilkan_jam"))
+    return await build_rekap_gabungan(docs, tampilkan_jam=tampilkan_jam)
 
 
 class SalinJadwalInput(BaseModel):
@@ -3255,6 +3350,58 @@ async def share_kegiatan(kegiatan_id: str, request: Request, admin: dict = Depen
     return info
 
 
+@api_router.get("/admin/kegiatan/{kegiatan_id}/share")
+async def share_info(kegiatan_id: str, request: Request, admin: dict = Depends(require_staff)):
+    """Info tautan rekap yang sudah ada (tanpa membuat baru)."""
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    token = k.get("share_token")
+    exp = k.get("share_expires_at")
+    valid = bool(token and exp and not is_expired_iso(exp))
+    return {
+        "token": token if valid else None,
+        "link": f"{resolve_base_url(request)}/rekap/{token}" if valid else None,
+        "expires_at": exp,
+        "tampilkan_jam": bool(k.get("share_tampilkan_jam")),
+        "aktif": k.get("share_aktif") is not False,
+    }
+
+
+@api_router.patch("/admin/kegiatan/{kegiatan_id}/share")
+async def share_update(kegiatan_id: str, body: ShareSettingInput,
+                       admin: dict = Depends(require_staff)):
+    """Atur tampilkan jam / aktif-nonaktif tautan rekap (tautan tidak berubah)."""
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    upd = {}
+    if body.tampilkan_jam is not None:
+        upd["share_tampilkan_jam"] = bool(body.tampilkan_jam)
+    if body.aktif is not None:
+        upd["share_aktif"] = bool(body.aktif)
+    if upd:
+        await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": upd})
+        await log_activity(admin, "atur_tautan_rekap",
+                           f"Mengatur tautan rekap '{k.get('name')}'", kegiatan_id)
+    return {"ok": True, **upd}
+
+
+@api_router.delete("/admin/kegiatan/{kegiatan_id}/share")
+async def share_delete(kegiatan_id: str, admin: dict = Depends(require_staff)):
+    """Hapus tautan rekap (tautan yang sudah dibagikan tidak bisa dibuka lagi)."""
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    await db.kegiatans.update_one(
+        {"_id": kegiatan_id},
+        {"$set": {"share_token": None, "share_expires_at": None,
+                  "share_aktif": True, "share_tampilkan_jam": False}})
+    await log_activity(admin, "hapus_tautan_rekap",
+                       f"Menghapus tautan rekap '{k.get('name')}'", kegiatan_id)
+    return {"ok": True}
+
+
 @api_router.get("/admin/kegiatan/{kegiatan_id}/qr")
 async def qr_kegiatan(kegiatan_id: str, request: Request, admin: dict = Depends(require_staff)):
     info = await ensure_share(kegiatan_id, request)
@@ -3278,12 +3425,15 @@ async def public_rekap(token: str):
             raise
         except Exception:
             pass
+    if k.get("share_aktif") is False:
+        raise HTTPException(status_code=410, detail="Tautan rekap sudah tidak berlaku")
     # Hormati tipe peserta & filter jenis kelamin kegiatan (mis. khusus perempuan)
     peserta = await peserta_for_kegiatan(k)
     absens = await db.absensis.find({"kegiatan_id": k["_id"]}).to_list(10000)
     guests = await db.guest_absens.find({"kegiatan_id": k["_id"]}).sort("created_at", 1).to_list(2000)
     amap = {a["user_id"]: a for a in absens}
     other = await attended_other_sessions(k)
+    tampilkan_jam = bool(k.get("share_tampilkan_jam"))
     rows = []
     gender = {"L": 0, "P": 0}
     for p in peserta:
@@ -3295,30 +3445,31 @@ async def public_rekap(token: str):
             g = _derive_gender(p)
             if g in gender:
                 gender[g] += 1
-        rows.append({"name": p.get("name"), "status": status,
-                     "gender": _derive_gender(p),
-                     "account_status": p.get("status", "active"),
-                     "required_for_session": session_requires_participant(k, str(p["_id"])),
-                     "arrival_time": a.get("arrival_time") if a else None})
+        row = {"name": p.get("name"), "status": status,
+               "gender": _derive_gender(p),
+               "account_status": p.get("status", "active"),
+               "required_for_session": session_requires_participant(k, str(p["_id"]))}
+        # Jam kehadiran HANYA dikirim bila pengurus menyalakannya.
+        if tampilkan_jam:
+            row["arrival_time"] = a.get("arrival_time") if a else None
+        rows.append(row)
     for g in guests:
-        rows.append({"name": f"{g.get('name')} (tamu)", "status": "hadir",
-                     "account_status": "tamu", "arrival_time": g.get("arrival_time")})
+        row = {"name": f"{g.get('name')} (tamu)", "status": "hadir",
+               "account_status": "tamu"}
+        if tampilkan_jam:
+            row["arrival_time"] = g.get("arrival_time")
+        rows.append(row)
     counts = compute_counts(peserta, absens, len(guests), set(other), k)
-    payload = {
+    return {
         "name": k.get("name"), "type": k.get("type"), "location": k.get("location"),
         "date": k.get("date"), "start_time": k.get("start_time"), "end_time": k.get("end_time"),
         "teacher": k.get("teacher"), "material": k.get("material"),
         "counts": counts,
         "gender": gender,
         "rows": rows,
+        "tampilkan_jam": tampilkan_jam,
+        "expires_at": exp,
     }
-    # Kegiatan multi-sesi: sertakan rekap gabungan agar halaman publik bisa
-    # menampilkan toggle Gabungan | Pagi | Malam tanpa endpoint tambahan.
-    if k.get("session_group_id"):
-        docs = await sesi_group_docs(k["_id"])
-        if len(docs) > 1:
-            payload["gabungan"] = await build_rekap_gabungan(docs)
-    return payload
 
 
 # ------------------------- QR Absen Mandiri + Kesan & Pesan -------------------------
@@ -5522,21 +5673,33 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
     status_by = {(a["kegiatan_id"], a["user_id"]): a.get("status") for a in absens}
     reason_by = {(a["kegiatan_id"], a["user_id"]): (a.get("reason") or a.get("note"))
                  for a in absens}
+    arrival_by = {(a["kegiatan_id"], a["user_id"]): a.get("arrival_time") for a in absens}
     elig = {k["_id"]: {str(p["_id"]) for p in filter_peserta_for_kegiatan(k, peserta)} for k in docs}
 
+    # Urutkan kegiatan hari itu menurut jam mulai (SATU ORANG DIHITUNG SEKALI).
+    docs_sorted = sorted(docs, key=lambda x: (x.get("start_time") or "", x.get("session_index") or 0))
+    sudah_hadir: set = set()          # peserta yang sudah dihitung hadir di kegiatan sebelumnya
+    hadir_di: dict = {}               # peserta_id -> label kegiatan tempat ia dihitung hadir
     sesi_out = []
     _now = now_wita()
-    for k in sorted(docs, key=lambda x: (x.get("start_time") or "", x.get("session_index") or 0)):
+    for k in docs_sorted:
         ids = elig[k["_id"]]
         berlangsung = kegiatan_sudah_berlangsung(k, _now)
+        # Penyebut kartu: kegiatan pertama = semua peserta; berikutnya = yang belum hadir sebelumnya.
+        penyebut = {pid for pid in ids if pid not in sudah_hadir}
         session_absens = [
             {"user_id": pid, "status": status_by[(k["_id"], pid)]}
-            for pid in ids if (k["_id"], pid) in status_by
+            for pid in penyebut if (k["_id"], pid) in status_by
         ]
         counts = compute_counts(
-            [p for p in peserta if str(p["_id"]) in ids], session_absens, kegiatan=k)
+            [p for p in peserta if str(p["_id"]) in penyebut], session_absens, kegiatan=k)
+        hadir_ids = {pid for pid in penyebut
+                     if status_by.get((k["_id"], pid)) == "hadir"}
+        for pid in hadir_ids:
+            sudah_hadir.add(pid)
+            hadir_di.setdefault(pid, k.get("session_label") or k.get("name"))
         sesi_out.append({
-            "id": k["_id"], "label": k.get("session_label") or "Sesi tunggal",
+            "id": k["_id"], "label": k.get("session_label") or "Kegiatan",
             "name": k.get("base_name") or k.get("name"),
             "start_time": k.get("start_time"), "end_time": k.get("end_time"),
             "teacher": k.get("teacher"), "material": k.get("material"),
@@ -5546,69 +5709,70 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
             "peserta": counts["total"], "hadir": counts["hadir"], "izin": counts["izin"],
             "sakit": counts["sakit"], "alpha": counts["alpha"],
             "belum_diabsen": counts["belum_diabsen"], "ratio": counts["ratio"],
+            "sebelumnya_hadir": len(ids) - len(penyebut),
         })
+
+    # Status per peserta untuk HARI ITU (satu status saja).
+    peserta_hari = {}
+    for k in docs_sorted:
+        for pid in elig[k["_id"]]:
+            peserta_hari.setdefault(pid, []).append(
+                (k, status_by.get((k["_id"], pid)), arrival_by.get((k["_id"], pid))))
 
     rows = []
     for p in peserta:
         pid = str(p["_id"])
-        mine = [
-            k for k in docs
-            if pid in elig[k["_id"]] and (
-                session_requires_participant(k, pid)
-                or status_by.get((k["_id"], pid)) in ABSEN_STATUS
-            )
-        ]
-        if not mine:
+        catatan = peserta_hari.get(pid)
+        if not catatan:
             continue
+        statuses = [st for _, st, _ in catatan]
+        if pid in sudah_hadir:
+            hari_status = "hadir"
+        elif "izin" in statuses:
+            hari_status = "izin"
+        elif "sakit" in statuses:
+            hari_status = "sakit"
+        elif any(st == "alpha" for st in statuses):
+            hari_status = "alpha"
+        else:
+            hari_status = "belum_diabsen"
         detail = []
-        status_counts = {"hadir": 0, "izin": 0, "sakit": 0, "alpha": 0, "belum_diabsen": 0}
-        for k in mine:
-            st = status_by.get((k["_id"], pid)) or "belum_diabsen"
-            if st not in status_counts:
-                st = "belum_diabsen"
-            status_counts[st] += 1
-            required = session_requires_participant(k, pid)
+        for k, st, arr in catatan:
             detail.append({
-                "label": k.get("session_label") or "Sesi tunggal",
+                "label": k.get("session_label") or "Kegiatan",
                 "start_time": k.get("start_time"), "end_time": k.get("end_time"),
-                "required": required, "status": st,
+                "required": session_requires_participant(k, pid),
+                "status": st or "belum_diabsen",
                 "reason": reason_by.get((k["_id"], pid)),
+                "arrival_time": arr,
             })
-        total = len(mine)
-        hari_status = (
-            "hadir" if status_counts["hadir"] else
-            "izin" if status_counts["izin"] else
-            "sakit" if status_counts["sakit"] else
-            "alpha" if status_counts["alpha"] else
-            "belum_diabsen"
-        )
         rows.append({
             "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
             "kelompok_name": kmap.get(p.get("kelompok_id")),
-            "sesi_total": total, **status_counts,
-            "ratio": round((status_counts["hadir"] / total) * 100, 1) if total else 0.0,
-            "izin_ratio": round((status_counts["izin"] / total) * 100, 1) if total else 0.0,
-            "alpha_ratio": round((status_counts["alpha"] / total) * 100, 1) if total else 0.0,
             "status_hari": hari_status,
-            "sesi_wajib": sum(1 for row in detail if row["required"]),
-            "reason": next((row["reason"] for row in detail if row.get("reason")), None),
+            "hadir_di": hadir_di.get(pid),
             "detail": detail,
         })
-    rows.sort(key=lambda x: (x["ratio"], (x["name"] or "").lower()))
+    rows.sort(key=lambda x: (x["name"] or "").lower())
 
-    slot = sum(s["peserta"] for s in sesi_out)
-    hadir = sum(s["hadir"] for s in sesi_out)
+    # Ringkasan hari itu: Hadir + Izin + Sakit + Alpha = peserta unik.
+    unik = len(rows)
+    hadir_hari = sum(1 for r in rows if r["status_hari"] == "hadir")
+    izin_hari = sum(1 for r in rows if r["status_hari"] == "izin")
+    sakit_hari = sum(1 for r in rows if r["status_hari"] == "sakit")
+    alpha_hari = sum(1 for r in rows if r["status_hari"] == "alpha")
+    belum_hari = sum(1 for r in rows if r["status_hari"] == "belum_diabsen")
     gender_out = {}
     for g in ("L", "P"):
         grp = [r for r in rows if r["gender"] == g]
-        gslot = sum(r["sesi_total"] for r in grp)
-        ghadir = sum(r["hadir"] for r in grp)
+        ghadir = sum(1 for r in grp if r["status_hari"] == "hadir")
         gender_out[g] = {
-            "peserta": len(grp), "hadir": ghadir, "slot": gslot,
-            "izin": sum(r["izin"] for r in grp), "alpha": sum(r["alpha"] for r in grp),
-            "sakit": sum(r["sakit"] for r in grp),
-            "belum_diabsen": sum(r["belum_diabsen"] for r in grp),
-            "ratio": round((ghadir / gslot) * 100, 1) if gslot else 0.0,
+            "peserta": len(grp), "hadir": ghadir,
+            "izin": sum(1 for r in grp if r["status_hari"] == "izin"),
+            "sakit": sum(1 for r in grp if r["status_hari"] == "sakit"),
+            "alpha": sum(1 for r in grp if r["status_hari"] == "alpha"),
+            "belum_diabsen": sum(1 for r in grp if r["status_hari"] == "belum_diabsen"),
+            "ratio": round((ghadir / len(grp)) * 100, 1) if grp else 0.0,
         }
 
     return {
@@ -5619,17 +5783,13 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
         "sesi": sesi_out,
         "rows": rows,
         "summary": {
-            "peserta": len(rows), "slot": slot, "hadir": hadir,
-            "izin": sum(s["izin"] for s in sesi_out),
-            "sakit": sum(s["sakit"] for s in sesi_out),
-            "alpha": sum(s["alpha"] for s in sesi_out),
-            "belum_diabsen": sum(s["belum_diabsen"] for s in sesi_out),
-            "ratio": round((hadir / slot) * 100, 1) if slot else 0.0,
-            "hadir_hari": sum(1 for r in rows if r["status_hari"] == "hadir"),
-            "izin_hari": sum(1 for r in rows if r["status_hari"] == "izin"),
-            "sakit_hari": sum(1 for r in rows if r["status_hari"] == "sakit"),
-            "alpha_hari": sum(1 for r in rows if r["status_hari"] == "alpha"),
-            "belum_diabsen_hari": sum(1 for r in rows if r["status_hari"] == "belum_diabsen"),
+            "peserta": unik, "slot": unik, "hadir": hadir_hari,
+            "izin": izin_hari, "sakit": sakit_hari, "alpha": alpha_hari,
+            "belum_diabsen": belum_hari,
+            "ratio": round((hadir_hari / unik) * 100, 1) if unik else 0.0,
+            "hadir_hari": hadir_hari, "izin_hari": izin_hari,
+            "sakit_hari": sakit_hari, "alpha_hari": alpha_hari,
+            "belum_diabsen_hari": belum_hari,
         },
         "gender": gender_out,
     }
@@ -5971,26 +6131,33 @@ async def public_rekap_bulanan(token: str):
 @api_router.post("/staff/rekap-harian/share")
 async def share_rekap_harian(request: Request, date: Optional[str] = None,
                              staff: dict = Depends(require_staff)):
-    """FASE 17 — tautan publik rekap harian (permanen, tanpa login)."""
+    """FASE 17 — tautan publik rekap harian (berlaku 7 hari, tanpa login)."""
     d = (date or now_wita().strftime("%Y-%m-%d")).strip()
     existing = await db.harian_links.find_one({"date": d})
     if existing:
         token = existing["_id"]
+        if not existing.get("expires_at"):
+            await db.harian_links.update_one(
+                {"_id": token},
+                {"$set": {"expires_at": (datetime.now(timezone.utc)
+                                         + timedelta(days=SHARE_EXPIRE_DAYS)).isoformat()}})
     else:
         token = secrets.token_urlsafe(10)
         await db.harian_links.insert_one({
             "_id": token, "date": d,
             "created_by": str(staff["_id"]), "created_by_name": staff.get("name"),
-            "created_at": datetime.now(timezone.utc).isoformat()})
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "expires_at": (datetime.now(timezone.utc)
+                           + timedelta(days=SHARE_EXPIRE_DAYS)).isoformat(),
+            "aktif": True, "tampilkan_jam": False})
     link = f"{resolve_base_url(request)}/rekap-harian/{token}"
     data = await build_rekap_harian(d)
     s = data["summary"]
     wa_text = (
         f"Rekap absen harian {data.get('label') or d}\n"
         f"Kegiatan: {', '.join(data.get('kegiatan') or []) or '-'}\n"
-        f"Sesi: {data.get('total_sesi', 0)}\n"
-        f"Hadir {s.get('hadir', 0)}x · Izin {s.get('izin', 0)}x · Alpha {s.get('alpha', 0)}x "
-        f"dari {s.get('slot', 0)} slot ({s.get('ratio', 0)}%)\n"
+        f"Hadir {s.get('hadir', 0)} dari {s.get('peserta', 0)} orang "
+        f"({s.get('ratio', 0)}%)\n"
         f"{link}"
     )
     await log_activity(staff, "bagikan_rekap_harian", f"Membagikan tautan rekap harian {d}")
@@ -5998,12 +6165,71 @@ async def share_rekap_harian(request: Request, date: Optional[str] = None,
             "wa_text": wa_text}
 
 
+@api_router.get("/staff/rekap-harian/share")
+async def share_rekap_harian_info(request: Request, date: Optional[str] = None,
+                                  staff: dict = Depends(require_staff)):
+    """Info tautan rekap harian yang sudah ada (tanpa membuat baru)."""
+    d = (date or now_wita().strftime("%Y-%m-%d")).strip()
+    doc = await db.harian_links.find_one({"date": d})
+    if not doc:
+        return {"token": None, "link": None, "expires_at": None,
+                "tampilkan_jam": False, "aktif": True}
+    valid = bool(doc.get("expires_at") and not is_expired_iso(doc.get("expires_at")))
+    return {
+        "token": doc["_id"] if valid else None,
+        "link": f"{resolve_base_url(request)}/rekap-harian/{doc['_id']}" if valid else None,
+        "expires_at": doc.get("expires_at"),
+        "tampilkan_jam": bool(doc.get("tampilkan_jam")),
+        "aktif": doc.get("aktif") is not False,
+    }
+
+
+@api_router.patch("/staff/rekap-harian/share")
+async def share_rekap_harian_update(body: ShareSettingInput, date: Optional[str] = None,
+                                    staff: dict = Depends(require_staff)):
+    d = (date or now_wita().strftime("%Y-%m-%d")).strip()
+    doc = await db.harian_links.find_one({"date": d})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Tautan belum dibuat")
+    upd = {}
+    if body.tampilkan_jam is not None:
+        upd["tampilkan_jam"] = bool(body.tampilkan_jam)
+    if body.aktif is not None:
+        upd["aktif"] = bool(body.aktif)
+    if upd:
+        await db.harian_links.update_one({"_id": doc["_id"]}, {"$set": upd})
+        await log_activity(staff, "atur_tautan_harian", f"Mengatur tautan rekap harian {d}")
+    return {"ok": True, **upd}
+
+
+@api_router.delete("/staff/rekap-harian/share")
+async def share_rekap_harian_delete(date: Optional[str] = None,
+                                    staff: dict = Depends(require_staff)):
+    d = (date or now_wita().strftime("%Y-%m-%d")).strip()
+    res = await db.harian_links.delete_one({"date": d})
+    if not res.deleted_count:
+        raise HTTPException(status_code=404, detail="Tautan tidak ditemukan")
+    await log_activity(staff, "hapus_tautan_harian", f"Menghapus tautan rekap harian {d}")
+    return {"ok": True}
+
+
 @api_router.get("/rekap-harian/{token}")
 async def public_rekap_harian(token: str):
     doc = await db.harian_links.find_one({"_id": token})
     if not doc:
         raise HTTPException(status_code=404, detail="Tautan rekap harian tidak ditemukan")
-    return await build_rekap_harian(doc.get("date"))
+    if is_expired_iso(doc.get("expires_at")):
+        raise HTTPException(status_code=410, detail="Tautan sudah tidak berlaku")
+    if doc.get("aktif") is False:
+        raise HTTPException(status_code=410, detail="Tautan sudah tidak berlaku")
+    data = await build_rekap_harian(doc.get("date"))
+    if not doc.get("tampilkan_jam"):
+        # Server TIDAK mengirim jam sama sekali bila pengaturan mati.
+        for r in data.get("rows") or []:
+            for cell in r.get("detail") or []:
+                cell.pop("arrival_time", None)
+    data["tampilkan_jam"] = bool(doc.get("tampilkan_jam"))
+    return data
 
 
 async def build_laporan(date_from: str, date_to: str) -> dict:
@@ -9543,6 +9769,17 @@ async def _run_init():
     await db.izin_laju.create_index("at")
     await db.tautan_kartu.create_index("token", unique=True)
     await db.tautan_kartu.create_index("peserta_id")
+    # Tautan rekap lama tanpa tanggal berlaku: isi 7 hari sejak perubahan ini
+    # dijalankan (idempoten, tidak menimpa yang sudah terisi, tidak menghapus).
+    _exp = (datetime.now(timezone.utc) + timedelta(days=SHARE_EXPIRE_DAYS)).isoformat()
+    await db.kegiatans.update_many(
+        {"share_token": {"$ne": None}, "share_expires_at": None},
+        {"$set": {"share_expires_at": _exp}})
+    await db.kegiatans.update_many(
+        {"group_share_token": {"$ne": None}, "group_share_expires_at": None},
+        {"$set": {"group_share_expires_at": _exp}})
+    await db.harian_links.update_many(
+        {"expires_at": None}, {"$set": {"expires_at": _exp}})
 
 
 _init_done = False

@@ -16,12 +16,14 @@ export const REPORT_TITLE_VARIANT = "hijau";
  * @param {string} subtitle teks chip kecil (tanggal/periode, boleh dengan jam)
  * @param {boolean} showUserIcon tampilkan ikon orang di kiri judul
  * @param {function} onUserClick bila diisi, ikon bisa diketuk (halaman login)
+ * @param {Component} icon ikon pengganti ikon orang (mis. buku / kalender)
  */
 export default function ReportHeader({
   title = "Laporan",
   subtitle = "",
   showUserIcon = false,
   onUserClick,
+  icon: IconOverride,
   compact = false,
   testid = "report-header",
 }) {
@@ -30,12 +32,13 @@ export default function ReportHeader({
   const rest = words.join(" ");
   const scheme = REPORT_TITLE_SCHEME[REPORT_TITLE_VARIANT] || REPORT_TITLE_SCHEME.hijau;
 
-  const icon = showUserIcon ? (
+  const Icon = IconOverride || (showUserIcon ? UserRound : null);
+  const icon = Icon ? (
     <span
       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E3F3EA] text-[#0E4E31]"
       aria-hidden={onUserClick ? undefined : "true"}
     >
-      <UserRound size={16} />
+      <Icon size={16} />
     </span>
   ) : null;
 
@@ -51,7 +54,7 @@ export default function ReportHeader({
               aria-label="Buka profil peserta"
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E3F3EA] text-[#0E4E31] transition-colors hover:bg-[#D3EBDD]"
             >
-              <UserRound size={16} />
+              <Icon size={16} />
             </button>
           ) : icon)}
           <h1 className="font-heading text-[18px] font-semibold leading-tight text-[#14201A]">

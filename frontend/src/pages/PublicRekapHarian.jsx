@@ -1,16 +1,9 @@
-// FASE 17 — Halaman publik Rekap Harian (tanpa login): rincian sesi + keterangan tiap peserta.
-import { useEffect, useState } from "react";
+// Laporan Harian publik (tanpa login). Satu orang dihitung sekali per hari.
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import {
-  CalendarCheck, Calendar1, Loader2, Users, Layers, Clock, User, MapPin, Info, ChevronDown, Search,
-} from "lucide-react";
+import { Loader2, Info, Search, CalendarDays } from "lucide-react";
 import { api } from "@/lib/api";
-import { PercentBar } from "@/pages/PublicRekapGabungan";
-import { REKAP, PersenRingkas, keteranganHitungan, ratioColor } from "@/pages/admin/rekapUtils";
 import ReportHeader from "@/components/ReportHeader";
-import StatusGroups from "@/components/StatusGroups";
-
-const STATUS_NETRAL = { t: "Belum diabsen", cls: "bg-[#F0EEE6] text-[#5F6B63]" };
 
 const STATUS_CHIP = {
   hadir: { t: "Hadir", cls: "bg-[#E3F3EA] text-[#0E4E31]" },
@@ -18,195 +11,148 @@ const STATUS_CHIP = {
   sakit: { t: "Sakit", cls: "bg-[#E3EEFB] text-[#1D4F91]" },
   alpha: { t: "Alpha", cls: "bg-[#FBE5E3] text-[#A32A2A]" },
   belum_diabsen: { t: "Belum diabsen", cls: "bg-[#F0EEE6] text-[#5F6B63]" },
-  belum_berlangsung: { t: "Belum berlangsung", cls: "bg-[#F0EEE6] text-[#5F6B63]" },
 };
+const NETRAL = { t: "Belum diabsen", cls: "bg-[#F0EEE6] text-[#5F6B63]" };
+const chipOf = (s) => STATUS_CHIP[s] || NETRAL;
 
-/** Gaya chip aman: status tak dikenal / kosong → netral. */
-function chipOf(status) {
-  return STATUS_CHIP[status] || STATUS_NETRAL;
-}
+const KARTU = [
+  { key: "hadir", label: "Hadir", bg: "#E3F3EA", fg: "#0E4E31" },
+  { key: "izin", label: "Izin", bg: "#FBF1D6", fg: "#6B4500" },
+  { key: "sakit", label: "Sakit", bg: "#E3EEFB", fg: "#1D4F91" },
+  { key: "alpha", label: "Alpha", bg: "#FBE5E3", fg: "#A32A2A" },
+];
 
 export default function PublicRekapHarian() {
   const { token } = useParams();
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState(null);
 
   useEffect(() => {
     api.get(`/rekap-harian/${token}`)
       .then(({ data: d }) => setData(d))
-      .catch((e) => setErr(e.response?.data?.detail || "Tautan tidak ditemukan"));
+      .catch(() => setErr("Tautan tidak berlaku."));
   }, [token]);
+
+  const rows = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    return (data?.rows || []).filter((r) => !s || (r.name || "").toLowerCase().includes(s));
+  }, [data, q]);
 
   if (err) {
     return (
       <div className="min-h-screen bg-[#F6F4EE] flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-8 text-center max-w-md" data-testid="pub-harian-error">
+        <div className="bg-white rounded-2xl border border-[#E7E3D8] p-8 text-center max-w-md">
           <Info size={28} className="mx-auto text-[#A32A2A] mb-2" />
-          <p className="font-semibold text-[#0E4E31]">{err}</p>
-          <p className="text-sm text-[#5F6B63] mt-1">Silakan minta tautan terbaru kepada pengurus.</p>
+          <p className="font-semibold text-[#A32A2A]">{err}</p>
         </div>
       </div>
     );
   }
-
   if (!data) {
-    return (
-      <div className="min-h-screen bg-[#F6F4EE] flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#0E4E31]" size={30} />
-      </div>
-    );
+    return <div className="min-h-screen bg-[#F6F4EE] flex items-center justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>;
   }
 
-  const s = data.summary;
-  const rows = (data.rows || []).filter((r) =>
-    !q.trim() || (r.name || "").toLowerCase().includes(q.trim().toLowerCase()));
+  const s = data.summary || {};
+  const persen = s.peserta ? Math.round((s.hadir / s.peserta) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-[#F6F4EE] pb-16">
       <ReportHeader
-        title="Laporan Harian"
-        subtitle={`${data.label || data.date} · ${data.total_sesi} sesi`}
-        showUserIcon
+        title="Laporan harian"
+        subtitle={data.label || data.date}
+        icon={CalendarDays}
         testid="pub-harian-report-header"
       />
 
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-5">
-        <div className="rounded-2xl border-2 border-[#D9F2F4] bg-[#E3F3EA] p-4" data-testid="pub-harian-header">
-          <div className="font-heading text-xl font-bold text-[#0A5961] inline-flex items-center gap-2">
-            <Calendar1 size={20} /> {data.label || data.date}
-          </div>
-          <div className="text-sm text-[#0E4E31] mt-1">
-            {(data.kegiatan || []).join(" · ") || "-"} — {data.total_sesi} sesi
-          </div>
-        </div>
-
+      <main className="max-w-3xl mx-auto px-4 py-4 space-y-4">
         {data.total_sesi === 0 ? (
-          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-10 text-center text-[#5F6B63]" data-testid="pub-harian-empty">
+          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-10 text-center text-[#5F6B63]">
             Tidak ada kegiatan pada tanggal ini.
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { k: "peserta", label: "Peserta", value: s.peserta, sub: `${s.slot} slot sesi`, color: REKAP.main, icon: Users },
-                { k: "hadir", label: "Hadir", value: s.hadir, sub: `${s.hadir_hari} orang hadir`, color: REKAP.hadir, icon: CalendarCheck },
-                { k: "izin", label: "Izin", value: s.izin, sub: `${s.izin_hari} orang berizin`, color: REKAP.izin, icon: Info },
-                { k: "sakit", label: "Sakit", value: s.sakit, sub: `${s.sakit_hari} orang sakit`, color: REKAP.lk, icon: Info },
-                { k: "alpha", label: "Alpha", value: s.alpha, sub: `${s.alpha_hari} tanpa keterangan`, color: REKAP.alpha, icon: Info },
-                { k: "belum_diabsen", label: "Belum diabsen", value: s.belum_diabsen, sub: `${s.belum_diabsen_hari} menunggu`, color: "#5F6B63", icon: Info },
-              ].map((c) => {
-                const Icon = c.icon;
-                return (
-                  <div key={c.k} className="rounded-2xl border border-[#E7E3D8] bg-white p-4" data-testid={`pub-harian-stat-${c.k}`}>
-                    <div className="text-xs font-semibold inline-flex items-center gap-1.5" style={{ color: c.color }}>
-                      <Icon size={14} /> {c.label}
-                    </div>
-                    <div className="text-2xl font-bold mt-1 tabular-nums" style={{ color: c.color }}>{c.value}</div>
-                    <div className="text-[11px] text-[#5F6B63] mt-0.5">{c.sub}</div>
+            <section className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
+              <div className="text-sm font-bold text-[#14201A]">Gabungan hari ini</div>
+              <div className="mt-3 flex items-center gap-4">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-4 border-[#14633F] text-base font-bold tabular-nums text-[#0E4E31]">
+                  {persen}%
+                </div>
+                <div className="min-w-0">
+                  <div className="font-heading text-base font-bold text-[#14201A]">
+                    {s.hadir || 0} dari {s.peserta || 0} orang hadir
                   </div>
-                );
-              })}
-            </div>
-
-            <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5 space-y-4" data-testid="pub-harian-sesi">
-              <div className="text-sm font-semibold text-[#0E4E31] inline-flex items-center gap-2">
-                <Layers size={16} style={{ color: REKAP.main }} /> Kehadiran Tiap Sesi
+                  <p className="mt-0.5 text-[11px] text-[#5F6B63]">Satu orang dihitung sekali.</p>
+                </div>
               </div>
-              {data.sesi.map((x) => (
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {KARTU.map((k) => (
+                  <div key={k.key} className="rounded-xl p-3" style={{ backgroundColor: k.bg }}>
+                    <div className="text-[11px] font-semibold" style={{ color: k.fg }}>{k.label}</div>
+                    <div className="mt-0.5 text-xl font-bold tabular-nums" style={{ color: k.fg }}>{s[k.key] || 0}</div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 text-[11px] text-[#5F6B63]">
+                Alpha dihitung setelah semua kegiatan hari ini selesai.
+              </p>
+            </section>
+
+            <section className="rounded-2xl border border-[#E7E3D8] bg-white p-5 space-y-3">
+              <div className="text-sm font-bold text-[#14201A]">Kegiatan hari ini</div>
+              {(data.sesi || []).map((x) => (
                 <div key={x.id} className="rounded-xl border border-[#F0EEE6] p-3.5">
-                  <PercentBar
-                    label={`${x.label}${x.required ? "" : " · opsional"} — ${x.start_time}–${x.end_time} WITA`}
-                    value={x.ratio} sub={`${x.hadir}/${x.peserta}`} color={ratioColor(x.ratio)}
-                    testid={`pub-bar-harian-${x.label}`} />
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px] text-[#5F6B63]">
-                    {x.teacher && <span className="inline-flex items-center gap-1"><User size={12} /> {x.teacher}</span>}
-                    {x.location && <span className="inline-flex items-center gap-1"><MapPin size={12} /> {x.location}</span>}
-                    {x.material && <span className="inline-flex items-center gap-1"><Clock size={12} /> {x.material}</span>}
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-sm font-semibold text-[#14201A]">
+                      {x.label} · {x.start_time}–{x.end_time} WITA
+                    </span>
+                    {x.berlangsung === false && (
+                      <span className="rounded-full bg-[#F0EEE6] px-2.5 py-0.5 text-[11px] font-semibold text-[#5F6B63]">
+                        Belum dimulai
+                      </span>
+                    )}
                   </div>
-                  <div className="mt-3">
-                    <StatusGroups
-                      counts={{
-                        total: x.peserta, hadir: x.hadir, izin: x.izin,
-                        sakit: x.sakit, alpha: x.alpha, belum_diabsen: x.belum_diabsen,
-                      }}
-                      rows={(data.rows || []).map((r) => {
-                        const cell = (r.detail || []).find((d) => d.label === x.label);
-                        return cell ? { name: r.name, status: cell.status, reason: cell.reason } : null;
-                      }).filter(Boolean)}
-                      showBelum={(x.belum_diabsen || 0) > 0}
-                      testid={`pub-harian-status-${x.label}`}
-                    />
-                  </div>
+                  {x.berlangsung !== false && (
+                    <>
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#5F6B63]">
+                        <span>Hadir <b className="text-[#0E4E31]">{x.hadir}</b></span>
+                        <span>Izin <b className="text-[#6B4500]">{x.izin}</b></span>
+                        <span>Sakit <b className="text-[#1D4F91]">{x.sakit}</b></span>
+                      </div>
+                      {x.sebelumnya_hadir > 0 && (
+                        <p className="mt-1 text-[11px] text-[#5F6B63]">
+                          dari {x.peserta} yang belum hadir sebelumnya
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
               ))}
-            </div>
+            </section>
 
-            <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5 space-y-4" data-testid="pub-harian-gender">
-              <div className="text-sm font-semibold text-[#0E4E31] inline-flex items-center gap-2">
-                <Users size={16} style={{ color: REKAP.main }} /> Pisah Laki-laki &amp; Perempuan
-              </div>
-              <PercentBar label={`Laki-laki (${data.gender?.L?.peserta || 0} peserta)`} value={data.gender?.L?.ratio || 0}
-                sub={`${data.gender?.L?.hadir || 0}/${data.gender?.L?.slot || 0}`} color={REKAP.lk} testid="pub-bar-harian-l" />
-              <PercentBar label={`Perempuan (${data.gender?.P?.peserta || 0} peserta)`} value={data.gender?.P?.ratio || 0}
-                sub={`${data.gender?.P?.hadir || 0}/${data.gender?.P?.slot || 0}`} color={REKAP.pr} testid="pub-bar-harian-p" />
-            </div>
-
-            <div className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
-              <div className="relative mb-4">
+            <section className="rounded-2xl border border-[#E7E3D8] bg-white p-5">
+              <div className="relative mb-3">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
-                <input data-testid="pub-harian-search" value={q} onChange={(e) => setQ(e.target.value)}
+                <input value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari nama peserta…"
                   className="w-full h-11 pl-9 pr-3 rounded-xl border border-[#8A948D] text-sm outline-none focus:border-[#14633F]" />
               </div>
-              <div className="divide-y divide-[#E7E3D8]" data-testid="pub-harian-rows">
+              <div className="divide-y divide-[#E7E3D8]">
                 {rows.length === 0 ? (
                   <div className="p-8 text-center text-[#5F6B63]">Nama tidak ditemukan.</div>
                 ) : rows.map((r) => {
-                  if (!r) return null;
                   const chip = chipOf(r.status_hari);
-                  const expanded = open === r.user_id;
                   return (
-                    <div key={r.user_id} className="py-3" data-testid={`pub-harian-row-${r.user_id}`}>
-                      <button type="button" onClick={() => setOpen(expanded ? null : r.user_id)}
-                        className="w-full text-left flex items-center gap-3 justify-between">
-                        <span className="min-w-0">
-                          <span className="font-semibold text-[#0E4E31] flex items-center gap-1.5 flex-wrap">
-                            {r.name}
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${chip.cls}`}>{chip.t}</span>
-                          </span>
-                        </span>
-                        <span className="flex items-center gap-2 shrink-0">
-                          <PersenRingkas value={r.ratio} sub={`${r.hadir}/${r.sesi_total}`} testid={`pub-harian-persen-${r.user_id}`} />
-                          <ChevronDown size={16} className={`text-[#5F6B63] transition-transform ${expanded ? "rotate-180" : ""}`} />
-                        </span>
-                      </button>
-                      {expanded && (
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {(r.detail || []).map((x, i) => {
-                            if (!x) return null;
-                            const c = chipOf(x.status);
-                            return (
-                              <span key={i} className={`text-[11px] font-semibold px-2 py-1 rounded-lg ${c.cls}`}>
-                                {x.label} {x.start_time}–{x.end_time}{x.required ? "" : " (opsional)"} · {c.t}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
+                    <div key={r.user_id} className="flex items-center gap-2 py-2.5">
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#14201A]">{r.name}</span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${chip.cls}`}>
+                        {chip.t}{r.status_hari === "hadir" && r.hadir_di ? ` · ${r.hadir_di}` : ""}
+                      </span>
                     </div>
                   );
                 })}
               </div>
-            </div>
-
-            <div className="rounded-2xl border-2 border-dashed border-[#E7E3D8] bg-white p-4 text-xs text-[#5F6B63] space-y-1.5" data-testid="pub-harian-legend">
-              <div className="font-bold text-[#0E4E31] inline-flex items-center gap-1.5"><Info size={14} /> Keterangan hitungan</div>
-              <p>Persen kehadiran = jumlah <b>Hadir</b> ÷ jumlah sesi yang wajib diikuti × 100.</p>
-              <p>Hadir + Izin + Alpha selalu sama dengan jumlah sesi peserta tersebut, sehingga persennya berjumlah <b>100%</b>.</p>
-              <p>Warna persen: <span className="font-bold text-[#0E4E31]">hijau ≥80%</span>, <span className="font-bold text-[#6B4500]">kuning 50–79%</span>, <span className="font-bold text-[#A32A2A]">merah &lt;50%</span>.</p>
-            </div>
+            </section>
           </>
         )}
 

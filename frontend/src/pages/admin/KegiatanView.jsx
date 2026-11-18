@@ -22,6 +22,7 @@ import TambahKegiatanView from "./TambahKegiatanView";
 import KegiatanBantuanModal from "./KegiatanBantuanModal";
 import { ReminderModal } from "./KegiatanExtras";
 import { RekapGabunganModal, SalinJadwalModal } from "./SesiExtras";
+import ShareRekapDialog from "./ShareRekapDialog";
 import Modal from "@/components/Modal";
 import ListFab, { ListPagination } from "@/components/ListFab";
 
@@ -64,6 +65,8 @@ export default function KegiatanView({
   // FASE 10 — rekap per sesi & salin jadwal sesi
   const [gabunganId, setGabunganId] = useState(null);
   const [salinGroup, setSalinGroup] = useState(null);
+  const [gabungOpen, setGabungOpen] = useState(false);
+  const [gabungToken, setGabungToken] = useState(null);
 
   const load = useCallback(() => {
     setItems(null);
@@ -143,6 +146,9 @@ export default function KegiatanView({
   const groups = useMemo(() => groupKegiatan(paged), [paged]);
   const selectedTargets = filtered.filter((k) => selectedIds.has(k.id));
   const selectedVisibleCount = selectedTargets.length;
+  // "Gabungkan" hanya bila 2+ kegiatan pada hari yang sama dipilih.
+  const sameDaySelected = selectedVisibleCount >= 2
+    && new Set(selectedTargets.map((k) => k.date)).size === 1;
 
   const openAddPage = () => setShowAddPage(true);
 
@@ -181,6 +187,19 @@ export default function KegiatanView({
     else next.add(id);
     return next;
   });
+
+  // Buat tautan gabungan HANYA untuk kegiatan yang dicentang.
+  const buatGabungan = async () => {
+    try {
+      const { data } = await api.post("/admin/kegiatan/share-gabungan", {
+        kegiatan_ids: selectedTargets.map((k) => k.id),
+      });
+      setGabungToken(data.token);
+      setGabungOpen(true);
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    }
+  };
   const deleteSelected = async () => {
     const targets = selectedTargets;
     if (!targets.length) return;
@@ -383,10 +402,18 @@ export default function KegiatanView({
                 Pilih semua yang tampil ({filtered.length})
               </label>
               {selectedVisibleCount > 0 && (
-                <button type="button" onClick={() => setShowDeleteConfirm(true)} data-testid={ACTIVITIES.deleteSelected}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#A32A2A] px-4 text-sm font-semibold text-white hover:bg-[#A32A2A]">
-                  <Trash2 size={16} /> Hapus terpilih ({selectedVisibleCount})
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  {sameDaySelected && (
+                    <button type="button" onClick={buatGabungan}
+                      className="inline-flex min-h-10 items-center gap-2 rounded-xl border-2 border-[#14633F] px-4 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
+                      <Layers size={16} /> Gabungkan ({selectedVisibleCount})
+                    </button>
+                  )}
+                  <button type="button" onClick={() => setShowDeleteConfirm(true)} data-testid={ACTIVITIES.deleteSelected}
+                    className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#A32A2A] px-4 text-sm font-semibold text-white hover:bg-[#A32A2A]">
+                    <Trash2 size={16} /> Hapus terpilih ({selectedVisibleCount})
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -445,6 +472,14 @@ export default function KegiatanView({
         />
       )}
       {showHelp && <KegiatanBantuanModal onClose={() => setShowHelp(false)} />}
+      {gabungOpen && gabungToken && (
+        <ShareRekapDialog
+          open={gabungOpen}
+          onClose={() => { setGabungOpen(false); setGabungToken(null); }}
+          mode="gabungan"
+          id={gabungToken}
+        />
+      )}
       {gabunganId && <RekapGabunganModal kegiatanId={gabunganId} onClose={() => setGabunganId(null)} />}
       {salinGroup && (
         <SalinJadwalModal group={salinGroup} onClose={() => setSalinGroup(null)}
@@ -701,9 +736,6 @@ function SessionGroupCard({ group, selectedIds, onToggle, onOpen, onOpenGabungan
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-[15px] font-semibold text-[#14201A]">{first.base_name || first.name}</span>
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#FBF1D6] px-2 py-0.5 text-[11px] font-semibold text-[#6B4500]">
-              <Layers size={11} /> {group.items.length} sesi
-            </span>
           </div>
           <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#5F6B63]">
             {range && (

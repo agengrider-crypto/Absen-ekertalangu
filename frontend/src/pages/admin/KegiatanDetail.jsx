@@ -12,6 +12,7 @@ import { ACTIVITIES } from "@/constants/testIds";
 import ActionModal from "@/components/ActionModal";
 import Modal from "@/components/Modal";
 import KegiatanRekapPanel from "./KegiatanRekapPanel";
+import ShareRekapDialog from "./ShareRekapDialog";
 import { api, formatApiErrorDetail, isOfflineError } from "@/lib/api";
 import { useOfflineQueue } from "@/lib/offline";
 import OfflineBanner from "@/components/OfflineBanner";
@@ -54,6 +55,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
   const [showActions, setShowActions] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [posOpen, setPosOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
 
@@ -102,38 +104,6 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
   const phase = phaseOf(k);
   const pm = phaseMeta(phase);
 
-  // Bagikan rekap: teks ringkas tanpa nomor HP / tanggal lahir.
-  const bagikanRekap = async () => {
-    const rows = data?.rows || [];
-    const hadirRows = rows.filter((r) => r.status === "hadir");
-    const belum = rows.filter((r) => r.status !== "hadir");
-    const kategori = (r) => {
-      if (!r.marital) return null;
-      if (r.marital === "belum_menikah") return "Muda-mudi";
-      if (r.marital !== "sudah_menikah") return null;
-      if (r.gender === "L") return "Bapak-bapak";
-      if (r.gender === "P") return "Ibu-ibu";
-      return null;
-    };
-    const hitung = { "Bapak-bapak": 0, "Ibu-ibu": 0, "Muda-mudi": 0 };
-    hadirRows.forEach((r) => { const g = kategori(r); if (g) hitung[g] += 1; });
-    const teks = [
-      `Rekap ${k.name}`,
-      `${tanggalPanjang(k.date)}`,
-      `Hadir: ${hadirRows.length} · Belum hadir: ${belum.length}`,
-      `Bapak-bapak: ${hitung["Bapak-bapak"]} · Ibu-ibu: ${hitung["Ibu-ibu"]} · Muda-mudi: ${hitung["Muda-mudi"]}`,
-      "",
-      "Yang hadir:",
-      ...hadirRows.map((r, i) => `${i + 1}. ${r.name}`),
-    ].join("\n");
-    try {
-      await navigator.clipboard.writeText(teks);
-      toast.success("Rekap disalin.");
-    } catch (_) {
-      toast.error("Tidak bisa menyalin");
-    }
-  };
-
   return (
     <div data-testid="kegiatan-detail-view">
       <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -147,7 +117,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
           className="h-10 px-3.5 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#E3F3EA]">
           <MonitorSmartphone size={17} /> Mode pos scan
         </button>
-        <button type="button" onClick={bagikanRekap}
+        <button type="button" onClick={() => setShareOpen(true)}
           className="h-10 px-3.5 rounded-xl border-2 border-[#E7E3D8] bg-white text-[#5F6B63] font-semibold text-sm inline-flex items-center gap-2 hover:border-[#14633F] hover:text-[#0E4E31]">
           <Share2 size={17} /> Bagikan rekap
         </button>
@@ -178,11 +148,6 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
           ).map((l) => (
             <span key={l} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-[#FBE5E3] text-[#A32A2A]">{l}</span>
           ))}
-          {(k.session_total || 1) > 1 && k.session_label && (
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FBF1D6] text-[#6B4500]">
-              Sesi {k.session_label} ({(k.session_index ?? 0) + 1}/{k.session_total})
-            </span>
-          )}
         </div>
         <h2 className="font-heading text-xl font-bold text-[#14201A] mt-2">{k.name}</h2>
         <div className="text-sm text-[#5F6B63] mt-2 flex flex-wrap gap-x-5 gap-y-1">
@@ -200,7 +165,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
           <div className="mt-3 flex flex-wrap gap-2" data-testid="detail-sesi-actions">
             <button type="button" data-testid="detail-rekap-gabungan" onClick={() => onRekapGabungan && onRekapGabungan(k)}
               className="h-10 px-3.5 rounded-xl bg-[#14633F] text-white font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#0E4E31]">
-              <FileBarChart2 size={16} /> Rekap Kehadiran per Sesi ({k.session_total} sesi)
+              <FileBarChart2 size={16} /> Rekap Kehadiran per Sesi
             </button>
             <button type="button" data-testid="detail-salin-jadwal" onClick={() => onSalinJadwal && onSalinJadwal(k)}
               className="h-10 px-3.5 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#E3F3EA]">
@@ -266,6 +231,13 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
         <PosScan kegiatan={k} onClose={() => setPosOpen(false)}
           onReload={() => { load(true); if (onChanged) onChanged(); }} />
       )}
+
+      <ShareRekapDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        mode="kegiatan"
+        id={kegiatanId}
+      />
 
       {showActions && (
         <ActionModal

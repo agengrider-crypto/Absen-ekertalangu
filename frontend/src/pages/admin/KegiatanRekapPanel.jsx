@@ -39,8 +39,7 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
   }
 
   const { link, rekap } = data;
-  const hadirRows = (rekap.rows || []).filter((row) => row.status === "hadir" && !row.attended_other);
-  const absentStatuses = [
+  const hadirRows = (rekap.rows || []).filter((row) => row.status === "hadir" && !row.attended_other);  const absentStatuses = [
     { key: "izin", label: "Izin", color: "text-[#6B4500]", bg: "bg-[#FBF1D6]" },
     { key: "sakit", label: "Sakit", color: "text-[#1D4F91]", bg: "bg-[#E3EEFB]" },
     { key: "alpha", label: "Alpha", color: "text-[#A32A2A]", bg: "bg-[#FBE5E3]" },
@@ -72,8 +71,7 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   };
 
-  return (
-    <div className="space-y-4" data-testid="detail-rekap-panel">
+  return (    <div className="space-y-4" data-testid="detail-rekap-panel">
       <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4 sm:p-5">
         <h3 className="mb-1 inline-flex items-center gap-2 font-bold text-[#14201A]">
           <FileBarChart2 size={18} /> Rekap Kehadiran
@@ -161,25 +159,6 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
         ) : (
           <p className="p-6 text-center text-sm text-[#5F6B63]">Belum ada peserta yang tercatat hadir.</p>
         )}
-      </section>
-
-      <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4 sm:p-5" data-testid={ACTIVITIES.recapShare}>
-        <h3 className="font-bold text-[#14201A]">Bagikan tautan rekap</h3>
-        <p className="mt-1 text-sm text-[#5F6B63]">Tautan publik berlaku 7 hari. Tidak ada barcode pada bagian ini.</p>
-        <a href={link.link} target="_blank" rel="noreferrer" data-testid="detail-rekap-link"
-          className="mt-3 block break-all rounded-xl bg-[#F6F4EE] p-3 text-sm font-semibold text-[#0E4E31] hover:underline">
-          <ExternalLink size={15} className="mr-1 inline" />{link.link}
-        </a>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <button type="button" data-testid="detail-rekap-copy" onClick={copyLink}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#14633F] font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
-            <Copy size={16} /> Salin Tautan
-          </button>
-          <button type="button" data-testid="detail-rekap-wa" onClick={shareWa}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#14633F] font-semibold text-white hover:brightness-95">
-            <Send size={16} /> Bagikan lewat WhatsApp
-          </button>
-        </div>
       </section>
     </div>
   );

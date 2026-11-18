@@ -84,7 +84,7 @@ export default function PublicRekapBulanan() {
             {data.total_pertemuan} pertemuan · {data.total_peserta} peserta
           </h1>
           <p className="text-sm text-[#5F6B63] mt-1">
-            Rata-rata kehadiran {data.summary.rata_rata}% · {data.total_kegiatan} jadwal termasuk sesi
+            Rata-rata kehadiran {data.summary.rata_rata}% · {data.total_kegiatan} jadwal
           </p>
           <div className="flex flex-wrap gap-2 mt-3 text-xs">
             <span className="px-2.5 py-1 rounded-full bg-[#E3F3EA] text-[#0E4E31] font-semibold inline-flex items-center gap-1"><TrendingUp size={12} /> Rajin: {data.summary.rajin}</span>
@@ -107,7 +107,7 @@ export default function PublicRekapBulanan() {
         {/* Ringkasan tiap sesi selama 1 bulan */}
         {data.per_sesi?.length > 0 && (
           <div className="bg-white rounded-2xl border border-[#E7E3D8] p-4 mt-4" data-testid="bulanan-public-sesi">
-            <div className="text-sm font-semibold text-[#14201A] inline-flex items-center gap-2 mb-3"><Layers size={16} className="text-[#0E4E31]" /> Ringkasan Sesi Sebulan</div>
+            <div className="text-sm font-semibold text-[#14201A] inline-flex items-center gap-2 mb-3"><Layers size={16} className="text-[#0E4E31]" /> Ringkasan Sebulan</div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {data.per_sesi.map((x, i) => (
                 <div key={x.label} data-testid={`${MONTHLY_RECAP.sessionCardPrefix}-${i}`}
@@ -183,7 +183,7 @@ export default function PublicRekapBulanan() {
         {/* Daftar pertemuan: accordion per acara (sama seperti halaman utama rekap) */}
         <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 mt-4 space-y-3" data-testid="bulanan-public-pertemuan">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-sm font-semibold text-[#14201A]">Kegiatan &amp; Sesi Bulan {data.label}</div>
+            <div className="text-sm font-semibold text-[#14201A]">Kegiatan Bulan {data.label}</div>
             {data.per_pertemuan.length > 0 && (
               <button
                 type="button"
