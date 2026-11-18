@@ -196,6 +196,11 @@ export default function PublicRekapGabungan() {
                 dari {tampilan.total} yang belum hadir sebelumnya
               </p>
             )}
+            {tampilan.sesi.dikecualikan > 0 && (
+              <p className="mt-0.5 text-[11px] text-[#5F6B63]">
+                {tampilan.sesi.dikecualikan} peserta yang sudah hadir di kegiatan sebelumnya hari ini tidak dihitung.
+              </p>
+            )}
           </section>
         )}
 

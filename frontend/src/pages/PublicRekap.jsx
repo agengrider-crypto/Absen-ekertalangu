@@ -115,6 +115,12 @@ export default function PublicRekap() {
           })}
         </section>
 
+        {(data.dikecualikan || 0) > 0 && (
+          <p className="px-1 text-[11px] text-[#5F6B63]">
+            {data.dikecualikan} peserta yang sudah hadir di kegiatan sebelumnya hari ini tidak dihitung.
+          </p>
+        )}
+
         <section className="rounded-2xl border border-[#E7E3D8] bg-white">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E7E3D8] px-4 py-3">
             <h3 className="text-sm font-bold text-[#14201A]">{judulDaftar}</h3>

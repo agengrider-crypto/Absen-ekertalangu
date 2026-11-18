@@ -2109,11 +2109,15 @@ async def count_peserta_total() -> int:
 
 
 def compute_counts(peserta: list, absens: list, guests: int = 0,
-                   skip_ids: Optional[set] = None, kegiatan: Optional[dict] = None) -> dict:
-    """Angka rekap 1 kegiatan.
+                   skip_ids: Optional[set] = None, kegiatan: Optional[dict] = None,
+                   exclude_ids: Optional[set] = None) -> dict:
+    """Angka rekap 1 kegiatan — SATU-SATUNYA fungsi hitung rekap.
 
-    `skip_ids` = peserta yang SUDAH hadir di sesi lain pada hari yang sama
-    (FASE 12). Mereka tidak dihitung lagi di sesi ini agar tidak menambah alpha.
+    `skip_ids` = peserta yang sudah hadir di sesi lain pada hari yang sama
+    (dipakai daftar kegiatan admin; peserta wajib tetap dihitung).
+    `exclude_ids` = peserta yang sudah hadir di kegiatan yang MULAI LEBIH AWAL
+    pada hari & kelompok yang sama. Mereka dikeluarkan dari penyebut, kartu, dan
+    daftar nama rekap kegiatan ini (dipakai rekap publik & gabungan).
     """
     amap = {a["user_id"]: a.get("status") for a in absens}
     skip = skip_ids or set()
@@ -2122,9 +2126,10 @@ def compute_counts(peserta: list, absens: list, guests: int = 0,
             pid for pid in skip
             if not session_requires_participant(kegiatan, pid)
         }
+    drop = skip | (exclude_ids or set())
     ids = {
         str(p["_id"]) for p in peserta
-        if str(p["_id"]) not in skip
+        if str(p["_id"]) not in drop
         and (session_requires_participant(kegiatan, str(p["_id"]))
              or str(p["_id"]) in amap)
     }
@@ -2139,7 +2144,38 @@ def compute_counts(peserta: list, absens: list, guests: int = 0,
     hadir = counts["hadir"]
     ratio = round((hadir / total) * 100, 1) if total else 0.0
     return {"total": total, **counts, "ratio": ratio,
-            "sudah_sesi_lain": len(skip)}
+            "sudah_sesi_lain": len(skip),
+            "dikecualikan": len(exclude_ids or set())}
+
+
+def _kegiatan_urutan(k: dict) -> tuple:
+    """Kunci urutan kegiatan dalam satu kelompok: jam mulai lalu indeks sesi."""
+    return (k.get("start_time") or "", k.get("session_index") or 0)
+
+
+async def hadir_di_kegiatan_sebelumnya(k: dict) -> dict:
+    """Peserta yang HADIR di kegiatan lain pada hari & kelompok yang sama yang
+    MULAI LEBIH AWAL dari kegiatan ini.
+
+    Kunci kelompok = `session_group_id` (sama dengan pengelompokan pagi/malam).
+    Mengembalikan {user_id: label kegiatan}.
+    """
+    gid = k.get("session_group_id")
+    if not gid:
+        return {}
+    docs = await db.kegiatans.find({"session_group_id": gid,
+                                    "_id": {"$ne": k.get("_id")}}).to_list(20)
+    urut = _kegiatan_urutan(k)
+    earlier = {d["_id"]: d for d in docs if _kegiatan_urutan(d) < urut}
+    if not earlier:
+        return {}
+    absens = await db.absensis.find({"kegiatan_id": {"$in": list(earlier)},
+                                     "status": "hadir"}).to_list(50000)
+    out: dict = {}
+    for a in absens:
+        d = earlier.get(a["kegiatan_id"]) or {}
+        out.setdefault(a["user_id"], d.get("session_label") or d.get("name"))
+    return out
 
 
 async def attended_other_sessions(k: dict) -> dict:
@@ -2884,11 +2920,14 @@ async def build_rekap_gabungan(docs: list, tampilkan_jam: bool = False) -> dict:
     eligible_by_keg: dict = {}
     sudah_hadir: set = set()
     hadir_di: dict = {}
+    dikecualikan_by_keg: dict = {}
     for d in docs:
         peserta = filter_peserta_for_kegiatan(d, all_users)
         eligible_by_keg[d["_id"]] = {str(p["_id"]) for p in peserta}
         for p in peserta:
             peserta_union[str(p["_id"])] = p
+        # Peserta yang sudah hadir di kegiatan lebih awal tidak dihitung di sini.
+        dikecualikan_by_keg[d["_id"]] = set(sudah_hadir)
         penyebut = {str(p["_id"]) for p in peserta if str(p["_id"]) not in sudah_hadir}
         counts = compute_counts(
             [p for p in peserta if str(p["_id"]) in penyebut],
@@ -2910,13 +2949,14 @@ async def build_rekap_gabungan(docs: list, tampilkan_jam: bool = False) -> dict:
             "required": bool(d.get("session_required", True)),
             "counts": counts,
             "sebelumnya_hadir": len(eligible_by_keg[d["_id"]]) - len(penyebut),
+            "dikecualikan": len(dikecualikan_by_keg[d["_id"]]),
         })
 
     rows = []
     for pid, p in sorted(peserta_union.items(), key=lambda x: (x[1].get("name") or "").lower()):
         per = []
         for d in docs:
-            if pid not in eligible_by_keg[d["_id"]]:
+            if pid not in eligible_by_keg[d["_id"]] or pid in dikecualikan_by_keg[d["_id"]]:
                 per.append(None)
                 continue
             a = abs_by_keg.get(d["_id"], {}).get(pid)
@@ -3443,12 +3483,14 @@ async def public_rekap(token: str):
     absens = await db.absensis.find({"kegiatan_id": k["_id"]}).to_list(10000)
     guests = await db.guest_absens.find({"kegiatan_id": k["_id"]}).sort("created_at", 1).to_list(2000)
     amap = {a["user_id"]: a for a in absens}
-    other = await attended_other_sessions(k)
+    # Peserta yang sudah HADIR di kegiatan lain yang mulai lebih awal pada hari &
+    # kelompok yang sama tidak dihitung lagi di rekap kegiatan ini.
+    sebelumnya = await hadir_di_kegiatan_sebelumnya(k)
     tampilkan_jam = bool(k.get("share_tampilkan_jam"))
     rows = []
     gender = {"L": 0, "P": 0}
     for p in peserta:
-        if str(p["_id"]) in other and not session_requires_participant(k, str(p["_id"])):
+        if str(p["_id"]) in sebelumnya:
             continue
         a = amap.get(str(p["_id"]))
         status = a.get("status") if a else None
@@ -3470,12 +3512,14 @@ async def public_rekap(token: str):
         if tampilkan_jam:
             row["arrival_time"] = g.get("arrival_time")
         rows.append(row)
-    counts = compute_counts(peserta, absens, len(guests), set(other), k)
+    counts = compute_counts(peserta, absens, len(guests), set(), k,
+                            exclude_ids=set(sebelumnya))
     return {
         "name": k.get("name"), "type": k.get("type"), "location": k.get("location"),
         "date": k.get("date"), "start_time": k.get("start_time"), "end_time": k.get("end_time"),
         "teacher": k.get("teacher"), "material": k.get("material"),
         "counts": counts,
+        "dikecualikan": len(sebelumnya),
         "gender": gender,
         "rows": rows,
         "tampilkan_jam": tampilkan_jam,
