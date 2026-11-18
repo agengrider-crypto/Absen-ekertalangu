@@ -3,6 +3,7 @@ import {
   Users, Search, Loader2, UserPlus, Trash2, X, Eye, AlertTriangle,
   ClipboardList, CalendarDays, Heart, Printer, QrCode, CheckCircle2, ChevronLeft, ChevronRight,
   MoreHorizontal, User as UserIcon, History, SlidersHorizontal, GraduationCap, Clock,
+  Link2, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -893,7 +894,7 @@ function AddModal({ kelompok, onClose, onDone }) {
   );
 }
 
-export function NameTagView({ users, kelompok, cetak = {}, onPrinted, loading, loadError, onRetry }) {
+export function NameTagView({ users, kelompok, cetak = {}, kartuTautan = {}, onPrinted, onKartuTautan, loading, loadError, onRetry }) {
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -907,6 +908,7 @@ export function NameTagView({ users, kelompok, cetak = {}, onPrinted, loading, l
   const [alasanLain, setAlasanLain] = useState("");
   const [printError, setPrintError] = useState("");
   const [printing, setPrinting] = useState(false);
+  const [gantiTautan, setGantiTautan] = useState(null);
   const toolbarRef = useRef(null);
 
   // Bar bawah hanya tampil saat toolbar atas tidak terlihat di layar.
@@ -1020,6 +1022,33 @@ export function NameTagView({ users, kelompok, cetak = {}, onPrinted, loading, l
     return d.toLocaleDateString("id-ID", {
       timeZone: "Asia/Makassar", day: "numeric", month: "short",
     });
+  };
+
+  const salinTautanKartu = async (user) => {
+    try {
+      let link = kartuTautan[user.id]?.link;
+      if (!link) {
+        const { data } = await api.post(`/staff/kartu-tautan/${user.id}`);
+        link = data.link;
+        onKartuTautan?.();
+      }
+      await navigator.clipboard.writeText(link);
+      toast.success("Tautan kartu disalin.");
+    } catch (_) {
+      toast.error("Tidak bisa menyalin");
+    }
+  };
+
+  const gantiTautanKartu = async () => {
+    if (!gantiTautan) return;
+    try {
+      await api.post(`/staff/kartu-tautan/${gantiTautan.id}`);
+      toast.success("Tautan kartu diganti. Tautan lama tidak berlaku.");
+      setGantiTautan(null);
+      onKartuTautan?.();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    }
   };
 
   return (
@@ -1200,6 +1229,18 @@ export function NameTagView({ users, kelompok, cetak = {}, onPrinted, loading, l
                       Kartu dicetak: {tanggalSingkat(cetak[user.id].dicetak_pada)}, {cetak[user.id].alasan}
                     </span>
                   )}
+                  <span className="mt-1 flex flex-wrap gap-1.5">
+                    <button type="button" onClick={(event) => { event.preventDefault(); salinTautanKartu(user); }}
+                      className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-[#E7E3D8] px-2 text-[11px] font-semibold text-[#0E4E31] hover:border-[#14633F]">
+                      <Link2 size={12} /> Salin tautan kartu
+                    </button>
+                    {kartuTautan[user.id] && (
+                      <button type="button" onClick={(event) => { event.preventDefault(); setGantiTautan(user); }}
+                        className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-[#E7E3D8] px-2 text-[11px] font-semibold text-[#5F6B63] hover:border-[#14633F]">
+                        <RefreshCw size={12} /> Ganti tautan
+                      </button>
+                    )}
+                  </span>
                 </span>
               </label>
             ))}
@@ -1285,6 +1326,30 @@ export function NameTagView({ users, kelompok, cetak = {}, onPrinted, loading, l
             <p className="rounded-xl bg-[#FBE5E3] p-2.5 text-sm text-[#A32A2A]">{printError}</p>
           )}
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(gantiTautan)}
+        onClose={() => setGantiTautan(null)}
+        title="Ganti tautan kartu"
+        testid="ganti-tautan-dialog"
+        maxWidth={440}
+        footer={(
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setGantiTautan(null)}
+              className="h-12 flex-1 rounded-2xl bg-[#F0EEE6] font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]">
+              Batal
+            </button>
+            <button type="button" onClick={gantiTautanKartu}
+              className="h-12 flex-1 rounded-2xl bg-[#14633F] font-semibold text-white hover:bg-[#0E4E31]">
+              Ya
+            </button>
+          </div>
+        )}
+      >
+        <p className="p-4 text-sm text-[#14201A]">
+          Ganti tautan kartu {gantiTautan?.name}? Tautan lama langsung tidak berlaku.
+        </p>
       </Modal>
     </div>
   );

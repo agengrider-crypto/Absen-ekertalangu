@@ -2791,6 +2791,7 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
             skipped += 1
             rows.append({
                 "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
+                "marital": p.get("marital"),
                 "status": status, "account_status": p.get("status", "active"),
                 "arrival_time": a.get("arrival_time") if a else ot.get("arrival_time"),
                 "marked_by": a.get("marked_by") if a else None,
@@ -2807,6 +2808,7 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
                 gender_status[g][status_key] += 1
         rows.append({
             "user_id": pid, "name": p.get("name"), "gender": _derive_gender(p),
+            "marital": p.get("marital"),
             "status": status,
             "account_status": p.get("status", "active"),
             "arrival_time": a.get("arrival_time") if a else None,
@@ -4784,6 +4786,7 @@ async def scan_personal_qr(kegiatan_id: str, body: ScanPersonalInput, staff: dic
     if existing and existing.get("status") == "hadir":
         return {"name": u.get("name"), "status": "hadir",
                 "arrival_time": existing.get("arrival_time"), "already": True,
+                "user_id": user_id, "kategori": golongan_peserta(u),
                 "message": f"{u.get('name')} sudah tercatat tadi."}
     arrival = now_wita().isoformat()
     await db.absensis.update_one(
@@ -4795,6 +4798,7 @@ async def scan_personal_qr(kegiatan_id: str, body: ScanPersonalInput, staff: dic
                   "marked_by_id": str(staff["_id"]), "updated_at": arrival}},
         upsert=True)
     return {"name": u.get("name"), "status": "hadir", "arrival_time": arrival, "already": False,
+            "user_id": user_id, "kategori": golongan_peserta(u),
             "message": f"Alhamdulillah, kehadiran {u.get('name')} berhasil dicatat."}
 
 
@@ -9181,6 +9185,206 @@ async def kartu_cetak_terakhir(staff: dict = Depends(require_staff)):
     return {"items": hasil}
 
 
+# ---------------------------------------------------------------------------
+# IZIN LEWAT HP PESERTA — tautan publik per kegiatan (tanpa login).
+# ---------------------------------------------------------------------------
+IZIN_ALASAN = ("Sakit", "Bekerja", "Keperluan keluarga", "Lainnya")
+IZIN_LAJU_MAKS = 12          # maksimal kiriman per IP per menit
+IZIN_LAJU_JENDELA = 60       # detik
+
+
+def _izin_tautan_aktif(k: dict) -> bool:
+    """Tautan izin berlaku sampai kegiatan selesai (WITA)."""
+    end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
+    if not end:
+        return False
+    return now_wita() <= end
+
+
+async def _izin_laju_ok(ip: Optional[str]) -> bool:
+    """Pembatas laju sederhana per alamat IP (tanpa koleksi baru)."""
+    if not ip:
+        return True
+    batas = now_wita() - timedelta(seconds=IZIN_LAJU_JENDELA)
+    jumlah = await db.izin_laju.count_documents({"ip": ip, "at": {"$gte": batas.isoformat()}})
+    if jumlah >= IZIN_LAJU_MAKS:
+        return False
+    await db.izin_laju.insert_one({"ip": ip, "at": now_wita().isoformat()})
+    return True
+
+
+@api_router.post("/staff/kegiatan/{kegiatan_id}/izin-tautan")
+async def izin_buat_tautan(kegiatan_id: str, request: Request,
+                           staff: dict = Depends(require_staff)):
+    """Buat/ganti token tautan izin untuk satu kegiatan."""
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    token = secrets.token_urlsafe(24)
+    await db.kegiatans.update_one({"_id": kegiatan_id}, {"$set": {"izin_token": token}})
+    await log_activity(staff, "izin_tautan", f"Membuat tautan izin '{k.get('name')}'", kegiatan_id)
+    return {"token": token, "link": f"{resolve_base_url(request)}/izin/{token}"}
+
+
+@api_router.get("/staff/kegiatan/{kegiatan_id}/izin")
+async def izin_daftar(kegiatan_id: str, staff: dict = Depends(require_staff)):
+    """Daftar izin kegiatan (menunggu lebih dulu)."""
+    rows = await db.izin_kegiatan.find({"kegiatan_id": kegiatan_id}) \
+        .sort("dibuat_pada", 1).to_list(2000)
+    items = []
+    for r in rows:
+        p = await db.users.find_one({"_id": _oid(r.get("peserta_id"))}, {"name": 1})
+        items.append({"id": r["_id"], "peserta_id": r.get("peserta_id"),
+                      "nama": (p or {}).get("name"), "alasan": r.get("alasan"),
+                      "alasan_lain": r.get("alasan_lain"), "status": r.get("status"),
+                      "dibuat_pada": r.get("dibuat_pada")})
+    items.sort(key=lambda i: (i["status"] != "menunggu", i.get("dibuat_pada") or ""))
+    return {"items": items}
+
+
+class IzinPutusanInput(BaseModel):
+    status: str = "disetujui"      # disetujui | ditolak
+
+
+@api_router.post("/staff/izin/{izin_id}/putuskan")
+async def izin_putuskan(izin_id: str, body: IzinPutusanInput,
+                        staff: dict = Depends(require_staff)):
+    if body.status not in ("disetujui", "ditolak"):
+        raise HTTPException(status_code=400, detail="Status tidak valid")
+    row = await db.izin_kegiatan.find_one({"_id": izin_id})
+    if not row:
+        raise HTTPException(status_code=404, detail="Izin tidak ditemukan")
+    await db.izin_kegiatan.update_one(
+        {"_id": izin_id},
+        {"$set": {"status": body.status, "ditinjau_oleh": str(staff["_id"]),
+                  "ditinjau_pada": now_wita().isoformat()}})
+    await log_activity(staff, f"izin_{body.status}", "Meninjau izin kegiatan", izin_id)
+    return {"ok": True, "status": body.status}
+
+
+@api_router.get("/publik/izin/{token}")
+async def publik_izin_info(token: str):
+    """Info tautan izin: nama kegiatan + daftar nama peserta (nama saja)."""
+    k = await db.kegiatans.find_one({"izin_token": token})
+    if not k or not _izin_tautan_aktif(k):
+        raise HTTPException(status_code=410, detail="Tautan sudah tidak berlaku")
+    peserta = await peserta_for_kegiatan(k)
+    return JSONResponse(content={
+        "kegiatan": k.get("name"),
+        "tanggal": k.get("date"),
+        "peserta": [{"id": str(p["_id"]), "nama": p.get("name")} for p in peserta],
+        "alasan": list(IZIN_ALASAN),
+    }, headers={"X-Robots-Tag": "noindex, nofollow",
+                "Referrer-Policy": "no-referrer", "Cache-Control": "no-store"})
+
+
+@api_router.post("/publik/izin/{token}")
+async def publik_izin_kirim(token: str, body: dict, request: Request):
+    """Kirim izin dari HP peserta. Kirim ulang menimpa yang masih menunggu."""
+    k = await db.kegiatans.find_one({"izin_token": token})
+    if not k or not _izin_tautan_aktif(k):
+        raise HTTPException(status_code=410, detail="Tautan sudah tidak berlaku")
+    if not await _izin_laju_ok(client_ip(request)):
+        raise HTTPException(status_code=429, detail="Terlalu banyak kiriman. Coba lagi nanti.")
+    peserta_id = str(body.get("peserta_id") or "").strip()
+    if not ObjectId.is_valid(peserta_id):
+        raise HTTPException(status_code=400, detail="Pilih nama Anda dulu.")
+    peserta = await db.users.find_one({"_id": ObjectId(peserta_id)}, {"name": 1, "roles": 1})
+    if not peserta or "peserta" not in (peserta.get("roles") or []):
+        raise HTTPException(status_code=400, detail="Pilih nama Anda dulu.")
+    alasan = str(body.get("alasan") or "").strip()
+    if alasan not in IZIN_ALASAN:
+        raise HTTPException(status_code=400, detail="Pilih alasan dulu.")
+    alasan_lain = None
+    if alasan == "Lainnya":
+        alasan_lain = _bersih_teks(body.get("alasan_lain"), 100)
+        if len(alasan_lain) < 3:
+            raise HTTPException(status_code=400, detail="Tulis alasannya.")
+    sekarang = now_wita().isoformat()
+    ada = await db.izin_kegiatan.find_one(
+        {"kegiatan_id": k["_id"], "peserta_id": peserta_id, "status": "menunggu"})
+    if ada:
+        await db.izin_kegiatan.update_one(
+            {"_id": ada["_id"]},
+            {"$set": {"alasan": alasan, "alasan_lain": alasan_lain, "dibuat_pada": sekarang}})
+        return {"ok": True, "diperbarui": True}
+    await db.izin_kegiatan.insert_one({
+        "_id": str(uuid.uuid4()), "kegiatan_id": k["_id"], "peserta_id": peserta_id,
+        "alasan": alasan, "alasan_lain": alasan_lain, "status": "menunggu",
+        "dibuat_pada": sekarang, "ditinjau_oleh": None, "ditinjau_pada": None,
+    })
+    return {"ok": True, "diperbarui": False}
+
+
+# ---------------------------------------------------------------------------
+# TAUTAN KARTU TANPA LOGIN — satu token per peserta, bisa diganti/dicabut.
+# ---------------------------------------------------------------------------
+def golongan_peserta(user: dict) -> Optional[str]:
+    """Kategori kartu: Bapak-bapak / Ibu-ibu / Muda-mudi (sama dengan frontend)."""
+    marital = user.get("marital")
+    if not marital:
+        return None
+    if marital == "belum_menikah":
+        return "Muda-mudi"
+    if marital != "sudah_menikah":
+        return None
+    gender = user.get("gender")
+    if gender == "L":
+        return "Bapak-bapak"
+    if gender == "P":
+        return "Ibu-ibu"
+    return None
+
+
+@api_router.post("/staff/kartu-tautan/{peserta_id}")
+async def kartu_tautan_buat(peserta_id: str, request: Request,
+                            staff: dict = Depends(require_staff)):
+    """Buat atau ganti tautan kartu peserta (token lama otomatis mati)."""
+    p = await db.users.find_one({"_id": _oid(peserta_id)}, {"name": 1, "roles": 1})
+    if not p or "peserta" not in (p.get("roles") or []):
+        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
+    token = secrets.token_urlsafe(24)
+    await db.tautan_kartu.update_many({"peserta_id": peserta_id},
+                                      {"$set": {"dicabut": True}})
+    await db.tautan_kartu.insert_one({
+        "_id": str(uuid.uuid4()), "peserta_id": peserta_id, "token": token,
+        "dibuat_pada": now_wita().isoformat(), "dicabut": False,
+    })
+    await log_activity(staff, "kartu_tautan", f"Membuat tautan kartu '{p.get('name')}'", peserta_id)
+    return {"token": token, "link": f"{resolve_base_url(request)}/kartu/{token}"}
+
+
+@api_router.get("/staff/kartu-tautan")
+async def kartu_tautan_daftar(request: Request, staff: dict = Depends(require_staff)):
+    """Tautan kartu aktif per peserta."""
+    rows = await db.tautan_kartu.find({"dicabut": False}).sort("dibuat_pada", -1).to_list(5000)
+    base = resolve_base_url(request)
+    items = {}
+    for r in rows:
+        pid = r.get("peserta_id")
+        if pid and pid not in items:
+            items[pid] = {"token": r.get("token"), "link": f"{base}/kartu/{r.get('token')}"}
+    return {"items": items}
+
+
+@api_router.get("/publik/kartu/{token}")
+async def publik_kartu(token: str):
+    """Kartu peserta tanpa login: nama, kategori, dan QR permanen saja."""
+    row = await db.tautan_kartu.find_one({"token": token, "dicabut": False})
+    if not row:
+        raise HTTPException(status_code=404, detail="Tautan tidak berlaku")
+    p = await db.users.find_one({"_id": _oid(row.get("peserta_id"))},
+                                {"name": 1, "marital": 1, "gender": 1, "roles": 1})
+    if not p or "peserta" not in (p.get("roles") or []):
+        raise HTTPException(status_code=404, detail="Tautan tidak berlaku")
+    return JSONResponse(content={
+        "nama": p.get("name"),
+        "kategori": golongan_peserta(p),
+        "qr": f"EKT:{p['_id']}",
+    }, headers={"X-Robots-Tag": "noindex, nofollow",
+                "Referrer-Policy": "no-referrer", "Cache-Control": "no-store"})
+
+
 app.include_router(api_router)
 
 _allowed_origins = {FRONTEND_URL, "http://localhost:3000"}
@@ -9333,6 +9537,12 @@ async def _run_init():
     # Kartu Nama: catatan alasan & tanggal cetak kartu fisik.
     await db.kartu_cetak.create_index("peserta_id")
     await db.kartu_cetak.create_index("dicetak_pada")
+    # Izin lewat HP peserta + tautan kartu tanpa login.
+    await db.izin_kegiatan.create_index([("kegiatan_id", 1), ("peserta_id", 1)], unique=True)
+    await db.izin_kegiatan.create_index([("kegiatan_id", 1), ("status", 1)])
+    await db.izin_laju.create_index("at")
+    await db.tautan_kartu.create_index("token", unique=True)
+    await db.tautan_kartu.create_index("peserta_id")
 
 
 _init_done = False

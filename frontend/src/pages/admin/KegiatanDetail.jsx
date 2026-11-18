@@ -5,7 +5,7 @@ import {
   Copy, RefreshCw, Download, Send, Trash2, CheckCircle2, AlertTriangle,
   Users, PhoneOff, ClipboardList, MoreHorizontal, Pencil,
   Share2, RotateCcw, Layers, FileBarChart2, CheckCheck, ChevronLeft, ChevronRight,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, MonitorSmartphone, X, Link2, ClipboardCheck, Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ACTIVITIES } from "@/constants/testIds";
@@ -53,6 +53,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
   const [tab, setTab] = useState("manual");
   const [showActions, setShowActions] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [posOpen, setPosOpen] = useState(false);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
 
@@ -81,6 +82,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
   const TABS = useMemo(() => ([
     { key: "manual", label: "Absen Manual", icon: ListChecks },
     ...(publik ? [{ key: "tamu", label: "Tamu", icon: UserPlus }] : []),
+    { key: "izin", label: "Izin", icon: ClipboardCheck },
     { key: "rekap", label: "Rekap / Laporan", icon: FileBarChart2 },
     { key: "pesan", label: "Pesan / Kesan", icon: MessageSquareText },
   ]), [publik]);
@@ -100,6 +102,38 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
   const phase = phaseOf(k);
   const pm = phaseMeta(phase);
 
+  // Bagikan rekap: teks ringkas tanpa nomor HP / tanggal lahir.
+  const bagikanRekap = async () => {
+    const rows = data?.rows || [];
+    const hadirRows = rows.filter((r) => r.status === "hadir");
+    const belum = rows.filter((r) => r.status !== "hadir");
+    const kategori = (r) => {
+      if (!r.marital) return null;
+      if (r.marital === "belum_menikah") return "Muda-mudi";
+      if (r.marital !== "sudah_menikah") return null;
+      if (r.gender === "L") return "Bapak-bapak";
+      if (r.gender === "P") return "Ibu-ibu";
+      return null;
+    };
+    const hitung = { "Bapak-bapak": 0, "Ibu-ibu": 0, "Muda-mudi": 0 };
+    hadirRows.forEach((r) => { const g = kategori(r); if (g) hitung[g] += 1; });
+    const teks = [
+      `Rekap ${k.name}`,
+      `${tanggalPanjang(k.date)}`,
+      `Hadir: ${hadirRows.length} · Belum hadir: ${belum.length}`,
+      `Bapak-bapak: ${hitung["Bapak-bapak"]} · Ibu-ibu: ${hitung["Ibu-ibu"]} · Muda-mudi: ${hitung["Muda-mudi"]}`,
+      "",
+      "Yang hadir:",
+      ...hadirRows.map((r, i) => `${i + 1}. ${r.name}`),
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(teks);
+      toast.success("Rekap disalin.");
+    } catch (_) {
+      toast.error("Tidak bisa menyalin");
+    }
+  };
+
   return (
     <div data-testid="kegiatan-detail-view">
       <div className="flex items-center gap-2 mb-3 flex-wrap">
@@ -108,6 +142,14 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
           onClick={() => setScanOpen((open) => !open)}
           className="ml-auto h-10 px-3.5 rounded-xl border-2 border-[#E7E3D8] bg-white text-[#5F6B63] font-semibold text-sm inline-flex items-center gap-2 hover:border-[#14633F] hover:text-[#0E4E31]">
           <ScanLine size={17} /> {scanOpen ? "Tutup Scan" : "Scan Barcode"}
+        </button>
+        <button type="button" onClick={() => setPosOpen(true)}
+          className="h-10 px-3.5 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm inline-flex items-center gap-2 hover:bg-[#E3F3EA]">
+          <MonitorSmartphone size={17} /> Mode pos scan
+        </button>
+        <button type="button" onClick={bagikanRekap}
+          className="h-10 px-3.5 rounded-xl border-2 border-[#E7E3D8] bg-white text-[#5F6B63] font-semibold text-sm inline-flex items-center gap-2 hover:border-[#14633F] hover:text-[#0E4E31]">
+          <Share2 size={17} /> Bagikan rekap
         </button>
         <button
           data-testid="kegiatan-detail-actions-button"
@@ -213,11 +255,17 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
             onReload={() => { load(true); if (onChanged) onChanged(); }} />
         )}
         {tab === "publik" && <BarcodePublikPanel kegiatanId={kegiatanId} />}
+        {tab === "izin" && <IzinPanel kegiatanId={kegiatanId} />}
         {tab === "rekap" && <KegiatanRekapPanel kegiatanId={kegiatanId} />}
         {tab === "tindak" && <TindakLanjut kegiatanId={kegiatanId} />}
         {tab === "kode" && <KodeAksesPanel kegiatanId={kegiatanId} />}
         {tab === "pesan" && <PesanPanel kegiatanId={kegiatanId} />}
       </div>
+
+      {posOpen && (
+        <PosScan kegiatan={k} onClose={() => setPosOpen(false)}
+          onReload={() => { load(true); if (onChanged) onChanged(); }} />
+      )}
 
       {showActions && (
         <ActionModal
@@ -713,6 +761,293 @@ function ScanTabPanel({ kegiatanId, closed, onReload }) {
           )}
         </section>
       </div>
+    </div>
+  );
+}
+
+/* ------------------------- Mode pos scan (layar penuh) ------------------------- */
+function PosScan({ kegiatan, onClose, onReload }) {
+  const [recent, setRecent] = useState([]);
+  const [flash, setFlash] = useState(null);
+  const [hadir, setHadir] = useState(0);
+  const [total, setTotal] = useState(0);
+  const lock = useRef(false);
+  const flashTimer = useRef(null);
+  const wakeRef = useRef(null);
+
+  const muatJumlah = useCallback(async () => {
+    try {
+      const { data } = await api.get(`/admin/kegiatan/${kegiatan.id}/rekap`);
+      setHadir(data?.counts?.hadir || 0);
+      setTotal(data?.counts?.total || 0);
+    } catch (_) { /* abaikan */ }
+  }, [kegiatan.id]);
+
+  useEffect(() => { muatJumlah(); }, [muatJumlah]);
+
+  // Layar tetap menyala selama mode pos aktif.
+  useEffect(() => {
+    let aktif = true;
+    const minta = async () => {
+      try {
+        if (navigator.wakeLock?.request) {
+          const lockObj = await navigator.wakeLock.request("screen");
+          if (aktif) wakeRef.current = lockObj;
+          else lockObj.release?.();
+        }
+      } catch (_) { /* perangkat tidak mendukung */ }
+    };
+    minta();
+    return () => {
+      aktif = false;
+      try { wakeRef.current?.release?.(); } catch (_) { /* abaikan */ }
+      wakeRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
+
+  const showFlash = (payload) => {
+    setFlash(payload);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlash(null), 3000);
+  };
+
+  const getar = () => {
+    try { navigator.vibrate?.(60); } catch (_) { /* abaikan */ }
+  };
+
+  const onDetected = async (text) => {
+    if (lock.current) return;
+    const raw = (text || "").trim();
+    if (!raw.startsWith("EKP:") && !raw.startsWith("EKT:")) {
+      showFlash({ kind: "bad", label: "Kartu tidak dikenali" });
+      return;
+    }
+    lock.current = true;
+    try {
+      const { data } = await api.post(`/staff/kegiatan/${kegiatan.id}/scan-personal`, { content: raw });
+      setRecent((prev) => [{ ...data, id: `${data.user_id || data.name}-${Date.now()}` }, ...prev].slice(0, 5));
+      showFlash({
+        kind: data.already ? "dup" : "ok",
+        name: data.name,
+        kategori: data.kategori || "",
+        label: data.already ? "Sudah hadir" : "Hadir dicatat",
+      });
+      if (!data.already) getar();
+      muatJumlah();
+      onReload?.();
+    } catch (e) {
+      const detail = formatApiErrorDetail(e.response?.data?.detail);
+      if (/nonaktif/i.test(detail || "")) showFlash({ kind: "bad", label: "Peserta nonaktif" });
+      else if (e.response?.status === 400) showFlash({ kind: "bad", label: "Kartu tidak dikenali" });
+      else toast.error(detail);
+    } finally {
+      setTimeout(() => { lock.current = false; }, 1500);
+    }
+  };
+
+  const berlangsung = kegiatan.status === "open";
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#F6F4EE]" data-testid="pos-scan">
+      <div className="flex items-center gap-2 border-b border-[#E7E3D8] bg-white px-3 py-2.5">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold text-[#14201A]">{kegiatan.name}</p>
+          <p className="text-xs text-[#5F6B63]">Hadir {hadir} dari {total}</p>
+        </div>
+        <button type="button" onClick={onClose}
+          className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F]">
+          <X size={15} /> Keluar
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3">
+        {!berlangsung ? (
+          <div className="rounded-xl border border-[#FBE5E3] bg-[#FBE5E3] p-4 text-sm text-[#A32A2A]">
+            Kegiatan ini tidak sedang berlangsung, jadi kamera tidak dibuka.
+          </div>
+        ) : (
+          <>
+            <div className="relative overflow-hidden rounded-2xl border border-[#E7E3D8] bg-[#F0EEE6]">
+              <QrScanner onDetected={onDetected} large wide />
+              {flash && (
+                <div className="scan-flash pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/50 px-4 text-center">
+                  {flash.kind === "bad" ? (
+                    <span className="rounded-full bg-[#FBE5E3] px-4 py-2 text-lg font-extrabold text-[#A32A2A]">
+                      {flash.label}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="text-3xl font-extrabold text-white">{flash.name}</span>
+                      {flash.kategori && (
+                        <span className="rounded-full border border-white/60 px-3 py-0.5 text-sm font-semibold text-white">
+                          {flash.kategori}
+                        </span>
+                      )}
+                      <span className={`rounded-full px-3 py-1 text-base font-bold ${flash.kind === "dup" ? "bg-[#FBF1D6] text-[#6B4500]" : "bg-[#E3F3EA] text-[#0E4E31]"}`}>
+                        {flash.label}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <section className="mt-3 overflow-hidden rounded-xl border border-[#E7E3D8] bg-white">
+              <h3 className="border-b border-[#E7E3D8] px-3.5 py-2.5 text-sm font-bold text-[#14201A]">
+                5 peserta terakhir
+              </h3>
+              {recent.length ? (
+                <div className="divide-y divide-[#E7E3D8]">
+                  {recent.map((r) => (
+                    <div key={r.id} className="flex items-center gap-2.5 px-3.5 py-2 text-sm">
+                      <CheckCircle2 size={17} className="shrink-0 text-[#0E4E31]" />
+                      <span className="min-w-0 flex-1 truncate font-semibold text-[#14201A]">{r.name}</span>
+                      <span className="shrink-0 text-xs text-[#5F6B63]">
+                        {r.already ? "Sudah hadir" : "Hadir"}{r.arrival_time ? ` · ${hhmm(r.arrival_time)}` : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="p-4 text-center text-sm text-[#5F6B63]">Belum ada peserta yang dipindai.</p>
+              )}
+            </section>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------- Izin lewat HP peserta ------------------------- */
+function IzinPanel({ kegiatanId }) {
+  const [items, setItems] = useState([]);
+  const [link, setLink] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [putusan, setPutusan] = useState(null);
+
+  const muat = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get(`/staff/kegiatan/${kegiatanId}/izin`);
+      setItems(data.items || []);
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally { setLoading(false); }
+  }, [kegiatanId]);
+
+  useEffect(() => { muat(); }, [muat]);
+
+  const buatTautan = async () => {
+    try {
+      const { data } = await api.post(`/staff/kegiatan/${kegiatanId}/izin-tautan`);
+      setLink(data.link);
+      try {
+        await navigator.clipboard.writeText(data.link);
+        toast.success("Tautan izin disalin.");
+      } catch (_) {
+        toast.success("Tautan izin dibuat.");
+      }
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    }
+  };
+
+  const jalankan = async () => {
+    if (!putusan) return;
+    try {
+      await api.post(`/staff/izin/${putusan.id}/putuskan`, { status: putusan.status });
+      toast.success(putusan.status === "disetujui" ? "Izin disetujui." : "Izin ditolak.");
+      setPutusan(null);
+      muat();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    }
+  };
+
+  const menunggu = items.filter((i) => i.status === "menunggu");
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-[#E7E3D8] bg-white p-4">
+        <h3 className="text-sm font-bold text-[#14201A]">Tautan izin</h3>
+        <p className="mt-1 text-sm text-[#5F6B63]">
+          Bagikan tautan ini agar peserta bisa mengirim izin dari HP tanpa login.
+        </p>
+        <button type="button" onClick={buatTautan}
+          className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
+          <Link2 size={16} /> Salin tautan izin
+        </button>
+        {link && <p className="mt-2 break-all text-xs text-[#5F6B63]">{link}</p>}
+      </div>
+
+      <div className="rounded-2xl border border-[#E7E3D8] bg-white">
+        <h3 className="border-b border-[#E7E3D8] px-4 py-3 text-sm font-bold text-[#14201A]">
+          Izin menunggu ({menunggu.length})
+        </h3>
+        {loading ? (
+          <p className="flex items-center justify-center gap-2 p-5 text-sm text-[#5F6B63]">
+            <Loader2 size={16} className="animate-spin motion-reduce:animate-none" /> Memuat…
+          </p>
+        ) : items.length ? (
+          <div className="divide-y divide-[#E7E3D8]">
+            {items.map((r) => (
+              <div key={r.id} className="flex flex-wrap items-center gap-2 px-4 py-2.5">
+                <span className="min-w-0 flex-1 truncate text-sm text-[#14201A]">
+                  {r.nama || "-"}
+                  <span className="ml-2 text-xs text-[#5F6B63]">
+                    {r.alasan}{r.alasan_lain ? `: ${r.alasan_lain}` : ""}
+                  </span>
+                </span>
+                {r.status === "menunggu" ? (
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setPutusan({ id: r.id, status: "disetujui", nama: r.nama })}
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[#14633F] px-2.5 text-xs font-semibold text-white">
+                      <Check size={13} /> Setujui
+                    </button>
+                    <button type="button" onClick={() => setPutusan({ id: r.id, status: "ditolak", nama: r.nama })}
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#E7E3D8] px-2.5 text-xs font-semibold text-[#A32A2A]">
+                      <X size={13} /> Tolak
+                    </button>
+                  </div>
+                ) : (
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${r.status === "disetujui" ? "bg-[#E3F3EA] text-[#0E4E31]" : "bg-[#FBE5E3] text-[#A32A2A]"}`}>
+                    {r.status === "disetujui" ? "Disetujui" : "Ditolak"}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="p-5 text-center text-sm text-[#5F6B63]">Belum ada izin yang dikirim.</p>
+        )}
+      </div>
+
+      <Modal
+        open={Boolean(putusan)}
+        onClose={() => setPutusan(null)}
+        title={putusan?.status === "disetujui" ? "Setujui izin" : "Tolak izin"}
+        testid="izin-putusan-dialog"
+        maxWidth={440}
+        footer={(
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setPutusan(null)}
+              className="h-12 flex-1 rounded-2xl bg-[#F0EEE6] font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]">
+              Batal
+            </button>
+            <button type="button" onClick={jalankan}
+              className={`h-12 flex-1 rounded-2xl font-semibold text-white ${putusan?.status === "disetujui" ? "bg-[#14633F] hover:bg-[#0E4E31]" : "bg-[#A32A2A] hover:bg-[#8C2323]"}`}>
+              Ya
+            </button>
+          </div>
+        )}
+      >
+        <p className="p-4 text-sm text-[#14201A]">
+          {putusan?.status === "disetujui" ? "Setujui" : "Tolak"} izin dari {putusan?.nama || "peserta"}?
+        </p>
+      </Modal>
     </div>
   );
 }
