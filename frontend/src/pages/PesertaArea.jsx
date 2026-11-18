@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, CalendarDays, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, HeartHandshake, LifeBuoy, MailWarning, MessagesSquare } from "lucide-react";
+import { Home, CalendarDays, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, HeartHandshake, LifeBuoy, MailWarning, MessagesSquare, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import RoleSwitcher from "@/components/RoleSwitcher";
@@ -124,7 +124,9 @@ export default function PesertaArea({ user }) {
                 ) : updates.map((u) => {
                   const meta = u.type === "kegiatan"
                     ? { Icon: CalendarDays, label: "Kegiatan baru", cls: "bg-[#E3F3EA] text-[#0E4E31]", tab: "kegiatan" }
-                    : u.type === "undangan"
+                    : u.type === "kehadiran"
+                      ? { Icon: CheckCircle2, label: "Kehadiran", cls: "bg-[#E3F3EA] text-[#0E4E31]", tab: "beranda" }
+                      : u.type === "undangan"
                       ? { Icon: MailWarning, label: "Undangan penting", cls: "bg-[#FBE5E3] text-[#A32A2A]", tab: "beranda" }
                       : u.type === "musyawarah"
                         ? { Icon: MessagesSquare, label: "Musyawarah", cls: "bg-[#D9F2F4] text-[#1D4F91]", tab: "beranda" }

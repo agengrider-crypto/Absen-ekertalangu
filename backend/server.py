@@ -2283,6 +2283,48 @@ async def mark_missing_alpha(k: dict, marked_at: Optional[str] = None) -> None:
         await db.absensis.bulk_write(ops, ordered=False)
 
 
+async def kirim_notif_alpha(k: dict) -> None:
+    """Kirim notifikasi Alpha SEKALI setelah kegiatan terakhir di kelompoknya selesai.
+
+    Hanya untuk peserta yang benar-benar Alpha menurut fungsi hitung bersama:
+    yang sudah hadir di sesi sebelumnya, pengajar yang dikecualikan, dan yang
+    berizin/sakit tidak menerimanya.
+    """
+    try:
+        gid = k.get("session_group_id")
+        if gid:
+            docs = await db.kegiatans.find({"session_group_id": gid}).to_list(20)
+        else:
+            docs = [k]
+        # Tunggu sampai SEMUA kegiatan di kelompok itu ditutup.
+        if any((d.get("status") or "open") == "open" for d in docs):
+            return
+        docs = sorted(docs, key=_kegiatan_urutan)
+        ids = [d["_id"] for d in docs]
+        all_users = await db.users.find(PESERTA_QUERY).to_list(10000)
+        absens = await db.absensis.find({"kegiatan_id": {"$in": ids}}).to_list(50000)
+        status_by: dict = {}
+        for a in absens:
+            status_by.setdefault(a["user_id"], set()).add(a.get("status"))
+        # Peserta yang dihitung di kelompok ini (bukan pengajar yang dikecualikan
+        # di SEMUA sesi) dan tidak punya status hadir/izin/sakit sama sekali.
+        dihitung: dict = {}
+        for d in docs:
+            peserta = filter_peserta_for_kegiatan(d, all_users)
+            for p in peserta:
+                pid = str(p["_id"])
+                if pid in pengajar_dikecualikan(d, peserta):
+                    continue
+                dihitung.setdefault(pid, d)
+        for pid, d in dihitung.items():
+            st = status_by.get(pid) or set()
+            if st & {"hadir", "izin", "sakit"}:
+                continue
+            await simpan_notif_kehadiran(pid, "alpha", d)
+    except Exception:
+        logger.exception("Gagal mengirim notifikasi alpha")
+
+
 async def auto_close_kegiatan():
     """Tutup otomatis kegiatan (per-kegiatan) saat jam selesai WITA sudah lewat."""
     now = now_wita()
@@ -2299,6 +2341,7 @@ async def auto_close_kegiatan():
             if result.modified_count:
                 await mark_missing_alpha(k, now.isoformat())
                 await revoke_delegations_for_kegiatan(k["_id"], "Kegiatan ditutup otomatis")
+                await kirim_notif_alpha(k)
 
 
 async def auto_close_loop():
@@ -2643,6 +2686,7 @@ async def close_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
         "status": "closed", "closed_at": now_wita().isoformat(), "auto_closed": False}})
     await mark_missing_alpha(k)
     await revoke_delegations_for_kegiatan(kegiatan_id, "Kegiatan diselesaikan")
+    await kirim_notif_alpha(k)
     await log_activity(admin, "selesaikan_kegiatan", f"Menyelesaikan kegiatan '{k.get('name')}'")
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     return serialize_kegiatan(k, await kegiatan_counts(kegiatan_id))
@@ -2680,6 +2724,8 @@ async def mark_all_present(kegiatan_id: str, admin: dict = Depends(require_staff
             )
             for uid in to_mark
         ], ordered=False)
+        for uid in to_mark:
+            await notif_kehadiran_dari_status(uid, "hadir", k)
     return {
         "applied": len(to_mark),
         "skipped": len(peserta) - len(to_mark),
@@ -2726,6 +2772,7 @@ async def mark_absen(kegiatan_id: str, body: AbsenInput, admin: dict = Depends(r
     # Status "izin" & "alpha" tidak memunculkan notifikasi apa pun.
     message = ("Absen berhasil, alhamdulillah jazakumullahu khoiro."
                if body.status == "hadir" else None)
+    await notif_kehadiran_dari_status(body.user_id, body.status, k)
     return {"user_id": body.user_id, "status": body.status, "arrival_time": arrival,
             "message": message}
 
@@ -2759,6 +2806,7 @@ async def mark_hadir_semua(kegiatan_id: str, admin: dict = Depends(require_staff
                       "marked_by": f"{admin.get('name')} (hadir semua)",
                       "marked_by_id": str(admin["_id"]), "updated_at": timestamp}},
             upsert=True)
+        await notif_kehadiran_dari_status(user_id, "hadir", k)
         applied += 1
     await log_activity(admin, "hadir_semua",
                        f"Menandai hadir semua ({applied} peserta) pada '{k.get('name')}'")
@@ -2779,6 +2827,7 @@ async def tutup_absen(kegiatan_id: str, admin: dict = Depends(require_staff)):
         "status": "closed", "closed_at": now_wita().isoformat(), "auto_closed": False}})
     await mark_missing_alpha(k)
     await revoke_delegations_for_kegiatan(kegiatan_id, "Kegiatan diselesaikan")
+    await kirim_notif_alpha(k)
     await log_activity(admin, "tutup_absen",
                        f"Menutup absen & menandai alpha otomatis pada '{k.get('name')}'")
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
@@ -2821,6 +2870,7 @@ async def mark_absen_batch(kegiatan_id: str, body: AbsenBatchInput,
                       "updated_at": now_wita().isoformat()},
              "$unset": {"reason": "", "note": ""}},
             upsert=True)
+        await notif_kehadiran_dari_status(item.user_id, item.status, k)
         applied += 1
     return {"applied": applied, "failed": failed,
             "message": f"{applied} absen offline berhasil disinkronkan."}
@@ -5045,10 +5095,10 @@ async def scan_personal_qr(kegiatan_id: str, body: ScanPersonalInput, staff: dic
                                 else f"Dibantu: {staff.get('name')}"),
                   "marked_by_id": str(staff["_id"]), "updated_at": arrival}},
         upsert=True)
+    await notif_kehadiran_dari_status(user_id, "hadir", k)
     return {"name": u.get("name"), "status": "hadir", "arrival_time": arrival, "already": False,
             "user_id": user_id, "kategori": golongan_peserta(u),
             "message": f"Alhamdulillah, kehadiran {u.get('name')} berhasil dicatat."}
-
 
 # ------------------------- Peserta: dashboard / kegiatan / profil -------------------------
 async def _my_attendance_ratio(user_id: str) -> dict:
@@ -7077,7 +7127,64 @@ NOTIF_SOURCE_LABEL = {
     "musyawarah": "Musyawarah",
     "undangan": "Undangan penting",
     "izin": "Izin guru",
+    "kehadiran": "Kehadiran",
 }
+
+# Notifikasi kehadiran peserta: satu baris per peserta per kegiatan.
+NOTIF_KEHADIRAN_JENIS = ("hadir", "izin", "sakit", "alpha")
+
+
+def _notif_kehadiran_teks(jenis: str, nama: str, tanggal: str) -> str:
+    """Teks notifikasi kehadiran (sentence case, tanggal WITA, tanpa tanda seru)."""
+    nama = nama or "kegiatan"
+    tgl = _tanggal_indo(tanggal)
+    if jenis == "hadir":
+        return (f"Alhamdulillah, kehadiran Anda di {nama} ({tgl}) tercatat. "
+                "Jazakumullahu khoiro.")
+    if jenis == "izin":
+        return f"Izin Anda di {nama} ({tgl}) tercatat. Jazakumullahu khoiro."
+    if jenis == "sakit":
+        return f"Semoga lekas sembuh. Sakit Anda di {nama} ({tgl}) tercatat."
+    return (f"Anda belum tercatat hadir di {nama} ({tgl}). "
+            "Jika ada kendala, hubungi pengurus.")
+
+
+async def simpan_notif_kehadiran(user_id: str, jenis: Optional[str], k: dict) -> None:
+    """Simpan/perbarui/hapus notifikasi kehadiran peserta untuk satu kegiatan.
+
+    `jenis` None = hapus notifikasi (mis. izin dibatalkan). Hanya peserta yang
+    sudah punya akun (punya kata sandi) yang menerima notifikasi.
+    """
+    try:
+        if not user_id or not k:
+            return
+        oid = _oid(user_id)
+        if not oid:
+            return
+        u = await db.users.find_one({"_id": oid}, {"password_hash": 1, "roles": 1})
+        if not u or not u.get("password_hash"):
+            return  # belum punya akun → tidak menerima notifikasi
+        key = {"peserta_id": user_id, "kegiatan_id": k["_id"]}
+        if jenis not in NOTIF_KEHADIRAN_JENIS:
+            await db.notifikasi.delete_many(key)
+            return
+        nama = k.get("base_name") or k.get("name")
+        if k.get("session_label"):
+            nama = f"{nama} ({k.get('session_label')})"
+        await db.notifikasi.update_one(
+            key,
+            {"$set": {**key, "jenis": jenis, "tanggal": k.get("date"),
+                      "teks": _notif_kehadiran_teks(jenis, nama, k.get("date")),
+                      "dibaca": False, "dibuat_pada": now_wita().isoformat()}},
+            upsert=True)
+    except Exception:
+        logger.exception("Gagal menyimpan notifikasi kehadiran")
+
+
+async def notif_kehadiran_dari_status(user_id: str, status: Optional[str], k: dict) -> None:
+    """Petakan status absensi → notifikasi kehadiran."""
+    await simpan_notif_kehadiran(
+        user_id, status if status in NOTIF_KEHADIRAN_JENIS else None, k)
 
 
 async def _notif_items_for(user: dict, staff: bool) -> list:
@@ -7169,10 +7276,22 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
         except Exception:
             logger.exception("Notifikasi gagal pada sumber 'izin (pengurus)'")
 
+    # Notifikasi kehadiran peserta (hadir/izin/sakit/alpha) — satu per kegiatan.
+    try:
+        for n in await db.notifikasi.find({"peserta_id": uid}) \
+                .sort("dibuat_pada", -1).to_list(40):
+            items.append({
+                "type": "kehadiran", "id": n.get("_id") or f"{n.get('kegiatan_id')}",
+                "title": n.get("teks") or "Kehadiran tercatat",
+                "subtitle": None,
+                "at": to_utc_iso(n.get("dibuat_pada")), "target": "kegiatan",
+            })
+    except Exception:
+        logger.exception("Notifikasi gagal pada sumber 'kehadiran'")
+
     items = [i for i in items if i.get("at")]
     items.sort(key=lambda x: x["at"], reverse=True)
     return items[:40]
-
 
 @api_router.get("/notifications")
 async def notifications(user: dict = Depends(get_current_user)):
@@ -9691,6 +9810,7 @@ async def publik_izin_kirim(token: str, body: dict, request: Request):
                   "marked_by": "Izin lewat tautan", "marked_by_id": None,
                   "updated_at": sekarang}},
         upsert=True)
+    await notif_kehadiran_dari_status(peserta_id, "izin", k)
     return {"ok": True, "diperbarui": bool(ada)}
 
 
@@ -9726,6 +9846,8 @@ async def izin_tinjau_absen(kegiatan_id: str, peserta_id: str, body: IzinTinjauI
         {"kegiatan_id": kegiatan_id, "peserta_id": peserta_id},
         {"$set": {"status": "ditolak", "ditinjau_oleh": str(staff["_id"]),
                   "ditinjau_pada": sekarang}})
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    await simpan_notif_kehadiran(peserta_id, None, k)
     await log_activity(staff, "izin_batalkan", "Membatalkan izin dari tautan", kegiatan_id)
     return {"ok": True, "aksi": "batalkan"}
 
@@ -9964,6 +10086,9 @@ async def _run_init():
     # Saklar "pengajar tidak wajib absen" pada kegiatan (kegiatan lama = false).
     await db.kegiatans.update_many({"pengajar_tidak_wajib": {"$exists": False}},
                                    {"$set": {"pengajar_tidak_wajib": False}})
+    # Notifikasi kehadiran peserta (hadir/izin/sakit/alpha).
+    await db.notifikasi.create_index([("peserta_id", 1), ("dibuat_pada", -1)])
+    await db.notifikasi.create_index([("peserta_id", 1), ("kegiatan_id", 1)], unique=True)
     # Tautan rekap lama tanpa tanggal berlaku: isi 7 hari sejak perubahan ini
     # dijalankan (idempoten, tidak menimpa yang sudah terisi, tidak menghapus).
     _exp = (datetime.now(timezone.utc) + timedelta(days=SHARE_EXPIRE_DAYS)).isoformat()

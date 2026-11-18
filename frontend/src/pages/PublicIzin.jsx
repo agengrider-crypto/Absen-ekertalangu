@@ -91,7 +91,7 @@ export default function PublicIzin() {
         <Logo size={48} />
         <CheckCircle2 className="mt-6 text-[#0E4E31]" size={34} />
         <p className="mt-3 max-w-sm text-base font-semibold text-[#14201A]">
-          Terima kasih. Izin Anda sudah tercatat dan akan ditinjau pengurus.
+          Alhamdulillah, jazakumullahu khoiro. Izin Anda sudah tercatat dan akan ditinjau pengurus.
         </p>
       </div>
     );
