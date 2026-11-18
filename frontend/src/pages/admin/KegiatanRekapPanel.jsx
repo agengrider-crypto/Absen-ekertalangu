@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Copy, Send, FileBarChart2, ExternalLink, Users, CheckCircle2 } from "lucide-react";
+import { Loader2, FileBarChart2, Users, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { ACTIVITIES } from "@/constants/testIds";
@@ -12,11 +12,8 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
     setData(null);
     setError("");
     try {
-      const [linkResponse, rekapResponse] = await Promise.all([
-        api.get(`/admin/kegiatan/${kegiatanId}/qr`),
-        api.get(`/admin/kegiatan/${kegiatanId}/rekap`),
-      ]);
-      setData({ link: linkResponse.data, rekap: rekapResponse.data });
+      const { data: rekap } = await api.get(`/admin/kegiatan/${kegiatanId}/rekap`);
+      setData({ rekap });
     } catch (e) {
       const message = formatApiErrorDetail(e.response?.data?.detail);
       setError(message);
@@ -38,7 +35,7 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
     );
   }
 
-  const { link, rekap } = data;
+  const { rekap } = data;
   const hadirRows = (rekap.rows || []).filter((row) => row.status === "hadir" && !row.attended_other);  const absentStatuses = [
     { key: "izin", label: "Izin", color: "text-[#6B4500]", bg: "bg-[#FBF1D6]" },
     { key: "sakit", label: "Sakit", color: "text-[#1D4F91]", bg: "bg-[#E3EEFB]" },
@@ -57,21 +54,8 @@ export default function KegiatanRekapPanel({ kegiatanId }) {
     { key: "alpha", label: "Alpha", color: "bg-[#A32A2A]", text: "text-[#A32A2A]", bg: "bg-[#FBE5E3]" },
   ];
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(link.link);
-      toast.success("Tautan rekap disalin.");
-    } catch {
-      toast.error("Tautan gagal disalin. Silakan salin tautan yang tampil di layar.");
-    }
-  };
-  const shareWa = () => {
-    const text = link.wa_text
-      || `Berikut rekap kehadiran kegiatan\n${link.link}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
-  };
-
-  return (    <div className="space-y-4" data-testid="detail-rekap-panel">
+  return (
+    <div className="space-y-4" data-testid="detail-rekap-panel">
       <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4 sm:p-5">
         <h3 className="mb-1 inline-flex items-center gap-2 font-bold text-[#14201A]">
           <FileBarChart2 size={18} /> Rekap Kehadiran

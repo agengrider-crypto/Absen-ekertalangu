@@ -19,6 +19,51 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-18-rekap-rapi",
+    date: "2026-11-18",
+    title: "Rekap lebih rapi, tautan lebih aman",
+    keterangan: "Tiap tautan rekap kini menampilkan satu kegiatan saja.",
+    peran: ["admin", "pengurus"],
+    items: [
+      "Tiap tautan rekap kini menampilkan satu kegiatan saja. Ketuk Hadir, Izin, Sakit, atau Alpha untuk melihat namanya, dan saring dengan L atau P.",
+      "Rekap gabungan dibuat sendiri dari Daftar Kegiatan, dan satu orang dihitung sekali dalam sehari.",
+      "Laporan harian tidak lagi memakai angka sesi. Persen hanya ada di total gabungan.",
+      "Tombol Bagikan rekap kini di samping Scan kamera. Jam kehadiran bisa ditampilkan atau disembunyikan, dan tautan bisa dinonaktifkan atau dihapus.",
+      "Tautan rekap berlaku 7 hari.",
+    ],
+  },
+  {
+    id: "2026-11-18-pendataan",
+    date: "2026-11-18",
+    title: "Pendataan peserta",
+    keterangan: "Pengurus bisa membuat tautan agar peserta melengkapi datanya sendiri.",
+    peran: ["admin", "pengurus"],
+    items: [
+      "Pengurus bisa membuat tautan agar peserta melengkapi datanya sendiri.",
+      "Isian peserta masuk ke tinjauan lebih dulu dan tidak langsung mengubah data.",
+    ],
+  },
+  {
+    id: "2026-11-18-kartu-kategori",
+    date: "2026-11-18",
+    title: "Kartu Nama dengan kategori",
+    keterangan: "Kartu menampilkan kategori dan kode QR tetap untuk presensi.",
+    peran: ["admin", "pengurus"],
+    items: [
+      "Kartu menampilkan kategori Bapak-bapak, Ibu-ibu, atau Muda-mudi dan kode QR tetap untuk presensi.",
+      "Scan kartu di kegiatan tidak mengharuskan peserta login.",
+    ],
+  },
+  {
+    id: "2026-11-18-alamat-baru",
+    date: "2026-11-18",
+    title: "Alamat baru aplikasi",
+    keterangan: "Alamat aplikasi sekarang ekertalangu.vercel.app.",
+    items: [
+      "Alamat aplikasi sekarang ekertalangu.vercel.app. Alamat lama tetap bisa dibuka dan dialihkan otomatis.",
+    ],
+  },
+  {
     id: "2026-11-16-kartu-nama",
     date: "2026-11-16",
     title: "Kartu nama diperbarui",
