@@ -2,7 +2,8 @@
 import { useMemo, useState, useEffect } from "react";
 import {
   Plus, Loader2, Layers, Trash2, SlidersHorizontal, AlertTriangle,
-  CalendarDays, Info, Users, ListChecks, Save, ChevronDown,
+  CalendarDays, Info, Users, ListChecks, Save, ChevronDown, ChevronRight,
+  Search, Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -155,6 +156,16 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
   });
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [allPeserta, setAllPeserta] = useState([]);
+  // Daftar nama yang dikecualikan dari kewajiban absen (pengajar).
+  const [pengajarIds, setPengajarIds] = useState(initial?.pengajar_dikecualikan_ids || []);
+  const [pengajarQ, setPengajarQ] = useState("");
+  const [pengajarAutoFilled, setPengajarAutoFilled] = useState(false);
+  // Salin dari kegiatan sebelumnya.
+  const [salinOpen, setSalinOpen] = useState(false);
+  const [salinQ, setSalinQ] = useState("");
+  const [salinDari, setSalinDari] = useState(null);
+  // Dialog tutup tanpa menyimpan.
+  const [tutupOpen, setTutupOpen] = useState(false);
   const [multi, setMulti] = useState(Boolean(initial?.multi));
   const [sessions, setSessions] = useState(() => (
     Array.isArray(initial?.sessions) && initial.sessions.length >= 2
@@ -213,9 +224,54 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
       .catch(() => setAllPeserta([]));
   }, []);
 
-  // Jumlah peserta kegiatan ini (memperhitungkan kelompok + filter lanjutan).
-  const jumlahPeserta = useMemo(() => {
-    if (pickMode) return participants.length;
+  // Kegiatan lama: saklar menyala tanpa daftar → isi dengan semua pengajar saat dibuka.
+  useEffect(() => {
+    if (pengajarAutoFilled || !allPeserta.length) return;
+    if (!initial?.pengajar_tidak_wajib) return;
+    if (!initial?.pengajar_dikecualikan_warisan) return;
+    setPengajarIds(allPeserta.filter((u) => u.pengajar).map((u) => u.id));
+    setPengajarAutoFilled(true);
+  }, [allPeserta, initial, pengajarAutoFilled]);
+
+  // Menyalakan saklar: peserta ber-penanda pengajar otomatis tercentang.
+  const setPengajarSwitch = (v) => {
+    setReviewConfirmed(false);
+    setF((p) => ({ ...p, pengajar_tidak_wajib: v }));
+    if (v && !pengajarIds.length) {
+      setPengajarIds(pesertaKegiatan.filter((u) => u.pengajar).map((u) => u.id));
+    }
+  };
+
+  // Apakah sudah ada isian yang diubah (untuk dialog tutup tanpa menyimpan).
+  const adaIsian = useMemo(() => {
+    if (editing) return false;
+    if (salinDari) return true;
+    if (f.name.trim() || f.teacher.trim() || f.material.trim() || f.location.trim()) return true;
+    if (pickMode && participants.length) return true;
+    if (Array.isArray(groupMode) && groupMode.length) return true;
+    if (f.pengajar_tidak_wajib || pengajarIds.length) return true;
+    if (f.audience !== "reguler" || f.gender_filter !== "semua"
+        || f.marital_filter !== "semua" || (f.age_filter || []).length) return true;
+    if (multi || requiredParticipants.length) return true;
+    return false;
+  }, [editing, salinDari, f, pickMode, participants, groupMode, pengajarIds,
+      multi, requiredParticipants]);
+
+  const mintaTutup = () => {
+    if (adaIsian) { setTutupOpen(true); return; }
+    onClose();
+  };
+
+  // Tombol kembali bawaan HP/browser diperlakukan sama seperti tombol Batal.
+  useEffect(() => {
+    const onBack = () => mintaTutup();
+    window.addEventListener("kegiatan-form-back", onBack);
+    return () => window.removeEventListener("kegiatan-form-back", onBack);
+  });
+
+  // Daftar peserta kegiatan ini (memperhitungkan kelompok + filter lanjutan).
+  const pesertaKegiatan = useMemo(() => {
+    if (pickMode) return allPeserta.filter((u) => participants.includes(u.id));
     const groups = Array.isArray(groupMode) ? groupMode : [];
     return allPeserta.filter((u) => {
       if (f.audience === "reguler" && (u.status || "active") !== "active") return false;
@@ -232,8 +288,53 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
         if (!cocok) return false;
       }
       return true;
-    }).length;
+    });
   }, [pickMode, participants, groupMode, allPeserta, f.audience, f.gender_filter, f.marital_filter, f.age_filter]);
+
+  const jumlahPeserta = pesertaKegiatan.length;
+
+  // Daftar nama yang dikecualikan (pengajar tidak wajib absen).
+  const pengajarList = useMemo(() => {
+    const t = pengajarQ.trim().toLowerCase();
+    return t ? pesertaKegiatan.filter((u) => (u.name || "").toLowerCase().includes(t)) : pesertaKegiatan;
+  }, [pesertaKegiatan, pengajarQ]);
+
+  const togglePengajar = (id) => {
+    setReviewConfirmed(false);
+    setPengajarIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  // Salin isian dari kegiatan sebelumnya (tanpa tanggal, absensi, tautan, token).
+  const salinDariKegiatan = (k) => {
+    setReviewConfirmed(false);
+    setF((prev) => ({
+      ...prev,
+      name: k.name || "",
+      type: k.type || "rutin",
+      start_time: k.start_time || prev.start_time,
+      end_time: k.end_time || prev.end_time,
+      teacher: k.teacher || "",
+      material: k.material || "",
+      location: k.location || "",
+      maps_query: k.maps_query || k.location || "",
+      audience: k.audience || "reguler",
+      gender_filter: k.gender_filter || "semua",
+      marital_filter: k.marital_filter || "semua",
+      age_filter: k.age_filter || [],
+      date: "",  // tanggal dikosongkan supaya diisi sendiri
+      pengajar_tidak_wajib: Boolean(k.pengajar_tidak_wajib),
+    }));
+    const pids = k.participant_ids || [];
+    setPickMode(pids.length > 0);
+    setParticipants(pids);
+    setRequiredParticipants(k.session_participant_ids || []);
+    setPengajarIds(k.pengajar_dikecualikan_ids || []);
+    setPengajarAutoFilled(true);
+    setSalinDari(k);
+    setSalinOpen(false);
+    setSalinQ("");
+    setStep(0);
+  };
 
   const setSession = (i, key, val) => {
     setReviewConfirmed(false);
@@ -316,6 +417,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
           ...rest,
           participant_ids,
           attendance_participant_ids: requiredParticipants,
+          pengajar_dikecualikan_ids: f.pengajar_tidak_wajib ? pengajarIds : [],
         });
         toast.success("Kegiatan diperbarui.");
       } else {
@@ -325,6 +427,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
           recurring_months: Number(f.recurring_months) || null,
           participant_ids,
           attendance_participant_ids: multi ? null : requiredParticipants,
+          pengajar_dikecualikan_ids: f.pengajar_tidak_wajib ? pengajarIds : [],
           sessions: multi ? sessions.map(({ participant_ids: sessionParticipants, ...session }) => ({
             ...session,
             ...(sessionParticipants?.length ? { participant_ids: sessionParticipants } : {}),
@@ -344,7 +447,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
 
   return (
     <Modal
-      onClose={onClose}
+      onClose={mintaTutup}
       title={editing ? "Edit Kegiatan" : "Tambah Kegiatan"}
       subtitle={editing ? "Ubah jadwal, pengajar, dan penyaringan peserta." : "Isi jadwal pengajian lalu atur siapa saja pesertanya."}
       testid={editing ? "modal-edit-kegiatan" : "modal-add-kegiatan"}
@@ -354,7 +457,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
       footer={(
         <div className="flex gap-2">
           <button type="button" onClick={() => {
-            if (step === 0) onClose();
+            if (step === 0) mintaTutup();
             else {
               setReviewConfirmed(false);
               setStep((current) => Math.max(current - 1, 0));
@@ -394,6 +497,20 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
 
         {/* Body */}
         <form id="kegiatan-form" noValidate onSubmit={submit} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5">
+          {!editing && (
+            <div className="mb-3 space-y-2">
+              <button type="button" data-testid="kegiatan-salin-toggle"
+                onClick={() => { setSalinOpen(true); setSalinQ(""); }}
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[#E7E3D8] bg-white px-3 text-xs font-semibold text-[#0E4E31] hover:border-[#14633F]">
+                <Copy size={14} /> Salin dari kegiatan sebelumnya
+              </button>
+              {salinDari && (
+                <p className="text-[11px] text-[#5F6B63]" data-testid="kegiatan-salin-note">
+                  Disalin dari {salinDari.name}
+                </p>
+              )}
+            </div>
+          )}
           {step === 0 && <Section icon={Info} title="Informasi Kegiatan" testid="form-section-info"
             desc="Nama, jenis, pengajar, materi, dan lokasi kegiatan.">
             <div className="grid sm:grid-cols-2 gap-3">
@@ -722,7 +839,9 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                       </p>
                     </div>
 
-                    {(!multi || editing) && (
+                    {/* Pilihan "nama wajib" lama disembunyikan dari tampilan.
+                        Kolom, data, dan kodenya tetap ada (tidak dihapus). */}
+                    {false && (!multi || editing) && (
                       <div className="rounded-2xl border border-[#E7E3D8] bg-white p-3.5" data-testid={ACTIVITIES.attendanceParticipants}>
                         <label className="mb-1 block text-sm font-bold text-[#14201A]">
                           Peserta wajib diabsen
@@ -742,20 +861,59 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
                       </div>
                     )}
 
-                    <div className="flex items-start justify-between gap-3 rounded-2xl border border-[#E7E3D8] bg-white p-3.5">
-                      <div className="min-w-0">
-                        <div className="text-sm font-bold text-[#14201A]">Pengajar tidak wajib absen</div>
-                        <p className="mt-0.5 text-[11px] leading-relaxed text-[#5F6B63]">
-                          Pengajar tidak dihitung di rekap kegiatan ini.
-                        </p>
+                    <div className="rounded-2xl border border-[#E7E3D8] bg-white p-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-bold text-[#14201A]">Pengajar tidak wajib absen</div>
+                          <p className="mt-0.5 text-[11px] leading-relaxed text-[#5F6B63]">
+                            Pengajar tidak dihitung di rekap kegiatan ini.
+                          </p>
+                          {f.pengajar_tidak_wajib && (
+                            <p className="mt-1 text-[11px] font-semibold text-[#0E4E31]" data-testid="keg-pengajar-count">
+                              {pengajarIds.length} nama dikecualikan
+                            </p>
+                          )}
+                        </div>
+                        <button type="button" role="switch" data-testid="keg-pengajar-tidak-wajib"
+                          aria-checked={Boolean(f.pengajar_tidak_wajib)}
+                          aria-label="Pengajar tidak wajib absen"
+                          onClick={() => setPengajarSwitch(!f.pengajar_tidak_wajib)}
+                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors motion-reduce:transition-none ${f.pengajar_tidak_wajib ? "bg-[#14633F]" : "bg-[#D9D4C5]"}`}>
+                          <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform motion-reduce:transition-none ${f.pengajar_tidak_wajib ? "translate-x-5" : "translate-x-0.5"}`} />
+                        </button>
                       </div>
-                      <button type="button" role="switch" data-testid="keg-pengajar-tidak-wajib"
-                        aria-checked={Boolean(f.pengajar_tidak_wajib)}
-                        aria-label="Pengajar tidak wajib absen"
-                        onClick={() => set("pengajar_tidak_wajib", !f.pengajar_tidak_wajib)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors motion-reduce:transition-none ${f.pengajar_tidak_wajib ? "bg-[#14633F]" : "bg-[#D9D4C5]"}`}>
-                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform motion-reduce:transition-none ${f.pengajar_tidak_wajib ? "translate-x-5" : "translate-x-0.5"}`} />
-                      </button>
+
+                      {f.pengajar_tidak_wajib && (
+                        <div className="mt-3 border-t border-[#E7E3D8] pt-3" data-testid="keg-pengajar-list">
+                          <div className="relative">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
+                            <input data-testid="keg-pengajar-search" value={pengajarQ}
+                              onChange={(e) => setPengajarQ(e.target.value)}
+                              placeholder="Cari nama"
+                              className="h-11 w-full rounded-xl border border-[#8A948D] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#14633F]" />
+                          </div>
+                          {pengajarList.length === 0 ? (
+                            <p className="px-1 py-4 text-center text-xs text-[#5F6B63]">Tidak ada nama yang cocok.</p>
+                          ) : (
+                            <div className="mt-2 max-h-56 divide-y divide-[#F0EEE6] overflow-y-auto rounded-xl border border-[#E7E3D8]">
+                              {pengajarList.map((u) => {
+                                const on = pengajarIds.includes(u.id);
+                                return (
+                                  <label key={u.id} data-testid={`keg-pengajar-row-${u.id}`}
+                                    className={`flex min-h-11 cursor-pointer items-center gap-3 px-3 py-2.5 ${on ? "bg-[#E3F3EA]" : "hover:bg-[#F6F4EE]"}`}>
+                                    <input type="checkbox" checked={on} onChange={() => togglePengajar(u.id)}
+                                      className="h-4 w-4 accent-[#14633F]" />
+                                    <span className="min-w-0 flex-1 truncate text-sm text-[#14201A]">{u.name}</span>
+                                    {u.pengajar && (
+                                      <span className="shrink-0 rounded-full bg-[#F0EEE6] px-2 py-0.5 text-[10px] font-semibold text-[#5F6B63]">Pengajar</span>
+                                    )}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -783,7 +941,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
               </dl>
               {f.pengajar_tidak_wajib && (
                 <p className="mt-3 rounded-xl bg-[#FBF1D6] px-3 py-2 text-sm text-[#6B4500]" data-testid="review-pengajar">
-                  Pengajar tidak dihitung: {allPeserta.filter((u) => u.pengajar).length} orang.
+                  Pengajar tidak dihitung: {pengajarIds.length} orang.
                 </p>
               )}
               <p className="mt-4 rounded-xl bg-[#E3F3EA] p-3 text-sm text-[#0E4E31]">
@@ -798,6 +956,75 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
             </Section>
           )}
         </form>
+
+      <Modal
+        open={tutupOpen}
+        onClose={() => setTutupOpen(false)}
+        title="Tutup tanpa menyimpan?"
+        testid="kegiatan-tutup-dialog"
+        maxWidth={440}
+        zIndex={80}
+        footer={(
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setTutupOpen(false)}
+              className="h-12 flex-1 rounded-2xl bg-[#F0EEE6] font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]">
+              Batal
+            </button>
+            <button type="button" onClick={() => { setTutupOpen(false); onClose(); }}
+              className="h-12 flex-1 rounded-2xl bg-[#A32A2A] font-semibold text-white hover:bg-[#8C2323]">
+              Ya, tutup
+            </button>
+          </div>
+        )}
+      >
+        <p className="p-4 text-sm text-[#14201A]">Isian yang sudah dibuat akan hilang.</p>
+      </Modal>
+
+      <Modal
+        open={salinOpen}
+        onClose={() => setSalinOpen(false)}
+        title="Salin dari kegiatan sebelumnya"
+        testid="kegiatan-salin-dialog"
+        maxWidth={520}
+        zIndex={80}
+      >
+        <div className="space-y-2 p-4">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
+            <input data-testid="kegiatan-salin-search" value={salinQ}
+              onChange={(e) => setSalinQ(e.target.value)}
+              placeholder="Cari kegiatan"
+              className="h-11 w-full rounded-xl border border-[#8A948D] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#14633F]" />
+          </div>
+          {(() => {
+            const t = salinQ.trim().toLowerCase();
+            const list = (suggestions || [])
+              .filter((k) => k && k.id && k.id !== initial?.id)
+              .filter((k) => !t || (k.name || "").toLowerCase().includes(t))
+              .slice(0, 10);
+            if (!list.length) {
+              return <p className="px-1 py-6 text-center text-sm text-[#5F6B63]">Tidak ada kegiatan yang bisa disalin.</p>;
+            }
+            return (
+              <div className="divide-y divide-[#F0EEE6] overflow-hidden rounded-xl border border-[#E7E3D8]">
+                {list.map((k) => (
+                  <button key={k.id} type="button" data-testid={`kegiatan-salin-row-${k.id}`}
+                    onClick={() => salinDariKegiatan(k)}
+                    className="flex min-h-11 w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-[#F6F4EE]">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-[#14201A]">{k.name}</span>
+                      <span className="block text-[11px] text-[#5F6B63]">
+                        {k.date || "-"} · {KEGIATAN_TYPES.find((x) => x.value === k.type)?.label || k.type || "-"}
+                      </span>
+                    </span>
+                    <ChevronRight size={16} className="shrink-0 text-[#D9D4C5]" />
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+      </Modal>
     </Modal>
   );
 }

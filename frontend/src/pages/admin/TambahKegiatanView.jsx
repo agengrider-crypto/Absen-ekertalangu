@@ -32,11 +32,22 @@ export default function TambahKegiatanView({ onBack, onDone }) {
   useEffect(() => { load(); }, [load]);
 
   // Tombol kembali browser = kembali ke daftar tanpa menyimpan.
+  // Bila form sedang terbuka, form menangani konfirmasi tutup lebih dulu.
   const backRef = useRef(onBack);
   backRef.current = onBack;
+  const formOpenRef = useRef(false);
+  formOpenRef.current = openForm || Boolean(quickMode);
   useEffect(() => {
     window.history.pushState({ tambahKegiatan: true }, "");
-    const onPop = () => backRef.current?.();
+    const onPop = () => {
+      if (formOpenRef.current) {
+        // Buka lagi entri riwayat agar dialog tutup di form bisa tampil.
+        window.history.pushState({ tambahKegiatan: true }, "");
+        window.dispatchEvent(new CustomEvent("kegiatan-form-back"));
+        return;
+      }
+      backRef.current?.();
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);

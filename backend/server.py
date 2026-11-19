@@ -1832,6 +1832,8 @@ class KegiatanInput(BaseModel):
     susulan: bool = False
     # Pengajar ber-penanda `pengajar` tidak dihitung di rekap kegiatan ini.
     pengajar_tidak_wajib: bool = False
+    # Daftar nama (id peserta) yang dikecualikan dari kewajiban absen.
+    pengajar_dikecualikan_ids: List[str] = []
 
 
 class KegiatanUpdate(BaseModel):
@@ -1852,6 +1854,7 @@ class KegiatanUpdate(BaseModel):
     attendance_participant_ids: Optional[List[str]] = None
     session_label: Optional[str] = None
     pengajar_tidak_wajib: Optional[bool] = None
+    pengajar_dikecualikan_ids: Optional[List[str]] = None
 
 
 class AbsenInput(BaseModel):
@@ -1910,6 +1913,10 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
         "closed_at": k.get("closed_at"),
         "auto_closed": bool(k.get("auto_closed", False)),
         "pengajar_tidak_wajib": bool(k.get("pengajar_tidak_wajib", False)),
+        "pengajar_dikecualikan_ids": list(k.get("pengajar_dikecualikan_ids") or []),
+        # Kegiatan lama: saklar menyala tanpa daftar → daftar diisi semua pengajar.
+        "pengajar_dikecualikan_warisan": bool(
+            k.get("pengajar_tidak_wajib") and k.get("pengajar_dikecualikan_ids") is None),
         "susulan": bool(k.get("susulan", False)),
         "share_token": k.get("share_token"),
         "share_expires_at": k.get("share_expires_at"),
@@ -2117,14 +2124,19 @@ async def count_peserta_total() -> int:
 
 
 def pengajar_dikecualikan(k: Optional[dict], peserta: list) -> set:
-    """Peserta ber-penanda `pengajar` yang TIDAK dihitung di rekap kegiatan ini.
+    """Peserta yang TIDAK dihitung sebagai peserta wajib di kegiatan ini.
 
     Hanya berlaku bila kegiatan menyetel `pengajar_tidak_wajib` = true.
-    Kehadiran mereka tetap tersimpan dan tampil di Detail Kegiatan.
+    Daftar nama diambil dari `pengajar_dikecualikan_ids`; kegiatan lama yang
+    hanya menyalakan saklar tanpa daftar memakai semua peserta ber-penanda
+    `pengajar` (hasil rekap lama tidak berubah).
     """
     if not k or not k.get("pengajar_tidak_wajib"):
         return set()
-    return {str(p["_id"]) for p in peserta if p.get("pengajar")}
+    ids = k.get("pengajar_dikecualikan_ids")
+    if ids is None:
+        return {str(p["_id"]) for p in peserta if p.get("pengajar")}
+    return {str(x) for x in ids if str(x).strip()}
 
 
 def compute_counts(peserta: list, absens: list, guests: int = 0,
@@ -2137,8 +2149,8 @@ def compute_counts(peserta: list, absens: list, guests: int = 0,
     `exclude_ids` = peserta yang sudah hadir di kegiatan yang MULAI LEBIH AWAL
     pada hari & kelompok yang sama. Mereka dikeluarkan dari penyebut, kartu, dan
     daftar nama rekap kegiatan ini (dipakai rekap publik & gabungan).
-    Peserta ber-penanda pengajar juga dikeluarkan bila kegiatan menyetel
-    `pengajar_tidak_wajib`.
+    Peserta di daftar `pengajar_dikecualikan_ids` tidak dihitung sebagai peserta
+    wajib (tidak menjadi Alpha), tetapi tetap dihitung bila punya status.
     """
     amap = {a["user_id"]: a.get("status") for a in absens}
     skip = skip_ids or set()
@@ -2147,12 +2159,14 @@ def compute_counts(peserta: list, absens: list, guests: int = 0,
             pid for pid in skip
             if not session_requires_participant(kegiatan, pid)
         }
-    drop = skip | (exclude_ids or set()) | pengajar_dikecualikan(kegiatan, peserta)
+    drop = skip | (exclude_ids or set())
+    pengajar = pengajar_dikecualikan(kegiatan, peserta)
     ids = {
         str(p["_id"]) for p in peserta
         if str(p["_id"]) not in drop
-        and (session_requires_participant(kegiatan, str(p["_id"]))
-             or str(p["_id"]) in amap)
+        and (str(p["_id"]) in amap
+             or (str(p["_id"]) not in pengajar
+                 and session_requires_participant(kegiatan, str(p["_id"]))))
     }
     counts = {"hadir": guests, "izin": 0, "sakit": 0, "alpha": 0, "belum_diabsen": 0}
     for pid in ids:
@@ -2167,7 +2181,7 @@ def compute_counts(peserta: list, absens: list, guests: int = 0,
     return {"total": total, **counts, "ratio": ratio,
             "sudah_sesi_lain": len(skip),
             "dikecualikan": len(exclude_ids or set()),
-            "pengajar_dikecualikan": len(pengajar_dikecualikan(kegiatan, peserta))}
+            "pengajar_dikecualikan": len(pengajar)}
 
 
 def _kegiatan_urutan(k: dict) -> tuple:
@@ -2267,10 +2281,13 @@ async def mark_missing_alpha(k: dict, marked_at: Optional[str] = None) -> None:
     }
 
     ops = []
+    pengajar = pengajar_dikecualikan(k, participants)
     for participant in participants:
         user_id = str(participant["_id"])
         if not session_requires_participant(k, user_id):
             continue
+        if user_id in pengajar:
+            continue  # dikecualikan: tidak menjadi Alpha
         existing_row = existing_by_user.get(user_id)
         if existing_row and existing_row.get("status") in ABSEN_STATUS:
             continue
@@ -2525,6 +2542,9 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
                 "auto_closed": False,
                 "susulan": bool(body.susulan),
                 "pengajar_tidak_wajib": bool(body.pengajar_tidak_wajib),
+                "pengajar_dikecualikan_ids": list(dict.fromkeys(
+                    str(pid).strip() for pid in (body.pengajar_dikecualikan_ids or [])
+                    if str(pid).strip())),
                 "share_token": None,
                 "share_expires_at": None,
                 # Fase 7: setiap kegiatan baru langsung punya kode akses absensi 6 digit
@@ -2624,6 +2644,10 @@ async def update_kegiatan(kegiatan_id: str, body: KegiatanUpdate, admin: dict = 
         updates["age_filter"] = normalize_age_filter(body.age_filter)
     if body.pengajar_tidak_wajib is not None:
         updates["pengajar_tidak_wajib"] = bool(body.pengajar_tidak_wajib)
+    if body.pengajar_dikecualikan_ids is not None:
+        updates["pengajar_dikecualikan_ids"] = list(dict.fromkeys(
+            str(pid).strip() for pid in body.pengajar_dikecualikan_ids
+            if str(pid).strip()))
     if body.participant_ids is not None:
         seen = []
         for pid in body.participant_ids:
@@ -2917,7 +2941,9 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
             continue
         if required or status in ABSEN_STATUS:
             g = _derive_gender(p)
-            if g in gender_status and pid not in pengajar_excluded:
+            # Pengajar yang dikecualikan tetap dihitung bila punya status.
+            if g in gender_status and (pid not in pengajar_excluded
+                                       or status in ABSEN_STATUS):
                 status_key = status if status in ABSEN_STATUS else "belum_diabsen"
                 gender_status[g][status_key] += 1
         rows.append({
@@ -3003,6 +3029,7 @@ async def build_rekap_gabungan(docs: list, tampilkan_jam: bool = False) -> dict:
     sudah_hadir: set = set()
     hadir_di: dict = {}
     dikecualikan_by_keg: dict = {}
+    pengajar_by_keg: dict = {}
     for d in docs:
         peserta = filter_peserta_for_kegiatan(d, all_users)
         eligible_by_keg[d["_id"]] = {str(p["_id"]) for p in peserta}
@@ -3010,12 +3037,13 @@ async def build_rekap_gabungan(docs: list, tampilkan_jam: bool = False) -> dict:
             peserta_union[str(p["_id"])] = p
         # Peserta yang sudah hadir di kegiatan lebih awal tidak dihitung di sini.
         dikecualikan_by_keg[d["_id"]] = set(sudah_hadir)
-        # Pengajar yang dikecualikan kegiatan ini juga tidak dihitung.
+        # Pengajar yang dikecualikan kegiatan ini juga tidak dihitung sebagai wajib.
         pengajar_keg = pengajar_dikecualikan(d, peserta)
-        dikecualikan_by_keg[d["_id"]] |= pengajar_keg
+        pengajar_by_keg[d["_id"]] = pengajar_keg
         penyebut = {str(p["_id"]) for p in peserta
                     if str(p["_id"]) not in sudah_hadir
-                    and str(p["_id"]) not in pengajar_keg}
+                    and (str(p["_id"]) not in pengajar_keg
+                         or str(p["_id"]) in abs_by_keg.get(d["_id"], {}))}
         counts = compute_counts(
             [p for p in peserta if str(p["_id"]) in penyebut],
             list(abs_by_keg.get(d["_id"], {}).values()),
@@ -3048,6 +3076,10 @@ async def build_rekap_gabungan(docs: list, tampilkan_jam: bool = False) -> dict:
                 per.append(None)
                 continue
             a = abs_by_keg.get(d["_id"], {}).get(pid)
+            # Pengajar yang dikecualikan hanya muncul bila punya status.
+            if pid in pengajar_by_keg.get(d["_id"], set()) and not a:
+                per.append(None)
+                continue
             st = a.get("status") if a else None
             cell = {"status": st or "belum_diabsen",
                     "reason": a.get("reason") if a else None,
@@ -3581,10 +3613,15 @@ async def public_rekap(token: str):
     rows = []
     gender = {"L": 0, "P": 0}
     for p in peserta:
-        if str(p["_id"]) in sebelumnya or str(p["_id"]) in pengajar_excluded:
+        pid = str(p["_id"])
+        if pid in sebelumnya:
             continue
-        a = amap.get(str(p["_id"]))
+        a = amap.get(pid)
         status = a.get("status") if a else None
+        # Pengajar yang dikecualikan tidak dihitung sebagai peserta wajib,
+        # tetapi tetap tampil bila punya status (mis. hadir).
+        if pid in pengajar_excluded and status not in ABSEN_STATUS:
+            continue
         if status == "hadir":
             g = _derive_gender(p)
             if g in gender:
@@ -5832,11 +5869,13 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
     for k in docs_sorted:
         ids = elig[k["_id"]]
         berlangsung = kegiatan_sudah_berlangsung(k, _now)
-        # Pengajar yang dikecualikan kegiatan ini tidak dihitung.
+        # Pengajar yang dikecualikan kegiatan ini tidak dihitung sebagai wajib,
+        # tetapi tetap dihitung bila punya status.
         pengajar_keg = pengajar_dikecualikan(k, peserta)
         # Penyebut kartu: kegiatan pertama = semua peserta; berikutnya = yang belum hadir sebelumnya.
         penyebut = {pid for pid in ids
-                    if pid not in sudah_hadir and pid not in pengajar_keg}
+                    if pid not in sudah_hadir
+                    and (pid not in pengajar_keg or (k["_id"], pid) in status_by)}
         session_absens = [
             {"user_id": pid, "status": status_by[(k["_id"], pid)]}
             for pid in penyebut if (k["_id"], pid) in status_by
@@ -5868,7 +5907,8 @@ async def build_rekap_harian(date: Optional[str] = None) -> dict:
     for k in docs_sorted:
         pengajar_keg = pengajar_dikecualikan(k, peserta)
         for pid in elig[k["_id"]]:
-            if pid in pengajar_keg:
+            # Pengajar yang dikecualikan hanya muncul bila punya status.
+            if pid in pengajar_keg and (k["_id"], pid) not in status_by:
                 continue
             peserta_hari.setdefault(pid, []).append(
                 (k, status_by.get((k["_id"], pid)), arrival_by.get((k["_id"], pid))))
