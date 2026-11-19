@@ -83,6 +83,12 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
   const [kelompok, setKelompok] = useState([]);
   const [waliMap, setWaliMap] = useState({});
   const [q, setQ] = useState("");
+  // Kolom cari memakai jeda 300 ms sebelum menyaring (debounce).
+  const [qDebounced, setQDebounced] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setQDebounced(q), 300);
+    return () => clearTimeout(t);
+  }, [q]);
   const [statusFilter, setStatusFilter] = useState("all"); // all | pending | active | incomplete
   const [showStatusFilter, setShowStatusFilter] = useState(false);
   const roleTabRefs = useRef({});
@@ -170,20 +176,20 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
     if (statusFilter === "pending") list = list.filter((u) => u.status === "pending");
     else if (statusFilter === "active") list = list.filter((u) => u.status === "active");
     else if (statusFilter === "incomplete") list = list.filter((u) => dataMissing(u).length > 0);
-    const t = q.trim().toLowerCase();
+    const t = qDebounced.trim().toLowerCase();
     if (!t) return list;
     return list.filter((u) =>
       (u.name || "").toLowerCase().includes(t) ||
       (u.username || "").toLowerCase().includes(t) ||
       (u.phone || "").toLowerCase().includes(t) ||
       (u.birthplace || "").toLowerCase().includes(t));
-  }, [users, q, statusFilter, roleFilter, waliMap]);
+  }, [users, qDebounced, statusFilter, roleFilter, waliMap]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
   const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  useEffect(() => { setPage(1); }, [q, statusFilter, roleFilter]);
+  useEffect(() => { setPage(1); }, [qDebounced, statusFilter, roleFilter]);
 
   // Tab aktif otomatis tergulir ke tampilan.
   useEffect(() => {

@@ -1,5 +1,5 @@
 // Navigasi Admin/Pengurus: sidebar desktop dan menu bottom-sheet di ponsel.
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
@@ -21,28 +21,39 @@ import DemoBanner from "@/components/DemoBanner";
 import BantuanView from "@/components/BantuanView";
 import TutorialVideoView from "@/components/TutorialVideoView";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import KalenderView from "./KalenderView";
-import DashboardView from "./DashboardView";
-import Peserta from "./Peserta";
-import KartuNamaView from "./KartuNamaView";
-import PesertaBulkView from "./PesertaBulkView";
-import PesertaDuplikat from "./PesertaDuplikat";
-import KegiatanView from "./KegiatanView";
-import KodeAksesView from "./KodeAksesView";
-import ScanPresensiView from "./ScanPresensiView";
-import LaporanPesertaView from "./LaporanPesertaView";
-import LogAktivitas from "./LogAktivitas";
-import HakAkses from "./HakAkses";
-import MusyawarahView from "./MusyawarahView";
-import PengumumanView from "./PengumumanView";
-import RuangTeduhView from "./RuangTeduhView";
-import KelompokView from "./KelompokView";
-import PantauLoginView from "./PantauLoginView";
-import RekapBulananView from "./RekapBulananView";
-import RekapHarianView from "./RekapHarianView";
-import MaintenanceSettings from "./MaintenanceSettings";
-import PeriksaAplikasiView from "./PeriksaAplikasiView";
-import PendataanView from "./PendataanView";
+
+// Setiap menu dimuat saat dibuka (code splitting) agar muat awal ringan.
+const KalenderView = lazy(() => import("./KalenderView"));
+const DashboardView = lazy(() => import("./DashboardView"));
+const Peserta = lazy(() => import("./Peserta"));
+const KartuNamaView = lazy(() => import("./KartuNamaView"));
+const PesertaBulkView = lazy(() => import("./PesertaBulkView"));
+const PesertaDuplikat = lazy(() => import("./PesertaDuplikat"));
+const KegiatanView = lazy(() => import("./KegiatanView"));
+const KodeAksesView = lazy(() => import("./KodeAksesView"));
+const ScanPresensiView = lazy(() => import("./ScanPresensiView"));
+const LaporanPesertaView = lazy(() => import("./LaporanPesertaView"));
+const LogAktivitas = lazy(() => import("./LogAktivitas"));
+const HakAkses = lazy(() => import("./HakAkses"));
+const MusyawarahView = lazy(() => import("./MusyawarahView"));
+const PengumumanView = lazy(() => import("./PengumumanView"));
+const RuangTeduhView = lazy(() => import("./RuangTeduhView"));
+const KelompokView = lazy(() => import("./KelompokView"));
+const PantauLoginView = lazy(() => import("./PantauLoginView"));
+const RekapBulananView = lazy(() => import("./RekapBulananView"));
+const RekapHarianView = lazy(() => import("./RekapHarianView"));
+const MaintenanceSettings = lazy(() => import("./MaintenanceSettings"));
+const PeriksaAplikasiView = lazy(() => import("./PeriksaAplikasiView"));
+const PendataanView = lazy(() => import("./PendataanView"));
+
+/** Indikator muat sederhana untuk panel menu. */
+function PanelLoading() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center" role="status">
+      <span className="text-sm text-[#5F6B63]">Memuat…</span>
+    </div>
+  );
+}
 
 const MENU = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "pengurus"] },
@@ -469,6 +480,7 @@ export default function AdminLayout({ user, role = "admin" }) {
         >
           <DemoBanner />
           <ErrorBoundary resetKey={active}>
+          <Suspense fallback={<PanelLoading />}>
           {active === "dashboard" && (
             <DashboardView
               user={user}
@@ -530,6 +542,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "kelompok" && <KelompokView />}
           {active === "log" && role === "admin" && <LogAktivitas />}
           {active === "hakakses" && role === "admin" && <HakAkses currentUserId={user?.id} />}
+          </Suspense>
           </ErrorBoundary>
         </main>
       </div>

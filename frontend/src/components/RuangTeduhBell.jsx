@@ -7,13 +7,26 @@ export default function RuangTeduhBell({ onOpen, active }) {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
+    let timer = null;
     const load = () =>
       api.get("/staff/pengaduan/unread-count")
         .then(({ data }) => setCount(data.belum_dibaca || 0))
         .catch(() => {});
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (typeof document !== "undefined" && document.hidden) { schedule(); return; }
+        load().finally(schedule);
+      }, 60000);
+    };
     load();
-    const iv = setInterval(load, 45000);
-    return () => clearInterval(iv);
+    schedule();
+    const onVisible = () => { if (!document.hidden) load(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [active]);
 
   return (

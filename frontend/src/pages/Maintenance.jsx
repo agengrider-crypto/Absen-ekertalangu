@@ -15,6 +15,7 @@ export default function Maintenance() {
   // Muat ulang otomatis tiap 60 detik; bila pemeliharaan selesai, kembali.
   useEffect(() => {
     const iv = setInterval(async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       const next = await refresh();
       if (next && next.state !== "ongoing") {
         const back = sessionStorage.getItem("ekertalangu.maintenanceBack") || "/roles";

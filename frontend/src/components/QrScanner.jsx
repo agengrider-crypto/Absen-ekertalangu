@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
 import { Loader2, CameraOff, RefreshCw } from "lucide-react";
+
+// html5-qrcode dimuat dinamis: pustaka pemindai hanya diunduh saat kamera dibuka.
+let _html5Promise = null;
+function loadHtml5Qrcode() {
+  if (!_html5Promise) {
+    _html5Promise = import("html5-qrcode").then((m) => m.Html5Qrcode);
+  }
+  return _html5Promise;
+}
 
 // Html5QrcodeScannerState: SCANNING = 2, PAUSED = 3
 async function safeStop(scanner) {
@@ -104,7 +112,14 @@ export default function QrScanner({ onDetected, paused = false, large = false, w
       ];
 
       let lastError = null;
-      for (let i = 0; i < attempts.length; i += 1) {
+      let Html5Qrcode = null;
+      try {
+        Html5Qrcode = await loadHtml5Qrcode();
+      } catch (e) {
+        lastError = e;
+      }
+      if (cancelled) return;
+      for (let i = 0; Html5Qrcode && i < attempts.length; i += 1) {
         // Instance baru tiap percobaan supaya sisa percobaan gagal tidak mengganggu.
         const scanner = new Html5Qrcode(idRef.current, { verbose: false });
         scannerRef.current = scanner;

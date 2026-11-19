@@ -86,10 +86,18 @@ export default function PantauLoginView() {
     return () => clearTimeout(t);
   }, [load]);
 
-  // auto-refresh tiap 60 detik agar pantauan tetap segar
+  // auto-refresh tiap 60 detik agar pantauan tetap segar (berhenti saat tab tidak terlihat)
   useEffect(() => {
-    const iv = setInterval(() => load(true), 60000);
-    return () => clearInterval(iv);
+    const iv = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      load(true);
+    }, 60000);
+    const onVisible = () => { if (!document.hidden) load(true); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(iv);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [load]);
 
   const never = useMemo(() => {

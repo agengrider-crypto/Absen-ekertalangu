@@ -1189,7 +1189,8 @@ async def admin_users(admin: dict = Depends(require_staff), include_system: bool
     maupun hak akses — kirim `include_system=true` bila memang perlu.
     """
     query = {} if include_system else {"is_system": {"$ne": True}}
-    users = await db.users.find(query).sort("created_at", -1).to_list(1000)
+    # Projection: foto base64 tidak pernah dikirim di daftar (hanya penanda has_photo).
+    users = await db.users.find(query, {"photo": 0}).sort("created_at", -1).to_list(1000)
     return [public_user(u) for u in users]
 
 
@@ -1241,7 +1242,7 @@ async def admin_users_duplikat(admin: dict = Depends(require_staff)):
 
     Didefinisikan SEBELUM `/admin/users/{user_id}` agar tidak tertangkap route generik.
     """
-    users = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(10000)
+    users = await db.users.find(PESERTA_QUERY, {"photo": 0}).sort("name", 1).to_list(10000)
     groups: dict = {}
     for u in users:
         key = re.sub(r"\s+", " ", (u.get("name") or "").strip().lower())
@@ -2955,6 +2956,7 @@ async def mark_all_present(kegiatan_id: str, admin: dict = Depends(require_staff
         ], ordered=False)
         for uid in to_mark:
             await notif_kehadiran_dari_status(uid, "hadir", k)
+        _rekap_cache_buang(kegiatan_id)
     return {
         "applied": len(to_mark),
         "skipped": len(peserta) - len(to_mark),
@@ -3002,6 +3004,7 @@ async def mark_absen(kegiatan_id: str, body: AbsenInput, admin: dict = Depends(r
     message = ("Absen berhasil, alhamdulillah jazakumullahu khoiro."
                if body.status == "hadir" else None)
     await notif_kehadiran_dari_status(body.user_id, body.status, k)
+    _rekap_cache_buang(kegiatan_id)
     return {"user_id": body.user_id, "status": body.status, "arrival_time": arrival,
             "message": message}
 
@@ -3037,6 +3040,7 @@ async def mark_hadir_semua(kegiatan_id: str, admin: dict = Depends(require_staff
             upsert=True)
         await notif_kehadiran_dari_status(user_id, "hadir", k)
         applied += 1
+    _rekap_cache_buang(kegiatan_id)
     await log_activity(admin, "hadir_semua",
                        f"Menandai hadir semua ({applied} peserta) pada '{k.get('name')}'")
     return {"applied": applied,
@@ -3101,6 +3105,7 @@ async def mark_absen_batch(kegiatan_id: str, body: AbsenBatchInput,
             upsert=True)
         await notif_kehadiran_dari_status(item.user_id, item.status, k)
         applied += 1
+    _rekap_cache_buang(kegiatan_id)
     return {"applied": applied, "failed": failed,
             "message": f"{applied} absen offline berhasil disinkronkan."}
 
@@ -3789,8 +3794,51 @@ async def qr_kegiatan(kegiatan_id: str, request: Request, admin: dict = Depends(
             "image": make_qr_data_url(info["link"])}
 
 
+# ---------------------------------------------------------------------------
+# Cache ringan rekap publik per tautan (30 detik, di memori proses).
+# Dibuang saat ada absen/izin baru di kegiatan itu. Pos Scan tidak memakai cache.
+# ---------------------------------------------------------------------------
+REKAP_CACHE_TTL = 30
+_rekap_cache: dict = {}
+
+
+def _rekap_cache_get(token: str):
+    row = _rekap_cache.get(token)
+    if not row:
+        return None
+    if time.time() - row[0] > REKAP_CACHE_TTL:
+        _rekap_cache.pop(token, None)
+        return None
+    return row[1]
+
+
+def _rekap_cache_set(token: str, data, kegiatan_id: Optional[str] = None) -> None:
+    if len(_rekap_cache) > 200:
+        _rekap_cache.clear()
+    _rekap_cache[token] = (time.time(), data, kegiatan_id)
+
+
+def _rekap_cache_buang(kegiatan_id: Optional[str]) -> None:
+    """Buang cache rekap untuk kegiatan ini (dipanggil setelah absen/izin berubah)."""
+    if not kegiatan_id:
+        return
+    for tok in [t for t, row in _rekap_cache.items() if row[2] == kegiatan_id]:
+        _rekap_cache.pop(tok, None)
+
+
 @api_router.get("/rekap/{token}")
 async def public_rekap(token: str):
+    # Cache ringan 30 detik (dibuang saat ada absen/izin baru di kegiatan itu).
+    cached = _rekap_cache_get(token)
+    if cached is not None:
+        return cached
+    data = await _build_public_rekap(token)
+    kid = data.pop("_kegiatan_id", None)
+    _rekap_cache_set(token, data, kid)
+    return data
+
+
+async def _build_public_rekap(token: str):
     k = await db.kegiatans.find_one({"share_token": token})
     if not k:
         raise HTTPException(status_code=404, detail="Tautan rekap tidak ditemukan")
@@ -3848,6 +3896,7 @@ async def public_rekap(token: str):
     counts = compute_counts(peserta, absens, len(guests), set(), k,
                             exclude_ids=set(sebelumnya))
     return {
+        "_kegiatan_id": k["_id"],
         "name": k.get("name"), "type": k.get("type"), "location": k.get("location"),
         "date": k.get("date"), "start_time": k.get("start_time"), "end_time": k.get("end_time"),
         "teacher": k.get("teacher"), "material": k.get("material"),
@@ -5338,6 +5387,7 @@ async def scan_personal_qr(kegiatan_id: str, body: ScanPersonalInput, staff: dic
                   "marked_by_id": str(staff["_id"]), "updated_at": arrival}},
         upsert=True)
     await notif_kehadiran_dari_status(user_id, "hadir", k)
+    _rekap_cache_buang(kegiatan_id)
     return {"name": u.get("name"), "status": "hadir", "arrival_time": arrival, "already": False,
             "user_id": user_id, "kategori": golongan_peserta(u),
             "message": f"Alhamdulillah, kehadiran {u.get('name')} berhasil dicatat."}
@@ -10056,6 +10106,7 @@ async def publik_izin_kirim(token: str, body: dict, request: Request):
                   "updated_at": sekarang}},
         upsert=True)
     await notif_kehadiran_dari_status(peserta_id, "izin", k)
+    _rekap_cache_buang(k["_id"])
     return {"ok": True, "diperbarui": bool(ada)}
 
 
@@ -10093,6 +10144,7 @@ async def izin_tinjau_absen(kegiatan_id: str, peserta_id: str, body: IzinTinjauI
                   "ditinjau_pada": sekarang}})
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     await simpan_notif_kehadiran(peserta_id, None, k)
+    _rekap_cache_buang(kegiatan_id)
     await log_activity(staff, "izin_batalkan", "Membatalkan izin dari tautan", kegiatan_id)
     return {"ok": True, "aksi": "batalkan"}
 
@@ -10338,6 +10390,23 @@ async def _run_init():
     await db.reset_laju.create_index("at")
     await db.reset_laju.create_index([("akun", 1), ("ok", 1), ("at", -1)])
     await db.login_attempts.create_index("ip")
+    # Indeks tambahan untuk pencarian yang sering dipakai (dibungkus try/except
+    # agar kegagalan indeks tidak menghentikan aplikasi).
+    for _coll, _keys, _opts in [
+        ("absensis", [("kegiatan_id", 1), ("user_id", 1)], {}),
+        ("absensis", [("updated_at", -1)], {}),
+        ("users", [("phone", 1)], {}),
+        ("users", [("email", 1)], {}),
+        ("users", [("username", 1)], {}),
+        ("users", [("name", 1)], {}),
+        ("kegiatans", [("date", 1)], {}),
+        ("notifikasi", [("peserta_id", 1), ("dibaca", 1)], {}),
+        ("activity_logs", [("at", -1)], {}),
+    ]:
+        try:
+            await db[_coll].create_index(_keys, **_opts)
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Indeks %s %s dilewati: %s", _coll, _keys, exc)
     # Tautan rekap lama tanpa tanggal berlaku: isi 7 hari sejak perubahan ini
     # dijalankan (idempoten, tidak menimpa yang sudah terisi, tidak menghapus).
     _exp = (datetime.now(timezone.utc) + timedelta(days=SHARE_EXPIRE_DAYS)).isoformat()

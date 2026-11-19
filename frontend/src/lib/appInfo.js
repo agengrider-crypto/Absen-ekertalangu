@@ -43,6 +43,7 @@ export const CHANGELOG = [
       "Izin lewat HP langsung tercatat Izin di absen manual dan bisa disetujui atau dibatalkan pengurus.",
       "Notifikasi hadir, izin, sakit, dan alpha aktif kembali.",
       "Teks halaman izin diperbarui.",
+      "Aplikasi lebih cepat dibuka dan lebih ringan, terutama di daftar yang panjang.",
     ],
   },
   {

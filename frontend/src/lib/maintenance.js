@@ -52,7 +52,10 @@ export function useMaintenance() {
       setLoading(false);
     };
     load();
-    const iv = setInterval(load, POLL_MS);
+    const iv = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      load();
+    }, POLL_MS);
     const onVisible = () => { if (document.visibilityState === "visible") load(); };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);

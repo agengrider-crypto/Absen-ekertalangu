@@ -862,6 +862,12 @@ const STATUS_BTN = {
 export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
   const [data, setData] = useState(null);
   const [q, setQ] = useState("");
+  // Kolom cari memakai jeda 300 ms sebelum menyaring (debounce).
+  const [qDebounced, setQDebounced] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setQDebounced(q), 300);
+    return () => clearTimeout(t);
+  }, [q]);
   const [busy, setBusy] = useState(null);
   const [openManual, setOpenManual] = useState(true);
 
@@ -888,9 +894,9 @@ export function AbsensiModal({ kegiatanId, onClose, onChanged }) {
 
   const rows = useMemo(() => {
     if (!data) return [];
-    const t = q.trim().toLowerCase();
+    const t = qDebounced.trim().toLowerCase();
     return t ? data.rows.filter((r) => (r.name || "").toLowerCase().includes(t)) : data.rows;
-  }, [data, q]);
+  }, [data, qDebounced]);
 
   const k = data?.kegiatan;
   const c = data?.counts || {};

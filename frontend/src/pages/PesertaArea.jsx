@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home, CalendarDays, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, HeartHandshake, LifeBuoy, MailWarning, MessagesSquare, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -7,14 +7,23 @@ import RoleSwitcher from "@/components/RoleSwitcher";
 import BantuanView from "@/components/BantuanView";
 import DemoBanner from "@/components/DemoBanner";
 import UndanganSaya from "./peserta/UndanganSaya";
-import Beranda from "./peserta/Beranda";
-import KegiatanList from "./peserta/KegiatanList";
-import ScanTab from "./peserta/ScanTab";
-import QrSaya from "./peserta/QrSaya";
-import ProfilTab from "./peserta/ProfilTab";
-import RuangTeduh from "./peserta/RuangTeduh";
-import PenjagaAbsen from "./peserta/PenjagaAbsen";
 import { K1Mark } from "@/components/Logo";
+
+// Tab dimuat saat dibuka (code splitting) agar muat awal ringan.
+const Beranda = lazy(() => import("./peserta/Beranda"));
+const KegiatanList = lazy(() => import("./peserta/KegiatanList"));
+const ScanTab = lazy(() => import("./peserta/ScanTab"));
+const QrSaya = lazy(() => import("./peserta/QrSaya"));
+const ProfilTab = lazy(() => import("./peserta/ProfilTab"));
+const RuangTeduh = lazy(() => import("./peserta/RuangTeduh"));
+
+function TabLoading() {
+  return (
+    <div className="flex min-h-[30vh] items-center justify-center" role="status">
+      <span className="text-sm text-[#5F6B63]">Memuat…</span>
+    </div>
+  );
+}
 
 const BASE_TABS = [
   { key: "beranda", label: "Beranda", icon: Home },
@@ -158,6 +167,7 @@ export default function PesertaArea({ user }) {
 
       <main className="max-w-lg mx-auto px-4 py-4">
         <DemoBanner />
+        <Suspense fallback={<TabLoading />}>
         {tab === "beranda" && <><UndanganSaya /><Beranda user={user} onGoto={gotoTab} /></>}
         {tab === "kegiatan" && <KegiatanList />}
         {tab === "scan" && (
@@ -188,6 +198,7 @@ export default function PesertaArea({ user }) {
         {tab === "curhat" && <RuangTeduh />}
         {tab === "bantuan" && <BantuanView />}
         {tab === "profil" && <ProfilTab user={user} />}
+        </Suspense>
       </main>
 
       {/* Bottom navigation — 5 tab, Scan bulat menonjol di tengah */}
