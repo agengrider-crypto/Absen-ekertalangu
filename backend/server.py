@@ -548,6 +548,127 @@ async def is_locked(identifier: str) -> bool:
         {"identifier": identifier, "at": {"$gte": since.isoformat()}})
     return count >= 5
 
+
+# --- Login: pembatas laju per IP + pencocokan pengenal (HP, email, username, nama) ---
+LOGIN_IP_MAKS = 20
+LOGIN_IP_JENDELA = 900          # detik (15 menit)
+RESET_LAJU_MAKS = 5
+RESET_LAJU_JENDELA = 900        # 5 percobaan / 15 menit
+RESET_JEDA_AKUN = 600           # maksimal 1 reset berhasil / 10 menit per akun
+RESET_TEKS = ("Berhasil. Jika akun peserta ini terdaftar, kata sandinya sudah direset. "
+              "Masuk dengan tanggal lahir (DDMMYY), misalnya 050390.")
+LOGIN_GAGAL_TEKS = "Nama atau kata sandi salah."
+LOGIN_KEMBAR_TEKS = ("Ada lebih dari satu nama yang sama. Gunakan nomor HP atau username, "
+                     "atau hubungi pengurus.")
+LAJU_TEKS = "Terlalu banyak percobaan. Coba lagi nanti."
+
+
+async def _login_ip_locked(ip: Optional[str]) -> bool:
+    if not ip:
+        return False
+    since = (datetime.now(timezone.utc) - timedelta(seconds=LOGIN_IP_JENDELA)).isoformat()
+    count = await db.login_attempts.count_documents({"ip": ip, "at": {"$gte": since}})
+    return count >= LOGIN_IP_MAKS
+
+
+def _norm_nama(value) -> str:
+    """Nama untuk pencocokan: spasi ganda jadi satu, tanpa beda huruf besar/kecil."""
+    return re.sub(r"\s+", " ", str(value or "").strip()).lower()
+
+
+def _norm_hp_login(value) -> Optional[str]:
+    """Nomor HP → 62xxxxxxxxxx (awalan 0 atau 8 diganti 62)."""
+    digits = re.sub(r"\D", "", str(value or ""))
+    if not digits:
+        return None
+    if digits.startswith("0"):
+        digits = "62" + digits[1:]
+    elif digits.startswith("8"):
+        digits = "62" + digits
+    return digits
+
+
+def _hanya_peserta(user: dict) -> bool:
+    """True bila akun murni Peserta (bukan Administrator/Pengurus/Guru)."""
+    roles = set(user.get("roles") or [])
+    return "peserta" in roles and not ({"admin", "pengurus", "guru"} & roles)
+
+
+async def _cari_user_login(ident: str):
+    """Cari akun dari pengenal. Urutan: nomor HP, email, username, lalu nama.
+
+    Nama HANYA dicocokkan untuk peran Peserta. Mengembalikan (user, kembar).
+    """
+    raw = (ident or "").strip()
+    if not raw:
+        return None, False
+    low = raw.lower()
+    hp = _norm_hp_login(raw)
+    if hp:
+        variants = {raw, hp}
+        if hp.startswith("62"):
+            variants.add("0" + hp[2:])
+        u = await db.users.find_one({"phone": {"$in": list(variants)}})
+        if u:
+            return u, False
+    u = await db.users.find_one({"email": low})
+    if u:
+        return u, False
+    u = await db.users.find_one({"username": low})
+    if u:
+        return u, False
+    target = _norm_nama(raw)
+    if not target:
+        return None, False
+    kandidat = []
+    async for u in db.users.find({"roles": "peserta", "is_system": {"$ne": True}}):
+        if _norm_nama(u.get("name")) == target:
+            kandidat.append(u)
+            if len(kandidat) > 1:
+                break
+    if len(kandidat) == 1:
+        return kandidat[0], False
+    if len(kandidat) > 1:
+        return None, True
+    return None, False
+
+
+async def _reset_laju_ok(ip: Optional[str], akun: str):
+    """Catat percobaan reset. Mengembalikan id catatan, atau None bila dibatasi."""
+    batas = (now_wita() - timedelta(seconds=RESET_LAJU_JENDELA)).isoformat()
+    if ip:
+        n = await db.reset_laju.count_documents({"ip": ip, "at": {"$gte": batas}})
+        if n >= RESET_LAJU_MAKS:
+            return None
+    if akun:
+        n = await db.reset_laju.count_documents({"akun": akun, "at": {"$gte": batas}})
+        if n >= RESET_LAJU_MAKS:
+            return None
+    res = await db.reset_laju.insert_one(
+        {"ip": ip, "akun": akun, "at": now_wita().isoformat(), "ok": False})
+    return res.inserted_id
+
+
+async def simpan_notif_sandi(user_id: str) -> None:
+    """Notifikasi lonceng peserta: kata sandi direset."""
+    try:
+        oid = _oid(user_id)
+        if not oid:
+            return
+        u = await db.users.find_one({"_id": oid}, {"password_hash": 1})
+        if not u or not u.get("password_hash"):
+            return
+        key = {"peserta_id": user_id, "kegiatan_id": None}
+        await db.notifikasi.update_one(
+            key,
+            {"$set": {**key, "jenis": "sandi",
+                      "tanggal": now_wita().strftime("%Y-%m-%d"),
+                      "teks": "Kata sandi akun Anda direset.",
+                      "dibaca": False, "dibuat_pada": now_wita().isoformat()}},
+            upsert=True)
+    except Exception:
+        logger.exception("Gagal menyimpan notifikasi sandi")
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -782,29 +903,61 @@ async def login_monitor_user(user_id: str, staff: dict = Depends(require_admin),
 
 @api_router.post("/auth/login")
 async def login(body: LoginInput, request: Request, response: Response):
-    ident = body.identifier.strip().lower()
-    query = {"$or": [{"email": ident}, {"username": ident}, {"phone": body.identifier.strip()}]}
+    ident = body.identifier.strip()
+    ip = client_ip(request)
+    if await _login_ip_locked(ip):
+        raise HTTPException(status_code=429, detail=LAJU_TEKS)
     # FASE 19 — cari di data real dulu, lalu di data demo (database terpisah).
     use_demo_db(False)
-    user = await db.users.find_one(query)
-    if not user:
+    user, kembar = await _cari_user_login(ident)
+    if not user and not kembar:
         use_demo_db(True)
-        user = await db.users.find_one(query)
-        if not user:
+        user, kembar = await _cari_user_login(ident)
+        if not user and not kembar:
             use_demo_db(False)
     demo = is_demo_ctx()
-    lock_key = str(user["_id"]) if user else ident
+    lock_key = str(user["_id"]) if user else _norm_nama(ident) or ident.lower()
     if await is_locked(lock_key):
-        raise HTTPException(status_code=429, detail="Terlalu banyak percobaan. Coba lagi dalam 15 menit.")
+        raise HTTPException(status_code=429, detail=LAJU_TEKS)
 
-    ok = user and user.get("password_hash") and verify_password(body.password, user["password_hash"])
+    def gagal(detail: str):
+        return HTTPException(status_code=401, detail=detail)
+
+    if kembar:
+        await db.login_attempts.insert_one({
+            "identifier": lock_key, "ip": ip,
+            "at": datetime.now(timezone.utc).isoformat()})
+        raise gagal(LOGIN_KEMBAR_TEKS)
+
+    ok = bool(user) and bool(user.get("password_hash")) and verify_password(
+        body.password, user["password_hash"])
+    # Peserta yang BELUM pernah menetapkan kata sandi: boleh masuk dengan DDMMYY
+    # dari tanggal lahirnya, lalu kata sandi disimpan sebagai hash.
+    pakai_dob = False
+    if user and not ok and not user.get("password_hash") and _hanya_peserta(user):
+        dob = normalize_dob(user.get("dob"))
+        if dob:
+            y, m, d = dob.split("-")
+            if body.password.strip() == f"{d}{m}{y[2:]}":
+                pakai_dob = True
+                ok = True
     if not ok:
         await db.login_attempts.insert_one({
-            "identifier": lock_key, "email": user["email"] if user else ident,
+            "identifier": lock_key, "ip": ip,
+            "email": user["email"] if user else None,
             "at": datetime.now(timezone.utc).isoformat()})
-        raise HTTPException(status_code=401, detail="Akun atau kata sandi salah")
-    if user.get("status") != "active":
+        raise gagal(LOGIN_GAGAL_TEKS)
+    if user.get("status") not in ("active", "pending"):
         raise HTTPException(status_code=403, detail="Akun belum aktif. Silakan aktivasi terlebih dahulu.")
+
+    set_fields = {}
+    if pakai_dob:
+        set_fields["password_hash"] = hash_password(body.password.strip())
+        if user.get("status") == "pending":
+            set_fields["status"] = "active"
+    if set_fields:
+        await db.users.update_one({"_id": user["_id"]}, {"$set": set_fields})
+        user = await db.users.find_one({"_id": user["_id"]})
 
     await db.login_attempts.delete_many({"identifier": lock_key})
     set_auth_cookies(response, str(user["_id"]), user.get("token_version", 0), demo)
@@ -953,6 +1106,58 @@ async def activation_complete(body: ActivationComplete, response: Response):
     set_auth_cookies(response, str(user["_id"]), user.get("token_version", 0))
     await log_activity(user, "aktivasi_akun", "Akun diaktivasi & data dilengkapi")
     return public_user(user)
+
+class ResetDobInput(BaseModel):
+    identifier: str = ""
+
+
+@api_router.post("/auth/reset-dob")
+async def reset_dob(body: ResetDobInput, request: Request):
+    """Reset kata sandi peserta ke DDMMYY dari tanggal lahir TERSIMPAN.
+
+    Teks hasil SERAGAM untuk semua kondisi agar tidak membocorkan akun mana
+    yang ada. Hanya peran Peserta murni yang benar-benar direset.
+    """
+    ip = client_ip(request)
+    ident = (body.identifier or "").strip()
+    akun = _norm_nama(ident) or "-"
+    catat = await _reset_laju_ok(ip, akun)
+    if catat is None:
+        raise HTTPException(status_code=429, detail=LAJU_TEKS)
+    try:
+        user, kembar = await _cari_user_login(ident)
+        if not user or kembar or not _hanya_peserta(user):
+            return {"message": RESET_TEKS}
+        dob = normalize_dob(user.get("dob"))
+        if not dob:
+            return {"message": RESET_TEKS}
+        # Maksimal 1 reset berhasil per akun per 10 menit.
+        jeda = (now_wita() - timedelta(seconds=RESET_JEDA_AKUN)).isoformat()
+        baru = await db.reset_laju.count_documents(
+            {"akun": str(user["_id"]), "ok": True, "at": {"$gte": jeda}})
+        if baru >= 1:
+            return {"message": RESET_TEKS}
+        y, m, d = dob.split("-")
+        sandi = f"{d}{m}{y[2:]}"
+        set_fields = {"password_hash": hash_password(sandi)}
+        if user.get("status") == "pending":
+            set_fields["status"] = "active"
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": set_fields, "$inc": {"token_version": 1}})
+        await db.login_attempts.delete_many({"identifier": str(user["_id"])})
+        await db.reset_laju.update_one({"_id": catat}, {"$set": {"ok": True}})
+        await log_activity(user, "reset_sandi_mandiri",
+                           f"Reset sandi mandiri '{user.get('name')}' (DDMMYY) dari {ip or '-'}",
+                           str(user["_id"]))
+        await simpan_notif_sandi(str(user["_id"]))
+        return {"message": RESET_TEKS}
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Gagal reset sandi mandiri")
+        return {"message": RESET_TEKS}
+
 
 @api_router.post("/auth/self-reset")
 async def self_reset(body: SelfResetInput):
@@ -10129,6 +10334,10 @@ async def _run_init():
     # Notifikasi kehadiran peserta (hadir/izin/sakit/alpha).
     await db.notifikasi.create_index([("peserta_id", 1), ("dibuat_pada", -1)])
     await db.notifikasi.create_index([("peserta_id", 1), ("kegiatan_id", 1)], unique=True)
+    # Reset kata sandi mandiri: pembatas laju per IP & per akun.
+    await db.reset_laju.create_index("at")
+    await db.reset_laju.create_index([("akun", 1), ("ok", 1), ("at", -1)])
+    await db.login_attempts.create_index("ip")
     # Tautan rekap lama tanpa tanggal berlaku: isi 7 hari sejak perubahan ini
     # dijalankan (idempoten, tidak menimpa yang sudah terisi, tidak menghapus).
     _exp = (datetime.now(timezone.utc) + timedelta(days=SHARE_EXPIRE_DAYS)).isoformat()

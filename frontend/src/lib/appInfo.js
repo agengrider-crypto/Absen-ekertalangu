@@ -19,6 +19,33 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-19-masuk-akun",
+    date: "2026-11-19",
+    title: "Masuk akun lebih ringkas",
+    keterangan: "Bisa masuk dengan nomor HP, email, username, atau nama.",
+    items: [
+      "Masuk akun:",
+      "Halaman masuk lebih ringkas. Bisa masuk dengan nomor HP, email, username, atau nama.",
+      "Lupa kata sandi? Ketuk satu kali, kata sandi kembali ke tanggal lahir (DDMMYY).",
+      "Rekap dan laporan:",
+      "Rekap dibuat per kegiatan. Peserta yang sudah hadir di kegiatan sebelumnya pada hari yang sama tidak dihitung lagi sebagai Alpha.",
+      "Rekap gabungan tersedia bila dipilih, dengan persen kehadiran.",
+      "Kartu angka di rekap bisa diketuk untuk menyaring daftar.",
+      "Tautan rekap publik berlaku 7 hari. Jam kehadiran bisa ditampilkan atau disembunyikan lewat saklar saat membagikan.",
+      "Pesan WhatsApp rekap lebih singkat: nama kegiatan, tanggal, dan tautan.",
+      "Kegiatan:",
+      "Tambah Kegiatan lebih ringkas, langkah Peserta disederhanakan.",
+      "Pengajar bisa ditandai di data peserta, dan pengajar yang tidak wajib absen dipilih per nama di tiap kegiatan.",
+      "Absen sebelumnya kini berupa daftar kegiatan lama: bisa dicari, diisi absennya, atau disalin jadi kegiatan baru.",
+      "Tombol X dan Batal di Tambah Kegiatan langsung kembali ke Daftar Kegiatan.",
+      "Pos Scan dan tautan kartu tanpa login tersedia untuk pengurus.",
+      "Izin dan notifikasi:",
+      "Izin lewat HP langsung tercatat Izin di absen manual dan bisa disetujui atau dibatalkan pengurus.",
+      "Notifikasi hadir, izin, sakit, dan alpha aktif kembali.",
+      "Teks halaman izin diperbarui.",
+    ],
+  },
+  {
     id: "2026-11-18-rekap-rapi",
     date: "2026-11-18",
     title: "Rekap lebih rapi, tautan lebih aman",

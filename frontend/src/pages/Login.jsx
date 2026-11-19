@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, UserPlus, LogIn, KeyRound, X, Loader2 } from "lucide-react";
+import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { K1Mark, K1Wordmark } from "@/components/Logo";
-import { DateField } from "@/components/DateField";
+import Modal from "@/components/Modal";
 
 function fmtWaktu(iso) {
   if (!iso) return "-";
@@ -55,7 +55,10 @@ export default function Login() {  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showReset, setShowReset] = useState(false);
+  const [error, setError] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetMsg, setResetMsg] = useState("");
 
   // Tujuan setelah login (mis. dari scan QR absen: /login?next=/absen/<token>)
   const rawNext = params.get("next") || "";
@@ -63,6 +66,7 @@ export default function Login() {  const navigate = useNavigate();
 
   const submit = async (e) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
     try {
       const { data } = await api.post("/auth/login", { identifier, password });
@@ -76,9 +80,34 @@ export default function Login() {  const navigate = useNavigate();
       }
       navigate(next || autoRoleTarget(data.roles), { replace: true });
     } catch (err) {
-      toast.error(formatApiErrorDetail(err.response?.data?.detail) || err.message);
+      setError(formatApiErrorDetail(err.response?.data?.detail) || err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // "Lupa kata sandi?" — reset ke tanggal lahir (DDMMYY) dengan konfirmasi.
+  const mintaReset = () => {
+    setResetMsg("");
+    if (!identifier.trim()) {
+      setError("Isi nama di kolom atas dulu, lalu ketuk Lupa kata sandi.");
+      return;
+    }
+    setError("");
+    setResetOpen(true);
+  };
+
+  const jalankanReset = async () => {
+    setResetBusy(true);
+    try {
+      const { data } = await api.post("/auth/reset-dob", { identifier });
+      setResetMsg(data?.message || "");
+      setPassword("");
+    } catch (err) {
+      setResetMsg(formatApiErrorDetail(err.response?.data?.detail) || err.message);
+    } finally {
+      setResetBusy(false);
+      setResetOpen(false);
     }
   };
 
@@ -95,16 +124,13 @@ export default function Login() {  const navigate = useNavigate();
           </div>
         </div>
 
-        <div className="bg-white rounded-[20px] p-6 sm:p-7 shadow-[0_4px_28px_-6px_rgba(20,32,26,0.14)] border border-[#E7E3D8]">
-          <h1 className="font-heading text-[26px] font-bold leading-tight text-[#14201A]">Masuk Akun</h1>
-          <p className="text-[#5F6B63] text-[15px] mt-1 mb-6">
-            Gunakan Nomor HP, Email, atau Username Anda.
-          </p>
+        <div className="bg-white rounded-[20px] p-6 sm:p-7 border border-[#E7E3D8]">
+          <h1 className="font-heading text-[26px] font-bold leading-tight text-[#14201A]">Masuk akun</h1>
 
-          <form onSubmit={submit} className="space-y-4">
+          <form onSubmit={submit} className="mt-5 space-y-4">
             <div>
               <label className="block text-[15px] font-semibold text-[#14201A] mb-1.5">
-                Nomor HP / Email / Username
+                Nomor HP, email, username, atau nama
               </label>
               <input
                 data-testid="input-login-identifier"
@@ -112,15 +138,15 @@ export default function Login() {  const navigate = useNavigate();
                 required
                 autoComplete="username"
                 value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="cth: 0813xxxx atau nama@email.com"
+                onChange={(e) => { setIdentifier(e.target.value); setError(""); }}
+                placeholder="cth: 0813xxxx atau nama"
                 className="w-full h-[52px] px-4 rounded-[14px] border border-[#8A948D] text-base outline-none transition-colors focus:border-[#14633F] focus:ring-2 focus:ring-[#14633F]/20 bg-white"
               />
             </div>
 
             <div>
               <label className="block text-[15px] font-semibold text-[#14201A] mb-1.5">
-                Kata Sandi
+                Kata sandi
               </label>
               <div className="relative">
                 <input
@@ -145,42 +171,38 @@ export default function Login() {  const navigate = useNavigate();
               </div>
             </div>
 
+            {error && (
+              <p data-testid="login-error" role="alert" className="text-[13px] font-semibold text-[#A32A2A]">
+                {error}
+              </p>
+            )}
+
             <button
               data-testid="button-login-submit"
               type="submit"
               disabled={loading}
-              className="w-full h-[52px] rounded-[14px] bg-[#14633F] text-white text-base font-bold flex items-center justify-center gap-2 hover:bg-[#0E4E31] active:scale-[0.99] transition-all disabled:opacity-60"
+              className="w-full h-[52px] rounded-[14px] bg-[#14633F] text-white text-base font-bold flex items-center justify-center gap-2 hover:bg-[#0E4E31] transition-colors disabled:opacity-60"
             >
-              {loading ? <Loader2 className="animate-spin" size={20} /> : <LogIn size={20} />}
+              {loading ? <Loader2 className="animate-spin motion-reduce:animate-none" size={20} /> : <LogIn size={20} />}
               Masuk
             </button>
           </form>
 
-          <div className="mt-4 flex flex-col gap-2 text-center">
+          <div className="mt-4">
             <button
               data-testid="button-forgot-password"
-              onClick={() => setShowReset(true)}
-              className="text-[#0E4E31] font-semibold text-[15px] underline underline-offset-4 hover:text-[#14633F] inline-flex items-center justify-center gap-1.5"
+              type="button"
+              onClick={mintaReset}
+              className="text-[13px] font-semibold text-[#0E4E31] underline underline-offset-4 hover:text-[#14633F]"
             >
-              Lupa kata sandi?
+              Lupa kata sandi? Reset ke tanggal lahir (DDMMYY)
             </button>
-          </div>
-
-          <div className="relative my-5">
-            <div className="border-t border-[#E7E3D8]" />
-            <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-white px-3 text-sm text-[#5F6B63]">
-              atau
-            </span>
-          </div>
-
-          <div className="grid gap-3">
-            <button
-              data-testid="button-activate-qr"
-              onClick={() => navigate("/activate")}
-              className="w-full h-[52px] rounded-[14px] border-2 border-[#E7E3D8] text-[#14201A] text-[15px] font-bold flex items-center justify-center gap-2 hover:border-[#14633F] hover:bg-[#F6F4EE] transition-colors"
-            >
-              <UserPlus size={20} /> Aktivasi Akun (Cari Nama)
-            </button>
+            {resetMsg && (
+              <p data-testid="reset-result"
+                className="mt-2 rounded-xl bg-[#E3F3EA] px-3 py-2 text-[12px] leading-relaxed text-[#0E4E31]">
+                {resetMsg}
+              </p>
+            )}
           </div>
         </div>
 
@@ -189,87 +211,29 @@ export default function Login() {  const navigate = useNavigate();
         </p>
       </div>
 
-      {showReset && <ResetDialog onClose={() => setShowReset(false)} />}
-    </div>
-  );
-}
-
-function ResetDialog({ onClose }) {
-  const [phone, setPhone] = useState("");
-  const [dob, setDob] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const { data } = await api.post("/auth/self-reset", { phone, dob, new_password: newPassword });
-      toast.success(data.message || "Kata sandi diperbarui");
-      onClose();
-    } catch (err) {
-      toast.error(formatApiErrorDetail(err.response?.data?.detail) || err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-[rgba(20,32,26,0.5)] backdrop-blur-sm flex items-center justify-center p-4" data-testid="reset-dialog">
-      <div className="bg-white rounded-2xl p-6 sm:p-7 w-full max-w-md shadow-2xl">
-        <div className="flex items-start justify-between mb-1">
-          <h2 className="font-heading text-xl font-bold text-[#14201A]">Reset Kata Sandi</h2>
-          <button onClick={onClose} aria-label="Tutup" className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-[#F0EEE6] text-[#5F6B63]">
-            <X size={20} />
-          </button>
-        </div>
-        <p className="text-sm text-[#5F6B63] mb-1">
-          Khusus <span className="font-semibold text-[#0E4E31]">Peserta</span>. Verifikasi dengan tanggal lahir & Nomor HP terdaftar.
+      <Modal
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        title="Reset kata sandi?"
+        testid="reset-dob-dialog"
+        maxWidth={440}
+        footer={(
+          <div className="flex gap-2">
+            <button type="button" data-testid="reset-dob-cancel" onClick={() => setResetOpen(false)}
+              className="h-12 flex-1 rounded-2xl bg-[#F0EEE6] font-semibold text-[#5F6B63] hover:bg-[#E7E3D8]">
+              Batal
+            </button>
+            <button type="button" data-testid="reset-dob-confirm" onClick={jalankanReset} disabled={resetBusy}
+              className="h-12 flex-1 rounded-2xl bg-[#14633F] font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-60">
+              {resetBusy ? <Loader2 size={16} className="mx-auto animate-spin motion-reduce:animate-none" /> : "Ya, reset"}
+            </button>
+          </div>
+        )}
+      >
+        <p className="p-4 text-sm text-[#14201A]">
+          Kata sandi akun ini akan diganti dengan tanggal lahir (DDMMYY). Lanjutkan?
         </p>
-        <p className="text-xs text-[#5F6B63] mb-5">
-          Untuk akun Admin/Pengurus: hubungi administrator.
-        </p>
-        <form onSubmit={submit} className="space-y-4">
-          <div>
-            <label className="block text-base font-semibold text-[#14201A] mb-1.5">Nomor HP Terdaftar</label>
-            <input
-              data-testid="input-reset-phone"
-              type="tel"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="cth: 081300000003"
-              className="w-full h-[52px] px-4 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F]"
-            />
-          </div>
-          <div>
-            <label className="block text-base font-semibold text-[#14201A] mb-1.5">Tanggal Lahir</label>
-            <DateField testid="input-reset-dob" value={dob} onChange={setDob} required />
-          </div>
-          <div>
-            <label className="block text-base font-semibold text-[#14201A] mb-1.5">Kata Sandi Baru</label>
-            <input
-              data-testid="input-reset-newpassword"
-              type="password"
-              required
-              minLength={6}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Minimal 6 karakter"
-              className="w-full h-[52px] px-4 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F]"
-            />
-          </div>
-          <button
-            data-testid="button-reset-submit"
-            type="submit"
-            disabled={loading}
-            className="w-full h-[52px] rounded-xl bg-[#14633F] text-white text-lg font-bold flex items-center justify-center gap-2 hover:bg-[#0E4E31] transition-colors disabled:opacity-60"
-          >
-            {loading ? <Loader2 className="animate-spin" size={22} /> : <KeyRound size={20} />}
-            Perbarui Kata Sandi
-          </button>
-        </form>
-      </div>
+      </Modal>
     </div>
   );
 }
