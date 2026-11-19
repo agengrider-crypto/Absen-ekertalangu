@@ -2,8 +2,8 @@
 import { useMemo, useState, useEffect } from "react";
 import {
   Plus, Loader2, Layers, Trash2, SlidersHorizontal, AlertTriangle,
-  CalendarDays, Info, Users, ListChecks, Save, ChevronDown, ChevronRight,
-  Search, Copy,
+  CalendarDays, Info, Users, ListChecks, Save, ChevronDown,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -160,10 +160,9 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
   const [pengajarIds, setPengajarIds] = useState(initial?.pengajar_dikecualikan_ids || []);
   const [pengajarQ, setPengajarQ] = useState("");
   const [pengajarAutoFilled, setPengajarAutoFilled] = useState(false);
-  // Salin dari kegiatan sebelumnya.
-  const [salinOpen, setSalinOpen] = useState(false);
-  const [salinQ, setSalinQ] = useState("");
-  const [salinDari, setSalinDari] = useState(null);
+  // Salin dari kegiatan sebelumnya (catatan kecil di atas form).
+  const [salinDari, setSalinDari] = useState(
+    initial?.salin_dari_nama ? { name: initial.salin_dari_nama } : null);
   // Dialog tutup tanpa menyimpan.
   const [tutupOpen, setTutupOpen] = useState(false);
   const [multi, setMulti] = useState(Boolean(initial?.multi));
@@ -305,6 +304,7 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
   };
 
   // Salin isian dari kegiatan sebelumnya (tanpa tanggal, absensi, tautan, token).
+  // Dipakai daftar "Absen sebelumnya" lewat prop `initial` (salin_dari_nama).
   const salinDariKegiatan = (k) => {
     setReviewConfirmed(false);
     setF((prev) => ({
@@ -331,10 +331,15 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
     setPengajarIds(k.pengajar_dikecualikan_ids || []);
     setPengajarAutoFilled(true);
     setSalinDari(k);
-    setSalinOpen(false);
-    setSalinQ("");
     setStep(0);
   };
+
+  // Isi awal dari kegiatan sumber (dipakai daftar "Absen sebelumnya").
+  useEffect(() => {
+    if (!initial?.salin_dari) return;
+    salinDariKegiatan(initial.salin_dari);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setSession = (i, key, val) => {
     setReviewConfirmed(false);
@@ -497,19 +502,10 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
 
         {/* Body */}
         <form id="kegiatan-form" noValidate onSubmit={submit} className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5">
-          {!editing && (
-            <div className="mb-3 space-y-2">
-              <button type="button" data-testid="kegiatan-salin-toggle"
-                onClick={() => { setSalinOpen(true); setSalinQ(""); }}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[#E7E3D8] bg-white px-3 text-xs font-semibold text-[#0E4E31] hover:border-[#14633F]">
-                <Copy size={14} /> Salin dari kegiatan sebelumnya
-              </button>
-              {salinDari && (
-                <p className="text-[11px] text-[#5F6B63]" data-testid="kegiatan-salin-note">
-                  Disalin dari {salinDari.name}
-                </p>
-              )}
-            </div>
+          {!editing && salinDari && (
+            <p className="mb-3 text-[11px] text-[#5F6B63]" data-testid="kegiatan-salin-note">
+              Disalin dari {salinDari.name}
+            </p>
           )}
           {step === 0 && <Section icon={Info} title="Informasi Kegiatan" testid="form-section-info"
             desc="Nama, jenis, pengajar, materi, dan lokasi kegiatan.">
@@ -978,52 +974,6 @@ export default function KegiatanFormModal({ onClose, onDone, initial, suggestion
         )}
       >
         <p className="p-4 text-sm text-[#14201A]">Isian yang sudah dibuat akan hilang.</p>
-      </Modal>
-
-      <Modal
-        open={salinOpen}
-        onClose={() => setSalinOpen(false)}
-        title="Salin dari kegiatan sebelumnya"
-        testid="kegiatan-salin-dialog"
-        maxWidth={520}
-        zIndex={80}
-      >
-        <div className="space-y-2 p-4">
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5F6B63]" />
-            <input data-testid="kegiatan-salin-search" value={salinQ}
-              onChange={(e) => setSalinQ(e.target.value)}
-              placeholder="Cari kegiatan"
-              className="h-11 w-full rounded-xl border border-[#8A948D] bg-white pl-9 pr-3 text-sm outline-none focus:border-[#14633F]" />
-          </div>
-          {(() => {
-            const t = salinQ.trim().toLowerCase();
-            const list = (suggestions || [])
-              .filter((k) => k && k.id && k.id !== initial?.id)
-              .filter((k) => !t || (k.name || "").toLowerCase().includes(t))
-              .slice(0, 10);
-            if (!list.length) {
-              return <p className="px-1 py-6 text-center text-sm text-[#5F6B63]">Tidak ada kegiatan yang bisa disalin.</p>;
-            }
-            return (
-              <div className="divide-y divide-[#F0EEE6] overflow-hidden rounded-xl border border-[#E7E3D8]">
-                {list.map((k) => (
-                  <button key={k.id} type="button" data-testid={`kegiatan-salin-row-${k.id}`}
-                    onClick={() => salinDariKegiatan(k)}
-                    className="flex min-h-11 w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-[#F6F4EE]">
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-[#14201A]">{k.name}</span>
-                      <span className="block text-[11px] text-[#5F6B63]">
-                        {k.date || "-"} · {KEGIATAN_TYPES.find((x) => x.value === k.type)?.label || k.type || "-"}
-                      </span>
-                    </span>
-                    <ChevronRight size={16} className="shrink-0 text-[#D9D4C5]" />
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
       </Modal>
     </Modal>
   );

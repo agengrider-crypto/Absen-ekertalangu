@@ -7,6 +7,7 @@ import {
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import KegiatanQuickAddModal from "./KegiatanQuickAddModal";
+import AbsenSebelumnyaModal from "./AbsenSebelumnyaModal";
 import KegiatanFormModal from "./KegiatanFormModal";
 
 const MENU = [
@@ -18,7 +19,8 @@ const MENU = [
 
 export default function TambahKegiatanView({ onBack, onDone }) {
   const [items, setItems] = useState(null);
-  const [quickMode, setQuickMode] = useState(null); // null | "cepat" | "sebelumnya"
+  const [quickMode, setQuickMode] = useState(null); // null | "cepat"
+  const [sebelumnyaOpen, setSebelumnyaOpen] = useState(false);
   const [openForm, setOpenForm] = useState(false);
   const [formInitial, setFormInitial] = useState(null);
 
@@ -36,7 +38,7 @@ export default function TambahKegiatanView({ onBack, onDone }) {
   const backRef = useRef(onBack);
   backRef.current = onBack;
   const formOpenRef = useRef(false);
-  formOpenRef.current = openForm || Boolean(quickMode);
+  formOpenRef.current = openForm;
   useEffect(() => {
     window.history.pushState({ tambahKegiatan: true }, "");
     const onPop = () => {
@@ -46,6 +48,7 @@ export default function TambahKegiatanView({ onBack, onDone }) {
         window.dispatchEvent(new CustomEvent("kegiatan-form-back"));
         return;
       }
+      // Dialog lain (Absen sebelumnya / Absen cepat) langsung ke Daftar Kegiatan.
       backRef.current?.();
     };
     window.addEventListener("popstate", onPop);
@@ -53,7 +56,8 @@ export default function TambahKegiatanView({ onBack, onDone }) {
   }, []);
 
   const pick = (key) => {
-    if (key === "cepat" || key === "sebelumnya") { setQuickMode(key); return; }
+    if (key === "cepat") { setQuickMode(key); return; }
+    if (key === "sebelumnya") { setSebelumnyaOpen(true); return; }
     setFormInitial(key === "multi" ? { multi: true } : null);
     setOpenForm(true);
   };
@@ -101,15 +105,30 @@ export default function TambahKegiatanView({ onBack, onDone }) {
       {quickMode && (
         <KegiatanQuickAddModal
           mode={quickMode}
-          onClose={() => setQuickMode(null)}
+          onClose={onBack}
           onFullForm={(initial) => { setQuickMode(null); setFormInitial(initial); setOpenForm(true); }}
+        />
+      )}
+      {sebelumnyaOpen && (
+        <AbsenSebelumnyaModal
+          items={Array.isArray(items) ? items : []}
+          onClose={onBack}
+          onSalin={(k) => {
+            setSebelumnyaOpen(false);
+            setFormInitial({ salin_dari: k, salin_dari_nama: k.name });
+            setOpenForm(true);
+          }}
+          onBuatBaru={() => {
+            setSebelumnyaOpen(false);
+            setQuickMode("sebelumnya");
+          }}
         />
       )}
       {openForm && (
         <KegiatanFormModal
           initial={formInitial || undefined}
           suggestions={Array.isArray(items) ? items : []}
-          onClose={() => { setOpenForm(false); setFormInitial(null); }}
+          onClose={onBack}
           onDone={() => { setOpenForm(false); setFormInitial(null); load(); onDone?.(); }}
         />
       )}
