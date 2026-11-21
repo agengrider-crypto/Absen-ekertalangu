@@ -7715,12 +7715,8 @@ async def delete_tutorial_video(video_id: str, admin: dict = Depends(require_adm
 
 
 # ------------------------- FASE 20: Program Pembelajaran -------------------------
-# Penyimpanan berkas materi (Emergent Object Storage).
-STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
-STORAGE_URL = STORAGE_BASE.rstrip("/") + "/objstore/api/v1/storage"
-EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
+# Penyimpanan berkas materi memakai MongoDB (tanpa layanan pihak ketiga).
 STORAGE_APP = "ekertalangu"
-_storage_key = None
 
 MIME_TYPES = {
     "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
@@ -7728,38 +7724,20 @@ MIME_TYPES = {
 }
 
 
-def init_storage(force: bool = False):
-    global _storage_key
-    if _storage_key and not force:
-        return _storage_key
-    resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
-    resp.raise_for_status()
-    _storage_key = resp.json()["storage_key"]
-    return _storage_key
-
-
 def put_object(path: str, data: bytes, content_type: str) -> dict:
-    key = init_storage()
-    resp = requests.put(f"{STORAGE_URL}/objects/{path}",
-                        headers={"X-Storage-Key": key, "Content-Type": content_type},
-                        data=data, timeout=120)
-    if resp.status_code == 404:
-        key = init_storage(force=True)
-        resp = requests.put(f"{STORAGE_URL}/objects/{path}",
-                            headers={"X-Storage-Key": key, "Content-Type": content_type},
-                            data=data, timeout=120)
-    resp.raise_for_status()
-    return resp.json()
+    """Simpan berkas ke koleksi `program_blobs` (pengganti object storage)."""
+    db.program_blobs.replace_one(
+        {"_id": path},
+        {"_id": path, "data": data, "content_type": content_type, "size": len(data)},
+        upsert=True)
+    return {"path": path, "size": len(data)}
 
 
 def get_object(path: str):
-    key = init_storage()
-    resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
-    if resp.status_code == 404:
-        key = init_storage(force=True)
-        resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
-    resp.raise_for_status()
-    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+    row = db.program_blobs.find_one({"_id": path})
+    if not row:
+        raise FileNotFoundError(path)
+    return row["data"], row.get("content_type") or "application/octet-stream"
 
 
 # Jenjang pembelajaran (tetap / tidak diubah lewat UI)
@@ -11034,7 +11012,8 @@ app.include_router(api_router)
 _allowed_origins = {FRONTEND_URL, "http://localhost:3000"}
 for _extra in (os.environ.get("EXTRA_CORS_ORIGINS") or "").split(","):
     _extra = _extra.strip().rstrip("/")
-    if _extra:
+    # Domain Emergent tidak lagi dipakai.
+    if _extra and "emergent" not in _extra.lower():
         _allowed_origins.add(_extra)
 
 app.add_middleware(

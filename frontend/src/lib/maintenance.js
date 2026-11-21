@@ -24,15 +24,19 @@ function saveCache(state) {
   } catch { /* abaikan */ }
 }
 
-/** Ambil status pemeliharaan terbaru dari server. */
+/** Ambil status pemeliharaan terbaru dari server (maks 5 detik, 1 kali ulang). */
 export async function fetchMaintenance() {
-  try {
-    const { data } = await api.get("/maintenance");
-    saveCache(data);
-    return data;
-  } catch {
-    return cachedMaintenance();
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const { data } = await api.get("/maintenance", { timeout: 5000, __noRetry: true });
+      saveCache(data);
+      return data;
+    } catch {
+      // Timeout / gagal: jangan menahan halaman. Ulangi sekali saja.
+    }
   }
+  // Gagal total → anggap tidak sedang maintenance.
+  return { state: "none" };
 }
 
 /**

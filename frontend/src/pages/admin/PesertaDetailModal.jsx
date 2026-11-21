@@ -80,6 +80,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
   const [editing, setEditing] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [hapusConfirm, setHapusConfirm] = useState(false);
+  const [gagal, setGagal] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
   const [resetResult, setResetResult] = useState(null);
   const [moveTarget, setMoveTarget] = useState(undefined);
@@ -147,9 +148,15 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
   }, []);
 
   const load = () =>
-    api.get(`/admin/users/${userId}`)
-      .then(({ data }) => { setData(data); setForm(data); })
-      .catch((e) => { toast.error(formatApiErrorDetail(e.response?.data?.detail)); onClose(); });
+    api.get(`/admin/users/${userId}`, { timeout: 15000 })
+      .then(({ data }) => { setData(data); setForm(data); setGagal(false); })
+      .catch((e) => {
+        // Jangan menggantung di "Memuat data…": tampilkan pesan + tombol coba lagi.
+        setGagal(true);
+        if (e.response?.status && e.response.status !== 404) {
+          toast.error(formatApiErrorDetail(e.response?.data?.detail));
+        }
+      });
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [userId]);
 
@@ -411,7 +418,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
               </div>
               <div className="min-w-0">
                 <h2 className="truncate font-heading text-base font-bold leading-tight text-[#14201A]">
-                  {data?.name || "Memuat data…"}
+                  {data?.name || (gagal ? "Gagal memuat" : "Memuat data…")}
                 </h2>
                 <div className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-[#5F6B63]">
                   <span className="truncate">{data?.username ? `@${data.username}` : "Detail peserta"}</span>
@@ -463,7 +470,18 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
       )}
     >
         {!data ? (
-          <div className="flex flex-1 justify-center p-16"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>
+          gagal ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 p-16 text-center">
+              <p className="text-sm text-[#5F6B63]">Gagal memuat. Coba lagi.</p>
+              <button type="button" data-testid="detail-retry"
+                onClick={() => { setGagal(false); load(); }}
+                className="min-h-11 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
+                Coba lagi
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-1 justify-center p-16"><Loader2 className="animate-spin text-[#0E4E31]" size={30} /></div>
+          )
         ) : (
           <div>
             {/* ---------------- PROFIL ---------------- */}
