@@ -570,6 +570,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
           initialTab={detailTab}
           kelompokList={kelompok}
           canManageRoles={isAdmin}
+          canDelete={isAdmin}
           canResetPassword={detailUser?.roles?.length === 1 && detailUser?.roles?.includes("peserta")}
           onClose={() => setDetailId(null)}
           onChanged={load}

@@ -1293,10 +1293,20 @@ async def admin_delete_user(user_id: str, admin: dict = Depends(require_staff)):
     if user_id == str(admin["_id"]):
         raise HTTPException(status_code=400, detail="Tidak dapat menghapus akun sendiri")
     target = await db.users.find_one({"_id": parse_object_id(user_id)})
-    res = await db.users.delete_one({"_id": parse_object_id(user_id)})
+    if not target:
+        raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan")
+    # Satu-satunya Administrator tidak boleh dihapus.
+    if "admin" in (target.get("roles") or []):
+        sisa_admin = await db.users.count_documents(
+            {"roles": "admin", "_id": {"$ne": target["_id"]}})
+        if sisa_admin == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Tidak dapat menghapus satu-satunya Administrator")
+    res = await db.users.delete_one({"_id": target["_id"]})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan")
-    await log_activity(admin, "hapus_akun", f"Menghapus akun '{target.get('name') if target else user_id}'", user_id)
+    await log_activity(admin, "hapus_akun", f"Menghapus akun '{target.get('name') or user_id}'", user_id)
     return {"message": "Pengguna dihapus"}
 
 class RoleUpdate(BaseModel):
@@ -11058,23 +11068,8 @@ async def seed_users():
         await db.users.update_one({"email": admin_email},
                                   {"$set": {"password_hash": hash_password(admin_password)}})
 
-    demos = [
-        {"name": "Pak Pengurus", "email": "pengurus@ekertalangu.id", "username": "pengurus",
-         "phone": "081200000002", "dob": "1985-05-10", "address": "Jl. Melati No. 2",
-         "password": "Pengurus#2026", "roles": ["pengurus", "peserta"]},
-        {"name": "Ibu Peserta", "email": "peserta@ekertalangu.id", "username": "peserta",
-         "phone": "081300000003", "dob": "1970-08-17", "address": "Jl. Mawar No. 3",
-         "password": "Peserta#2026", "roles": ["peserta"]},
-    ]
-    for d in demos:
-        if not await db.users.find_one({"email": d["email"]}):
-            await db.users.insert_one({
-                "name": d["name"], "email": d["email"], "username": d["username"],
-                "phone": d["phone"], "dob": d["dob"], "address": d["address"],
-                "password_hash": hash_password(d["password"]), "roles": d["roles"],
-                "status": "active", "source": "seed", "avatar_gender": "female",
-                "gender": "P",
-                "token_version": 0, "created_at": datetime.now(timezone.utc).isoformat()})
+    # Akun contoh (Pak Pengurus / Ibu Peserta) TIDAK dibuat ulang saat startup
+    # atau deploy. Seed hanya memastikan ada satu Administrator.
     # Backfill gender for admin seed
     await db.users.update_one({"email": admin_email, "gender": {"$exists": False}},
                               {"$set": {"gender": "L"}})

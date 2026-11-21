@@ -29,8 +29,10 @@ export default function Modal({
 }) {
   const panelRef = useRef(null);
   const restoreRef = useRef(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
-  const close = useCallback(() => onClose?.(), [onClose]);
+  const close = useCallback(() => closeRef.current?.(), []);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -55,6 +57,8 @@ export default function Modal({
     if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
 
     restoreRef.current = document.activeElement;
+    // Fokus awal HANYA sekali saat dialog dibuka. Jangan bergantung pada
+    // fungsi/prop yang berubah tiap render agar mengetik tidak memindahkan fokus.
     const t = setTimeout(() => {
       const target = panelRef.current?.querySelector(FOCUSABLE);
       (target || panelRef.current)?.focus?.();
@@ -67,7 +71,8 @@ export default function Modal({
       clearTimeout(t);
       restoreRef.current?.focus?.();
     };
-  }, [open, close]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   if (!open) return null;
 

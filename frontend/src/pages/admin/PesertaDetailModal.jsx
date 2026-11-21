@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  X, Loader2, Save, KeyRound, ArrowRightLeft, Power, Camera, MoreHorizontal,
+  X, Loader2, Save, KeyRound, ArrowRightLeft, Power, Camera, MoreHorizontal, Trash2,
   Phone, MessageCircle, Mail, MapPin, GraduationCap, User as UserIcon, HeartHandshake,
   QrCode, Printer, Download, ClipboardList, History, CalendarDays, CheckCircle2,
 } from "lucide-react";
@@ -71,7 +71,7 @@ function EmptyState({ icon: Icon, text }) {
   );
 }
 
-export default function PesertaDetailModal({ userId, initialTab = "profil", kelompokList, canManageRoles = true, canResetPassword = false, onClose, onChanged }) {
+export default function PesertaDetailModal({ userId, initialTab = "profil", kelompokList, canManageRoles = true, canResetPassword = false, canDelete = false, onClose, onChanged }) {
   const [data, setData] = useState(null);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -79,6 +79,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
   const [tab, setTab] = useState(initialTab);
   const [editing, setEditing] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [hapusConfirm, setHapusConfirm] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
   const [resetResult, setResetResult] = useState(null);
   const [moveTarget, setMoveTarget] = useState(undefined);
@@ -337,8 +338,19 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
   const activities = report && report !== false ? (report.activities || []) : [];
   const participantLogs = (logs || []).filter((l) => l.target === userId);
 
-  const actions = data ? [
-    canManageRoles && {
+  const doHapus = async () => {
+    try {
+      await api.delete(`/admin/users/${userId}`);
+      toast.success("Akun dihapus");
+      setHapusConfirm(false);
+      onClose?.();
+      onChanged?.();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    }
+  };
+
+  const actions = data ? [    canManageRoles && {
       key: "ubah", testid: "quick-edit", label: "Ubah Data",
       desc: "Nama, kontak, kelompok, foto", icon: UserIcon,
       onClick: () => { setTab("profil"); setEditing(true); },
@@ -366,6 +378,12 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
         : "Pulihkan peserta ke daftar aktif",
       icon: Power,
       onClick: () => { toggleStatus(); return false; },
+    },
+    canDelete && {
+      key: "hapus", testid: "quick-delete", label: "Hapus Akun",
+      desc: "Hapus permanen akun ini beserta datanya",
+      icon: Trash2,
+      onClick: () => { setHapusConfirm(true); return false; },
     },
   ].filter(Boolean) : [];
 
@@ -1012,6 +1030,29 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
           onClose={() => setActionsOpen(false)}
           actions={actions}
         />
+      )}
+
+      {hapusConfirm && (
+        <Modal
+          onClose={() => setHapusConfirm(false)}
+          title="Hapus Akun?"
+          testid="modal-hapus-akun"
+          maxWidth={480}
+          zIndex={70}
+          bodyClassName="p-6 text-center"
+        >
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#FBE5E3] text-[#A32A2A]"><Trash2 size={24} /></div>
+          <p className="mt-1.5 text-sm text-[#5F6B63]">
+            Hapus permanen <b className="text-[#14201A]">{data?.name}</b>? Akun, data profil,
+            dan riwayatnya tidak bisa dikembalikan.
+          </p>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button data-testid="button-hapus-cancel" onClick={() => setHapusConfirm(false)}
+              className="h-11 rounded-xl border-2 border-[#E7E3D8] font-semibold text-[#5F6B63] hover:bg-[#F0EEE6]">Batal</button>
+            <button data-testid="button-hapus-confirm" onClick={doHapus}
+              className="h-11 rounded-xl bg-[#A32A2A] font-bold text-white hover:bg-[#8A1F1F]">Ya, Hapus</button>
+          </div>
+        </Modal>
       )}
 
       {moveConfirm && (
