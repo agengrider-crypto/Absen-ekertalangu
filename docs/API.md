@@ -90,7 +90,7 @@ curl -b ck.txt https://<domain>/api/auth/me
 | GET | `/api/admin/users` | `require_staff` | Daftar akun, akun sistem dikecualikan |
 | POST | `/api/admin/users` | `require_staff` | Buat akun (`AdminCreateUser`) |
 | GET | `/api/admin/users/{user_id}` | `require_staff` | Detail (termasuk foto) |
-| PATCH | `/api/admin/users/{user_id}` | `require_staff` | Ubah data (`PesertaUpdate`) |
+| PATCH | `/api/admin/users/{user_id}` | `require_staff` | Ubah data (`PesertaUpdate`). `status` menerima `active`, `nonaktif`, `pending`, `calon`, `pindah` — nonaktif bersifat sementara (data & riwayat absensi tetap utuh, dapat diaktifkan kembali) |
 | DELETE | `/api/admin/users/{user_id}` | `require_admin` | Hapus (tidak bisa hapus diri sendiri) |
 | PATCH | `/api/admin/users/{user_id}/roles` | `require_admin` | `{roles: [...]}` |
 | POST | `/api/admin/users/{user_id}/move` | `require_staff` | Pindah kelompok `{kelompok_id, keterangan}` — tercatat di log |
@@ -389,7 +389,7 @@ peserta_id, status_akun, status_akun_label, dibuat_pada, diperbarui_pada}`.
 | `MUBALIGH_OPTIONS` | `belum`, `sudah` |
 | `MUSY_CATEGORIES` | `4S`, `tim7` |
 | Status kegiatan | `open`, `closed` |
-| Status user | `active`, `pending`, `nonaktif` |
+| Status user | `active` (Aktif), `nonaktif` (Nonaktif Sementara), `pending` (Belum Aktivasi), `calon` (Calon Peserta), `pindah` (Pindah) |
 | `source` user | `seed`, `admin`, `qr_public` |
 | Status pendaftaran (tersimpan) | `aktif`, `selesai`, `arsip` |
 | Status pendaftaran (tampil) | `aktif`, `berlangsung`, `selesai`, `arsip` |

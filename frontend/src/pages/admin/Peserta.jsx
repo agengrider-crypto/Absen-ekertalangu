@@ -89,7 +89,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
     const t = setTimeout(() => setQDebounced(q), 300);
     return () => clearTimeout(t);
   }, [q]);
-  const [statusFilter, setStatusFilter] = useState("all"); // all | pending | active | incomplete
+  const [statusFilter, setStatusFilter] = useState("all"); // all | pending | active | nonaktif | calon | incomplete
   const [showStatusFilter, setShowStatusFilter] = useState(false);
   const roleTabRefs = useRef({});
   const [roleFilter, setRoleFilter] = useState("all");
@@ -149,6 +149,8 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
       all: roleUsers.length,
       pending: roleUsers.filter((u) => u.status === "pending").length,
       active: roleUsers.filter((u) => u.status === "active").length,
+      nonaktif: roleUsers.filter((u) => u.status === "nonaktif").length,
+      calon: roleUsers.filter((u) => u.status === "calon").length,
       incomplete: roleUsers.filter((u) => dataMissing(u).length > 0).length,
       missingDob: roleUsers.filter((u) => dataMissing(u).includes("dob")).length,
       missingMarital: roleUsers.filter((u) => dataMissing(u).includes("marital")).length,
@@ -175,6 +177,8 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
     }
     if (statusFilter === "pending") list = list.filter((u) => u.status === "pending");
     else if (statusFilter === "active") list = list.filter((u) => u.status === "active");
+    else if (statusFilter === "nonaktif") list = list.filter((u) => u.status === "nonaktif");
+    else if (statusFilter === "calon") list = list.filter((u) => u.status === "calon");
     else if (statusFilter === "incomplete") list = list.filter((u) => dataMissing(u).length > 0);
     const t = qDebounced.trim().toLowerCase();
     if (!t) return list;
@@ -337,8 +341,10 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
             <div className="absolute right-0 top-[calc(100%+6px)] z-30 w-56 rounded-2xl border border-[#E7E3D8] bg-white p-2 shadow-xl">
               {[
                 { key: "all", label: "Semua", count: counts.all },
+                { key: "active", label: "Aktif", count: counts.active },
+                { key: "nonaktif", label: "Nonaktif Sementara", count: counts.nonaktif },
                 { key: "pending", label: "Belum Aktivasi", count: counts.pending },
-                { key: "active", label: "Sudah Aktif", count: counts.active },
+                { key: "calon", label: "Calon Peserta", count: counts.calon },
                 { key: "incomplete", label: "Data Belum Lengkap", count: counts.incomplete },
               ].map((f) => {
                 const on = statusFilter === f.key;
@@ -508,7 +514,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
                           <span className={`inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${b.cls}`}>
                             {u.status === "active" ? <CheckCircle2 size={11} /> : <Clock size={11} />}
-                            {u.status === "active" ? "Aktif" : "Menunggu"}
+                            {b.label}
                           </span>
                           {u.roles?.includes("peserta") && isGenerus(u) && (
                             <span className="inline-flex h-6 items-center rounded-full bg-[#F0EEE6] px-2.5 text-xs font-semibold text-[#5F6B63]">

@@ -187,8 +187,8 @@ function NavButton({ item, active, onNav, collapsed, mobile = false }) {
     ? ADMIN_SIDEBAR.participantReport
     : item.key === "kartu-nama" ? ADMIN_SIDEBAR.nameTags : `nav-${item.key}`;
   const activeClass = mobile
-    ? (on ? "text-[#0E4E31] font-semibold" : "text-[#5F6B63] hover:bg-[#F6F4EE]")
-    : (on ? "bg-[#E3F3EA] text-[#0E4E31] font-semibold" : "text-[#5F6B63] hover:bg-[#F0EEE6] hover:text-[#0E4E31]");
+    ? (on ? "text-[#0E4E31] font-semibold" : "text-[#14201A] hover:bg-[#F6F4EE]")
+    : (on ? "bg-[#E3F3EA] text-[#0E4E31] font-semibold" : "text-[#14201A] hover:bg-[#F0EEE6] hover:text-[#0E4E31]");
   return (
     <button
       data-testid={testId}
@@ -202,14 +202,14 @@ function NavButton({ item, active, onNav, collapsed, mobile = false }) {
       className={`w-full ${
         mobile
           ? "flex min-h-[104px] flex-col items-center justify-start gap-1.5 px-1 py-2 text-center text-xs"
-          : `flex items-center ${collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 text-sm`
-      } rounded-xl font-medium transition-colors ${item.comingSoon ? "cursor-not-allowed text-[#5F6B63]" : activeClass}`}
+          : `flex items-center ${collapsed ? "justify-center px-0" : "gap-2.5 px-3"} h-9 text-sm`
+      } rounded-lg font-medium transition-colors ${item.comingSoon ? "cursor-not-allowed text-[#5F6B63]" : activeClass}`}
     >
       {mobile ? (
         <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${on ? "bg-[#14633F] text-white" : "bg-[#F0EEE6] text-[#14201A]"}`}>
           <Icon size={24} />
         </span>
-      ) : <Icon size={19} className={on ? "text-[#14633F]" : undefined} />}
+      ) : <Icon size={18} className={`shrink-0 ${on ? "text-[#14633F]" : "text-[#14201A]"}`} />}
       {(!collapsed || mobile) && (
         <span className={mobile ? "flex min-h-10 w-full flex-col items-center justify-start break-words leading-5" : "min-w-0 flex-1 text-left"}>
           <span className="inline-flex items-center gap-1.5">
@@ -242,7 +242,7 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
           </button>
         </div>
       ) : (
-        <div className={`px-3 py-4 flex items-center ${collapsed ? "justify-center" : "justify-between"} gap-2.5 border-b border-[#E7E3D8]`}>
+        <div className={`px-3 py-3 flex items-center ${collapsed ? "justify-center" : "justify-between"} gap-2.5 border-b border-[#E7E3D8]`}>
           {!collapsed && (
             <div className="flex items-center gap-2.5 min-w-0">
               <K1Mark size={40} variant="light" />
@@ -264,7 +264,7 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
           </button>
         </div>
       )}
-      <nav className={`flex-1 ${mobile ? "px-4" : collapsed ? "px-2" : "px-3"} ${mobile ? "py-4" : "py-3"} overflow-y-auto`}>
+      <nav className={`flex-1 ${mobile ? "px-4" : collapsed ? "px-2" : "px-2.5"} ${mobile ? "py-4" : "py-2"} overflow-y-auto`}>
         {menu.map((m) => {
           if (!m.items) {
             return (
@@ -274,9 +274,9 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
             );
           }
           return (
-            <div key={m.group} className={mobile ? "pt-5" : "pt-3"} data-testid={`submenu-${m.group}`}>
+            <div key={m.group} className={mobile ? "pt-5" : "pt-2.5"} data-testid={`submenu-${m.group}`}>
               {!collapsed && (
-                <div className={`pb-2 text-xs font-semibold text-[#5F6B63] ${mobile ? "px-1 uppercase tracking-wide" : "px-3.5"}`}>
+                <div className={`pb-1 text-[11px] font-semibold uppercase tracking-wide text-[#5F6B63] ${mobile ? "px-1" : "px-3"}`}>
                   {m.label}
                 </div>
               )}
@@ -289,13 +289,13 @@ function SidebarInner({ active, onNav, onLogout, role, menu, collapsed, onToggle
           );
         })}
       </nav>
-      <div className="p-3 border-t border-[#E7E3D8]">
+      <div className="p-2 border-t border-[#E7E3D8]">
         <button
           data-testid="button-logout"
           onClick={onLogout}
           title={collapsed ? "Keluar" : undefined}
           aria-label="Keluar"
-          className={`w-full flex items-center ${mobile ? "gap-3 px-4" : collapsed ? "justify-center px-0" : "gap-3 px-3.5"} h-11 rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6] hover:text-[#A32A2A] font-medium text-sm transition-colors`}
+          className={`w-full flex items-center ${mobile ? "gap-3 px-4" : collapsed ? "justify-center px-0" : "gap-2.5 px-3"} h-9 rounded-lg text-[#14201A] hover:bg-[#F0EEE6] hover:text-[#A32A2A] font-medium text-sm transition-colors`}
         >
           <LogOut size={18} /> {!collapsed && "Keluar"}
         </button>

@@ -1682,7 +1682,7 @@ async def admin_update_user(user_id: str, body: PesertaUpdate, admin: dict = Dep
             raise HTTPException(status_code=400, detail="Minimal satu peran valid")
         updates["roles"] = roles
     if body.status is not None:
-        if body.status not in ("active", "nonaktif", "pending", "pindah"):
+        if body.status not in ("active", "nonaktif", "pending", "pindah", "calon"):
             raise HTTPException(status_code=400, detail="Status tidak valid")
         if body.status == "active" and not user.get("password_hash"):
             raise HTTPException(status_code=400, detail="Akun belum punya kata sandi. Tetapkan sandi dulu (reset).")
@@ -10378,6 +10378,8 @@ async def _pendaftaran_cocok(nama: str, nomor: str):
         return str(user["_id"]), "aktif"
     if status == "pending":
         return str(user["_id"]), "belum_aktivasi"
+    if status == "calon":
+        return str(user["_id"]), "calon"
     return str(user["_id"]), "nonaktif"
 
 

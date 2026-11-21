@@ -4,6 +4,34 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 21 November 2026 (Status Peserta & Sidebar)
+
+- **Status peserta "Nonaktif Sementara"**: status peserta kini lengkap —
+  🟢 **Aktif**, ⚪ **Nonaktif Sementara**, **Belum Aktivasi**, **Calon Peserta**
+  (status lama `pindah` tetap dipertahankan).
+- Admin dapat menonaktifkan sementara peserta lewat detail peserta. **Data peserta,
+  riwayat absensi, dan riwayat kegiatan tidak dihapus** — hanya status yang berubah dan
+  dapat dipulihkan kapan saja.
+- Halaman detail peserta menampilkan kartu **Status peserta** dengan emoji
+  (🟢 Aktif / ⚪ Nonaktif Sementara) beserta penjelasan singkat, dan tombol
+  **[Aktifkan Kembali]** yang muncul hanya saat peserta nonaktif.
+- Peserta nonaktif **tidak tampil** pada daftar peserta aktif default (query `PESERTA_QUERY`
+  hanya `active`/`pending`), **tetap dapat dicari** oleh Admin, dan **tidak dapat login**
+  (403 "Akun belum aktif").
+- Filter status di halaman Peserta: Semua, Aktif, Nonaktif Sementara, Belum Aktivasi,
+  Calon Peserta, Data Belum Lengkap — lengkap dengan jumlah per status.
+- Backend: `admin_update_user` menerima status `calon`; pencocokan pendaftaran kegiatan
+  mengembalikan status `calon` untuk peserta berstatus calon.
+- **Penyegaran tampilan sidebar**: warna tulisan menu menjadi hitam (`#14201A`), jarak antar
+  menu dirapatkan (baris 36px, gap 10px, radius 8px), label grup lebih kecil, dan tombol
+  Keluar dirapikan. **Routing, nama menu, dan seluruh menu lama tidak diubah**; menu aktif
+  tetap terlihat jelas; tampilan mobile (sheet "Semua Menu") tidak terpengaruh.
+- Diuji: 19 pemeriksaan backend (mongomock) + verifikasi UI di browser (badge status, filter
+  status, detail peserta, aktifkan kembali, riwayat absensi tetap utuh, sidebar desktop &
+  mobile).
+
+---
+
 ## Pembaruan 21 November 2026 (Pendaftaran Kegiatan)
 
 - **Menu baru "Pendaftaran Kegiatan"** di sidebar Admin/Pengurus dengan tiga submenu:

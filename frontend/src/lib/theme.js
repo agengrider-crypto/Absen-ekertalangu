@@ -114,7 +114,8 @@ export const ATTENDANCE_COLORS = {
 export const ACCOUNT_COLORS = {
   active: { bg: STATUS.hadir.bg, text: STATUS.hadir.text, label: "Aktif" },
   pending: { bg: STATUS.izin.bg, text: STATUS.izin.text, label: "Belum Aktivasi" },
-  nonaktif: { bg: STATUS.selesai.bg, text: STATUS.selesai.text, label: "Nonaktif" },
+  nonaktif: { bg: STATUS.selesai.bg, text: STATUS.selesai.text, label: "Nonaktif Sementara" },
+  calon: { bg: STATUS.akan.bg, text: STATUS.akan.text, label: "Calon Peserta" },
   incomplete: { bg: STATUS.izin.bg, text: STATUS.izin.text, label: "Perlu Dilengkapi" },
 };
 

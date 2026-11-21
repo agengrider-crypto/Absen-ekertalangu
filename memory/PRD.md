@@ -1,5 +1,24 @@
 # E-KERTALANGU — PRD
 
+## Pembaruan 2026-11-21 — Status Peserta & Sidebar
+- Status peserta kini: 🟢 **Aktif**, ⚪ **Nonaktif Sementara**, **Belum Aktivasi**,
+  **Calon Peserta** (status lama `pindah` tetap ada).
+- Admin dapat menonaktifkan sementara peserta (tidak pernah hadir / lama tidak aktif /
+  perlu pengecekan ulang). **Tidak ada data yang dihapus** — data peserta, riwayat absensi,
+  dan riwayat kegiatan tetap utuh dan dapat dipulihkan.
+- Detail peserta menampilkan kartu **Status peserta** (emoji + penjelasan) dan tombol
+  **[Aktifkan Kembali]** saat peserta nonaktif.
+- Peserta nonaktif tidak tampil di daftar peserta aktif default, tetap dapat dicari Admin,
+  dan tidak dapat login (403).
+- Filter status di halaman Peserta: Semua / Aktif / Nonaktif Sementara / Belum Aktivasi /
+  Calon Peserta / Data Belum Lengkap, dengan jumlah per status.
+- Sidebar dirapikan: tulisan menu hitam (`#14201A`), jarak antar menu lebih rapat
+  (baris 36px, gap 10px), label grup lebih kecil, tombol Keluar dirapikan. Routing, nama
+  menu, dan seluruh menu lama tidak diubah; mobile sheet "Semua Menu" tidak terpengaruh.
+- Backend: `admin_update_user` menerima status `calon`; `_pendaftaran_cocok` mengembalikan
+  status `calon`.
+- Diuji: 19 pemeriksaan backend (mongomock) + verifikasi UI browser.
+
 ## Pembaruan 2026-11-21 — Pendaftaran Kegiatan
 - Menu sidebar baru **Pendaftaran Kegiatan** (Admin & Pengurus) dengan submenu
   **Kegiatan Aktif**, **Rekap Kegiatan**, dan **Arsip Pendaftaran**. Menu lama tidak diubah.

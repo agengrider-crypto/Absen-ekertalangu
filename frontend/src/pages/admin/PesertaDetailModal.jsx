@@ -14,7 +14,7 @@ import ActionModal from "@/components/ActionModal";
 import Modal from "@/components/Modal";
 import {
   EDUCATION_OPTIONS, MUBALIGH_OPTIONS, MARITAL_OPTIONS, ACTION_LABELS,
-  genderLabel, statusBadge, formatTanggal, formatDateTime, maritalLabel, mubalighLabel, jenjangLabel,
+  genderLabel, statusBadge, statusEmoji, formatTanggal, formatDateTime, maritalLabel, mubalighLabel, jenjangLabel,
 } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
@@ -244,7 +244,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
     setBusy("status");
     try {
       await api.patch(`/admin/users/${userId}`, { status: next });
-      toast.success(next === "active" ? "Akun diaktifkan" : "Akun dinonaktifkan");
+      toast.success(next === "active" ? "Peserta diaktifkan kembali" : "Peserta dinonaktifkan sementara");
       onChanged?.();
       load();
     } catch (e) {
@@ -259,7 +259,9 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
     setBusy("status");
     try {
       await api.patch(`/admin/users/${userId}`, { status: next });
-      const label = next === "active" ? "Aktif" : next === "nonaktif" ? "Nonaktif" : "Pindah";
+      const label = next === "active" ? "Aktif"
+        : next === "nonaktif" ? "Nonaktif Sementara"
+          : next === "calon" ? "Calon Peserta" : "Pindah";
       toast.success(`Status akun diubah menjadi ${label}`);
       onChanged?.();
       load();
@@ -358,8 +360,10 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
     },
     canManageRoles && {
       key: "nonaktif", testid: "quick-deactivate",
-      label: data.status === "active" ? "Nonaktifkan Sementara" : "Aktifkan Akun",
-      desc: data.status === "active" ? "Akun tidak bisa login, data tetap tersimpan" : "Izinkan akun masuk kembali",
+      label: data.status === "active" ? "Nonaktifkan Sementara" : "Aktifkan Kembali",
+      desc: data.status === "active"
+        ? "Tidak tampil sebagai peserta aktif, data & riwayat tetap tersimpan"
+        : "Pulihkan peserta ke daftar aktif",
       icon: Power,
       onClick: () => { toggleStatus(); return false; },
     },
@@ -513,13 +517,30 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                     </div>
 
                     <div className={`${card} p-4`}>
-                      <div className="mb-2 text-sm font-semibold text-[#14201A]">Status akun</div>
+                      <div className="mb-2 text-sm font-semibold text-[#14201A]">Status peserta</div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${badge.cls}`}>{badge.label}</span>
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${badge.cls}`}>
+                          {statusEmoji(data.status)} {badge.label}
+                        </span>
                         <span className="text-xs text-[#5F6B63]">
-                          {data.status === "active" ? "Akun dapat masuk ke aplikasi." : data.status === "pending" ? "Menunggu aktivasi akun." : "Akun tidak dapat masuk."}
+                          {data.status === "active" ? "Peserta aktif dan dapat masuk ke aplikasi."
+                            : data.status === "pending" ? "Menunggu aktivasi akun."
+                              : data.status === "calon" ? "Calon peserta, belum menjadi peserta aktif."
+                                : "Nonaktif sementara — data & riwayat absensi tetap tersimpan."}
                         </span>
                       </div>
+                      {data.status === "nonaktif" && canManageRoles && (
+                        <button
+                          type="button"
+                          data-testid="detail-reactivate"
+                          disabled={busy === "status"}
+                          onClick={() => setStatusTo("active")}
+                          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-60"
+                        >
+                          {busy === "status" ? <Loader2 size={16} className="animate-spin" /> : <Power size={16} />}
+                          Aktifkan Kembali
+                        </button>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -735,11 +756,13 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                     </div>
 
                     <div className={`${card} p-4`}>
-                      <div className="mb-2 text-[13px] font-semibold text-[#14201A]">Status Akun</div>
-                      <div className="grid grid-cols-3 gap-2" data-testid="detail-status-picker">
+                      <div className="mb-2 text-[13px] font-semibold text-[#14201A]">Status Peserta</div>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" data-testid="detail-status-picker">
                         {[
                           { v: "active", label: "Aktif", cls: "bg-[#E3F3EA] text-[#0E4E31] border-[#0E4E31]" },
-                          { v: "nonaktif", label: "Nonaktif", cls: "bg-[#FBE5E3] text-[#A32A2A] border-[#A32A2A]" },
+                          { v: "nonaktif", label: "Nonaktif Sementara", cls: "bg-[#F0EEE6] text-[#5F6B63] border-[#5F6B63]" },
+                          { v: "pending", label: "Belum Aktivasi", cls: "bg-[#FBF1D6] text-[#6B4500] border-[#6B4500]" },
+                          { v: "calon", label: "Calon Peserta", cls: "bg-[#E3EEFB] text-[#1D4F91] border-[#1D4F91]" },
                           { v: "pindah", label: "Pindah", cls: "bg-[#D9F2F4] text-[#1D4F91] border-[#1D4F91]" },
                         ].map((opt) => {
                           const active = (data.status || "active") === opt.v;
@@ -750,7 +773,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                               data-testid={`detail-status-${opt.v}`}
                               disabled={busy === "status"}
                               onClick={() => setStatusTo(opt.v)}
-                              className={`h-10 rounded-lg border-2 text-xs font-bold transition-colors disabled:opacity-50 ${
+                              className={`min-h-10 rounded-lg border-2 px-2 text-xs font-bold transition-colors disabled:opacity-50 ${
                                 active ? opt.cls : "border-[#E7E3D8] bg-white text-[#5F6B63] hover:border-current"
                               }`}
                             >
@@ -760,7 +783,9 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                         })}
                       </div>
                       <p className="mt-2 text-[11px] text-[#5F6B63]">
-                        Pindah = peserta keluar dari kelompok ini (riwayat absensi tetap tersimpan).
+                        Nonaktif Sementara = tidak tampil sebagai peserta aktif, tetapi data, riwayat absensi,
+                        dan riwayat kegiatan tetap tersimpan serta dapat dipulihkan. Pindah = peserta keluar
+                        dari kelompok ini (riwayat absensi tetap tersimpan).
                       </p>
                     </div>
 

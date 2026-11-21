@@ -270,7 +270,7 @@ export default function ProfileModal({ photo, onPhotoChange, onClose, startEditi
                 <Row icon={GraduationCap} label="Pendidikan" value={user?.education} />
                 <Row icon={HeartHandshake} label="Status Pernikahan" value={user?.marital ? maritalLabel(user.marital) : null} />
                 <Row icon={MapPin} label="Alamat" value={user?.address} />
-                <Row icon={Shield} label="Status Akun" value={user?.status === "active" ? "Aktif" : user?.status === "pending" ? "Belum aktivasi" : "Nonaktif"} />
+                <Row icon={Shield} label="Status Akun" value={user?.status === "active" ? "🟢 Aktif" : user?.status === "pending" ? "Belum aktivasi" : user?.status === "calon" ? "Calon peserta" : "⚪ Nonaktif Sementara"} />
               </div>
               <button
                 type="button"

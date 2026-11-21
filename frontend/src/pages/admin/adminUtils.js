@@ -132,10 +132,20 @@ export function mubalighLabel(m) {
 }
 
 export function statusBadge(status, needsCompletion) {
-  if (status === "pending") return { label: "Menunggu Aktivasi", cls: "bg-[#FBF1D6] text-[#6B4500]" };
-  if (status === "nonaktif") return { label: "Nonaktif", cls: "bg-[#F0EEE6] text-[#5F6B63]" };
+  if (status === "pending") return { label: "Belum Aktivasi", cls: "bg-[#FBF1D6] text-[#6B4500]" };
+  if (status === "nonaktif") return { label: "Nonaktif Sementara", cls: "bg-[#F0EEE6] text-[#5F6B63]" };
+  if (status === "calon") return { label: "Calon Peserta", cls: "bg-[#E3EEFB] text-[#1D4F91]" };
+  if (status === "pindah") return { label: "Pindah", cls: "bg-[#D9F2F4] text-[#1D4F91]" };
   if (needsCompletion) return { label: "Perlu Dilengkapi", cls: "bg-[#FBF1D6] text-[#6B4500]" };
   return { label: "Aktif", cls: "bg-[#E3F3EA] text-[#0E4E31]" };
+}
+
+/** Emoji penanda status peserta (🟢 aktif, ⚪ nonaktif sementara, lainnya netral). */
+export function statusEmoji(status) {
+  if (status === "active") return "🟢";
+  if (status === "nonaktif") return "⚪";
+  if (status === "calon") return "🔵";
+  return "🟡";
 }
 
 export const ACTION_LABELS = {
