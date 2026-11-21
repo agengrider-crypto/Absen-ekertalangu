@@ -16,6 +16,7 @@ import hashlib
 import hmac
 import uuid
 from datetime import datetime, timezone, timedelta
+from urllib.parse import urlparse
 from typing import List, Optional, Annotated
 
 import bcrypt
@@ -10285,10 +10286,49 @@ def _pendaftaran_terbuka(k: dict) -> bool:
     return _pendaftaran_status_tampil(k) in ("aktif", "berlangsung")
 
 
+def _pendaftaran_jadwal(k: dict) -> dict:
+    """Jadwal buka/tutup pendaftaran (tanggal WITA, tanpa jam).
+
+    Buka mulai 00.00 WITA, tutup sampai 23.59 WITA. Bila `tutup` kosong,
+    bawaan sehari sebelum tanggal acara.
+    """
+    buka = str(k.get("pendaftaran_buka") or "")[:10] or None
+    tutup = str(k.get("pendaftaran_tutup") or "")[:10] or None
+    if not tutup:
+        tanggal = str(k.get("tanggal") or "")[:10]
+        if tanggal:
+            try:
+                tutup = (datetime.strptime(tanggal, "%Y-%m-%d")
+                         - timedelta(days=1)).strftime("%Y-%m-%d")
+            except Exception:
+                tutup = None
+    return {"buka": buka, "tutup": tutup}
+
+
+def _pendaftaran_jadwal_status(k: dict) -> str:
+    """belum | dibuka | ditutup — dihitung dari tanggal (WITA)."""
+    j = _pendaftaran_jadwal(k)
+    hari_ini = now_wita().strftime("%Y-%m-%d")
+    if j["buka"] and hari_ini < j["buka"]:
+        return "belum"
+    if j["tutup"] and hari_ini > j["tutup"]:
+        return "ditutup"
+    return "dibuka"
+
+
+def _pendaftaran_bisa_isi(k: dict) -> bool:
+    """Pendaftaran masih menerima jawaban (jadwal + status kegiatan)."""
+    return _pendaftaran_terbuka(k) and _pendaftaran_jadwal_status(k) == "dibuka"
+
+
 async def _pendaftaran_hitung(kegiatan_ids: list) -> dict:
-    """Hitung statistik beberapa kegiatan sekaligus (satu query konfirmasi)."""
+    """Hitung statistik beberapa kegiatan sekaligus (satu query konfirmasi).
+
+    Total = jumlah yang sudah mengisi (mulai dari 0), bukan jumlah peserta
+    di data absensi. Total = ikut + tidak_ikut.
+    """
     ids = [i for i in dict.fromkeys(kegiatan_ids or []) if i]
-    hasil = {i: {"hadir": 0, "tidak_hadir": 0, "calon": 0, "_peserta": set()} for i in ids}
+    hasil = {i: {"ikut": 0, "tidak_ikut": 0} for i in ids}
     if not ids:
         return hasil
     async for r in db.pendaftaran_konfirmasi.find({"kegiatan_id": {"$in": ids}}):
@@ -10296,21 +10336,13 @@ async def _pendaftaran_hitung(kegiatan_ids: list) -> dict:
         if row is None:
             continue
         if r.get("kehadiran") == "hadir":
-            row["hadir"] += 1
+            row["ikut"] += 1
         elif r.get("kehadiran") == "tidak_hadir":
-            row["tidak_hadir"] += 1
-        if r.get("peserta_id"):
-            row["_peserta"].add(r["peserta_id"])
-        else:
-            row["calon"] += 1
-    terdaftar = await db.users.count_documents(PESERTA_QUERY)
+            row["tidak_ikut"] += 1
     for row in hasil.values():
-        row["total_peserta"] = terdaftar
-        row["total_konfirmasi"] = row["hadir"] + row["tidak_hadir"]
-        row["belum_konfirmasi"] = max(0, terdaftar - len(row["_peserta"]))
-        row["persentase_hadiran"] = (
-            round(row["hadir"] * 100 / terdaftar) if terdaftar else 0)
-        row.pop("_peserta", None)
+        row["total"] = row["ikut"] + row["tidak_ikut"]
+        row["persentase_ikut"] = (
+            round(row["ikut"] * 100 / row["total"]) if row["total"] else 0)
     return hasil
 
 
@@ -10318,24 +10350,26 @@ def _pendaftaran_serialize(k: dict, counts: Optional[dict] = None,
                            base: str = "") -> dict:
     c = counts or {}
     token = k.get("token")
+    jadwal = _pendaftaran_jadwal(k)
     return {
         "id": k["_id"],
         "nama": k.get("nama"),
         "tanggal": k.get("tanggal"),
         "lokasi": k.get("lokasi"),
+        "maps_url": k.get("maps_url"),
         "catatan": k.get("catatan"),
         "wajib_konfirmasi": k.get("wajib_konfirmasi", True),
         "status": k.get("status") or "aktif",
         "status_tampil": _pendaftaran_status_tampil(k),
+        "pendaftaran_buka": jadwal["buka"],
+        "pendaftaran_tutup": jadwal["tutup"],
+        "jadwal_status": _pendaftaran_jadwal_status(k),
         "token": token,
         "link": f"{base}/daftar/{token}" if (base and token) else None,
-        "total_peserta": c.get("total_peserta", 0),
-        "total_konfirmasi": c.get("total_konfirmasi", 0),
-        "hadir": c.get("hadir", 0),
-        "tidak_hadir": c.get("tidak_hadir", 0),
-        "belum_konfirmasi": c.get("belum_konfirmasi", 0),
-        "calon": c.get("calon", 0),
-        "persentase_hadiran": c.get("persentase_hadiran", 0),
+        "total": c.get("total", 0),
+        "ikut": c.get("ikut", 0),
+        "tidak_ikut": c.get("tidak_ikut", 0),
+        "persentase_ikut": c.get("persentase_ikut", 0),
         "dibuat_pada": k.get("dibuat_pada"),
         "diarsipkan_pada": k.get("diarsipkan_pada"),
     }
@@ -10366,7 +10400,7 @@ async def _pendaftaran_rows(kegiatan_id: str) -> list:
 
 
 def _pendaftaran_ringkas_alasan(rows: list) -> dict:
-    """Jumlah alasan tidak hadir per kategori (untuk rekap)."""
+    """Jumlah alasan tidak ikut per kategori (untuk rekap)."""
     hasil = {a: 0 for a in PENDAFTARAN_ALASAN}
     for r in rows:
         if r.get("kehadiran") != "tidak_hadir":
@@ -10426,20 +10460,53 @@ class PendaftaranInput(BaseModel):
     nama: str
     tanggal: str                       # YYYY-MM-DD (WITA)
     lokasi: Optional[str] = None
+    maps_url: Optional[str] = None
     catatan: Optional[str] = None
-    wajib_konfirmasi: bool = True      # True = ⭐ Wajib Konfirmasi, False = Kegiatan Biasa
+    wajib_konfirmasi: bool = True      # True = Wajib ikut, False = Biasa
+    pendaftaran_buka: Optional[str] = None
+    pendaftaran_tutup: Optional[str] = None
 
 
 class PendaftaranUpdate(BaseModel):
     nama: Optional[str] = None
     tanggal: Optional[str] = None
     lokasi: Optional[str] = None
+    maps_url: Optional[str] = None
     catatan: Optional[str] = None
     wajib_konfirmasi: Optional[bool] = None
+    pendaftaran_buka: Optional[str] = None
+    pendaftaran_tutup: Optional[str] = None
 
 
 class PendaftaranStatusInput(BaseModel):
     status: str = "selesai"            # aktif | selesai | arsip
+
+
+PENDAFTARAN_MAPS_HOST = ("google.com/maps", "maps.app.goo.gl", "goo.gl/maps")
+
+
+def _pendaftaran_maps_valid(url: str) -> bool:
+    """Tautan hanya diterima dari Google Maps."""
+    try:
+        p = urlparse(url)
+    except Exception:
+        return False
+    if p.scheme not in ("http", "https"):
+        return False
+    host = (p.netloc or "").lower()
+    path = f"{host}{p.path}".lower()
+    return any(h in path for h in PENDAFTARAN_MAPS_HOST)
+
+
+def _pendaftaran_tanggal(nilai, label: str) -> Optional[str]:
+    teks = str(nilai or "").strip()[:10]
+    if not teks:
+        return None
+    try:
+        datetime.strptime(teks, "%Y-%m-%d")
+    except Exception:
+        raise HTTPException(status_code=400, detail=f"{label} tidak valid.")
+    return teks
 
 
 def _pendaftaran_validasi(body, parsial: bool = False) -> dict:
@@ -10459,11 +10526,46 @@ def _pendaftaran_validasi(body, parsial: bool = False) -> dict:
         data["tanggal"] = tanggal
     if not parsial or body.lokasi is not None:
         data["lokasi"] = _bersih_teks(body.lokasi, 160) or None
+    if not parsial or body.maps_url is not None:
+        maps = _bersih_teks(body.maps_url, 400) or None
+        if maps and not _pendaftaran_maps_valid(maps):
+            raise HTTPException(
+                status_code=400,
+                detail="Tautan harus dari Google Maps. Kosongkan bila tidak perlu.")
+        data["maps_url"] = maps
     if not parsial or body.catatan is not None:
         data["catatan"] = _bersih_teks(body.catatan, 300) or None
     if not parsial or body.wajib_konfirmasi is not None:
         data["wajib_konfirmasi"] = bool(body.wajib_konfirmasi)
+    if not parsial or body.pendaftaran_buka is not None:
+        data["pendaftaran_buka"] = _pendaftaran_tanggal(
+            body.pendaftaran_buka, "Tanggal buka pendaftaran")
+    if not parsial or body.pendaftaran_tutup is not None:
+        data["pendaftaran_tutup"] = _pendaftaran_tanggal(
+            body.pendaftaran_tutup, "Tanggal tutup pendaftaran")
     return data
+
+
+def _pendaftaran_cek_jadwal(data: dict, lama: Optional[dict] = None) -> None:
+    """Tutup tidak boleh sebelum buka dan tidak melewati tanggal acara."""
+    gabung = {**(lama or {}), **data}
+    buka = str(gabung.get("pendaftaran_buka") or "")[:10]
+    tutup = str(gabung.get("pendaftaran_tutup") or "")[:10]
+    tanggal = str(gabung.get("tanggal") or "")[:10]
+    if not tutup and tanggal:
+        try:
+            tutup = (datetime.strptime(tanggal, "%Y-%m-%d")
+                     - timedelta(days=1)).strftime("%Y-%m-%d")
+        except Exception:
+            tutup = ""
+    if buka and tutup and tutup < buka:
+        raise HTTPException(
+            status_code=400,
+            detail="Tanggal tutup harus setelah tanggal buka dan tidak melewati tanggal acara.")
+    if tutup and tanggal and tutup > tanggal:
+        raise HTTPException(
+            status_code=400,
+            detail="Tanggal tutup harus setelah tanggal buka dan tidak melewati tanggal acara.")
 
 
 @api_router.get("/staff/pendaftaran/rekap")
@@ -10497,10 +10599,9 @@ async def pendaftaran_rekap(request: Request, date_from: str = "", date_to: str 
         })
     total = {
         "kegiatan": len(items),
-        "hadir": sum(i["hadir"] for i in items),
-        "tidak_hadir": sum(i["tidak_hadir"] for i in items),
-        "belum_konfirmasi": sum(i["belum_konfirmasi"] for i in items),
-        "calon": sum(i["calon"] for i in items),
+        "ikut": sum(i["ikut"] for i in items),
+        "tidak_ikut": sum(i["tidak_ikut"] for i in items),
+        "total": sum(i["total"] for i in items),
     }
     return {"items": items, "ringkasan": total,
             "filter": {"date_from": date_from, "date_to": date_to,
@@ -10530,6 +10631,7 @@ async def pendaftaran_buat(body: PendaftaranInput, request: Request,
                            staff: dict = Depends(require_staff)):
     """Buat kegiatan pendaftaran baru + tautan publiknya."""
     data = _pendaftaran_validasi(body)
+    _pendaftaran_cek_jadwal(data)
     sekarang = now_wita().isoformat()
     doc = {
         "_id": str(uuid.uuid4()),
@@ -10576,20 +10678,20 @@ async def pendaftaran_rekap_export(request: Request, format: str = "excel",
             Paragraph(f"Periode: {date_from or 'awal'} s/d {date_to or 'akhir'}",
                       styles["Normal"]),
             Paragraph(
-                f"Kegiatan: {ringkasan['kegiatan']} · Hadir: {ringkasan['hadir']} · "
-                f"Tidak hadir: {ringkasan['tidak_hadir']} · "
-                f"Belum konfirmasi: {ringkasan['belum_konfirmasi']}",
+                f"Kegiatan: {ringkasan['kegiatan']} · Ikut: {ringkasan['ikut']} · "
+                f"Tidak ikut: {ringkasan['tidak_ikut']} · "
+                f"Total mengisi: {ringkasan['total']}",
                 styles["Normal"]),
             Spacer(1, 12),
         ]
         tdata = [["Kegiatan", "Tanggal", "Lokasi", "Status", "Total",
-                  "Hadir", "Tidak Hadir", "Belum", "%"]]
+                  "Ikut", "Tidak Ikut", "%"]]
         for i in items:
             tdata.append([
                 i.get("nama") or "-", i.get("tanggal") or "-", i.get("lokasi") or "-",
-                i.get("status_tampil") or "-", i.get("total_peserta", 0),
-                i.get("hadir", 0), i.get("tidak_hadir", 0),
-                i.get("belum_konfirmasi", 0), f"{i.get('persentase_hadiran', 0)}%",
+                i.get("status_tampil") or "-", i.get("total", 0),
+                i.get("ikut", 0), i.get("tidak_ikut", 0),
+                f"{i.get('persentase_ikut', 0)}%",
             ])
         t = Table(tdata, repeatRows=1)
         t.setStyle(TableStyle([
@@ -10610,29 +10712,28 @@ async def pendaftaran_rekap_export(request: Request, format: str = "excel",
     wb = Workbook()
     ws = wb.active
     ws.title = "Rekap Kegiatan"
-    ws.append(["Kegiatan", "Tanggal", "Lokasi", "Status", "Total Peserta",
-               "Hadir", "Tidak Hadir", "Belum Konfirmasi", "Kehadiran %"])
+    ws.append(["Kegiatan", "Tanggal", "Lokasi", "Status", "Total Mengisi",
+               "Ikut", "Tidak Ikut", "Persentase Ikut %"])
     for i in items:
         ws.append([i.get("nama"), i.get("tanggal"), i.get("lokasi"),
-                   i.get("status_tampil"), i.get("total_peserta", 0),
-                   i.get("hadir", 0), i.get("tidak_hadir", 0),
-                   i.get("belum_konfirmasi", 0), i.get("persentase_hadiran", 0)])
+                   i.get("status_tampil"), i.get("total", 0),
+                   i.get("ikut", 0), i.get("tidak_ikut", 0),
+                   i.get("persentase_ikut", 0)])
     ws2 = wb.create_sheet("Peserta")
-    ws2.append(["Kegiatan", "Tanggal", "Nama", "Status Akun", "Kehadiran",
+    ws2.append(["Kegiatan", "Tanggal", "Nama", "Nomor HP", "Jawaban",
                 "Alasan", "Keterangan"])
     for i in items:
         for p in i.get("peserta") or []:
             ws2.append([i.get("nama"), i.get("tanggal"), p.get("nama"),
-                        p.get("status_akun_label"),
-                        "Hadir" if p.get("kehadiran") == "hadir" else "Tidak Hadir",
+                        p.get("nomor_hp"),
+                        "Ikut" if p.get("kehadiran") == "hadir" else "Tidak ikut",
                         p.get("alasan_lain") or p.get("alasan"), p.get("keterangan")])
     ws3 = wb.create_sheet("Ringkasan")
     ws3.append(["Periode", f"{date_from or 'awal'} s/d {date_to or 'akhir'}"])
     ws3.append(["Jumlah Kegiatan", ringkasan["kegiatan"]])
-    ws3.append(["Hadir", ringkasan["hadir"]])
-    ws3.append(["Tidak Hadir", ringkasan["tidak_hadir"]])
-    ws3.append(["Belum Konfirmasi", ringkasan["belum_konfirmasi"]])
-    ws3.append(["Calon Peserta", ringkasan["calon"]])
+    ws3.append(["Ikut", ringkasan["ikut"]])
+    ws3.append(["Tidak Ikut", ringkasan["tidak_ikut"]])
+    ws3.append(["Total Mengisi", ringkasan["total"]])
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
@@ -10668,6 +10769,7 @@ async def pendaftaran_ubah(kegiatan_id: str, body: PendaftaranUpdate, request: R
         raise HTTPException(status_code=404, detail="Kegiatan pendaftaran tidak ditemukan")
     data = _pendaftaran_validasi(body, parsial=True)
     if data:
+        _pendaftaran_cek_jadwal(data, k)
         await db.pendaftaran_kegiatan.update_one({"_id": kegiatan_id}, {"$set": data})
         k.update(data)
     await log_activity(staff, "pendaftaran_ubah",
@@ -10756,25 +10858,24 @@ async def pendaftaran_export(kegiatan_id: str, format: str = "excel",
             Paragraph("Pendaftaran Kegiatan — E-KERTALANGU", styles["Title"]),
             Paragraph(f"Kegiatan: {k.get('nama') or '-'}", styles["Normal"]),
             Paragraph(
-                f"Jenis: {'Wajib Konfirmasi' if k.get('wajib_konfirmasi', True) else 'Kegiatan Biasa'}",
+                f"Jenis: {'Wajib ikut' if k.get('wajib_konfirmasi', True) else 'Biasa'}",
                 styles["Normal"]),
             Paragraph(f"Tanggal: {k.get('tanggal') or '-'} · Lokasi: {k.get('lokasi') or '-'}",
                       styles["Normal"]),
             Paragraph(
-                f"Total peserta: {counts.get('total_peserta', 0)} · "
-                f"Hadir: {counts.get('hadir', 0)} · "
-                f"Berhalangan hadir: {counts.get('tidak_hadir', 0)} · "
-                f"Belum konfirmasi: {counts.get('belum_konfirmasi', 0)} · "
-                f"Kehadiran: {counts.get('persentase_hadiran', 0)}%",
+                f"Total mengisi: {counts.get('total', 0)} · "
+                f"Ikut: {counts.get('ikut', 0)} · "
+                f"Tidak ikut: {counts.get('tidak_ikut', 0)} · "
+                f"Persentase ikut: {counts.get('persentase_ikut', 0)}%",
                 styles["Normal"]),
             Spacer(1, 12),
         ]
-        tdata = [["Nama", "Status Akun", "Kehadiran", "Alasan", "Keterangan"]]
+        tdata = [["Nama", "Nomor HP", "Jawaban", "Alasan", "Keterangan"]]
         for r in rows:
             tdata.append([
                 r.get("nama") or "-",
-                r.get("status_akun_label") or "-",
-                "Hadir" if r.get("kehadiran") == "hadir" else "Berhalangan Hadir",
+                r.get("nomor_hp") or "-",
+                "Ikut" if r.get("kehadiran") == "hadir" else "Tidak ikut",
                 r.get("alasan_lain") or r.get("alasan") or "-",
                 r.get("keterangan") or "-",
             ])
@@ -10798,27 +10899,25 @@ async def pendaftaran_export(kegiatan_id: str, format: str = "excel",
     wb = Workbook()
     ws = wb.active
     ws.title = "Peserta"
-    ws.append(["Nama", "Nomor HP", "Status Akun", "Kehadiran", "Alasan",
-               "Alasan Lain", "Keterangan", "Waktu Konfirmasi"])
+    ws.append(["Nama", "Nomor HP", "Jawaban", "Alasan",
+               "Alasan Lain", "Keterangan", "Waktu Jawab"])
     for r in rows:
         ws.append([
-            r.get("nama"), r.get("nomor_hp"), r.get("status_akun_label"),
-            "Hadir" if r.get("kehadiran") == "hadir" else "Berhalangan Hadir",
+            r.get("nama"), r.get("nomor_hp"),
+            "Ikut" if r.get("kehadiran") == "hadir" else "Tidak ikut",
             r.get("alasan"), r.get("alasan_lain"), r.get("keterangan"),
             r.get("dibuat_pada"),
         ])
     ws2 = wb.create_sheet("Ringkasan")
     ws2.append(["Kegiatan", k.get("nama")])
     ws2.append(["Jenis Kegiatan",
-                "Wajib Konfirmasi" if k.get("wajib_konfirmasi", True) else "Kegiatan Biasa"])
+                "Wajib ikut" if k.get("wajib_konfirmasi", True) else "Biasa"])
     ws2.append(["Tanggal", k.get("tanggal")])
     ws2.append(["Lokasi", k.get("lokasi")])
-    ws2.append(["Total Peserta", counts.get("total_peserta", 0)])
-    ws2.append(["Hadir", counts.get("hadir", 0)])
-    ws2.append(["Berhalangan Hadir", counts.get("tidak_hadir", 0)])
-    ws2.append(["Belum Konfirmasi", counts.get("belum_konfirmasi", 0)])
-    ws2.append(["Calon Peserta", counts.get("calon", 0)])
-    ws2.append(["Persentase Kehadiran", f"{counts.get('persentase_hadiran', 0)}%"])
+    ws2.append(["Total Mengisi", counts.get("total", 0)])
+    ws2.append(["Ikut", counts.get("ikut", 0)])
+    ws2.append(["Tidak Ikut", counts.get("tidak_ikut", 0)])
+    ws2.append(["Persentase Ikut", f"{counts.get('persentase_ikut', 0)}%"])
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
@@ -10833,14 +10932,20 @@ async def publik_pendaftaran_info(token: str):
     k = await db.pendaftaran_kegiatan.find_one({"token": token})
     if not k:
         raise HTTPException(status_code=404, detail="Tautan tidak berlaku")
+    jadwal = _pendaftaran_jadwal(k)
+    jadwal_status = _pendaftaran_jadwal_status(k)
     if not _pendaftaran_terbuka(k):
-        raise HTTPException(status_code=410, detail="Pendaftaran kegiatan ini sudah ditutup")
+        jadwal_status = "ditutup"
     return JSONResponse(content={
         "nama": k.get("nama"),
         "tanggal": k.get("tanggal"),
         "lokasi": k.get("lokasi"),
+        "maps_url": k.get("maps_url"),
         "catatan": k.get("catatan"),
         "wajib_konfirmasi": k.get("wajib_konfirmasi", True),
+        "pendaftaran_buka": jadwal["buka"],
+        "pendaftaran_tutup": jadwal["tutup"],
+        "jadwal_status": jadwal_status,
         "alasan": list(PENDAFTARAN_ALASAN),
     }, headers={"X-Robots-Tag": "noindex, nofollow",
                 "Referrer-Policy": "no-referrer", "Cache-Control": "no-store"})
@@ -10848,12 +10953,12 @@ async def publik_pendaftaran_info(token: str):
 
 @api_router.post("/publik/daftar/{token}")
 async def publik_pendaftaran_kirim(token: str, body: dict, request: Request):
-    """Simpan konfirmasi peserta. Hanya menulis ke `pendaftaran_konfirmasi`."""
+    """Simpan jawaban peserta. Hanya menulis ke `pendaftaran_konfirmasi`."""
     k = await db.pendaftaran_kegiatan.find_one({"token": token})
     if not k:
         raise HTTPException(status_code=404, detail="Tautan tidak berlaku")
-    if not _pendaftaran_terbuka(k):
-        raise HTTPException(status_code=410, detail="Pendaftaran kegiatan ini sudah ditutup")
+    if not _pendaftaran_bisa_isi(k):
+        raise HTTPException(status_code=410, detail="Pendaftaran sudah ditutup")
     if not await _pendaftaran_laju_ok(client_ip(request), token):
         raise HTTPException(status_code=429,
                             detail="Terlalu banyak percobaan. Coba lagi nanti.")
@@ -10870,14 +10975,17 @@ async def publik_pendaftaran_kirim(token: str, body: dict, request: Request):
 
     kehadiran = str(body.get("kehadiran") or "").strip()
     if kehadiran not in PENDAFTARAN_KEHADIRAN:
-        raise HTTPException(status_code=400, detail="Pilih konfirmasi kehadiran dulu.")
+        raise HTTPException(status_code=400, detail="Pilih jawaban dulu.")
 
+    wajib = bool(k.get("wajib_konfirmasi", True))
     alasan = None
     alasan_lain = None
     if kehadiran == "tidak_hadir":
-        alasan = str(body.get("alasan") or "").strip()
-        if alasan not in PENDAFTARAN_ALASAN:
-            raise HTTPException(status_code=400, detail="Pilih alasan tidak hadir dulu.")
+        alasan = str(body.get("alasan") or "").strip() or None
+        if alasan and alasan not in PENDAFTARAN_ALASAN:
+            raise HTTPException(status_code=400, detail="Alasan tidak valid.")
+        if not alasan and wajib:
+            raise HTTPException(status_code=400, detail="Pilih alasan tidak ikut.")
         if alasan == "Lainnya":
             alasan_lain = _bersih_teks(body.get("alasan_lain"), 100)
             if len(alasan_lain) < 3:
@@ -10906,11 +11014,7 @@ async def publik_pendaftaran_kirim(token: str, body: dict, request: Request):
     return {
         "ok": True,
         "diperbarui": bool(ada),
-        "ditemukan": bool(peserta_id),
-        "pesan": ("Peserta terdaftar ditemukan" if peserta_id
-                  else "Konfirmasi tersimpan sebagai calon peserta"),
-        "status_akun": status_akun,
-        "status_akun_label": PENDAFTARAN_AKUN_LABEL.get(status_akun, "Calon Peserta"),
+        "pesan": "Jawaban Anda sudah tersimpan.",
         "kehadiran": kehadiran,
     }
 

@@ -1,4 +1,4 @@
-// Halaman publik konfirmasi peserta kegiatan (tanpa login).
+// Halaman publik pendaftaran kegiatan (tanpa login).
 // Hanya menulis ke `pendaftaran_konfirmasi`; database peserta tidak disentuh.
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -13,6 +13,13 @@ import { Logo } from "@/components/Logo";
 const inputCls =
   "h-12 w-full rounded-xl border border-[#8A948D] bg-white px-3.5 text-base text-[#14201A] outline-none focus:border-[#14633F]";
 
+function mapsHref(info) {
+  if (info?.maps_url) return info.maps_url;
+  const lokasi = (info?.lokasi || "").trim();
+  if (!lokasi) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lokasi)}`;
+}
+
 export default function PublicPendaftaran() {
   const { token } = useParams();
   const [info, setInfo] = useState(null);
@@ -21,6 +28,7 @@ export default function PublicPendaftaran() {
   const [saving, setSaving] = useState(false);
   const [hasil, setHasil] = useState(null);
   const [pesan, setPesan] = useState("");
+  const [ubah, setUbah] = useState(false);
   const [form, setForm] = useState({
     nama: "", nomor_hp: "", kehadiran: "", alasan: "", alasan_lain: "", keterangan: "",
   });
@@ -46,7 +54,7 @@ export default function PublicPendaftaran() {
       .catch((e) => {
         const status = e.response?.status;
         setErr(status === 410
-          ? "Pendaftaran kegiatan ini sudah ditutup."
+          ? "Pendaftaran sudah ditutup."
           : "Tautan sudah tidak berlaku. Hubungi pengurus.");
       })
       .finally(() => setLoading(false));
@@ -61,9 +69,10 @@ export default function PublicPendaftaran() {
     e.preventDefault();
     if (form.nama.trim().length < 3) { setPesan("Isi nama lengkap dulu."); return; }
     if (!form.nomor_hp.trim()) { setPesan("Isi nomor HP dulu."); return; }
-    if (!form.kehadiran) { setPesan("Pilih konfirmasi kehadiran dulu."); return; }
-    if (form.kehadiran === "tidak_hadir" && !form.alasan) {
-      setPesan("Pilih alasan tidak hadir dulu.");
+    if (!form.kehadiran) { setPesan("Pilih jawaban dulu."); return; }
+    const wajib = info?.wajib_konfirmasi !== false;
+    if (form.kehadiran === "tidak_hadir" && wajib && !form.alasan) {
+      setPesan("Pilih alasan tidak ikut.");
       return;
     }
     if (form.kehadiran === "tidak_hadir" && form.alasan === "Lainnya"
@@ -77,16 +86,17 @@ export default function PublicPendaftaran() {
         nama: form.nama.trim(),
         nomor_hp: form.nomor_hp.trim(),
         kehadiran: form.kehadiran,
-        alasan: form.kehadiran === "tidak_hadir" ? form.alasan : null,
+        alasan: form.kehadiran === "tidak_hadir" ? (form.alasan || null) : null,
         alasan_lain: form.kehadiran === "tidak_hadir" && form.alasan === "Lainnya"
           ? form.alasan_lain.trim() : null,
         keterangan: form.keterangan.trim() || null,
       });
       setHasil(data);
+      setUbah(false);
     } catch (e2) {
       const status = e2.response?.status;
       setPesan(status === 410
-        ? "Pendaftaran kegiatan ini sudah ditutup."
+        ? "Pendaftaran sudah ditutup."
         : formatApiErrorDetail(e2.response?.data?.detail));
     } finally {
       setSaving(false);
@@ -110,26 +120,84 @@ export default function PublicPendaftaran() {
     );
   }
 
-  if (hasil) {
+  const jadwal = info?.jadwal_status || "dibuka";
+  const href = mapsHref(info);
+
+  const kepalaInfo = (
+    <div className="flex flex-col items-center text-center">
+      <Logo size={44} />
+      <h1 className="mt-4 text-xl font-bold text-[#14201A]">Pendaftaran Kegiatan</h1>
+      <p className="mt-1 text-base font-semibold text-[#0E4E31]">{info?.nama}</p>
+      <div className="mt-2 space-y-1 text-sm text-[#5F6B63]">
+        <p className="inline-flex items-center gap-1.5">
+          <CalendarDays size={14} /> {tanggalIndonesia(info?.tanggal)}
+        </p>
+        {info?.lokasi && (
+          <p className="inline-flex flex-wrap items-center justify-center gap-1.5">
+            <MapPin size={14} /> {info.lokasi}
+            {href && (
+              <a href={href} target="_blank" rel="noopener noreferrer"
+                className="font-semibold text-[#0E4E31] underline-offset-2 hover:underline">
+                Buka di Google Maps
+              </a>
+            )}
+          </p>
+        )}
+      </div>
+      {info?.catatan && (
+        <p className="mt-2 rounded-xl bg-white px-3 py-2 text-sm text-[#5F6B63]">
+          {info.catatan}
+        </p>
+      )}
+    </div>
+  );
+
+  if (jadwal === "belum") {
+    return (
+      <div className="min-h-screen bg-[#F6F4EE] px-4 py-8" data-testid={PENDAFTARAN.publicView}>
+        <div className="mx-auto w-full max-w-md">
+          {kepalaInfo}
+          <div className="mt-6 rounded-2xl border border-[#E7E3D8] bg-white p-6 text-center">
+            <p className="text-base font-semibold text-[#14201A]">
+              Pendaftaran dibuka pada {tanggalIndonesia(info?.pendaftaran_buka)}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (jadwal === "ditutup") {
+    return (
+      <div className="min-h-screen bg-[#F6F4EE] px-4 py-8" data-testid={PENDAFTARAN.publicView}>
+        <div className="mx-auto w-full max-w-md">
+          {kepalaInfo}
+          <div className="mt-6 rounded-2xl border border-[#E7E3D8] bg-white p-6 text-center">
+            <p className="text-base font-semibold text-[#14201A]">Pendaftaran sudah ditutup</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasil && !ubah) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#F6F4EE] px-4 text-center"
         data-testid={PENDAFTARAN.publicResult}>
         <Logo size={48} />
         <CheckCircle2 className="mt-6 text-[#0E4E31]" size={34} />
         <p className="mt-3 max-w-sm text-base font-semibold text-[#14201A]">
-          Terima kasih, konfirmasi Anda sudah tersimpan.
+          Terima kasih, jawaban Anda sudah tersimpan.
         </p>
         <p className="mt-1 max-w-sm text-sm text-[#5F6B63]">
           {hasil.kehadiran === "hadir"
-            ? "Anda tercatat HADIR pada kegiatan ini."
-            : "Anda tercatat TIDAK BISA HADIR pada kegiatan ini."}
+            ? "Anda tercatat IKUT pada kegiatan ini."
+            : "Anda tercatat TIDAK IKUT pada kegiatan ini."}
         </p>
-        <div className="mt-4 w-full max-w-sm rounded-xl border border-[#E7E3D8] bg-white p-3 text-left">
-          <p className="text-sm font-semibold text-[#14201A]">{hasil.pesan}</p>
-          <p className="mt-0.5 text-xs text-[#5F6B63]">
-            Status akun: {hasil.status_akun_label}
-          </p>
-        </div>
+        <button type="button" onClick={() => setUbah(true)}
+          className="mt-4 min-h-11 rounded-xl border border-[#14633F] bg-white px-4 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
+          Ubah jawaban
+        </button>
       </div>
     );
   }
@@ -137,50 +205,26 @@ export default function PublicPendaftaran() {
   return (
     <div className="min-h-screen bg-[#F6F4EE] px-4 py-8" data-testid={PENDAFTARAN.publicView}>
       <div className="mx-auto w-full max-w-md">
-        <div className="flex flex-col items-center text-center">
-          <Logo size={44} />
-          <h1 className="mt-4 text-xl font-bold text-[#14201A]">Konfirmasi Kehadiran</h1>
-          <p className="mt-1 text-base font-semibold text-[#0E4E31]">{info?.nama}</p>
-          {info?.wajib_konfirmasi !== false && (
-            <p className="mt-1 text-xs font-semibold text-[#8A5A00]">⭐ Wajib Konfirmasi</p>
-          )}
-          <div className="mt-2 space-y-1 text-sm text-[#5F6B63]">
-            <p className="inline-flex items-center gap-1.5">
-              <CalendarDays size={14} /> {tanggalIndonesia(info?.tanggal)}
-            </p>
-            {info?.lokasi && (
-              <p className="inline-flex items-center gap-1.5">
-                <MapPin size={14} /> {info.lokasi}
-              </p>
-            )}
-          </div>
-          {info?.catatan && (
-            <p className="mt-2 rounded-xl bg-white px-3 py-2 text-sm text-[#5F6B63]">
-              {info.catatan}
-            </p>
-          )}
-        </div>
+        {kepalaInfo}
 
         <form onSubmit={kirim}
           className="mt-6 space-y-4 rounded-2xl border border-[#E7E3D8] bg-white p-4">
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-[#14201A]">Nama Lengkap</span>
+            <span className="mb-1 block text-sm font-semibold text-[#14201A]">Nama Lengkap *</span>
             <input value={form.nama} onChange={(e) => set("nama", e.target.value)}
               data-testid={PENDAFTARAN.publicName} maxLength={100}
               placeholder="Tulis nama lengkap" className={inputCls} />
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-[#14201A]">Nomor HP</span>
+            <span className="mb-1 block text-sm font-semibold text-[#14201A]">Nomor HP *</span>
             <input value={form.nomor_hp} onChange={(e) => set("nomor_hp", e.target.value)}
               data-testid={PENDAFTARAN.publicPhone} inputMode="tel" maxLength={20}
               placeholder="Contoh: 081234567890" className={inputCls} />
           </label>
 
           <div>
-            <span className="mb-1.5 block text-sm font-semibold text-[#14201A]">
-              Konfirmasi kehadiran
-            </span>
+            <span className="mb-1.5 block text-sm font-semibold text-[#14201A]">Jawaban</span>
             <div className="grid gap-2 sm:grid-cols-2">
               <button type="button" data-testid={PENDAFTARAN.publicHadir}
                 onClick={() => set("kehadiran", "hadir")}
@@ -190,7 +234,7 @@ export default function PublicPendaftaran() {
                     ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]"
                     : "border-[#E7E3D8] bg-white text-[#5F6B63]"
                 }`}>
-                <CheckCircle2 size={18} /> Saya Hadir
+                <CheckCircle2 size={18} /> Ya, ikut
               </button>
               <button type="button" data-testid={PENDAFTARAN.publicTidakHadir}
                 onClick={() => set("kehadiran", "tidak_hadir")}
@@ -200,7 +244,7 @@ export default function PublicPendaftaran() {
                     ? "border-[#A32A2A] bg-[#FBE5E3] text-[#A32A2A]"
                     : "border-[#E7E3D8] bg-white text-[#5F6B63]"
                 }`}>
-                <XCircle size={18} /> Saya Tidak Bisa Hadir
+                <XCircle size={18} /> Tidak ikut
               </button>
             </div>
           </div>
@@ -209,7 +253,7 @@ export default function PublicPendaftaran() {
             <>
               <label className="block">
                 <span className="mb-1 block text-sm font-semibold text-[#14201A]">
-                  Alasan tidak hadir
+                  Alasan tidak ikut{info?.wajib_konfirmasi !== false ? " *" : " (opsional)"}
                 </span>
                 <select value={form.alasan} onChange={(e) => set("alasan", e.target.value)}
                   data-testid={PENDAFTARAN.publicAlasan} className={inputCls}>
@@ -234,7 +278,7 @@ export default function PublicPendaftaran() {
 
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-[#14201A]">
-              Keterangan (opsional)
+              Keterangan tambahan (opsional)
             </span>
             <textarea value={form.keterangan} onChange={(e) => set("keterangan", e.target.value)}
               data-testid={PENDAFTARAN.publicKeterangan} maxLength={200} rows={2}
@@ -251,7 +295,7 @@ export default function PublicPendaftaran() {
           <button type="submit" disabled={saving} data-testid={PENDAFTARAN.publicSubmit}
             className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#14633F] px-4 text-base font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-60">
             {saving && <Loader2 size={16} className="animate-spin motion-reduce:animate-none" />}
-            {saving ? "Mengirim…" : "Kirim Konfirmasi"}
+            {saving ? "Mengirim…" : "Kirim Jawaban"}
           </button>
         </form>
       </div>

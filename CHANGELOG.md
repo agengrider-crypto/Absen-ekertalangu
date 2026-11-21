@@ -4,6 +4,12 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 21 November 2026 (Pendaftaran Kegiatan — penyempurnaan)
+
+Pendaftaran kegiatan: jenis Wajib ikut dan Biasa kini berbeda, jadwal buka dan tutup pendaftaran, hitungan mulai dari 0 hanya yang mengisi, form peserta cukup nama dan nomor HP, tombol Google Maps untuk lokasi, error 410 diperbaiki, konfirmasi sebelum hapus dan buat ulang tautan, sidebar diringkas jadi satu menu dengan dua tab.
+
+---
+
 ## Pembaruan 21 November 2026 (Status Peserta & Sidebar)
 
 - **Status peserta "Nonaktif Sementara"**: status peserta kini lengkap —

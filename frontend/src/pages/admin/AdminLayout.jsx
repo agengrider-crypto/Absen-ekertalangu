@@ -8,7 +8,7 @@ import {
   ClipboardList, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
   Calendar1,
   PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle, BarChart3, LayoutGrid, Home,
-  Activity, Link2, CalendarPlus, Archive,
+  Activity, Link2, CalendarPlus,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { K1Mark, K1Wordmark } from "@/components/Logo";
@@ -80,12 +80,8 @@ const MENU = [
     ],
   },
   {
-    group: "grup-pendaftaran", label: "Pendaftaran Kegiatan", icon: CalendarPlus, roles: ["admin", "pengurus"],
-    items: [
-      { key: "pendaftaran-aktif", label: "Kegiatan Aktif", icon: CalendarPlus, roles: ["admin", "pengurus"] },
-      { key: "pendaftaran-rekap", label: "Rekap Kegiatan", icon: BarChart3, roles: ["admin", "pengurus"] },
-      { key: "pendaftaran-arsip", label: "Arsip Pendaftaran", icon: Archive, roles: ["admin", "pengurus"] },
-    ],
+    key: "pendaftaran-aktif", label: "Pendaftaran Kegiatan", icon: CalendarPlus,
+    roles: ["admin", "pengurus"],
   },
   {
     group: "grup-laporan", label: "Rekap & Laporan", icon: FileBarChart2, roles: ["admin", "pengurus"],
@@ -141,8 +137,8 @@ const TRAIL_LABEL = {
   "rekap-bulanan": "Rekap Bulanan",
   "rekap-harian": "Rekap Harian",
   "pendaftaran-aktif": "Kegiatan Aktif",
-  "pendaftaran-rekap": "Rekap Kegiatan",
-  "pendaftaran-arsip": "Arsip Pendaftaran",
+  "pendaftaran-rekap": "Rekap dan Arsip",
+  "pendaftaran-arsip": "Rekap dan Arsip",
   musyawarah: "Musyawarah",
   pengaduan: "Laporan Masuk",
   bantuan: "Pusat Bantuan",
@@ -168,9 +164,9 @@ const TRAIL_PARENT = {
   "laporan-peserta": "grup-laporan",
   "rekap-bulanan": "grup-laporan",
   "rekap-harian": "grup-laporan",
-  "pendaftaran-aktif": "grup-pendaftaran",
-  "pendaftaran-rekap": "grup-pendaftaran",
-  "pendaftaran-arsip": "grup-pendaftaran",
+  "pendaftaran-aktif": "pendaftaran-aktif",
+  "pendaftaran-rekap": "pendaftaran-aktif",
+  "pendaftaran-arsip": "pendaftaran-aktif",
   musyawarah: "grup-laporan",
   pengaduan: "grup-laporan",
 };
