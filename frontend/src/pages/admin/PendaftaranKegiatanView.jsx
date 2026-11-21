@@ -14,7 +14,7 @@ import { PENDAFTARAN } from "@/constants/testIds";
 import PendaftaranFormModal from "./PendaftaranFormModal";
 import PendaftaranDetailModal from "./PendaftaranDetailModal";
 import {
-  StatusBadge, Statistik, AlasanRingkas, TabelPeserta,
+  StatusBadge, JenisBadge, Statistik, AlasanRingkas, TabelPeserta,
 } from "./pendaftaranBagian";
 
 const inp =
@@ -53,7 +53,10 @@ function KartuKegiatan({ item, onOpen, onCopy }) {
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h3 className="min-w-0 flex-1 text-base font-bold text-[#14201A]">{item.nama}</h3>
-        <StatusBadge status={item.status_tampil} />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <JenisBadge wajib={item.wajib_konfirmasi} />
+          <StatusBadge status={item.status_tampil} />
+        </div>
       </div>
 
       <dl className="mt-3 space-y-1.5 text-sm text-[#5F6B63]">
@@ -68,7 +71,7 @@ function KartuKegiatan({ item, onOpen, onCopy }) {
         <div className="flex items-center gap-2">
           <Users size={15} className="shrink-0 text-[#0E4E31]" />
           <span>
-            {item.total_peserta} peserta · {item.hadir} hadir · {item.tidak_hadir} tidak hadir
+            {item.total_peserta} peserta · {item.hadir} hadir · {item.tidak_hadir} berhalangan
             {item.belum_konfirmasi > 0 ? ` · ${item.belum_konfirmasi} belum konfirmasi` : ""}
           </span>
         </div>
@@ -166,9 +169,15 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto }) {
       setDetail({ loading: false, item: data });
     } catch (e) {
       setDetail(null);
+      const status = e.response?.status;
+      if (status === 404 || status === 410) {
+        toast.error("Kegiatan sudah tidak tersedia. Daftar dimuat ulang.");
+        await muat();
+        return;
+      }
       toast.error(formatApiErrorDetail(e.response?.data?.detail));
     }
-  }, []);
+  }, [muat]);
 
   const ubahStatus = async (item, status) => {
     setSibuk(true);
@@ -311,7 +320,7 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto }) {
                 data-testid={PENDAFTARAN.rekapKehadiran} className={inp}>
                 <option value="">Semua</option>
                 <option value="hadir">Hadir</option>
-                <option value="tidak_hadir">Tidak hadir</option>
+                <option value="tidak_hadir">Berhalangan hadir</option>
                 <option value="belum">Belum konfirmasi</option>
               </select>
             </label>
@@ -357,7 +366,10 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto }) {
                       {tanggalIndonesia(item.tanggal)} · {item.lokasi || "Lokasi belum diisi"}
                     </p>
                   </div>
-                  <StatusBadge status={item.status_tampil} />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <JenisBadge wajib={item.wajib_konfirmasi} />
+                    <StatusBadge status={item.status_tampil} />
+                  </div>
                 </div>
 
                 <div className="mt-3">

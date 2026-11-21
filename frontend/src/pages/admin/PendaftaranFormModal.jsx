@@ -17,7 +17,7 @@ function todayYmd() {
 
 export default function PendaftaranFormModal({ onClose, onSaved }) {
   const [form, setForm] = useState({
-    nama: "", tanggal: todayYmd(), lokasi: "", catatan: "",
+    nama: "", tanggal: todayYmd(), lokasi: "", catatan: "", wajib_konfirmasi: true,
   });
   const [sibuk, setSibuk] = useState(false);
   const [pesan, setPesan] = useState("");
@@ -38,6 +38,7 @@ export default function PendaftaranFormModal({ onClose, onSaved }) {
         tanggal: form.tanggal,
         lokasi: form.lokasi.trim() || null,
         catatan: form.catatan.trim() || null,
+        wajib_konfirmasi: form.wajib_konfirmasi,
       });
       toast.success("Kegiatan pendaftaran dibuat.");
       await onSaved?.();
@@ -90,6 +91,39 @@ export default function PendaftaranFormModal({ onClose, onSaved }) {
             data-testid={PENDAFTARAN.formLocation} maxLength={160}
             placeholder="Contoh: Masjid Kertalangu" className={fld} />
         </label>
+        <div>
+          <span className={lbl}>Jenis kegiatan</span>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button type="button"
+              data-testid={PENDAFTARAN.formJenisBiasa}
+              onClick={() => set("wajib_konfirmasi", false)}
+              aria-pressed={!form.wajib_konfirmasi}
+              className={`min-h-12 rounded-xl border-2 px-3 text-left text-sm font-semibold ${
+                !form.wajib_konfirmasi
+                  ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]"
+                  : "border-[#E7E3D8] bg-white text-[#5F6B63]"
+              }`}>
+              Kegiatan Biasa
+              <span className="mt-0.5 block text-xs font-normal">
+                Tanpa kewajiban konfirmasi peserta
+              </span>
+            </button>
+            <button type="button"
+              data-testid={PENDAFTARAN.formJenisWajib}
+              onClick={() => set("wajib_konfirmasi", true)}
+              aria-pressed={form.wajib_konfirmasi}
+              className={`min-h-12 rounded-xl border-2 px-3 text-left text-sm font-semibold ${
+                form.wajib_konfirmasi
+                  ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]"
+                  : "border-[#E7E3D8] bg-white text-[#5F6B63]"
+              }`}>
+              ⭐ Wajib Konfirmasi
+              <span className="mt-0.5 block text-xs font-normal">
+                Peserta wajib konfirmasi hadir / berhalangan
+              </span>
+            </button>
+          </div>
+        </div>
         <label className="block">
           <span className={lbl}>Catatan (opsional)</span>
           <textarea value={form.catatan} onChange={(e) => set("catatan", e.target.value)}

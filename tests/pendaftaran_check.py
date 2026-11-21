@@ -89,6 +89,8 @@ async def main():
         cek("link publik", (keg.get("link") or "").endswith(f"/daftar/{keg['token']}"),
             keg.get("link"))
         cek("status aktif", keg.get("status_tampil") == "aktif", keg.get("status_tampil"))
+        cek("default wajib konfirmasi", keg.get("wajib_konfirmasi") is True,
+            keg.get("wajib_konfirmasi"))
         terdaftar = await server.db.users.count_documents(server.PESERTA_QUERY)
         cek("total peserta = jumlah peserta terdaftar",
             keg.get("total_peserta") == terdaftar,
@@ -240,7 +242,7 @@ async def main():
         r = await c.delete(f"/api/staff/pendaftaran/{keg['id']}")
         cek("hapus permanen", r.status_code == 200, r.text[:200])
         r = await c.get(f"/api/staff/pendaftaran/{keg['id']}")
-        cek("kegiatan terhapus", r.status_code == 404, r.status_code)
+        cek("kegiatan terhapus", r.status_code == 410, r.status_code)
         sisa = await server.db.pendaftaran_konfirmasi.count_documents({})
         cek("konfirmasi ikut terhapus", sisa == 0, sisa)
 
@@ -248,6 +250,43 @@ async def main():
         await c.post("/api/auth/logout")
         r = await c.get("/api/staff/pendaftaran")
         cek("tanpa login ditolak", r.status_code == 401, r.status_code)
+
+        # --- jenis kegiatan: Kegiatan Biasa --------------------------------
+        await c.post("/api/auth/login", json={"identifier": "adminuji@example.com",
+                                              "password": "rahasia123"})
+        r = await c.post("/api/staff/pendaftaran", json={
+            "nama": "Kerja Bakti Bersih Masjid", "tanggal": "2026-12-13",
+            "lokasi": "Masjid Kertalangu", "wajib_konfirmasi": False,
+        })
+        cek("buat kegiatan biasa", r.status_code == 200, r.text[:300])
+        biasa = r.json()
+        cek("jenis kegiatan biasa tersimpan", biasa.get("wajib_konfirmasi") is False,
+            biasa.get("wajib_konfirmasi"))
+        r = await c.patch(f"/api/staff/pendaftaran/{biasa['id']}",
+                          json={"wajib_konfirmasi": True})
+        cek("ubah jenis menjadi wajib konfirmasi",
+            r.status_code == 200 and r.json().get("wajib_konfirmasi") is True, r.text[:200])
+        r = await c.get(f"/api/publik/daftar/{biasa['token']}")
+        cek("info publik memuat jenis kegiatan",
+            r.status_code == 200 and r.json().get("wajib_konfirmasi") is True, r.text[:200])
+
+        # --- wali: ID ObjectId maupun string -------------------------------
+        anak = await server.db.users.find_one({"username": "ahmad"})
+        if anak:
+            anak_id = str(anak["_id"])
+            r = await c.get(f"/api/admin/users/{anak_id}/wali")
+            cek("wali anak ditemukan (ObjectId)", r.status_code == 200, r.text[:200])
+            await server.db.wali_anak.insert_one({
+                "_id": "wali-uji", "anak_id": anak_id, "wali_id": anak_id,
+                "hubungan": "ayah", "dibuat_oleh": "uji",
+                "dibuat_at": server.now_wita().isoformat()})
+            r = await c.get(f"/api/admin/users/{anak_id}/wali")
+            cek("wali anak ditemukan (anak_id string)",
+                r.status_code == 200 and len(r.json().get("rows") or []) == 3, r.text[:200])
+            r = await c.delete(f"/api/admin/users/{anak_id}/wali/ayah")
+            cek("lepas wali (anak_id string)", r.status_code == 200, r.text[:200])
+        else:
+            cek("akun peserta uji tersedia", False, "peserta_uji tidak ada")
 
     print()
     if GAGAL:

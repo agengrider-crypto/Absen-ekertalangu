@@ -23,8 +23,22 @@ export function StatusBadge({ status }) {
   );
 }
 
-export function BadgeKehadiran({ kehadiran }) {
-  const hadir = kehadiran === "hadir";
+/** Badge jenis kegiatan: ⭐ Wajib Konfirmasi atau Kegiatan Biasa. */
+export function JenisBadge({ wajib }) {
+  const on = wajib !== false;
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+      style={on
+        ? { backgroundColor: "#FFF4D6", color: "#8A5A00" }
+        : { backgroundColor: "#F0EEE6", color: "#5F6B63" }}
+    >
+      {on ? "⭐ Wajib Konfirmasi" : "Kegiatan Biasa"}
+    </span>
+  );
+}
+
+export function BadgeKehadiran({ kehadiran }) {  const hadir = kehadiran === "hadir";
   return (
     <span
       className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
@@ -32,17 +46,17 @@ export function BadgeKehadiran({ kehadiran }) {
         ? { backgroundColor: "#E3F3EA", color: "#0E4E31" }
         : { backgroundColor: "#FBE5E3", color: "#A32A2A" }}
     >
-      {hadir ? "Hadir" : "Tidak Hadir"}
+      {hadir ? "Hadir" : "Berhalangan Hadir"}
     </span>
   );
 }
 
-/** Empat kotak angka: total peserta, hadir, tidak hadir, belum konfirmasi. */
+/** Empat kotak angka: total peserta, hadir, berhalangan hadir, belum konfirmasi. */
 export function Statistik({ item, ikon }) {
   const kotak = [
     { label: "Total peserta", value: item.total_peserta, Icon: ikon.Users, color: "#14201A" },
     { label: "Hadir", value: item.hadir, Icon: ikon.CheckCircle2, color: "#0E4E31" },
-    { label: "Tidak hadir", value: item.tidak_hadir, Icon: ikon.XCircle, color: "#A32A2A" },
+    { label: "Berhalangan hadir", value: item.tidak_hadir, Icon: ikon.XCircle, color: "#A32A2A" },
     { label: "Belum konfirmasi", value: item.belum_konfirmasi, Icon: ikon.Clock, color: "#8A5A00" },
   ];
   return (

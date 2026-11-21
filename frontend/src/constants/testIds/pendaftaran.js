@@ -15,6 +15,8 @@ export const PENDAFTARAN = {
   formDate: "pendaftaran-form-date",
   formLocation: "pendaftaran-form-location",
   formNote: "pendaftaran-form-note",
+  formJenisBiasa: "pendaftaran-form-jenis-biasa",
+  formJenisWajib: "pendaftaran-form-jenis-wajib",
   formSubmit: "pendaftaran-form-submit",
   detailModal: "pendaftaran-detail-modal",
   detailCopyLink: "pendaftaran-detail-copy-link",

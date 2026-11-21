@@ -1461,7 +1461,8 @@ async def _tautkan_orang_tua(anak_id: str, nama: str, hp: str, hubungan: str,
         hasil["perlu_dicek"].append({"nama_anak": nama,
                                      "alasan": f"{hubungan}: HP sama dengan akun anak"})
         return
-    lama = await db.wali_anak.find_one({"anak_id": anak_id, "hubungan": hubungan})
+    lama = await db.wali_anak.find_one(
+        {"anak_id": {"$in": _id_varian(anak_id)}, "hubungan": hubungan})
     if lama:
         if lama.get("wali_id") != wali_id:
             hasil["perlu_dicek"].append({"nama_anak": nama,
@@ -8611,6 +8612,20 @@ def is_generus(user: dict) -> bool:
     return jenjang in GENERUS_JENJANG
 
 
+def _id_varian(value) -> list:
+    """Varian ID untuk query: ObjectId dan string-nya (data lama & baru)."""
+    if value is None:
+        return []
+    teks = str(value)
+    out = [teks]
+    try:
+        oid = ObjectId(teks)
+        out.append(oid)
+    except Exception:
+        pass
+    return out
+
+
 def _wali_doc(anak_id: str, wali_id: str, hubungan: str, oleh: dict) -> dict:
     return {"_id": str(uuid.uuid4()), "anak_id": anak_id, "wali_id": wali_id,
             "hubungan": hubungan, "dibuat_oleh": str(oleh["_id"]),
@@ -8618,10 +8633,12 @@ def _wali_doc(anak_id: str, wali_id: str, hubungan: str, oleh: dict) -> dict:
 
 
 async def _wali_rows(anak_id: str) -> list:
-    rows = await db.wali_anak.find({"anak_id": anak_id}).to_list(10)
+    # `anak_id` bisa tersimpan sebagai ObjectId (impor) atau string (taut manual).
+    rows = await db.wali_anak.find({"anak_id": {"$in": _id_varian(anak_id)}}).to_list(10)
     out = []
     for r in rows:
-        wali = await db.users.find_one({"_id": r.get("wali_id")}, {"name": 1, "phone": 1})
+        wali = await db.users.find_one({"_id": {"$in": _id_varian(r.get("wali_id"))}},
+                                       {"name": 1, "phone": 1})
         out.append({"id": r["_id"], "hubungan": r.get("hubungan"),
                     "wali_id": r.get("wali_id"),
                     "wali_nama": (wali or {}).get("name"),
@@ -8632,7 +8649,7 @@ async def _wali_rows(anak_id: str) -> list:
 @api_router.get("/admin/users/{user_id}/wali")
 async def admin_wali_anak(user_id: str, staff: dict = Depends(require_staff)):
     """Tiga baris Ayah/Ibu/Wali + saran dari Nomor WA wali anak."""
-    anak = await db.users.find_one({"_id": user_id})
+    anak = await db.users.find_one({"_id": {"$in": _id_varian(user_id)}})
     if not anak:
         raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
     rows = await _wali_rows(user_id)
@@ -8641,7 +8658,8 @@ async def admin_wali_anak(user_id: str, staff: dict = Depends(require_staff)):
     nomor = normalize_wa_wali(anak.get("nomor_wa_wali"))
     if nomor:
         kandidat = await db.users.find(
-            {"phone": nomor, "_id": {"$ne": user_id}, "is_system": {"$ne": True}},
+            {"phone": nomor, "_id": {"$nin": _id_varian(user_id)},
+             "is_system": {"$ne": True}},
             {"name": 1, "phone": 1}).to_list(5)
         if len(kandidat) == 1:
             saran = {"wali_id": str(kandidat[0]["_id"]), "nama": kandidat[0].get("name")}
@@ -8665,11 +8683,12 @@ async def admin_tautkan_wali(user_id: str, body: WaliAnakInput,
         raise HTTPException(status_code=400, detail="Hubungan tidak valid")
     if body.wali_id == user_id:
         raise HTTPException(status_code=400, detail="Anak dan wali tidak boleh akun yang sama")
-    anak = await db.users.find_one({"_id": user_id})
-    wali = await db.users.find_one({"_id": body.wali_id})
+    anak = await db.users.find_one({"_id": {"$in": _id_varian(user_id)}})
+    wali = await db.users.find_one({"_id": {"$in": _id_varian(body.wali_id)}})
     if not anak or not wali:
         raise HTTPException(status_code=404, detail="Akun tidak ditemukan")
-    lama = await db.wali_anak.find_one({"anak_id": user_id, "hubungan": hubungan})
+    lama = await db.wali_anak.find_one(
+        {"anak_id": {"$in": _id_varian(user_id)}, "hubungan": hubungan})
     if lama and lama.get("wali_id") != body.wali_id:
         raise HTTPException(status_code=409,
                             detail="Hubungan ini sudah terisi akun lain. Lepas terlebih dahulu.")
@@ -8685,7 +8704,8 @@ async def admin_tautkan_wali(user_id: str, body: WaliAnakInput,
 async def admin_lepas_wali(user_id: str, hubungan: str, staff: dict = Depends(require_staff)):
     if hubungan not in HUBUNGAN_WALI:
         raise HTTPException(status_code=400, detail="Hubungan tidak valid")
-    res = await db.wali_anak.delete_one({"anak_id": user_id, "hubungan": hubungan})
+    res = await db.wali_anak.delete_one(
+        {"anak_id": {"$in": _id_varian(user_id)}, "hubungan": hubungan})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Tautan tidak ditemukan")
     await log_activity(staff, "lepas_wali", f"Melepas tautan {hubungan}", user_id)
@@ -8704,7 +8724,7 @@ async def admin_wali_map(staff: dict = Depends(require_staff)):
 async def my_anak(user: dict = Depends(get_current_user)):
     """Anak saya — hanya anak yang tertaut ke akun yang login (wali_anak.wali_id)."""
     uid = str(user["_id"])
-    links = await db.wali_anak.find({"wali_id": uid}).to_list(50)
+    links = await db.wali_anak.find({"wali_id": {"$in": _id_varian(uid)}}).to_list(50)
     if not links:
         return {"items": []}
     now = now_wita()
@@ -8712,7 +8732,8 @@ async def my_anak(user: dict = Depends(get_current_user)):
     items = []
     for link in links:
         anak_id = link.get("anak_id")
-        anak = await db.users.find_one({"_id": anak_id}, {"name": 1, "jenjang": 1})
+        anak = await db.users.find_one({"_id": {"$in": _id_varian(anak_id)}},
+                                       {"name": 1, "jenjang": 1})
         if not anak:
             continue
         # Kehadiran bulan ini: hanya kegiatan yang sudah berlangsung, sesi digabung.
@@ -10303,6 +10324,7 @@ def _pendaftaran_serialize(k: dict, counts: Optional[dict] = None,
         "tanggal": k.get("tanggal"),
         "lokasi": k.get("lokasi"),
         "catatan": k.get("catatan"),
+        "wajib_konfirmasi": k.get("wajib_konfirmasi", True),
         "status": k.get("status") or "aktif",
         "status_tampil": _pendaftaran_status_tampil(k),
         "token": token,
@@ -10405,6 +10427,7 @@ class PendaftaranInput(BaseModel):
     tanggal: str                       # YYYY-MM-DD (WITA)
     lokasi: Optional[str] = None
     catatan: Optional[str] = None
+    wajib_konfirmasi: bool = True      # True = ⭐ Wajib Konfirmasi, False = Kegiatan Biasa
 
 
 class PendaftaranUpdate(BaseModel):
@@ -10412,6 +10435,7 @@ class PendaftaranUpdate(BaseModel):
     tanggal: Optional[str] = None
     lokasi: Optional[str] = None
     catatan: Optional[str] = None
+    wajib_konfirmasi: Optional[bool] = None
 
 
 class PendaftaranStatusInput(BaseModel):
@@ -10437,6 +10461,8 @@ def _pendaftaran_validasi(body, parsial: bool = False) -> dict:
         data["lokasi"] = _bersih_teks(body.lokasi, 160) or None
     if not parsial or body.catatan is not None:
         data["catatan"] = _bersih_teks(body.catatan, 300) or None
+    if not parsial or body.wajib_konfirmasi is not None:
+        data["wajib_konfirmasi"] = bool(body.wajib_konfirmasi)
     return data
 
 
@@ -10621,7 +10647,10 @@ async def pendaftaran_detail(kegiatan_id: str, request: Request,
     """Detail satu kegiatan: statistik + daftar konfirmasi peserta."""
     k = await db.pendaftaran_kegiatan.find_one({"_id": kegiatan_id})
     if not k:
-        raise HTTPException(status_code=404, detail="Kegiatan pendaftaran tidak ditemukan")
+        # Kegiatan sudah dihapus / tautan lama: 410 agar frontend tidak
+        # mengulang permintaan dan tidak muncul sebagai error 404.
+        raise HTTPException(status_code=410,
+                            detail="Kegiatan pendaftaran sudah tidak tersedia")
     counts = await _pendaftaran_hitung([kegiatan_id])
     rows = await _pendaftaran_rows(kegiatan_id)
     return {
@@ -10726,12 +10755,15 @@ async def pendaftaran_export(kegiatan_id: str, format: str = "excel",
         elems = [
             Paragraph("Pendaftaran Kegiatan — E-KERTALANGU", styles["Title"]),
             Paragraph(f"Kegiatan: {k.get('nama') or '-'}", styles["Normal"]),
+            Paragraph(
+                f"Jenis: {'Wajib Konfirmasi' if k.get('wajib_konfirmasi', True) else 'Kegiatan Biasa'}",
+                styles["Normal"]),
             Paragraph(f"Tanggal: {k.get('tanggal') or '-'} · Lokasi: {k.get('lokasi') or '-'}",
                       styles["Normal"]),
             Paragraph(
                 f"Total peserta: {counts.get('total_peserta', 0)} · "
                 f"Hadir: {counts.get('hadir', 0)} · "
-                f"Tidak hadir: {counts.get('tidak_hadir', 0)} · "
+                f"Berhalangan hadir: {counts.get('tidak_hadir', 0)} · "
                 f"Belum konfirmasi: {counts.get('belum_konfirmasi', 0)} · "
                 f"Kehadiran: {counts.get('persentase_hadiran', 0)}%",
                 styles["Normal"]),
@@ -10742,7 +10774,7 @@ async def pendaftaran_export(kegiatan_id: str, format: str = "excel",
             tdata.append([
                 r.get("nama") or "-",
                 r.get("status_akun_label") or "-",
-                "Hadir" if r.get("kehadiran") == "hadir" else "Tidak Hadir",
+                "Hadir" if r.get("kehadiran") == "hadir" else "Berhalangan Hadir",
                 r.get("alasan_lain") or r.get("alasan") or "-",
                 r.get("keterangan") or "-",
             ])
@@ -10771,17 +10803,19 @@ async def pendaftaran_export(kegiatan_id: str, format: str = "excel",
     for r in rows:
         ws.append([
             r.get("nama"), r.get("nomor_hp"), r.get("status_akun_label"),
-            "Hadir" if r.get("kehadiran") == "hadir" else "Tidak Hadir",
+            "Hadir" if r.get("kehadiran") == "hadir" else "Berhalangan Hadir",
             r.get("alasan"), r.get("alasan_lain"), r.get("keterangan"),
             r.get("dibuat_pada"),
         ])
     ws2 = wb.create_sheet("Ringkasan")
     ws2.append(["Kegiatan", k.get("nama")])
+    ws2.append(["Jenis Kegiatan",
+                "Wajib Konfirmasi" if k.get("wajib_konfirmasi", True) else "Kegiatan Biasa"])
     ws2.append(["Tanggal", k.get("tanggal")])
     ws2.append(["Lokasi", k.get("lokasi")])
     ws2.append(["Total Peserta", counts.get("total_peserta", 0)])
     ws2.append(["Hadir", counts.get("hadir", 0)])
-    ws2.append(["Tidak Hadir", counts.get("tidak_hadir", 0)])
+    ws2.append(["Berhalangan Hadir", counts.get("tidak_hadir", 0)])
     ws2.append(["Belum Konfirmasi", counts.get("belum_konfirmasi", 0)])
     ws2.append(["Calon Peserta", counts.get("calon", 0)])
     ws2.append(["Persentase Kehadiran", f"{counts.get('persentase_hadiran', 0)}%"])
@@ -10806,6 +10840,7 @@ async def publik_pendaftaran_info(token: str):
         "tanggal": k.get("tanggal"),
         "lokasi": k.get("lokasi"),
         "catatan": k.get("catatan"),
+        "wajib_konfirmasi": k.get("wajib_konfirmasi", True),
         "alasan": list(PENDAFTARAN_ALASAN),
     }, headers={"X-Robots-Tag": "noindex, nofollow",
                 "Referrer-Policy": "no-referrer", "Cache-Control": "no-store"})

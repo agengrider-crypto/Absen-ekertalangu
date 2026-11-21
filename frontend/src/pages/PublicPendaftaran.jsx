@@ -141,6 +141,9 @@ export default function PublicPendaftaran() {
           <Logo size={44} />
           <h1 className="mt-4 text-xl font-bold text-[#14201A]">Konfirmasi Kehadiran</h1>
           <p className="mt-1 text-base font-semibold text-[#0E4E31]">{info?.nama}</p>
+          {info?.wajib_konfirmasi !== false && (
+            <p className="mt-1 text-xs font-semibold text-[#8A5A00]">⭐ Wajib Konfirmasi</p>
+          )}
           <div className="mt-2 space-y-1 text-sm text-[#5F6B63]">
             <p className="inline-flex items-center gap-1.5">
               <CalendarDays size={14} /> {tanggalIndonesia(info?.tanggal)}

@@ -11,7 +11,7 @@ import { PENDAFTARAN } from "@/constants/testIds";
 import { useAuth } from "@/context/AuthContext";
 import Modal from "@/components/Modal";
 import { toast } from "sonner";
-import { Statistik, AlasanRingkas, TabelPeserta } from "./pendaftaranBagian";
+import { Statistik, AlasanRingkas, TabelPeserta, JenisBadge } from "./pendaftaranBagian";
 
 const IKON = { Users, CheckCircle2, XCircle, Clock };
 
@@ -118,6 +118,9 @@ export default function PendaftaranDetailModal({
         <p className="p-6 text-center text-sm text-[#5F6B63]">Data tidak ditemukan.</p>
       ) : (
         <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <JenisBadge wajib={item.wajib_konfirmasi} />
+          </div>
           <Statistik item={item} ikon={IKON} />
 
           <div className="rounded-xl bg-[#F6F4EE] px-3 py-2.5">
