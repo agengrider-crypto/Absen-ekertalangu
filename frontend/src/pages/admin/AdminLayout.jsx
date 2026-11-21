@@ -8,7 +8,7 @@ import {
   ClipboardList, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
   Calendar1,
   PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle, BarChart3, LayoutGrid, Home,
-  Activity, Link2,
+  Activity, Link2, CalendarPlus, Archive,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { K1Mark, K1Wordmark } from "@/components/Logo";
@@ -45,6 +45,7 @@ const RekapHarianView = lazy(() => import("./RekapHarianView"));
 const MaintenanceSettings = lazy(() => import("./MaintenanceSettings"));
 const PeriksaAplikasiView = lazy(() => import("./PeriksaAplikasiView"));
 const PendataanView = lazy(() => import("./PendataanView"));
+const PendaftaranKegiatanView = lazy(() => import("./PendaftaranKegiatanView"));
 
 /** Indikator muat sederhana untuk panel menu. */
 function PanelLoading() {
@@ -76,6 +77,14 @@ const MENU = [
       { key: "kode-akses", label: "Kode Akses", icon: KeyRound, roles: ["admin", "pengurus"] },
       { key: "scan-presensi", label: "Scan Presensi", icon: ScanLine, roles: ["admin", "pengurus"] },
       { key: "pengumuman", label: "Pengumuman", icon: Megaphone, roles: ["admin", "pengurus"] },
+    ],
+  },
+  {
+    group: "grup-pendaftaran", label: "Pendaftaran Kegiatan", icon: CalendarPlus, roles: ["admin", "pengurus"],
+    items: [
+      { key: "pendaftaran-aktif", label: "Kegiatan Aktif", icon: CalendarPlus, roles: ["admin", "pengurus"] },
+      { key: "pendaftaran-rekap", label: "Rekap Kegiatan", icon: BarChart3, roles: ["admin", "pengurus"] },
+      { key: "pendaftaran-arsip", label: "Arsip Pendaftaran", icon: Archive, roles: ["admin", "pengurus"] },
     ],
   },
   {
@@ -131,6 +140,9 @@ const TRAIL_LABEL = {
   "laporan-peserta": "Laporan per Peserta",
   "rekap-bulanan": "Rekap Bulanan",
   "rekap-harian": "Rekap Harian",
+  "pendaftaran-aktif": "Kegiatan Aktif",
+  "pendaftaran-rekap": "Rekap Kegiatan",
+  "pendaftaran-arsip": "Arsip Pendaftaran",
   musyawarah: "Musyawarah",
   pengaduan: "Laporan Masuk",
   bantuan: "Pusat Bantuan",
@@ -156,6 +168,9 @@ const TRAIL_PARENT = {
   "laporan-peserta": "grup-laporan",
   "rekap-bulanan": "grup-laporan",
   "rekap-harian": "grup-laporan",
+  "pendaftaran-aktif": "grup-pendaftaran",
+  "pendaftaran-rekap": "grup-pendaftaran",
+  "pendaftaran-arsip": "grup-pendaftaran",
   musyawarah: "grup-laporan",
   pengaduan: "grup-laporan",
 };
@@ -530,6 +545,15 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "musyawarah" && <MusyawarahView />}
           {active === "pengumuman" && <PengumumanView />}
           {active === "pengaduan" && <RuangTeduhView />}
+          {active === "pendaftaran-aktif" && (
+            <PendaftaranKegiatanView mode="aktif" onGoto={go} />
+          )}
+          {active === "pendaftaran-rekap" && (
+            <PendaftaranKegiatanView mode="rekap" onGoto={go} />
+          )}
+          {active === "pendaftaran-arsip" && (
+            <PendaftaranKegiatanView mode="arsip" onGoto={go} />
+          )}
           {active === "laporan-peserta" && <LaporanPesertaView />}
           {active === "rekap-bulanan" && (
             <RekapBulananView

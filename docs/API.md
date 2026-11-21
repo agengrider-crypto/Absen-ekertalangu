@@ -3,7 +3,7 @@
 Semua endpoint berprefix **`/api`**. Auth memakai **JWT di httpOnly cookie** — bukan
 header `Authorization`. Gunakan session yang menyimpan cookie.
 
-Total: **82 endpoint**.
+Total: **94 endpoint**.
 
 ## Tingkat akses
 
@@ -327,6 +327,56 @@ gender_hadir, per_kegiatan[], per_peserta[], top_rajin[] (5), top_alpha[] (5)
 
 ---
 
+## 11b. Pendaftaran Kegiatan
+
+Modul konfirmasi peserta lewat tautan publik WhatsApp. **Terpisah dari absensi**:
+rute publik di sini tidak pernah menulis ke `users` maupun `absensis`.
+
+| Method | Path | Guard | Keterangan |
+|---|---|---|---|
+| GET | `/api/staff/pendaftaran` | `require_staff` | `?status=aktif\|berlangsung\|selesai\|arsip&date_from=&date_to=` — daftar kegiatan + statistik |
+| POST | `/api/staff/pendaftaran` | `require_staff` | `{nama, tanggal, lokasi?, catatan?}` — membuat kegiatan + token tautan publik |
+| GET | `/api/staff/pendaftaran/{id}` | `require_staff` | Detail: statistik, `alasan_ringkas`, dan `peserta[]` |
+| PATCH | `/api/staff/pendaftaran/{id}` | `require_staff` | Ubah nama/tanggal/lokasi/catatan |
+| POST | `/api/staff/pendaftaran/{id}/status` | `require_staff` | `{status}` — `aktif` \| `selesai` \| `arsip` |
+| POST | `/api/staff/pendaftaran/{id}/tautan` | `require_staff` | Buat ulang token publik (token lama mati) |
+| DELETE | `/api/staff/pendaftaran/{id}` | `require_admin` | Hapus permanen + seluruh konfirmasinya |
+| GET | `/api/staff/pendaftaran/{id}/export` | `require_staff` | `?format=excel\|pdf` — file biner |
+| GET | `/api/staff/pendaftaran/rekap` | `require_staff` | `?date_from=&date_to=&kegiatan_id=&kehadiran=hadir\|tidak_hadir\|belum` |
+| GET | `/api/staff/pendaftaran/rekap/export` | `require_staff` | `?format=excel\|pdf` + filter yang sama |
+| GET | `/api/publik/daftar/{token}` | — | Info kegiatan untuk halaman konfirmasi. **404** token salah, **410** sudah ditutup |
+| POST | `/api/publik/daftar/{token}` | — | `{nama, nomor_hp, kehadiran, alasan?, alasan_lain?, keterangan?}` |
+
+**Status tampil** dihitung dari tanggal (WITA), bukan disimpan:
+`aktif` (tanggal belum lewat) → `berlangsung` (hari ini) → `selesai` (sudah lewat),
+ditambah `arsip` bila admin memindahkannya. Tautan publik hanya menerima konfirmasi
+selama status `aktif` atau `berlangsung`.
+
+**Pencocokan peserta** (`POST /api/publik/daftar/{token}`): Nama + Nomor HP dicocokkan
+ke `users` (semua varian nomor: `08…`, `628…`, `+62…`). Bila ditemukan, respons memuat
+`ditemukan: true`, `pesan: "Peserta terdaftar ditemukan"`, dan `status_akun`
+(`aktif` \| `belum_aktivasi` \| `nonaktif`). Bila tidak ditemukan, konfirmasi tetap
+disimpan dengan `status_akun: "calon"` — **database peserta tidak diubah**.
+
+**Kunci respons daftar/rekap:**
+
+```
+id, nama, tanggal, lokasi, catatan, status, status_tampil, token, link,
+total_peserta, total_konfirmasi, hadir, tidak_hadir, belum_konfirmasi,
+calon, persentase_hadiran, dibuat_pada, diarsipkan_pada
+```
+
+`peserta[]` berisi `{id, nama, nomor_hp, kehadiran, alasan, alasan_lain, keterangan,
+peserta_id, status_akun, status_akun_label, dibuat_pada, diperbarui_pada}`.
+`alasan_ringkas` berisi jumlah per alasan: `Kerja`, `Sakit`, `Keperluan keluarga`,
+`Luar kota`, `Lainnya`.
+
+> `total_peserta` = jumlah peserta terdaftar (`PESERTA_QUERY`), `belum_konfirmasi` =
+> peserta terdaftar yang belum mengirim konfirmasi, `persentase_hadiran` =
+> `hadir / total_peserta`. Konfirmasi calon peserta tidak menambah `total_peserta`.
+
+---
+
 ## 12. Nilai enum
 
 | Konstanta | Nilai |
@@ -341,6 +391,11 @@ gender_hadir, per_kegiatan[], per_peserta[], top_rajin[] (5), top_alpha[] (5)
 | Status kegiatan | `open`, `closed` |
 | Status user | `active`, `pending`, `nonaktif` |
 | `source` user | `seed`, `admin`, `qr_public` |
+| Status pendaftaran (tersimpan) | `aktif`, `selesai`, `arsip` |
+| Status pendaftaran (tampil) | `aktif`, `berlangsung`, `selesai`, `arsip` |
+| Kehadiran pendaftaran | `hadir`, `tidak_hadir` |
+| `PENDAFTARAN_ALASAN` | `Kerja`, `Sakit`, `Keperluan keluarga`, `Luar kota`, `Lainnya` |
+| Status akun pendaftaran | `aktif`, `belum_aktivasi`, `nonaktif`, `calon` |
 
 | Konstanta waktu | Nilai |
 |---|---|

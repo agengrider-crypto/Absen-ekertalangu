@@ -1,5 +1,31 @@
 # E-KERTALANGU — PRD
 
+## Pembaruan 2026-11-21 — Pendaftaran Kegiatan
+- Menu sidebar baru **Pendaftaran Kegiatan** (Admin & Pengurus) dengan submenu
+  **Kegiatan Aktif**, **Rekap Kegiatan**, dan **Arsip Pendaftaran**. Menu lama tidak diubah.
+- Tujuan: konfirmasi peserta kegiatan lewat **tautan publik WhatsApp** tanpa wajib login
+  (`/daftar/{token}`). Form: Nama Lengkap, Nomor HP, 🟢 Saya Hadir / 🔴 Saya Tidak Bisa
+  Hadir, alasan wajib saat tidak hadir (Kerja, Sakit, Keperluan keluarga, Luar kota,
+  Lainnya), dan kolom keterangan.
+- **Keputusan penting**: modul ini **terpisah dari absensi**. Rute publik hanya menulis ke
+  `pendaftaran_konfirmasi`; `users` dan `absensis` tidak pernah disentuh. Peserta yang tidak
+  ditemukan disimpan sebagai **calon peserta** (`status_akun: "calon"`).
+- Pencocokan memakai **Nama + Nomor HP** dengan semua varian nomor (`08…`, `628…`, `+62…`),
+  mengikuti pola pencarian pada alur login. Bila ditemukan, halaman menampilkan
+  "Peserta terdaftar ditemukan" + status akun (Aktif / Belum Aktivasi).
+- Status kegiatan **tidak disimpan sebagai "berlangsung"**: `aktif`/`berlangsung`/`selesai`
+  dihitung dari tanggal (WITA) setiap request, sehingga tidak butuh pekerjaan terjadwal.
+  `arsip` disimpan karena merupakan tindakan admin.
+- Tautan publik hanya menerima konfirmasi selama kegiatan belum selesai; setelah diarsipkan
+  endpoint publik membalas **410**.
+- Rekap menyertakan persentase kehadiran (`hadir / total_peserta`), rincian jumlah alasan
+  tidak hadir, filter periode/kegiatan/status kehadiran, serta export Excel/PDF dan cetak.
+- Hapus permanen hanya untuk **Administrator** dengan konfirmasi; arsip tetap menyimpan
+  seluruh data peserta, konfirmasi, rekap, dan alasan izin.
+- Collection baru: `pendaftaran_kegiatan`, `pendaftaran_konfirmasi`, `pendaftaran_laju`.
+  `INIT_VERSION` naik ke 5.
+- Diuji: 51 pemeriksaan backend (mongomock) + verifikasi UI di browser.
+
 ## Pembaruan 2026-11-06
 - Pilihan Hadir/Izin/Sakit/Alpha pada absensi manual dirapikan rata kanan dengan area tekan yang lebih besar.
 - Pop-up catatan pembaruan muncul sekali per akun untuk versi terbaru; catatan bertanggal juga tersedia dari Profil Saya, dengan tombol Coba Sekarang menuju area fitur.

@@ -23,3 +23,4 @@ export * from './selfAbsence';
 export * from './about';
 export * from './activationQr';
 export * from './fab';
+export * from './pendaftaran';

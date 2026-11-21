@@ -7,7 +7,7 @@ Tidak ada relasi/`$lookup`. Referensi antar dokumen memakai **id string**.
 | `_id` | Dipakai di |
 |---|---|
 | `ObjectId` | `users` |
-| UUID string | `kegiatans`, `kelompoks`, `musyawarahs`, `pengumumans`, `delegations` |
+| UUID string | `kegiatans`, `kelompoks`, `musyawarahs`, `pengumumans`, `delegations`, `pendaftaran_kegiatan`, `pendaftaran_konfirmasi` |
 | String tetap | `app_settings` (`public_qr`, `__init__`, `__auto_close__`) |
 
 ---
@@ -233,6 +233,79 @@ koreksi absen terbaru.
 
 ---
 
+## `pendaftaran_kegiatan`
+
+Kegiatan yang membutuhkan konfirmasi peserta lewat tautan publik WhatsApp.
+**Terpisah dari `kegiatans`** (absensi) — tidak ada relasi ke `absensis`.
+
+```js
+{
+  _id: "<uuid>",
+  nama: "Pengajian Rutin Ahad Pagi",
+  tanggal: "2026-12-06",              // YYYY-MM-DD (WITA)
+  lokasi: "Masjid Kertalangu",        // boleh null
+  catatan: "Bawa kartu peserta",      // boleh null
+  status: "aktif" | "selesai" | "arsip",
+  token: "<urlsafe 24 byte>",         // dipakai pada URL /daftar/{token}
+  dibuat_oleh: "<user id>",
+  dibuat_pada: "<ISO WITA>",
+  diarsipkan_pada: "<ISO WITA>" | null,
+  diarsipkan_oleh: "<user id>" | null
+}
+```
+
+Status **tampil** (`aktif` / `berlangsung` / `selesai` / `arsip`) dihitung dari
+`tanggal` + `status` setiap request — tidak disimpan, jadi tidak butuh pekerjaan
+terjadwal. Hanya `token` yang disimpan; `link` dihitung per request lewat
+`resolve_base_url(request)`.
+
+Index: `token` (unik), `(status, tanggal)`.
+
+---
+
+## `pendaftaran_konfirmasi`
+
+Satu baris per konfirmasi peserta. **Rute publik hanya menulis ke sini** — `users`
+dan `absensis` tidak pernah disentuh.
+
+```js
+{
+  _id: "<uuid>",
+  kegiatan_id: "<pendaftaran_kegiatan._id>",
+  nama: "Ahmad Fauzi",
+  nomor_hp: "6281200000002",          // dinormalisasi ke 62…
+  kehadiran: "hadir" | "tidak_hadir",
+  alasan: "Kerja" | "Sakit" | "Keperluan keluarga" | "Luar kota" | "Lainnya" | null,
+  alasan_lain: "Acara keluarga" | null,
+  keterangan: "Shift pagi" | null,
+  peserta_id: "<users._id>" | null,   // null = calon peserta
+  status_akun: "aktif" | "belum_aktivasi" | "nonaktif" | "calon",
+  dibuat_pada: "<ISO WITA>",
+  diperbarui_pada: "<ISO WITA>"
+}
+```
+
+Index: `(kegiatan_id, nomor_hp)` **unik** (konfirmasi ulang menimpa baris yang sama),
+`(kegiatan_id, kehadiran)`.
+
+`peserta_id` dan `status_akun` adalah **salinan saat konfirmasi** — dipakai agar rekap
+tetap menampilkan status akun pada saat itu. Konfirmasi calon peserta tidak menambah
+`total_peserta` (yang dihitung dari `PESERTA_QUERY`).
+
+---
+
+## `pendaftaran_laju`
+
+Pembatas laju konfirmasi publik (20 per IP & per token / 10 menit).
+
+```js
+{ ip: "103.x.x.x", token: "<token>", at: "<ISO WITA>" }
+```
+
+Index: `at`. Baris lama tidak dibersihkan otomatis (sama seperti `izin_laju`).
+
+---
+
 ## `app_settings`
 
 Collection kunci–nilai dengan `_id` tetap.
@@ -242,7 +315,7 @@ Collection kunci–nilai dengan `_id` tetap.
 { _id: "public_qr", token: "AJQDnujHiPaQUD3y", created_at: "..." }
 
 // Penanda inisialisasi — mencegah index+seed berulang setiap cold start
-{ _id: "__init__", version: 3, at: "..." }
+{ _id: "__init__", version: 5, at: "..." }
 
 // Klaim slot auto-close — koordinasi antar instance serverless
 { _id: "__auto_close__", next_at: 1788715496.87 }   // epoch detik

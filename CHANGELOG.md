@@ -4,6 +4,38 @@ Format: perubahan dikelompokkan per rilis/fase. Bahasa Indonesia.
 
 ---
 
+## Pembaruan 21 November 2026 (Pendaftaran Kegiatan)
+
+- **Menu baru "Pendaftaran Kegiatan"** di sidebar Admin/Pengurus dengan tiga submenu:
+  **Kegiatan Aktif**, **Rekap Kegiatan**, dan **Arsip Pendaftaran**. Menu lama tidak diubah.
+- **Konfirmasi peserta lewat tautan publik WhatsApp** (`/daftar/{token}`) tanpa wajib login.
+  Form: Nama Lengkap, Nomor HP, pilihan 🟢 Saya Hadir / 🔴 Saya Tidak Bisa Hadir, alasan
+  wajib saat tidak hadir (Kerja, Sakit, Keperluan keluarga, Luar kota, Lainnya), dan kolom
+  keterangan.
+- **Pencocokan peserta**: Nama + Nomor HP dicocokkan ke database peserta (semua varian
+  nomor `08…`/`628…`/`+62…`). Bila ditemukan, halaman menampilkan "Peserta terdaftar
+  ditemukan" beserta status akun (Aktif / Belum Aktivasi). Bila tidak ditemukan, konfirmasi
+  disimpan sebagai **calon peserta**. **Database peserta utama tidak diubah** — rute publik
+  hanya menulis ke `pendaftaran_konfirmasi`.
+- **Detail kegiatan admin**: total peserta, hadir, tidak hadir, belum konfirmasi, daftar
+  peserta (nama, status akun, kehadiran, alasan izin, keterangan), tombol Salin Link
+  WhatsApp, Export Excel, dan Export PDF.
+- **Rekap Kegiatan**: ringkasan per kegiatan, statistik hadir/tidak hadir/belum konfirmasi,
+  persentase kehadiran, rincian jumlah alasan tidak hadir, tabel rekap, filter periode
+  tanggal + kegiatan + status kehadiran, serta export Excel/PDF dan cetak laporan.
+- **Arsip**: kegiatan selesai dipindahkan ke Arsip Pendaftaran (data peserta, konfirmasi,
+  rekap, dan alasan izin tetap tersimpan). Hapus permanen hanya untuk Administrator dengan
+  konfirmasi.
+- **Backend**: collection baru `pendaftaran_kegiatan`, `pendaftaran_konfirmasi`,
+  `pendaftaran_laju`; 12 endpoint baru (`/api/staff/pendaftaran*`, `/api/publik/daftar/{token}`);
+  `INIT_VERSION` naik ke 5.
+- **Tidak menyentuh** login, role, absensi QR, database peserta, routing lama, atau session.
+- Diuji: 51 pemeriksaan backend (mongomock) + verifikasi UI di browser (login admin,
+  sidebar, kartu kegiatan, detail, rekap, arsip, dua empty state, konfirmasi publik,
+  export Excel/PDF, filter rekap, peran pengurus, pengecualian mode pemeliharaan).
+
+---
+
 ## Pembaruan 11 November 2026 (Logo K1)
 
 - **Logo K1** (SVG) menjadi sumber tunggal di `components/Logo.jsx` — varian `light`
