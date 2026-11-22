@@ -131,7 +131,25 @@ MUBALIGH_OPTIONS = ["belum", "sudah"]
 MARITAL_OPTIONS = ["belum_menikah", "sudah_menikah"]
 GENDER_OPTIONS = ["L", "P"]
 
-app = FastAPI()
+def _jsonable(value):
+    """Ubah ObjectId (termasuk bersarang di list/dict) menjadi str."""
+    if isinstance(value, ObjectId):
+        return str(value)
+    if isinstance(value, dict):
+        return {k: _jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(v) for v in value]
+    return value
+
+
+class SafeJSONResponse(JSONResponse):
+    """Respons JSON yang selalu aman dari ObjectId mentah."""
+
+    def render(self, content) -> bytes:
+        return super().render(_jsonable(content))
+
+
+app = FastAPI(default_response_class=SafeJSONResponse)
 api_router = APIRouter(prefix="/api")
 
 
@@ -7358,11 +7376,12 @@ class UndanganInput(BaseModel):
 
 
 def serialize_undangan(u: dict, k: Optional[dict] = None) -> dict:
-    d = {"kegiatan_id": u.get("kegiatan_id"), "user_ids": list(u.get("user_ids") or []),
+    d = {"kegiatan_id": str(u.get("kegiatan_id") or ""),
+         "user_ids": [str(x) for x in (u.get("user_ids") or [])],
          "message": u.get("message") or "", "created_at": u.get("created_at"),
          "created_by_name": u.get("created_by_name")}
     if k:
-        d["kegiatan"] = {"id": k["_id"], "name": k.get("name"), "date": k.get("date"),
+        d["kegiatan"] = {"id": str(k["_id"]), "name": k.get("name"), "date": k.get("date"),
                          "start_time": k.get("start_time"), "end_time": k.get("end_time"),
                          "location": k.get("location"), "teacher": k.get("teacher"),
                          "material": k.get("material")}
@@ -7506,7 +7525,7 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
             if not staff and not match_gender_filter(k, user):
                 continue
             items.append({
-                "type": "kegiatan", "id": k["_id"], "title": k.get("name"),
+                "type": "kegiatan", "id": str(k["_id"]), "title": k.get("name"),
                 "subtitle": f"{k.get('date')} · {k.get('start_time')}–{k.get('end_time')} WITA"
                             + (f" · {k.get('location')}" if k.get("location") else ""),
                 "at": to_utc_iso(k.get("created_at")), "target": "kegiatan",
@@ -7516,7 +7535,7 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
 
     try:
         for p in await db.pengumumans.find().sort("created_at", -1).to_list(30):
-            items.append({"type": "pengumuman", "id": p["_id"], "title": p.get("title"),
+            items.append({"type": "pengumuman", "id": str(p["_id"]), "title": p.get("title"),
                           "subtitle": (p.get("body") or "")[:90],
                           "important": bool(p.get("important")),
                           "at": to_utc_iso(p.get("created_at")), "target": "pengumuman"})
@@ -7527,7 +7546,7 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
         for d in await db.undangans.find({} if staff else {"user_ids": uid}) \
                 .sort("created_at", -1).to_list(30):
             k = await db.kegiatans.find_one({"_id": d.get("kegiatan_id")}) or {}
-            items.append({"type": "undangan", "id": d.get("kegiatan_id"),
+            items.append({"type": "undangan", "id": str(d.get("kegiatan_id") or ""),
                           "title": f"Undangan penting: {k.get('name') or 'Kegiatan'}",
                           "subtitle": (d.get("message") or
                                        f"{k.get('date')} · {k.get('start_time')}–{k.get('end_time')} WITA"),
@@ -7538,7 +7557,7 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
     if staff:
         try:
             for m in await db.musyawarahs.find().sort("created_at", -1).to_list(20):
-                items.append({"type": "musyawarah", "id": m["_id"],
+                items.append({"type": "musyawarah", "id": str(m["_id"]),
                               "title": MUSY_LABEL.get(m.get("category"), "Musyawarah"),
                               "subtitle": (m.get("content") or "")[:90],
                               "at": to_utc_iso(m.get("created_at")), "target": "musyawarah"})
@@ -7548,7 +7567,7 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
             for p in await db.pengaduans.find({"read_by": {"$size": 0}}) \
                     .sort("at", -1).to_list(30):
                 who = "Anonim" if p.get("anonymous") else (p.get("name") or "Peserta")
-                items.append({"type": "pengaduan", "id": p["_id"],
+                items.append({"type": "pengaduan", "id": str(p["_id"]),
                               "title": f"Cerita Ruang Teduh dari {who}",
                               "subtitle": (p.get("judul") or p.get("message") or "")[:90],
                               "at": to_utc_iso(p.get("at")), "target": "pengaduan"})
@@ -7562,7 +7581,7 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
                     .sort("dibuat_at", -1).to_list(20):
                 k = await db.kegiatans.find_one({"_id": i.get("kegiatan_id")}) or {}
                 items.append({
-                    "type": "izin", "id": i["_id"],
+                    "type": "izin", "id": str(i["_id"]),
                     "title": f"{i.get('guru_nama') or 'Guru'} meminta Anda menggantikan {k.get('name') or 'kelas'}",
                     "subtitle": f"{_tanggal_indo(k.get('date'))} · {k.get('start_time')}–{k.get('end_time')} WITA",
                     "at": to_utc_iso(i.get("dibuat_at")), "target": "izin",
@@ -7575,7 +7594,7 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
                     .sort("dibuat_at", -1).to_list(20):
                 k = await db.kegiatans.find_one({"_id": i.get("kegiatan_id")}) or {}
                 items.append({
-                    "type": "izin", "id": i["_id"],
+                    "type": "izin", "id": str(i["_id"]),
                     "title": f"Izin guru: {i.get('guru_nama') or 'Guru'} · {k.get('name') or 'kelas'}",
                     "subtitle": f"{_tanggal_indo(k.get('date'))} · {i.get('status')}",
                     "at": to_utc_iso(i.get("dibuat_at")), "target": "izin",
@@ -7588,7 +7607,7 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
         for n in await db.notifikasi.find({"peserta_id": uid}) \
                 .sort("dibuat_pada", -1).to_list(40):
             items.append({
-                "type": "kehadiran", "id": n.get("_id") or f"{n.get('kegiatan_id')}",
+                "type": "kehadiran", "id": str(n.get("_id") or n.get("kegiatan_id") or ""),
                 "title": n.get("teks") or "Kehadiran tercatat",
                 "subtitle": None,
                 "at": to_utc_iso(n.get("dibuat_pada")), "target": "kegiatan",
@@ -7596,7 +7615,7 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
     except Exception:
         logger.exception("Notifikasi gagal pada sumber 'kehadiran'")
 
-    items = [i for i in items if i.get("at")]
+    items = [i for i in items if i.get("at") and i.get("id")]
     items.sort(key=lambda x: x["at"], reverse=True)
     return items[:40]
 
@@ -9390,13 +9409,25 @@ async def get_maintenance_doc() -> Optional[dict]:
 
 
 async def is_maintenance_ongoing() -> bool:
-    return maintenance_state(await get_maintenance_doc())["state"] == "ongoing"
+    try:
+        doc = await asyncio.wait_for(get_maintenance_doc(), timeout=5)
+        return maintenance_state(doc)["state"] == "ongoing"
+    except Exception:  # pragma: no cover
+        return False
 
 
 @api_router.get("/maintenance")
 async def maintenance_public():
-    """Keadaan pemeliharaan — boleh dibaca tanpa login (dipakai halaman login)."""
-    return maintenance_state(await get_maintenance_doc())
+    """Keadaan pemeliharaan — boleh dibaca tanpa login (dipakai halaman login).
+
+    Fail-open: bila gagal atau lambat, anggap tidak sedang maintenance.
+    """
+    try:
+        doc = await asyncio.wait_for(get_maintenance_doc(), timeout=5)
+        return maintenance_state(doc)
+    except Exception as exc:  # pragma: no cover
+        logger.warning("Baca status pemeliharaan gagal: %s", exc)
+        return maintenance_state(None)
 
 
 @api_router.get("/admin/maintenance")

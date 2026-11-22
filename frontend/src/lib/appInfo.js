@@ -19,6 +19,15 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-perbaikan-notifikasi",
+    date: "2026-11-23",
+    title: "Perbaikan notifikasi dan tanggal lahir",
+    keterangan: "Notifikasi, undangan, dan pemeriksa maintenance tidak lagi error; tanggal lahir bisa dipilih lewat kalender.",
+    items: [
+      "Perbaikan: notifikasi, undangan, dan pemeriksa maintenance tidak lagi error; tanggal lahir bisa dipilih lewat kalender.",
+    ],
+  },
+  {
     id: "2026-11-19-masuk-akun",
     date: "2026-11-19",
     title: "Masuk akun lebih ringkas",

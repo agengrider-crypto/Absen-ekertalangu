@@ -151,9 +151,18 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
     api.get(`/admin/users/${userId}`, { timeout: 15000 })
       .then(({ data }) => { setData(data); setForm(data); setGagal(false); })
       .catch((e) => {
+        // Id basi (404/410): pesan ramah, tutup panel, muat ulang daftar.
+        const status = e.response?.status;
+        if (status === 404 || status === 410) {
+          setGagal(true);
+          toast.error("Data sudah tidak tersedia");
+          onClose?.();
+          onChanged?.();
+          return;
+        }
         // Jangan menggantung di "Memuat data…": tampilkan pesan + tombol coba lagi.
         setGagal(true);
-        if (e.response?.status && e.response.status !== 404) {
+        if (status) {
           toast.error(formatApiErrorDetail(e.response?.data?.detail));
         }
       });

@@ -6,8 +6,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, X } from "lucide-react";
 import { api } from "@/lib/api";
 
-// Jeda bertahap setelah gagal: 30s → 60s → 120s, kembali normal setelah sukses.
-const RETRY_DELAYS = [30000, 60000, 120000];
+// Jeda bertahap setelah gagal: 30s → 60s → 120s → 300s, berhenti setelah 5 kali.
+const RETRY_DELAYS = [30000, 60000, 120000, 300000];
+const MAX_FAIL = 5;
 const NORMAL_DELAY = 45000;
 
 export default function NotificationBell({ onNavigate }) {
@@ -17,19 +18,22 @@ export default function NotificationBell({ onNavigate }) {
   const [failed, setFailed] = useState(false);
   const timerRef = useRef(null);
   const failRef = useRef(0);
+  const stopRef = useRef(false);
 
   const schedule = useCallback((delay) => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    if (stopRef.current) return;
     timerRef.current = setTimeout(() => { loadRef.current?.(); }, delay);
   }, []);
 
   const load = useCallback(() => {
+    if (stopRef.current) return;
     // Jangan memanggil saat tab tidak terlihat.
     if (typeof document !== "undefined" && document.hidden) {
       schedule(NORMAL_DELAY);
       return;
     }
-    api.get("/notifications")
+    api.get("/notifications", { __noRetry: true })
       .then(({ data }) => {
         setItems(data.items || []);
         setCount(data.count || 0);
@@ -37,12 +41,23 @@ export default function NotificationBell({ onNavigate }) {
         failRef.current = 0;
         schedule(NORMAL_DELAY);
       })
-      .catch(() => {
-        // Gagal: lonceng tampil tanpa angka, tidak melempar galat ke tampilan.
+      .catch((err) => {
+        // 401: sesi habis — hentikan polling, jangan diulang.
+        if (err?.response?.status === 401) {
+          stopRef.current = true;
+          if (timerRef.current) clearTimeout(timerRef.current);
+          setFailed(true);
+          setCount(0);
+          return;
+        }
         setFailed(true);
         setCount(0);
-        const delay = RETRY_DELAYS[Math.min(failRef.current, RETRY_DELAYS.length - 1)];
         failRef.current += 1;
+        if (failRef.current >= MAX_FAIL) {
+          stopRef.current = true;
+          return;
+        }
+        const delay = RETRY_DELAYS[Math.min(failRef.current - 1, RETRY_DELAYS.length - 1)];
         schedule(delay);
       });
   }, [schedule]);
