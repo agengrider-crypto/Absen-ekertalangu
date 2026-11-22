@@ -14,7 +14,7 @@ import ActionModal from "@/components/ActionModal";
 import Modal from "@/components/Modal";
 import ListFab, { ListPagination } from "@/components/ListFab";
 import PesertaDetailModal from "./PesertaDetailModal";
-import { genderLabel, statusBadge, MARITAL_OPTIONS, potensiGenerus, isGenerus, jenjangEfektif, jenjangLabel, umurPerJuli, golonganPeserta } from "./adminUtils";
+import { genderLabel, statusBadge, MARITAL_OPTIONS, potensiGenerus, isGenerus, isGenerusKategori, kategoriPeserta, jenjangEfektif, jenjangLabel, umurPerJuli, golonganPeserta } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
 
@@ -155,9 +155,9 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
       incomplete: roleUsers.filter((u) => dataMissing(u).length > 0).length,
       missingDob: roleUsers.filter((u) => dataMissing(u).includes("dob")).length,
       missingMarital: roleUsers.filter((u) => dataMissing(u).includes("marital")).length,
-      generus: all.filter((u) => u.roles?.includes("peserta") && isGenerus(u)).length,
-      dewasa: all.filter((u) => u.roles?.includes("peserta") && !isGenerus(u)).length,
-      waliBelum: all.filter((u) => u.roles?.includes("peserta") && isGenerus(u)
+      generus: all.filter((u) => u.roles?.includes("peserta") && isGenerusKategori(u)).length,
+      dewasa: all.filter((u) => u.roles?.includes("peserta") && kategoriPeserta(u) === "dewasa").length,
+      waliBelum: all.filter((u) => u.roles?.includes("peserta") && isGenerusKategori(u)
         && !waliMap[u.id]).length,
       roles: {
         peserta: all.filter((u) => u.roles?.includes("peserta")).length,
@@ -171,10 +171,10 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
   const filtered = useMemo(() => {
     if (!users) return [];
     let list = roleFilter === "all" ? users : users.filter((u) => u.roles?.includes(roleFilter));
-    if (roleFilter === "generus") list = users.filter((u) => u.roles?.includes("peserta") && isGenerus(u));
-    else if (roleFilter === "dewasa") list = users.filter((u) => u.roles?.includes("peserta") && !isGenerus(u));
+    if (roleFilter === "generus") list = users.filter((u) => u.roles?.includes("peserta") && isGenerusKategori(u));
+    else if (roleFilter === "dewasa") list = users.filter((u) => u.roles?.includes("peserta") && kategoriPeserta(u) === "dewasa");
     else if (roleFilter === "wali-belum") {
-      list = users.filter((u) => u.roles?.includes("peserta") && isGenerus(u) && !waliMap[u.id]);
+      list = users.filter((u) => u.roles?.includes("peserta") && isGenerusKategori(u) && !waliMap[u.id]);
     }
     if (statusFilter === "pending") list = list.filter((u) => u.status === "pending");
     else if (statusFilter === "active") list = list.filter((u) => u.status === "active");
@@ -563,6 +563,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
           canResetPassword={detailUser?.roles?.length === 1 && detailUser?.roles?.includes("peserta")}
           onClose={() => setDetailId(null)}
           onChanged={load}
+          onReloadList={load}
         />
       )}
 

@@ -19,6 +19,13 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-kategori-generus",
+    date: "2026-11-23",
+    title: "Tab Generus/Dewasa mengikuti status pernikahan",
+    keterangan: "Tab Generus/Dewasa langsung mengikuti status pernikahan; jenjang hanya untuk Generus.",
+    items: ["Perbaikan: tab Generus/Dewasa langsung mengikuti status pernikahan; jenjang hanya untuk Generus."],
+  },
+  {
     id: "2026-11-23-modal-pembaruan",
     date: "2026-11-23",
     title: "Modal Pembaruan terbaru lebih sederhana",

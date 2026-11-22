@@ -272,6 +272,7 @@ def public_user(user: dict, include_photo: bool = False) -> dict:
         "education": user.get("education"),
         "mubaligh": user.get("mubaligh"),
         "marital": user.get("marital"),
+        "kategori": user.get("kategori"),
         "kelompok_id": user.get("kelompok_id"),
         "jenjang": user.get("jenjang"),
         "jenjang_saran": bool(user.get("jenjang_saran", False)),
@@ -499,7 +500,7 @@ def build_pending_doc(name: str, dob: Optional[str]) -> dict:
         "name": name, "email": None, "username": None, "phone": None,
         "dob": normalize_dob(dob), "address": None, "roles": ["peserta"],
         "source": "admin_import", "avatar_gender": "male", "password_hash": None,
-        "status": "pending", "token_version": 0,
+        "status": "pending", "token_version": 0, "kategori": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -1383,6 +1384,7 @@ async def admin_create_user(body: AdminCreateUser, admin: dict = Depends(require
         "education": body.education if body.education in EDUCATION_OPTIONS else None,
         "mubaligh": body.mubaligh if body.mubaligh in MUBALIGH_OPTIONS else None,
         "marital": body.marital if body.marital in MARITAL_OPTIONS else None,
+        "kategori": kategori_dari_status(body.marital),
         "kelompok_id": body.kelompok_id or None,
         "roles": roles, "source": "admin",
         "avatar_gender": "female" if normalize_gender(body.gender) == "P" else "male",
@@ -1691,6 +1693,10 @@ async def admin_update_user(user_id: str, body: PesertaUpdate, admin: dict = Dep
         updates["mubaligh"] = body.mubaligh if body.mubaligh in MUBALIGH_OPTIONS else None
     if body.marital is not None:
         updates["marital"] = body.marital if body.marital in MARITAL_OPTIONS else None
+        # Kategori selalu dihitung server; nilai dari klien diabaikan.
+        kategori = kategori_dari_status(updates["marital"])
+        if kategori:
+            updates["kategori"] = kategori
     if body.photo is not None:
         updates["photo"] = body.photo or None
     if body.kelompok_id is not None:
@@ -1755,6 +1761,37 @@ async def admin_bulk_create(body: BulkCreateInput, admin: dict = Depends(require
         created.append(name)
     await log_activity(admin, "tambah_bulk", f"Menambah {len(created)} peserta (bulk)")
     return {"count": len(created), "flagged": flagged, "invalid_dates": invalid_dates}
+
+@api_router.post("/admin/users/migrasi-kategori")
+async def admin_migrasi_kategori(apply: bool = False, admin: dict = Depends(require_admin)):
+    """Hitung ulang kategori peserta dari status pernikahan.
+
+    `apply=false` (bawaan) hanya menampilkan pratinjau; `apply=true` menyimpan.
+    Nilai status kosong/tidak dikenal tidak diubah.
+    """
+    rows = await db.users.find({"roles": "peserta"}).to_list(20000)
+    pindah, tanpa_status, dewasa_jenjang = [], [], []
+    for u in rows:
+        baru = kategori_dari_status(u.get("marital"))
+        lama = u.get("kategori")
+        if baru is None:
+            tanpa_status.append(u.get("name"))
+            continue
+        if baru != lama:
+            pindah.append({"id": str(u["_id"]), "nama": u.get("name"),
+                           "lama": lama, "baru": baru})
+        if baru == "dewasa" and u.get("jenjang"):
+            dewasa_jenjang.append({"nama": u.get("name"), "jenjang": u.get("jenjang")})
+    if apply and pindah:
+        for p in pindah:
+            await db.users.update_one({"_id": ObjectId(p["id"])},
+                                      {"$set": {"kategori": p["baru"]}})
+        await log_activity(admin, "migrasi_kategori",
+                           f"Menghitung ulang kategori {len(pindah)} peserta")
+    return {"apply": apply, "jumlah": len(pindah), "pindah": pindah,
+            "tanpa_status": len(tanpa_status),
+            "dewasa_jenjang": dewasa_jenjang}
+
 
 @api_router.post("/admin/users/bulk-delete")
 async def admin_bulk_delete(body: BulkDeleteInput, admin: dict = Depends(require_staff)):
@@ -5562,6 +5599,9 @@ async def update_my_profile(body: ProfileUpdate, user: dict = Depends(get_curren
         updates["gender"] = normalize_gender(body.gender)
     if body.marital is not None:
         updates["marital"] = body.marital if body.marital in MARITAL_OPTIONS else None
+        kategori = kategori_dari_status(updates["marital"])
+        if kategori:
+            updates["kategori"] = kategori
     if updates:
         await db.users.update_one({"_id": user["_id"]}, {"$set": updates})
     u = await db.users.find_one({"_id": user["_id"]})
@@ -5588,6 +5628,9 @@ async def complete_account(body: CompleteAccountInput, response: Response,
         updates["gender"] = normalize_gender(body.gender)
     if body.marital is not None:
         updates["marital"] = body.marital if body.marital in MARITAL_OPTIONS else None
+        kategori = kategori_dari_status(updates["marital"])
+        if kategori:
+            updates["kategori"] = kategori
 
     candidate = {**user, **updates}
     candidate_dob = normalize_dob(candidate.get("dob"))
@@ -8620,6 +8663,22 @@ def is_generus(user: dict) -> bool:
     """Generus = peserta berjenjang PAUD … Pra Nikah 4 (termasuk saran dari umur)."""
     jenjang = user.get("jenjang") or saran_jenjang(user.get("dob"))
     return jenjang in GENERUS_JENJANG
+
+
+def kategori_dari_status(status) -> Optional[str]:
+    """Satu sumber kebenaran kategori peserta.
+
+    Belum menikah = "generus"; Sudah/Pernah menikah = "dewasa".
+    Nilai kosong/tidak dikenal = None (jangan diubah).
+    """
+    s = re.sub(r"\s+", "_", str(status or "").strip().lower())
+    if not s:
+        return None
+    if s in ("belum_menikah", "belum_menikah."):
+        return "generus"
+    if s in ("sudah_menikah", "pernah_menikah"):
+        return "dewasa"
+    return None
 
 
 def _id_varian(value) -> list:

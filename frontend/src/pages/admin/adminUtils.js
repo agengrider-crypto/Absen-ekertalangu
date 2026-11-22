@@ -86,6 +86,30 @@ export function isGenerus(user) {
   return GENERUS_JENJANG.includes(jenjangEfektif(user));
 }
 
+/**
+ * Satu sumber kebenaran kategori peserta.
+ * Belum menikah = Generus; Sudah/Pernah menikah = Dewasa.
+ * Nilai kosong/tidak dikenal = null (jangan diubah).
+ */
+export function kategoriDariStatus(status) {
+  const s = String(status || "").trim().toLowerCase().replace(/\s+/g, "_");
+  if (!s) return null;
+  if (s === "belum_menikah" || s === "belum menikah") return "generus";
+  if (s === "sudah_menikah" || s === "sudah menikah"
+    || s === "pernah_menikah" || s === "pernah menikah") return "dewasa";
+  return null;
+}
+
+/** Kategori efektif peserta: dari status pernikahan, atau kategori tersimpan. */
+export function kategoriPeserta(user) {
+  return kategoriDariStatus(user?.marital) || user?.kategori || null;
+}
+
+/** True bila peserta termasuk Generus menurut status pernikahan. */
+export function isGenerusKategori(user) {
+  return kategoriPeserta(user) === "generus";
+}
+
 /** Tampilkan Jenjang & Nomor WA wali hanya bila berpotensi generus. */
 export function potensiGenerus({ dob, marital }) {
   if (marital === "sudah_menikah") return false;

@@ -14,7 +14,7 @@ import ActionModal from "@/components/ActionModal";
 import Modal from "@/components/Modal";
 import {
   EDUCATION_OPTIONS, MUBALIGH_OPTIONS, MARITAL_OPTIONS, ACTION_LABELS,
-  genderLabel, statusBadge, statusEmoji, formatTanggal, formatDateTime, maritalLabel, mubalighLabel, jenjangLabel,
+  genderLabel, statusBadge, statusEmoji, formatTanggal, formatDateTime, maritalLabel, mubalighLabel, jenjangLabel, kategoriDariStatus,
 } from "./adminUtils";
 
 const inp = "w-full h-[46px] px-3.5 rounded-xl border border-[#8A948D] text-base outline-none focus:border-[#14633F] bg-white";
@@ -71,7 +71,7 @@ function EmptyState({ icon: Icon, text }) {
   );
 }
 
-export default function PesertaDetailModal({ userId, initialTab = "profil", kelompokList, canManageRoles = true, canResetPassword = false, canDelete = false, onClose, onChanged }) {
+export default function PesertaDetailModal({ userId, initialTab = "profil", kelompokList, canManageRoles = true, canResetPassword = false, canDelete = false, onClose, onChanged, onReloadList }) {
   const [data, setData] = useState(null);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -222,7 +222,8 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
         address: form.address || "", gender: form.gender || null,
         education: form.education || null, mubaligh: form.mubaligh || null,
         marital: form.marital || null,
-        jenjang: form.jenjang || null, nomor_wa_wali: form.nomor_wa_wali || null,
+        jenjang: kategoriDariStatus(form.marital) === "generus" ? (form.jenjang || null) : undefined,
+        nomor_wa_wali: form.nomor_wa_wali || null,
         pengajar: Boolean(form.pengajar),
         photo: form.photo ?? null, roles: form.roles, kelompok_id: form.kelompok_id || null,
         needs_completion: false,
@@ -232,6 +233,8 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
       setEditing(false);
       onChanged?.();
       load();
+      // Muat ulang daftar & hitungan tab supaya peserta langsung pindah tab.
+      onReloadList?.();
     } catch (e) {
       toast.error(formatApiErrorDetail(e.response?.data?.detail));
     } finally {
@@ -552,7 +555,9 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                         <InfoRow label="Pendidikan" value={data.education} />
                         <InfoRow label="Kemubalighan" value={mubalighLabel(data.mubaligh)} />
                         <InfoRow label="Status pernikahan" value={maritalLabel(data.marital)} />
-                        <InfoRow label="Jenjang" value={jenjangLabel(data.jenjang)} />
+                        {kategoriDariStatus(data.marital) === "generus" && (
+                          <InfoRow label="Jenjang" value={jenjangLabel(data.jenjang)} />
+                        )}
                         <InfoRow label="Nomor WA wali" value={data.nomor_wa_wali} />
                         <InfoRow label="Kelompok" value={kelompokName || "Tanpa kelompok"} />
                         <div className="sm:col-span-2">
@@ -683,12 +688,15 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                           <label className={lbl}>Kategori</label>
                           <div data-testid="detail-kategori"
                             className="flex h-11 items-center rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] px-3 text-sm font-semibold text-[#14201A]">
-                            {form.marital === "belum_menikah" ? "Generus" : "Dewasa"}
+                            {kategoriDariStatus(form.marital) === "generus" ? "Generus"
+                              : kategoriDariStatus(form.marital) === "dewasa" ? "Dewasa"
+                                : "Belum ditentukan"}
                           </div>
                           <span className="mt-1 block text-[11px] text-[#5F6B63]">
                             Otomatis dari status pernikahan
                           </span>
                         </div>
+                        {kategoriDariStatus(form.marital) === "generus" && (
                         <div>
                           <label className={lbl}><GraduationCap size={12} className="inline mr-1" />Jenjang</label>
                           <select data-testid="detail-jenjang" value={form.jenjang || ""} onChange={(e) => set("jenjang", e.target.value)} className={inp}>
@@ -701,11 +709,14 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                             </span>
                           )}
                         </div>
+                        )}
+                        {kategoriDariStatus(form.marital) === "generus" && (
                         <div>
                           <label className={lbl}>Nomor WA wali</label>
                           <input data-testid="detail-nomor-wa-wali" value={form.nomor_wa_wali || ""}
                             onChange={(e) => set("nomor_wa_wali", e.target.value)} placeholder="08xxxxxxxxxx" className={inp} />
                         </div>
+                        )}
                         <label className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl border border-[#E7E3D8] bg-white px-3 py-2 sm:col-span-2">
                           <input data-testid="detail-pengajar" type="checkbox" className="h-4 w-4 accent-[#14633F]"
                             checked={Boolean(form.pengajar)} onChange={(e) => set("pengajar", e.target.checked)} />
@@ -715,6 +726,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                       </div>
                     </div>
 
+                    {kategoriDariStatus(form.marital) === "generus" && (
                     <div className={`${card} p-4`} data-testid="detail-orang-tua">
                       <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-[#14201A]">
                         <HeartHandshake size={15} /> Orang tua
@@ -765,6 +777,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                         </div>
                       )}
                     </div>
+                    )}
 
                     {canManageRoles && (
                       <div className={`${card} p-4`}>
