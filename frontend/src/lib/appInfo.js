@@ -19,6 +19,13 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-dashboard-ringkas",
+    date: "2026-11-23",
+    title: "Dashboard lebih sederhana",
+    keterangan: "Dashboard lebih sederhana dan ringkas.",
+    items: ["Dashboard lebih sederhana dan ringkas."],
+  },
+  {
     id: "2026-11-23-halaman-user",
     date: "2026-11-23",
     title: "Halaman User lebih sederhana",

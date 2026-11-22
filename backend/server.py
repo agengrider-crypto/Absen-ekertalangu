@@ -5692,11 +5692,13 @@ async def admin_dashboard(admin: dict = Depends(require_staff)):
     keg_this_month = by_month.get(this_month, [])
     ratios = [counts_of(k)["ratio"] for k in keg_this_month if counts_of(k)["total"]]
     rasio_bulan = round(sum(ratios) / len(ratios), 1) if ratios else 0.0
+    hadir_bulan_ini = sum(counts_of(k)["hadir"] for k in keg_this_month)
 
     return {
         "total_peserta": total_peserta, "peserta_L": lk, "peserta_P": pr,
         "akun_aktif": akun_aktif, "akun_nonaktif": akun_nonaktif,
         "kegiatan_bulan_ini": len(keg_this_month),
+        "hadir_bulan_ini": hadir_bulan_ini,
         "rasio_kehadiran_bulan": rasio_bulan,
         "donut": {"L": lk, "P": pr},
         "tren": tren,
