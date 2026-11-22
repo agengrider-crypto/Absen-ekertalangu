@@ -19,6 +19,13 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-modal-pembaruan",
+    date: "2026-11-23",
+    title: "Modal Pembaruan terbaru lebih sederhana",
+    keterangan: "Modal Pembaruan terbaru lebih sederhana, dengan tombol WhatsApp ke admin.",
+    items: ["Modal Pembaruan terbaru lebih sederhana, dengan tombol WhatsApp ke admin."],
+  },
+  {
     id: "2026-11-23-kalender-lebar",
     date: "2026-11-23",
     title: "Kalender kegiatan lebih lebar",

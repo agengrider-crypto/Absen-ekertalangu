@@ -1,15 +1,22 @@
-// Popup "Pembaruan Terbaru": daftar baris ringkas yang bisa diklik.
+// Popup "Pembaruan Terbaru": ringkas — judul, maksimal 5 entri terbaru,
+// satu tombol tutup, dan tombol WhatsApp ke admin.
 // Sumber data changelog ada di @/lib/appInfo (dipakai juga oleh Tentang Aplikasi).
 // Status "sudah dibuka" disimpan per akun di localStorage (kunci memuat id pengguna).
 import { useEffect, useMemo, useState } from "react";
-import {
-  BellRing, CalendarDays, X, ArrowRight, ChevronDown, Sparkles, BarChart3,
-  HeartHandshake, Users, ClipboardList, CalendarPlus, QrCode,
-} from "lucide-react";
+import { BellRing, X, MessageCircle } from "lucide-react";
 import { CHANGELOG, formatChangelogDate } from "@/lib/appInfo";
 import Modal from "@/components/Modal";
 
 const STORAGE_PREFIX = "ekertalangu.updateSeen";
+const MAKS_ENTRI = 5;
+
+/** Nomor WhatsApp admin (format 62, tanpa +, spasi, atau 0 di depan). */
+export const ADMIN_WA_NUMBER = "6281937718541";
+const WA_TEXT = "Halo admin E-Kertalangu, saya ingin menyampaikan masukan tentang pembaruan: ";
+
+export function adminWaLink() {
+  return `https://wa.me/${ADMIN_WA_NUMBER}?text=${encodeURIComponent(WA_TEXT)}`;
+}
 
 /** Kunci localStorage memuat id pengguna DAN id pembaruan. */
 function entryKey(userId, updateId) {
@@ -43,28 +50,17 @@ export function hasUnreadUpdate(userId, role) {
   return updatesForRole(role).some((u) => !seen.includes(u.id));
 }
 
-/** Tandai semua pembaruan sudah dibaca. */
 export function markUpdatesRead(userId) {
   CHANGELOG.forEach((u) => markSeen(userId, u.id));
 }
 
-const ICON_BY_TUJUAN = {
-  "rekap-bulanan": BarChart3,
-  pengaduan: HeartHandshake,
-  peserta: Users,
-  "laporan-peserta": ClipboardList,
-  kalender: CalendarDays,
-  kegiatan: CalendarPlus,
-  "kartu-nama": QrCode,
-};
-
 export default function UpdateModal({ onNavigate, forceOpen = false, onClose, user, role }) {
   const [open, setOpen] = useState(forceOpen);
-  const [seen, setSeen] = useState(() => readSeenUpdates(user?.id));
-  const [expanded, setExpanded] = useState(null);
+  const [lihatSemua, setLihatSemua] = useState(false);
 
   const activeRole = role || (user?.roles || [])[0] || "peserta";
   const rows = useMemo(() => updatesForRole(activeRole), [activeRole]);
+  const tampil = lihatSemua ? rows : rows.slice(0, MAKS_ENTRI);
 
   useEffect(() => {
     if (forceOpen) { setOpen(true); return; }
@@ -72,46 +68,46 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose, us
     if (latest && !readSeenUpdates(user?.id).includes(latest)) setOpen(true);
   }, [forceOpen, rows, user?.id]);
 
-  const tandai = (id) => {
-    if (seen.includes(id)) return;
-    setSeen((prev) => [...prev, id]);
-    markSeen(user?.id, id);
-  };
-
   const close = () => {
     setOpen(false);
     markUpdatesRead(user?.id);
     onClose?.();
   };
 
-  const go = (nav) => {
-    close();
-    onNavigate?.(nav);
-  };
-
   if (!open) return null;
 
   const header = (
-    <div className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
+    <div className="flex items-start justify-between gap-2 px-4 pb-2 pt-4 sm:px-5">
       <div className="flex min-w-0 items-center gap-2.5">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0B6B52] text-white">
-          <BellRing size={19} />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0B6B52] text-white">
+          <BellRing size={17} />
         </span>
-        <div className="min-w-0">
-          <h2 className="font-heading text-lg font-bold leading-tight text-[#14201A]">Pembaruan terbaru</h2>
-          <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-[#5F6B63]">
-            <CalendarDays size={12} /> {rows[0]?.date ? formatChangelogDate(rows[0].date) : "—"}
-          </p>
-        </div>
+        <h2 className="min-w-0 font-heading text-base font-bold leading-tight text-[#14201A] sm:text-lg">
+          Pembaruan terbaru
+        </h2>
       </div>
-      <button
-        data-testid="update-modal-close"
-        onClick={close}
-        aria-label="Tutup"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#5F6B63] hover:bg-[#F0EEE6]"
-      >
-        <X size={20} />
-      </button>
+      <div className="flex shrink-0 items-center gap-1">
+        <a
+          href={adminWaLink()}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="update-modal-wa"
+          aria-label="Hubungi admin"
+          title="Hubungi admin"
+          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#E7E3D8] px-2 text-xs font-semibold text-[#0E4E31] hover:border-[#14633F] hover:bg-[#E3F3EA]"
+        >
+          <MessageCircle size={15} />
+          <span className="hidden sm:inline">Hubungi admin</span>
+        </a>
+        <button
+          data-testid="update-modal-close"
+          onClick={close}
+          aria-label="Tutup"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"
+        >
+          <X size={18} />
+        </button>
+      </div>
     </div>
   );
 
@@ -120,10 +116,10 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose, us
       onClose={close}
       testid="update-modal"
       closeTestId="update-modal-close"
-      maxWidth={640}
+      maxWidth={560}
       zIndex={9999}
       hideClose
-      bodyClassName="px-4 py-2"
+      bodyClassName="px-4 py-1"
       header={header}
       footer={(
         <button
@@ -135,74 +131,26 @@ export default function UpdateModal({ onNavigate, forceOpen = false, onClose, us
       )}
     >
       <ul className="divide-y divide-[#F0EEE6]" data-testid="update-list">
-        {rows.map((u) => {
-          const unread = !seen.includes(u.id);
-          const Icon = ICON_BY_TUJUAN[u.tujuan] || Sparkles;
-          const hasTujuan = Boolean(u.tujuan);
-          const longText = (u.keterangan || "").length > 60;
-          const expandable = !hasTujuan && longText;
-          const clickable = hasTujuan || expandable;
-          const isOpen = expanded === u.id;
-          const ringkas = u.keterangan || u.items?.[0] || "";
-
-          const body = (
-            <>
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E3F3EA] text-[#0E4E31]">
-                <Icon size={15} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="min-w-0 truncate text-[14px] font-semibold text-[#14201A]">{u.title}</span>
-                  {unread && (
-                    <span className="shrink-0 rounded-full bg-[#E3F3EA] px-1.5 py-0.5 text-[10px] font-bold text-[#0E4E31]">
-                      Baru
-                    </span>
-                  )}
-                </span>
-                <span className="mt-0.5 block truncate text-[12.5px] text-[#5F6B63]">{ringkas}</span>
-                {hasTujuan && (
-                  <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-semibold text-[#0E4E31]">
-                    Coba sekarang <ArrowRight size={12} />
-                  </span>
-                )}
-              </span>
-              {expandable && (
-                <ChevronDown
-                  size={16}
-                  className={`mt-1 shrink-0 text-[#5F6B63] transition-transform duration-200 motion-reduce:transition-none ${isOpen ? "rotate-180" : ""}`}
-                />
-              )}
-            </>
-          );
-
-          return (
-            <li key={u.id} data-testid={`update-item-${u.id}`}>
-              {clickable ? (
-                <button
-                  type="button"
-                  data-testid={`update-row-${u.id}`}
-                  aria-expanded={expandable ? isOpen : undefined}
-                  onClick={() => {
-                    tandai(u.id);
-                    if (hasTujuan) go(u.tujuan);
-                    else setExpanded(isOpen ? null : u.id);
-                  }}
-                  className="flex min-h-[44px] w-full items-start gap-3 px-1 py-3 text-left transition-colors hover:bg-[#F6F4EE]"
-                >
-                  {body}
-                </button>
-              ) : (
-                <div className="flex min-h-[44px] w-full items-start gap-3 px-1 py-3">{body}</div>
-              )}
-              {expandable && isOpen && (
-                <p className="px-1 pb-3 pl-12 text-[13px] leading-relaxed text-[#5F6B63] motion-safe:animate-[reportCardIn_0.3s_ease-out_both]">
-                  {u.keterangan}
-                </p>
-              )}
-            </li>
-          );
-        })}
+        {tampil.map((u) => (
+          <li key={u.id} data-testid={`update-item-${u.id}`} className="px-1 py-2.5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#5F6B63]">
+              {formatChangelogDate(u.date)}
+            </p>
+            <p className="mt-0.5 text-[13.5px] leading-snug text-[#14201A]">
+              {u.keterangan || u.items?.[0] || u.title}
+            </p>
+          </li>
+        ))}
       </ul>
+      {rows.length > MAKS_ENTRI && !lihatSemua && (
+        <button
+          type="button"
+          onClick={() => setLihatSemua(true)}
+          className="mt-1 mb-2 w-full rounded-lg py-2 text-sm font-semibold text-[#0E4E31] hover:bg-[#F6F4EE]"
+        >
+          Lihat semua
+        </button>
+      )}
     </Modal>
   );
 }
