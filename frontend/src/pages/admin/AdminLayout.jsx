@@ -532,7 +532,15 @@ export default function AdminLayout({ user, role = "admin" }) {
               onSubPageChange={setKegiatanSubPage}
             />
           )}
-          {active === "kalender" && <KalenderView />}
+          {active === "kalender" && (
+            <KalenderView
+              onOpenKegiatan={(id) => {
+                if (id) setKegiatanIdToOpen(id);
+                else setAddKegiatanRequest((request) => request + 1);
+                setActive("kegiatan");
+              }}
+            />
+          )}
           {active === "bantuan" && <BantuanView role={role} />}
           {active === "tutorial-video" && <TutorialVideoView role={role} />}
           {active === "pemeliharaan" && role === "admin" && <MaintenanceSettings />}

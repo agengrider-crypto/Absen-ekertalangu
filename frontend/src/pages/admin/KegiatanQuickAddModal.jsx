@@ -52,7 +52,7 @@ function Chip({ on, children, ...rest }) {
  * @param {function} onClose
  * @param {function} onFullForm  buka formulir lengkap dengan nilai awal
  */
-export default function KegiatanQuickAddModal({ source = null, mode = "cepat", onClose, onFullForm }) {
+export default function KegiatanQuickAddModal({ source = null, mode = "cepat", initialDate = null, onClose, onFullForm }) {
   const navigate = useNavigate();
   const susulan = mode === "sebelumnya";
   const now = useMemo(() => nowWita(), []);
@@ -60,7 +60,7 @@ export default function KegiatanQuickAddModal({ source = null, mode = "cepat", o
   const [type, setType] = useState(source?.type || "rutin");
   // Bawaan "Terbuka / Publik" untuk absen cepat & formulir kecil.
   const [audience, setAudience] = useState(source?.audience || "publik");
-  const [date, setDate] = useState(now.date);
+  const [date, setDate] = useState(initialDate || now.date);
   const [startTime, setStartTime] = useState(source?.start_time || now.time);
   const [endTime, setEndTime] = useState(source?.end_time || safeEndTime(now.time));
   const [waktu, setWaktu] = useState(susulan ? "lewat" : "sekarang");
@@ -79,12 +79,12 @@ export default function KegiatanQuickAddModal({ source = null, mode = "cepat", o
 
   // "Sekarang" selalu memakai jam WITA saat ini; "Sudah lewat" membebaskan tanggal.
   useEffect(() => {
-    if (waktu === "sekarang") {
+    if (waktu === "sekarang" && !initialDate) {
       setDate(now.date);
       setStartTime(now.time);
       setEndTime(safeEndTime(now.time));
     }
-  }, [waktu, now]);
+  }, [waktu, now, initialDate]);
 
   const pesertaLabel = pickMode
     ? `${participants.length} peserta dipilih`

@@ -19,6 +19,13 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-kalender-lebar",
+    date: "2026-11-23",
+    title: "Kalender kegiatan lebih lebar",
+    keterangan: "Kalender kegiatan lebih lebar; klik tanggal langsung ke Absensi atau jendela sesi.",
+    items: ["Kalender kegiatan lebih lebar; klik tanggal langsung ke Absensi atau jendela sesi."],
+  },
+  {
     id: "2026-11-23-dashboard-ringkas",
     date: "2026-11-23",
     title: "Dashboard lebih sederhana",
