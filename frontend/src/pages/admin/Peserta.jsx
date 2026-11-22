@@ -3,7 +3,7 @@ import {
   Users, Search, Loader2, UserPlus, Trash2, X, Eye, AlertTriangle,
   ClipboardList, CalendarDays, Heart, Printer, QrCode, CheckCircle2, ChevronLeft, ChevronRight,
   MoreHorizontal, User as UserIcon, History, SlidersHorizontal, GraduationCap, Clock,
-  Link2, RefreshCw,
+  Link2, RefreshCw, Power,
 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -95,6 +95,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
   const [roleFilter, setRoleFilter] = useState("all");
   const [selected, setSelected] = useState(new Set());
   const [detailId, setDetailId] = useState(null);
+  const [pilihMode, setPilihMode] = useState(false);
   const [detailTab, setDetailTab] = useState("profil");
   const [actionsFor, setActionsFor] = useState(null);
   const [modal, setModal] = useState(null); // "add" | "bulk" | null
@@ -325,6 +326,20 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
         <div className="relative shrink-0">
           <button
             type="button"
+            data-testid="button-pilih-mode"
+            onClick={() => { setPilihMode((v) => !v); setSelected(new Set()); }}
+            className={`flex h-11 items-center rounded-xl border-2 px-3 text-sm font-semibold transition-colors ${
+              pilihMode
+                ? "border-[#A32A2A] bg-white text-[#A32A2A]"
+                : "border-[#E7E3D8] bg-white text-[#5F6B63] hover:border-[#14633F]"
+            }`}
+          >
+            {pilihMode ? "Batal" : "Pilih"}
+          </button>
+        </div>
+        <div className="relative shrink-0">
+          <button
+            type="button"
             data-testid={PARTICIPANTS.statusFilter}
             onClick={() => setShowStatusFilter((v) => !v)}
             aria-label="Filter status"
@@ -342,10 +357,7 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
               {[
                 { key: "all", label: "Semua", count: counts.all },
                 { key: "active", label: "Aktif", count: counts.active },
-                { key: "nonaktif", label: "Nonaktif Sementara", count: counts.nonaktif },
-                { key: "pending", label: "Belum Aktivasi", count: counts.pending },
-                { key: "calon", label: "Calon Peserta", count: counts.calon },
-                { key: "incomplete", label: "Data Belum Lengkap", count: counts.incomplete },
+                { key: "nonaktif", label: "Nonaktif", count: counts.nonaktif },
               ].map((f) => {
                 const on = statusFilter === f.key;
                 return (
@@ -370,25 +382,25 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        {activatableSelected.length > 0 && (
+        {pilihMode && activatableSelected.length > 0 && (
           <button data-testid={PARTICIPANTS.bulkActivateButton} onClick={bulkActivate}
             className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#14633F] text-white font-semibold text-sm hover:bg-[#0E4E31]">
             <CheckCircle2 size={16} /> Aktifkan Terpilih ({activatableSelected.length})
           </button>
         )}
-        {deletableSelected.length > 0 && (
+        {pilihMode && deletableSelected.length > 0 && (
           <button data-testid="button-bulk-delete" onClick={bulkDelete}
             className="inline-flex items-center gap-2 h-11 px-4 rounded-xl bg-[#A32A2A] text-white font-semibold text-sm hover:bg-[#A32A2A]">
             <Trash2 size={16} /> Hapus Peserta ({deletableSelected.length})
           </button>
         )}
-        {selectedParticipants.length > 0 && (
+        {pilihMode && selectedParticipants.length > 0 && (
           <button data-testid="button-bulk-jenjang" onClick={() => setBulkJenjang(true)}
             className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold text-sm hover:bg-[#E3F3EA]">
             <GraduationCap size={16} /> Atur jenjang ({selectedParticipants.length})
           </button>
         )}
-        {pendingWithoutDobSelected.length > 0 && (
+        {pilihMode && pendingWithoutDobSelected.length > 0 && (
           <span data-testid={PARTICIPANTS.pendingNoDobNotice} className="text-sm font-medium text-[#6B4500]">
             {pendingWithoutDobSelected.length} akun perlu tanggal lahir valid sebelum diaktifkan.
           </span>
@@ -478,20 +490,22 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                         isSelected ? "bg-[#F6F4EE]" : ""
                       }`}
                     >
-                      <label
-                        className="flex h-11 w-11 shrink-0 items-center justify-center"
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          aria-label={`Pilih ${u.name}`}
-                          type="checkbox"
-                          className="h-4 w-4 accent-[#14633F]"
-                          checked={isSelected}
-                          onChange={() => toggleOne(u.id)}
-                          data-testid={`checkbox-${u.id}`}
-                        />
-                      </label>
+                      {pilihMode && (
+                        <label
+                          className="flex h-11 w-11 shrink-0 items-center justify-center"
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            aria-label={`Pilih ${u.name}`}
+                            type="checkbox"
+                            className="h-4 w-4 accent-[#14633F]"
+                            checked={isSelected}
+                            onChange={() => toggleOne(u.id)}
+                            data-testid={`checkbox-${u.id}`}
+                          />
+                        </label>
+                      )}
 
                       <span data-testid={`button-avatar-${u.id}`} className="shrink-0">
                         <PesertaAvatar user={u} />
@@ -502,37 +516,12 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
                           <span data-testid={`button-detail-${u.id}`} className="truncate text-[15px] font-semibold text-[#14201A]">
                             {u.name}
                           </span>
+                          {u.status === "nonaktif" && (
+                            <span className="inline-flex h-6 shrink-0 items-center rounded-full bg-[#F0EEE6] px-2.5 text-xs font-semibold text-[#5F6B63]">
+                              Nonaktif
+                            </span>
+                          )}
                           {u.needs_completion && <AlertTriangle size={13} className="shrink-0 text-[#5F6B63]" aria-label="Perlu dilengkapi" />}
-                        </div>
-                        <div className="mt-0.5 truncate text-xs text-[#5F6B63]">
-                          {[
-                            u.username ? `@${u.username}` : null,
-                            jenjangEfektif(u) ? jenjangLabel(jenjangEfektif(u)) : null,
-                            umurPerJuli(u.dob) !== null ? `${umurPerJuli(u.dob)} th` : null,
-                          ].filter(Boolean).join(" · ") || genderLabel(u.gender)}
-                        </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          <span className={`inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${b.cls}`}>
-                            {u.status === "active" ? <CheckCircle2 size={11} /> : <Clock size={11} />}
-                            {b.label}
-                          </span>
-                          {u.roles?.includes("peserta") && isGenerus(u) && (
-                            <span className="inline-flex h-6 items-center rounded-full bg-[#F0EEE6] px-2.5 text-xs font-semibold text-[#5F6B63]">
-                              {waliMap[u.id] === "ibu" ? "Ibu" : waliMap[u.id] === "ayah" ? "Ayah"
-                                : waliMap[u.id] === "wali" ? "Wali" : "Belum ada wali"}
-                            </span>
-                          )}
-                          {u.pengajar && (
-                            <span data-testid={`badge-pengajar-${u.id}`} className="inline-flex h-6 items-center rounded-full bg-[#E3F3EA] px-2.5 text-xs font-semibold text-[#0E4E31]">
-                              Pengajar
-                            </span>
-                          )}
-                          {miss.length > 0 && (
-                            <button type="button" onClick={(e) => { e.stopPropagation(); openDetail(u.id); }}
-                              className="inline-flex h-6 items-center rounded-full bg-[#FBE5E3] px-2.5 text-xs font-semibold text-[#A32A2A]">
-                              Lengkapi {miss.length}
-                            </button>
-                          )}
                         </div>
                       </div>
 
@@ -603,6 +592,11 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
               key: "riwayat", testid: "row-action-riwayat", label: "Riwayat",
               desc: "Informasi akun & aktivitas", icon: History,
               onClick: () => { openDetail(actionsFor.id, "riwayat"); },
+            },
+            {
+              key: "nonaktif", testid: "row-action-nonaktif", label: "Nonaktif sementara",
+              desc: "Riwayat: mulai, selesai, alasan, catatan", icon: Power,
+              onClick: () => { openDetail(actionsFor.id, "profil"); },
             },
           ]}
         />

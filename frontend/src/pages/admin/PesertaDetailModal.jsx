@@ -680,6 +680,16 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                           </select>
                         </div>
                         <div>
+                          <label className={lbl}>Kategori</label>
+                          <div data-testid="detail-kategori"
+                            className="flex h-11 items-center rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] px-3 text-sm font-semibold text-[#14201A]">
+                            {form.marital === "belum_menikah" ? "Generus" : "Dewasa"}
+                          </div>
+                          <span className="mt-1 block text-[11px] text-[#5F6B63]">
+                            Otomatis dari status pernikahan
+                          </span>
+                        </div>
+                        <div>
                           <label className={lbl}><GraduationCap size={12} className="inline mr-1" />Jenjang</label>
                           <select data-testid="detail-jenjang" value={form.jenjang || ""} onChange={(e) => set("jenjang", e.target.value)} className={inp}>
                             <option value="">- Pilih -</option>

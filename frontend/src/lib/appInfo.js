@@ -19,6 +19,15 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-halaman-user",
+    date: "2026-11-23",
+    title: "Halaman User lebih sederhana",
+    keterangan: "Daftar nama, filter status, mode Pilih, dan kategori otomatis dari status pernikahan.",
+    items: [
+      "Halaman User lebih sederhana: daftar nama, filter status, mode Pilih, dan kategori otomatis dari status pernikahan.",
+    ],
+  },
+  {
     id: "2026-11-23-perbaikan-notifikasi",
     date: "2026-11-23",
     title: "Perbaikan notifikasi dan tanggal lahir",
