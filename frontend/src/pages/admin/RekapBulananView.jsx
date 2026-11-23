@@ -86,8 +86,9 @@ function Accordion({ open, onToggle, title, testid, children }) {
   );
 }
 
-export default function RekapBulananView({ initialFilter = "semua", onOpenHarian }) {
+export default function RekapBulananView({ initialFilter = "semua", onOpenHarian, onOpenPeserta }) {
   const { user } = useAuth();
+  const bisaKlik = (user?.roles || []).some((r) => r === "admin" || r === "pengurus");
   const [month, setMonth] = useState(thisMonth);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -110,8 +111,29 @@ export default function RekapBulananView({ initialFilter = "semua", onOpenHarian
     const updated = { ...hiddenParticipants };
     if (hide) updated[userId] = threeMonthsFromNow();
     else delete updated[userId];
-    localStorage.setItem(hiddenStorageKey(user?.id), JSON.stringify(updated));
+    try {
+      localStorage.setItem(hiddenStorageKey(user?.id), JSON.stringify(updated));
+    } catch {
+      toast.error("Gagal menyimpan. Coba lagi.");
+      return;
+    }
     setHiddenParticipants(updated);
+    const nama = (data?.rows || []).find((r) => r.user_id === userId)?.name || "Peserta";
+    toast.success(hide ? "Peserta disembunyikan" : "Peserta ditampilkan kembali", {
+      action: {
+        label: "Batalkan",
+        onClick: () => {
+          const balik = { ...updated };
+          if (hide) delete balik[userId];
+          else balik[userId] = threeMonthsFromNow();
+          try {
+            localStorage.setItem(hiddenStorageKey(user?.id), JSON.stringify(balik));
+          } catch { /* abaikan */ }
+          setHiddenParticipants(balik);
+        },
+      },
+      description: nama,
+    });
   };
 
   const load = useCallback((m) => {
@@ -348,6 +370,8 @@ export default function RekapBulananView({ initialFilter = "semua", onOpenHarian
                       key={person.user_id} type="button"
                       data-testid={`${MONTHLY_RECAP.showParticipantPrefix}-${person.user_id}`}
                       onClick={() => updateHiddenParticipants(person.user_id, false)}
+                      aria-label="Tampilkan kembali"
+                      title="Tampilkan kembali"
                       className="inline-flex min-h-11 items-center rounded-xl border border-[#E7E3D8] px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]"
                     >
                       <Eye size={15} className="mr-1" />{person.name}
@@ -364,29 +388,59 @@ export default function RekapBulananView({ initialFilter = "semua", onOpenHarian
                 <li key={r.user_id} data-testid={`rekap-bulanan-row-${r.user_id}`} className="flex items-center gap-3 py-2.5">
                   <div className="min-w-0 flex-1">
                     <div className="flex min-w-0 items-center gap-1.5">
-                      <span className="min-w-0 truncate text-sm font-semibold text-[#14201A]" title={r.name}>{r.name}</span>
+                      {bisaKlik ? (
+                        <button
+                          type="button"
+                          data-testid={`rekap-bulanan-nama-${r.user_id}`}
+                          onClick={() => onOpenPeserta?.(r.user_id)}
+                          title={`Buka riwayat ${r.name}`}
+                          className="group inline-flex min-w-0 items-center gap-1 text-left"
+                        >
+                          <span className="min-w-0 truncate text-sm font-semibold text-[#14201A] underline-offset-2 group-hover:underline">
+                            {r.name}
+                          </span>
+                          <ChevronRight size={13} className="shrink-0 text-[#5F6B63]" />
+                        </button>
+                      ) : (
+                        <span className="min-w-0 truncate text-sm font-semibold text-[#14201A]" title={r.name}>{r.name}</span>
+                      )}
                       <span className="shrink-0 rounded-full bg-[#F0EEE6] px-1.5 py-0.5 text-[10px] font-bold text-[#5F6B63]">
                         {r.gender === "L" ? "L" : r.gender === "P" ? "P" : "—"}
                       </span>
                     </div>
-                    <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-[#F0EEE6]">
+                    <div className="group relative mt-1">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-[#F0EEE6]">
+                        <div
+                          className="h-full rounded-full transition-[width] duration-700 ease-out"
+                          style={{ width: `${Math.max(0, Math.min(100, r.ratio))}%`, backgroundColor: ratioColor(r.ratio) }}
+                        />
+                      </div>
                       <div
-                        className="h-full rounded-full transition-[width] duration-700 ease-out"
-                        style={{ width: `${Math.max(0, Math.min(100, r.ratio))}%`, backgroundColor: ratioColor(r.ratio) }}
-                      />
+                        role="tooltip"
+                        className="pointer-events-none absolute bottom-full left-0 z-20 mb-1.5 w-max max-w-[240px] rounded-lg bg-[#14201A] px-2.5 py-1.5 text-[11px] leading-snug text-white opacity-0 shadow-lg transition-all duration-150 motion-reduce:transition-none group-hover:opacity-100 group-focus-within:opacity-100"
+                      >
+                        <div className="font-semibold">{r.name}</div>
+                        <div className="mt-0.5">
+                          Hadir {r.hadir} · Izin {r.izin ?? 0} · Sakit {r.sakit ?? 0} · Alpa {r.alpha ?? 0}
+                        </div>
+                        <div className="font-semibold">{Math.round(r.ratio)}% kehadiran</div>
+                      </div>
                     </div>
                   </div>
                   <span className="shrink-0 text-sm font-bold tabular-nums text-[#14201A]">
                     {r.hadir}<span className="font-semibold text-[#5F6B63]"> dari {r.pertemuan}</span>
                   </span>
-                  <button
-                    type="button" data-testid={`${MONTHLY_RECAP.hideParticipantPrefix}-${r.user_id}`}
-                    onClick={() => updateHiddenParticipants(r.user_id, true)}
-                    aria-label={`Sembunyikan ${r.name}`}
-                    className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"
-                  >
-                    <EyeOff size={15} />
-                  </button>
+                  {bisaKlik && (
+                    <button
+                      type="button" data-testid={`${MONTHLY_RECAP.hideParticipantPrefix}-${r.user_id}`}
+                      onClick={() => updateHiddenParticipants(r.user_id, true)}
+                      aria-label="Sembunyikan dari daftar"
+                      title="Sembunyikan dari daftar"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#5F6B63] hover:bg-[#F0EEE6]"
+                    >
+                      <EyeOff size={15} />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

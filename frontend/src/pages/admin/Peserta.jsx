@@ -76,7 +76,7 @@ function PesertaAvatar({ user, size = "md" }) {
   );
 }
 
-export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHandled }) {
+export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHandled, initialDetailId = null, onInitialDetailHandled }) {
   const isAdmin = role === "admin";
   const handledAddRequest = useRef(0);
   const [users, setUsers] = useState(null);
@@ -107,6 +107,13 @@ export default function Peserta({ role = "admin", addRequest = 0, onAddRequestHa
     setDetailTab(tab);
     setDetailId(id);
   };
+
+  useEffect(() => {
+    if (!initialDetailId) return;
+    openDetail(initialDetailId, "riwayat");
+    onInitialDetailHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDetailId]);
 
   const load = () =>
     api.get("/admin/users")

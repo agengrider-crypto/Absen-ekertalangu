@@ -367,6 +367,7 @@ export default function AdminLayout({ user, role = "admin" }) {
   const [addPesertaRequest, setAddPesertaRequest] = useState(0);
   const [addKegiatanRequest, setAddKegiatanRequest] = useState(0);
   const [kegiatanIdToOpen, setKegiatanIdToOpen] = useState(null);
+  const [pesertaIdToOpen, setPesertaIdToOpen] = useState(null);
   const [monthlyRecapFilter, setMonthlyRecapFilter] = useState("semua");
   const [rekapHarianDate, setRekapHarianDate] = useState(null);
   const [kegiatanSubPage, setKegiatanSubPage] = useState(null);
@@ -522,6 +523,8 @@ export default function AdminLayout({ user, role = "admin" }) {
               role={role}
               addRequest={addPesertaRequest}
               onAddRequestHandled={() => setAddPesertaRequest(0)}
+              initialDetailId={pesertaIdToOpen}
+              onInitialDetailHandled={() => setPesertaIdToOpen(null)}
             />
           )}
           {active === "kartu-nama" && <KartuNamaView />}
@@ -569,6 +572,7 @@ export default function AdminLayout({ user, role = "admin" }) {
             <RekapBulananView
               initialFilter={monthlyRecapFilter}
               onOpenHarian={(date) => { go("rekap-harian"); setRekapHarianDate(date); }}
+              onOpenPeserta={(id) => { setPesertaIdToOpen(id); go("peserta"); }}
             />
           )}
           {active === "rekap-harian" && <RekapHarianView initialDate={rekapHarianDate} />}
