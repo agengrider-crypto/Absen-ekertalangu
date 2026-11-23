@@ -44,6 +44,7 @@ export default function AcakKegiatanModal({ kegiatan, onClose }) {
   useEffect(() => { muat(); }, [muat]);
 
   const acakRegu = async () => {
+    if (sibuk) return;
     setSibuk(true);
     try {
       const { data } = await api.post(`/staff/kegiatan/${kegiatan.id}/acak-regu`, {
@@ -52,20 +53,21 @@ export default function AcakKegiatanModal({ kegiatan, onClose }) {
       setRegu(data.regu);
       setDikunci(false);
     } catch (e) {
-      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+      toast.error(formatApiErrorDetail(e.response?.data?.detail) || "Gagal mengacak regu.");
     } finally {
       setSibuk(false);
     }
   };
 
   const acakUndian = async () => {
+    if (sibuk) return;
     setSibuk(true);
     try {
       const { data } = await api.post(`/staff/kegiatan/${kegiatan.id}/acak-undian`, { sumber });
       setUndian(data.undian);
       setDikunci(false);
     } catch (e) {
-      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+      toast.error(formatApiErrorDetail(e.response?.data?.detail) || "Gagal mengacak nomor undian.");
     } finally {
       setSibuk(false);
     }
@@ -167,12 +169,13 @@ export default function AcakKegiatanModal({ kegiatan, onClose }) {
         <div className="flex flex-wrap gap-2">
           <button type="button" disabled={sibuk}
             onClick={() => {
+              if (sibuk) return;
               if (dikunci) { setTanya(true); return; }
               if (tab === "regu") acakRegu(); else acakUndian();
             }}
             className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white disabled:opacity-60">
             {sibuk ? <Loader2 size={15} className="animate-spin motion-reduce:animate-none" /> : <Shuffle size={15} />}
-            {dikunci ? "Acak ulang" : "Acak"}
+            {sibuk ? "Memproses…" : dikunci ? "Acak ulang" : "Acak"}
           </button>
           {((tab === "regu" && regu) || (tab === "undian" && undian)) && !dikunci && (
             <button type="button" onClick={simpan} disabled={sibuk}

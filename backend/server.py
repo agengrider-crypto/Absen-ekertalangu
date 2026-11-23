@@ -1917,8 +1917,9 @@ async def _peserta_acak(k: dict, sumber: str) -> list:
             continue
         out.append({
             "id": str(u["_id"]), "nama": u.get("name"),
-            "gender": _derive_gender(u),
-            "kategori": kategori_dari_status(u.get("marital")) or u.get("kategori") or "generus",
+            "gender": _derive_gender(u) or "Tidak diketahui",
+            "kategori": kategori_dari_status(u.get("marital")) or u.get("kategori")
+                        or "tidak_diketahui",
         })
     return out
 
@@ -1938,36 +1939,61 @@ async def acak_regu(kegiatan_id: str, body: AcakReguInput,
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
-    peserta = await _peserta_acak(k, body.sumber)
-    if len(peserta) < 2:
-        raise HTTPException(status_code=400, detail="Peserta kurang dari 2 orang.")
-    nilai = max(1, min(int(body.nilai or 1), len(peserta)))
-    rnd = random.SystemRandom()
+    sumber = (body.sumber or "hadir").strip().lower()
+    if sumber not in ("hadir", "terdaftar"):
+        raise HTTPException(status_code=400, detail="Sumber peserta tidak valid.")
+    try:
+        peserta = await _peserta_acak(k, sumber)
+        if not peserta:
+            raise HTTPException(
+                status_code=400,
+                detail=("Belum ada yang hadir" if sumber == "hadir"
+                        else "Belum ada peserta terdaftar untuk kegiatan ini"))
+        if len(peserta) < 2:
+            raise HTTPException(status_code=400, detail="Peserta kurang dari 2 orang.")
+        try:
+            nilai = int(body.nilai or 1)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Jumlah regu tidak valid.")
+        nilai = max(1, nilai)
+        if body.mode == "anggota_per_regu":
+            jumlah_regu = max(1, -(-len(peserta) // nilai))
+        else:
+            if nilai > len(peserta):
+                raise HTTPException(status_code=400,
+                                    detail="Jumlah regu melebihi jumlah peserta")
+            jumlah_regu = nilai
 
-    if body.mode == "anggota_per_regu":
-        jumlah_regu = max(1, -(-len(peserta) // nilai))
-    else:
-        jumlah_regu = min(nilai, len(peserta))
+        rnd = random.SystemRandom()
+        if body.seimbang:
+            # Kunci urut selalu teks agar nilai kosong tidak dibandingkan dengan None.
+            kunci = sorted(peserta, key=lambda p: (
+                str(p.get("kategori") or "tidak_diketahui").lower(),
+                str(p.get("gender") or "tidak diketahui").lower(),
+                str(p.get("nama") or "").lower(),
+            ))
+            rnd.shuffle(kunci)
+            regu = [[] for _ in range(jumlah_regu)]
+            for i, p in enumerate(kunci):
+                regu[i % jumlah_regu].append(p)
+        else:
+            acak = peserta[:]
+            rnd.shuffle(acak)
+            regu = [[] for _ in range(jumlah_regu)]
+            for i, p in enumerate(acak):
+                regu[i % jumlah_regu].append(p)
 
-    if body.seimbang:
-        # Seimbangkan jenis kelamin & kategori di dalam tiap regu.
-        kunci = sorted(peserta, key=lambda p: (p["kategori"], p["gender"]))
-        rnd.shuffle(kunci)
-        regu = [[] for _ in range(jumlah_regu)]
-        for i, p in enumerate(kunci):
-            regu[i % jumlah_regu].append(p)
-    else:
-        acak = peserta[:]
-        rnd.shuffle(acak)
-        regu = [[] for _ in range(jumlah_regu)]
-        for i, p in enumerate(acak):
-            regu[i % jumlah_regu].append(p)
-
-    hasil = []
-    for i, anggota in enumerate(regu, start=1):
-        rnd.shuffle(anggota)
-        hasil.append({"nama": f"Regu {i}", "anggota": anggota})
-    return {"regu": hasil, "jumlah_peserta": len(peserta)}
+        hasil = []
+        for i, anggota in enumerate(regu, start=1):
+            rnd.shuffle(anggota)
+            hasil.append({"nama": f"Regu {i}", "anggota": anggota})
+        return {"regu": hasil, "jumlah_peserta": len(peserta)}
+    except HTTPException:
+        raise
+    except Exception as exc:  # pragma: no cover
+        logger.exception("Acak regu gagal (kegiatan %s): %s", kegiatan_id, exc)
+        raise HTTPException(status_code=500,
+                            detail="Gagal mengacak regu. Coba lagi.")
 
 
 @api_router.post("/staff/kegiatan/{kegiatan_id}/acak-undian")
@@ -1977,15 +2003,28 @@ async def acak_undian(kegiatan_id: str, body: NomorUndianInput,
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
-    peserta = await _peserta_acak(k, body.sumber)
-    if not peserta:
-        raise HTTPException(status_code=400, detail="Belum ada peserta untuk diundi.")
-    rnd = random.SystemRandom()
-    nomor = rnd.sample(range(1, len(peserta) * 10 + 1), len(peserta))
-    hasil = [{"nomor": n, "id": p["id"], "nama": p["nama"]}
-             for n, p in zip(nomor, peserta)]
-    hasil.sort(key=lambda r: r["nomor"])
-    return {"undian": hasil, "jumlah_peserta": len(peserta)}
+    sumber = (body.sumber or "hadir").strip().lower()
+    if sumber not in ("hadir", "terdaftar"):
+        raise HTTPException(status_code=400, detail="Sumber peserta tidak valid.")
+    try:
+        peserta = await _peserta_acak(k, sumber)
+        if not peserta:
+            raise HTTPException(
+                status_code=400,
+                detail=("Belum ada yang hadir" if sumber == "hadir"
+                        else "Belum ada peserta terdaftar untuk kegiatan ini"))
+        rnd = random.SystemRandom()
+        nomor = rnd.sample(range(1, len(peserta) * 10 + 1), len(peserta))
+        hasil = [{"nomor": n, "id": p["id"], "nama": p["nama"]}
+                 for n, p in zip(nomor, peserta)]
+        hasil.sort(key=lambda r: r["nomor"] if r["nomor"] is not None else 0)
+        return {"undian": hasil, "jumlah_peserta": len(peserta)}
+    except HTTPException:
+        raise
+    except Exception as exc:  # pragma: no cover
+        logger.exception("Acak undian gagal (kegiatan %s): %s", kegiatan_id, exc)
+        raise HTTPException(status_code=500,
+                            detail="Gagal mengacak nomor undian. Coba lagi.")
 
 
 @api_router.post("/staff/kegiatan/{kegiatan_id}/acak-simpan")

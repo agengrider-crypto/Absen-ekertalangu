@@ -19,6 +19,15 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-acak-regu-fix",
+    date: "2026-11-23",
+    jenis: "perbaikan",
+    tujuan: "/area/admin/kegiatan",
+    title: "Acak regu tidak error lagi",
+    keterangan: "Pesan jelas muncul bila peserta kosong atau jumlah regu terlalu banyak.",
+    items: ["Pesan jelas muncul bila peserta kosong atau jumlah regu terlalu banyak."],
+  },
+  {
     id: "2026-11-23-acak-regu",
     date: "2026-11-23",
     jenis: "fitur",
