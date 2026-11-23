@@ -12,6 +12,7 @@ import io
 import time
 import re
 import secrets
+import random
 import hashlib
 import hmac
 import uuid
@@ -1883,6 +1884,129 @@ async def cadangan_unduh(body: CadanganInput, admin: dict = Depends(require_admi
         headers={"Content-Disposition": f'attachment; filename="{nama}"',
                  "X-Cadangan-Baris": str(len(rows)),
                  "X-Cadangan-Ukuran": str(ukuran)})
+
+
+class AcakReguInput(BaseModel):
+    sumber: str = "hadir"              # hadir | terdaftar
+    mode: str = "jumlah_regu"          # jumlah_regu | anggota_per_regu
+    nilai: int = 2
+    seimbang: bool = True
+
+
+class NomorUndianInput(BaseModel):
+    sumber: str = "hadir"              # hadir | terdaftar
+
+
+async def _peserta_acak(k: dict, sumber: str) -> list:
+    """Peserta yang ikut diacak (nonaktif sementara tidak ikut)."""
+    if sumber == "hadir":
+        ids = [a["user_id"] async for a in db.absensis.find(
+            {"kegiatan_id": k["_id"], "status": "hadir"}, {"user_id": 1})]
+        if not ids:
+            return []
+        docs = await db.users.find({"_id": {"$in": [ObjectId(i) for i in ids if ObjectId.is_valid(i)]}},
+                                   {"name": 1, "gender": 1, "kategori": 1, "marital": 1,
+                                    "status": 1}).to_list(5000)
+    else:
+        docs = await db.users.find(peserta_query_for(k),
+                                   {"name": 1, "gender": 1, "kategori": 1, "marital": 1,
+                                    "status": 1}).to_list(5000)
+    out = []
+    for u in docs:
+        if (u.get("status") or "") in ("nonaktif", "pindah"):
+            continue
+        out.append({
+            "id": str(u["_id"]), "nama": u.get("name"),
+            "gender": _derive_gender(u),
+            "kategori": kategori_dari_status(u.get("marital")) or u.get("kategori") or "generus",
+        })
+    return out
+
+
+@api_router.get("/staff/kegiatan/{kegiatan_id}/acak")
+async def acak_hasil(kegiatan_id: str, staff: dict = Depends(require_staff)):
+    """Hasil acak regu / nomor undian yang sudah disimpan."""
+    doc = await db.kegiatan_acak.find_one({"_id": kegiatan_id}) or {}
+    return {"regu": doc.get("regu"), "undian": doc.get("undian"),
+            "dikunci": bool(doc.get("dikunci")), "dibuat": doc.get("dibuat")}
+
+
+@api_router.post("/staff/kegiatan/{kegiatan_id}/acak-regu")
+async def acak_regu(kegiatan_id: str, body: AcakReguInput,
+                    staff: dict = Depends(require_staff)):
+    """Acak pembagian regu (SystemRandom). Hasil belum disimpan sampai dikunci."""
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    peserta = await _peserta_acak(k, body.sumber)
+    if len(peserta) < 2:
+        raise HTTPException(status_code=400, detail="Peserta kurang dari 2 orang.")
+    nilai = max(1, min(int(body.nilai or 1), len(peserta)))
+    rnd = random.SystemRandom()
+
+    if body.mode == "anggota_per_regu":
+        jumlah_regu = max(1, -(-len(peserta) // nilai))
+    else:
+        jumlah_regu = min(nilai, len(peserta))
+
+    if body.seimbang:
+        # Seimbangkan jenis kelamin & kategori di dalam tiap regu.
+        kunci = sorted(peserta, key=lambda p: (p["kategori"], p["gender"]))
+        rnd.shuffle(kunci)
+        regu = [[] for _ in range(jumlah_regu)]
+        for i, p in enumerate(kunci):
+            regu[i % jumlah_regu].append(p)
+    else:
+        acak = peserta[:]
+        rnd.shuffle(acak)
+        regu = [[] for _ in range(jumlah_regu)]
+        for i, p in enumerate(acak):
+            regu[i % jumlah_regu].append(p)
+
+    hasil = []
+    for i, anggota in enumerate(regu, start=1):
+        rnd.shuffle(anggota)
+        hasil.append({"nama": f"Regu {i}", "anggota": anggota})
+    return {"regu": hasil, "jumlah_peserta": len(peserta)}
+
+
+@api_router.post("/staff/kegiatan/{kegiatan_id}/acak-undian")
+async def acak_undian(kegiatan_id: str, body: NomorUndianInput,
+                      staff: dict = Depends(require_staff)):
+    """Beri nomor undian unik (SystemRandom). Belum disimpan sampai dikunci."""
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    peserta = await _peserta_acak(k, body.sumber)
+    if not peserta:
+        raise HTTPException(status_code=400, detail="Belum ada peserta untuk diundi.")
+    rnd = random.SystemRandom()
+    nomor = rnd.sample(range(1, len(peserta) * 10 + 1), len(peserta))
+    hasil = [{"nomor": n, "id": p["id"], "nama": p["nama"]}
+             for n, p in zip(nomor, peserta)]
+    hasil.sort(key=lambda r: r["nomor"])
+    return {"undian": hasil, "jumlah_peserta": len(peserta)}
+
+
+@api_router.post("/staff/kegiatan/{kegiatan_id}/acak-simpan")
+async def acak_simpan(kegiatan_id: str, body: dict, staff: dict = Depends(require_staff)):
+    """Kunci hasil acak agar stabil saat dibuka ulang."""
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    regu = body.get("regu")
+    undian = body.get("undian")
+    if not regu and not undian:
+        raise HTTPException(status_code=400, detail="Tidak ada hasil untuk disimpan.")
+    await db.kegiatan_acak.update_one(
+        {"_id": kegiatan_id},
+        {"$set": {"regu": regu, "undian": undian, "dikunci": True,
+                  "dibuat": now_wita().isoformat(),
+                  "dibuat_oleh": staff.get("name")}},
+        upsert=True)
+    await log_activity(staff, "acak_kegiatan",
+                       f"Menyimpan hasil acak regu/undian '{k.get('name')}'", kegiatan_id)
+    return {"ok": True}
 
 
 @api_router.post("/admin/users/migrasi-kategori")

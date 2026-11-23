@@ -19,6 +19,15 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-acak-regu",
+    date: "2026-11-23",
+    jenis: "fitur",
+    tujuan: "/area/admin/kegiatan",
+    title: "Acak regu dan nomor undian",
+    keterangan: "Bagi peserta ke regu secara acak dan beri nomor undian di halaman kegiatan.",
+    items: ["Bagi peserta ke regu secara acak dan beri nomor undian di halaman kegiatan."],
+  },
+  {
     id: "2026-11-23-ganti-password",
     date: "2026-11-23",
     jenis: "fitur",

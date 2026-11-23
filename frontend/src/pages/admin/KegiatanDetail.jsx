@@ -5,7 +5,7 @@ import {
   Copy, RefreshCw, Download, Send, Trash2, CheckCircle2, AlertTriangle,
   Users, PhoneOff, ClipboardList, MoreHorizontal, Pencil,
   Share2, RotateCcw, Layers, FileBarChart2, CheckCheck, ChevronLeft, ChevronRight,
-  Maximize2, Minimize2, MonitorSmartphone, X, Link2, ClipboardCheck, Check,
+  Maximize2, Minimize2, MonitorSmartphone, X, Link2, ClipboardCheck, Check, Shuffle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ACTIVITIES } from "@/constants/testIds";
@@ -23,6 +23,7 @@ import {
   AUDIENCE_LABEL, GENDER_FILTER_LABEL, phaseOf, phaseMeta,
 } from "./kegiatanUtils";
 import { pesanPenolakanScan } from "./adminUtils";
+import AcakKegiatanModal from "./AcakKegiatanModal";
 
 /**
  * FASE 8 — HALAMAN DETAIL ABSEN KEGIATAN.
@@ -54,6 +55,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
                                         onRekapGabungan, onSalinJadwal }) {
   const [tab, setTab] = useState("manual");
   const [showActions, setShowActions] = useState(false);
+  const [acakOpen, setAcakOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [posOpen, setPosOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -272,12 +274,20 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
               onClick: () => onEdit && onEdit(k),
             },
             {
+              key: "acak", testid: "detail-opsi-acak", label: "Acak regu & nomor undian",
+              desc: "Bagi peserta ke regu dan beri nomor undian", icon: Shuffle,
+              onClick: () => { setShowActions(false); setAcakOpen(true); },
+            },
+            {
               key: "delete", testid: "detail-opsi-delete", label: "Hapus Kegiatan",
               desc: "Tindakan ini tidak bisa dibatalkan", icon: Trash2, hapus: true,
               onClick: () => onDelete && onDelete(k),
             },
           ]}
         />
+      )}
+      {acakOpen && (
+        <AcakKegiatanModal kegiatan={k} onClose={() => setAcakOpen(false)} />
       )}
     </div>
   );
