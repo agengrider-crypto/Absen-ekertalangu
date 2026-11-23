@@ -110,6 +110,24 @@ export function isGenerusKategori(user) {
   return kategoriPeserta(user) === "generus";
 }
 
+/**
+ * Pesan penolakan Scan Presensi sesuai alasan dari server.
+ * Mengembalikan { pesan, nama } atau null bila bukan penolakan scan.
+ */
+export function pesanPenolakanScan(error) {
+  const detail = error?.response?.data?.detail;
+  if (detail && typeof detail === "object" && detail.kode) {
+    return { pesan: detail.pesan || "Kartu tidak dikenali", nama: detail.nama || null };
+  }
+  const teks = typeof detail === "string" ? detail : "";
+  if (/nonaktif/i.test(teks)) return { pesan: "Peserta nonaktif", nama: null };
+  if (/belum dimulai/i.test(teks)) return { pesan: teks, nama: null };
+  if (/sudah berakhir|di luar jam/i.test(teks)) return { pesan: teks, nama: null };
+  if (/tidak dikenali|kadaluarsa/i.test(teks)) return { pesan: "Kartu tidak dikenali", nama: null };
+  if (error?.response?.status === 400) return { pesan: "Kartu tidak dikenali", nama: null };
+  return null;
+}
+
 /** Tampilkan Jenjang & Nomor WA wali hanya bila berpotensi generus. */
 export function potensiGenerus({ dob, marital }) {
   if (marital === "sudah_menikah") return false;

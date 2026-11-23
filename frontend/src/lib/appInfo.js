@@ -19,6 +19,13 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-scan-pesan",
+    date: "2026-11-23",
+    title: "Pesan penolakan Scan Presensi lebih jelas",
+    keterangan: "Scan Presensi: pesan penolakan lebih jelas, misalnya di luar jam kegiatan.",
+    items: ["Scan Presensi: pesan penolakan lebih jelas, misalnya di luar jam kegiatan."],
+  },
+  {
     id: "2026-11-23-kategori-generus",
     date: "2026-11-23",
     title: "Tab Generus/Dewasa mengikuti status pernikahan",

@@ -22,6 +22,7 @@ import {
   typeLabel, typeColor, tanggalPanjang, tanggalSingkat, hhmm,
   AUDIENCE_LABEL, GENDER_FILTER_LABEL, phaseOf, phaseMeta,
 } from "./kegiatanUtils";
+import { pesanPenolakanScan } from "./adminUtils";
 
 /**
  * FASE 8 — HALAMAN DETAIL ABSEN KEGIATAN.
@@ -715,12 +716,9 @@ function ScanTabPanel({ kegiatanId, closed, onReload }) {
       });
       onReload();
     } catch (e) {
-      const detail = formatApiErrorDetail(e.response?.data?.detail);
-      if (e.response?.status === 400 && /tidak dikenali/i.test(detail || "")) {
-        showFlash({ kind: "bad", name: "Kartu tidak dikenali" });
-      } else {
-        toast.error(detail);
-      }
+      const info = pesanPenolakanScan(e);
+      if (info) showFlash({ kind: "bad", name: info.nama, label: info.pesan });
+      else toast.error(formatApiErrorDetail(e.response?.data?.detail));
     } finally {
       setTimeout(() => { lock.current = false; }, 1500);
     }
@@ -872,10 +870,9 @@ function PosScan({ kegiatan, onClose, onReload }) {
       muatJumlah();
       onReload?.();
     } catch (e) {
-      const detail = formatApiErrorDetail(e.response?.data?.detail);
-      if (/nonaktif/i.test(detail || "")) showFlash({ kind: "bad", label: "Peserta nonaktif" });
-      else if (e.response?.status === 400) showFlash({ kind: "bad", label: "Kartu tidak dikenali" });
-      else toast.error(detail);
+      const info = pesanPenolakanScan(e);
+      if (info) showFlash({ kind: "bad", name: info.nama, label: info.pesan });
+      else toast.error(formatApiErrorDetail(e.response?.data?.detail));
     } finally {
       setTimeout(() => { lock.current = false; }, 1500);
     }

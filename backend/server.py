@@ -5399,45 +5399,53 @@ async def my_personal_qr(user: dict = Depends(get_current_user)):
 
 @api_router.post("/staff/kegiatan/{kegiatan_id}/scan-personal")
 async def scan_personal_qr(kegiatan_id: str, body: ScanPersonalInput, staff: dict = Depends(require_staff)):
-    """Scan QR peserta: QR berputar (EKP:) atau QR permanen kartu nama (EKT:)."""
+    """Scan QR peserta: QR berputar (EKP:) atau QR permanen kartu nama (EKT:).
+
+    Setiap penolakan membawa `kode` + `pesan` agar scanner bisa menampilkan
+    alasan yang tepat (bukan selalu "Kartu tidak dikenali").
+    """
+    def tolak(kode: str, pesan: str, nama=None, status_code: int = 400):
+        raise HTTPException(status_code=status_code, detail={
+            "kode": kode, "pesan": pesan, "nama": nama})
+
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
     if k.get("status", "open") != "open":
         raise HTTPException(status_code=403, detail="Kegiatan sudah ditutup")
+    jam = f"{k.get('start_time') or '-'}-{k.get('end_time') or '-'} WITA"
     # Hanya kegiatan yang sedang berlangsung (WITA).
     now = now_wita()
     if not kegiatan_sudah_berlangsung(k, now):
-        raise HTTPException(status_code=400,
-                            detail="Kegiatan ini belum dimulai. Scan hanya bisa saat kegiatan berlangsung.")
+        tolak("BELUM_MULAI", f"Kegiatan belum dimulai ({jam})")
     end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
     if end and now > end:
-        raise HTTPException(status_code=400,
-                            detail="Kegiatan ini sudah berakhir. Scan hanya bisa saat kegiatan berlangsung.")
+        tolak("DI_LUAR_JAM", f"Di luar jam kegiatan ({jam})")
     content = (body.content or "").strip()
     kartu = content.startswith("EKT:")
     if kartu:
         # QR permanen pada kartu nama peserta: EKT:<user_id>
         user_id = content[4:].strip()
         if not ObjectId.is_valid(user_id):
-            raise HTTPException(status_code=400, detail="Kartu tidak dikenali")
+            tolak("KODE_TIDAK_DITEMUKAN", "Kartu tidak dikenali")
     else:
         if content.startswith("EKP:"):
             content = content[4:]
         user_id = verify_personal_token(content)
         if not user_id:
-            raise HTTPException(
-                status_code=400,
-                detail="Mohon maaf, QR pribadi ini tidak dikenali atau sudah kadaluarsa. "
-                       "Mohon peserta menampilkan ulang QR-nya.")
+            tolak("KODE_TIDAK_DITEMUKAN", "Kartu tidak dikenali")
     u = await db.users.find_one({"_id": ObjectId(user_id)}) if ObjectId.is_valid(user_id) else None
     if not u or "peserta" not in (u.get("roles") or []):
-        raise HTTPException(status_code=400, detail="Kartu tidak dikenali")
+        tolak("KODE_TIDAK_DITEMUKAN", "Kartu tidak dikenali")
     # Status akun login (pending/active) TIDAK menghalangi scan kartu.
     # Hanya peserta yang ditandai nonaktif/pindah yang ditolak.
     if (u.get("status") or "") in ("nonaktif", "pindah"):
-        raise HTTPException(status_code=400, detail="Peserta nonaktif")
-    assert_gender_eligible(k, u)
+        tolak("PESERTA_NONAKTIF", "Peserta nonaktif", u.get("name"))
+    if not match_gender_filter(k, u):
+        labels = kegiatan_filter_labels(k) or ["khusus kelompok tertentu"]
+        tolak("TIDAK_TERDAFTAR",
+              f"Tidak termasuk peserta kegiatan ini ({' · '.join(labels).lower()})",
+              u.get("name"))
     existing = await db.absensis.find_one({"kegiatan_id": kegiatan_id, "user_id": user_id})
     if existing and existing.get("status") == "hadir":
         return {"name": u.get("name"), "status": "hadir",
