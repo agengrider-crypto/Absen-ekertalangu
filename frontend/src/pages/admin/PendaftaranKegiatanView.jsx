@@ -109,7 +109,7 @@ function KartuKegiatan({ item, onOpen, onCopy }) {
   );
 }
 
-export default function PendaftaranKegiatanView({ mode = "aktif", onGoto }) {
+export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGotoKegiatan }) {
   const tabAwal = mode === "aktif" ? "aktif" : "rekap";
   const [tab, setTab] = useState(tabAwal);
   const [chip, setChip] = useState(mode === "arsip" ? "arsip" : "rekap");
@@ -120,6 +120,8 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto }) {
   const [detail, setDetail] = useState(null);
   const [sibuk, setSibuk] = useState(false);
   const [ekspor, setEkspor] = useState("");
+  const [tanyaKegiatan, setTanyaKegiatan] = useState(null);
+  const [tanyaRegu, setTanyaRegu] = useState(null);
 
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -198,6 +200,26 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto }) {
       setDetail(null);
       await muat();
       if (tab === "rekap") await muatRekap();
+      // Tutup pendaftaran → tawarkan membuat kegiatan berabsen.
+      if (status === "selesai") setTanyaKegiatan(item);
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setSibuk(false);
+    }
+  };
+
+  const buatKegiatan = async (item) => {
+    setSibuk(true);
+    try {
+      const { data } = await api.post(`/staff/pendaftaran/${item.id}/buat-kegiatan`);
+      toast.success(data.dibuat
+        ? `Kegiatan dibuat: ${data.peserta} peserta, ${data.tamu} tamu.`
+        : "Kegiatan sudah ada.");
+      setTanyaKegiatan(null);
+      setTanyaRegu(data.kegiatan_id);
+      await muat();
+      if (detail?.item?.id === item.id) await bukaDetail({ id: item.id });
     } catch (e) {
       toast.error(formatApiErrorDetail(e.response?.data?.detail));
     } finally {
@@ -336,11 +358,58 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto }) {
           onExport={eksporKegiatan}
           onStatus={ubahStatus}
           onUbahJadwal={(item) => setJadwalItem(item)}
+          onBuatKegiatan={(item) => buatKegiatan(item)}
           onReload={async () => {
             await muat();
             if (detail?.item?.id) await bukaDetail(detail.item);
           }}
         />
+      )}
+
+      {tanyaKegiatan && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-4">
+            <p className="text-base font-semibold text-[#14201A]">
+              Tutup pendaftaran dan buat kegiatan berabsen dari yang ikut?
+            </p>
+            <p className="mt-1 text-sm text-[#5F6B63]">
+              Peserta yang memilih ikut akan masuk ke kegiatan baru.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setTanyaKegiatan(null)}
+                className="min-h-11 rounded-xl border border-[#E7E3D8] bg-white px-4 text-sm font-semibold text-[#14201A]">
+                Batal
+              </button>
+              <button type="button" data-testid="pendaftaran-buat-kegiatan-ya"
+                onClick={() => buatKegiatan(tanyaKegiatan)} disabled={sibuk}
+                className="min-h-11 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white disabled:opacity-60">
+                Ya
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tanyaRegu && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-4">
+            <p className="text-base font-semibold text-[#14201A]">Bagi regu sekarang?</p>
+            <p className="mt-1 text-sm text-[#5F6B63]">
+              Peserta kegiatan sudah siap dibagi ke regu.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setTanyaRegu(null)}
+                className="min-h-11 rounded-xl border border-[#E7E3D8] bg-white px-4 text-sm font-semibold text-[#14201A]">
+                Nanti
+              </button>
+              <button type="button" data-testid="pendaftaran-bagi-regu"
+                onClick={() => { const id = tanyaRegu; setTanyaRegu(null); onGotoKegiatan?.(id); }}
+                className="min-h-11 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white">
+                Ya
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

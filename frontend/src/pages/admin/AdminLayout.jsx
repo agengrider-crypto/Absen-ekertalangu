@@ -411,8 +411,14 @@ export default function AdminLayout({ user, role = "admin" }) {
     setDrawer(false);
   };
 
-  /** Rute halaman (mis. "/area/admin/kalender") → kunci menu. */
-  const goRute = (rute) => {
+  /** Buka detail kegiatan (dipakai dari Pendaftaran Kegiatan). */
+  const bukaKegiatan = (id) => {
+    if (!id) return;
+    setKegiatanIdToOpen(id);
+    go("kegiatan");
+  };
+
+  /** Rute halaman (mis. "/area/admin/kalender") → kunci menu. */  const goRute = (rute) => {
     const key = String(rute || "").replace(/^\/area\/(admin|pengurus)\/?/, "").replace(/\/+$/, "");
     go(key || "dashboard");
   };
@@ -563,13 +569,13 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "pengumuman" && <PengumumanView />}
           {active === "pengaduan" && <RuangTeduhView />}
           {active === "pendaftaran-aktif" && (
-            <PendaftaranKegiatanView mode="aktif" onGoto={go} />
+            <PendaftaranKegiatanView mode="aktif" onGoto={go} onGotoKegiatan={bukaKegiatan} />
           )}
           {active === "pendaftaran-rekap" && (
-            <PendaftaranKegiatanView mode="rekap" onGoto={go} />
+            <PendaftaranKegiatanView mode="rekap" onGoto={go} onGotoKegiatan={bukaKegiatan} />
           )}
           {active === "pendaftaran-arsip" && (
-            <PendaftaranKegiatanView mode="arsip" onGoto={go} />
+            <PendaftaranKegiatanView mode="arsip" onGoto={go} onGotoKegiatan={bukaKegiatan} />
           )}
           {active === "laporan-peserta" && <LaporanPesertaView />}
           {active === "rekap-bulanan" && (

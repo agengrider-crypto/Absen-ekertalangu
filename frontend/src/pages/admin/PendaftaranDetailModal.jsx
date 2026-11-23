@@ -20,7 +20,7 @@ import {
 const IKON = { Users, CheckCircle2, XCircle };
 
 export default function PendaftaranDetailModal({
-  data, sibuk, ekspor, onClose, onCopy, onExport, onStatus, onReload, onUbahJadwal,
+  data, sibuk, ekspor, onClose, onCopy, onExport, onStatus, onReload, onUbahJadwal, onBuatKegiatan,
 }) {
   const { user } = useAuth();
   const isAdmin = (user?.roles || []).includes("admin");
@@ -94,6 +94,19 @@ export default function PendaftaranDetailModal({
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
+            {item.kegiatan_id ? (
+              <a href={`/absensi/${item.kegiatan_id}`}
+                data-testid="pendaftaran-buka-kegiatan"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
+                <CalendarDays size={16} /> Buka kegiatan
+              </a>
+            ) : (
+              <button type="button" data-testid="pendaftaran-buat-kegiatan"
+                onClick={() => onBuatKegiatan?.(item)} disabled={sibuk}
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA] disabled:opacity-60">
+                <CalendarDays size={16} /> Buat kegiatan berabsen
+              </button>
+            )}
             {item.status_tampil !== "arsip" ? (
               <button type="button" data-testid={PENDAFTARAN.detailArchive}
                 onClick={() => onStatus?.(item, "arsip")} disabled={sibuk}

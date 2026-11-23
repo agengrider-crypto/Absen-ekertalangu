@@ -19,6 +19,15 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-pendaftaran-kegiatan",
+    date: "2026-11-23",
+    jenis: "fitur",
+    tujuan: "/area/admin/pendaftaran-aktif",
+    title: "Pendaftaran jadi kegiatan berabsen",
+    keterangan: "Setelah pendaftaran ditutup, yang ikut langsung jadi peserta kegiatan dan bisa dibagi regu.",
+    items: ["Setelah pendaftaran ditutup, yang ikut langsung jadi peserta kegiatan dan bisa dibagi regu."],
+  },
+  {
     id: "2026-11-23-acak-regu-fix",
     date: "2026-11-23",
     jenis: "perbaikan",

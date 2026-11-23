@@ -10770,6 +10770,8 @@ def _pendaftaran_serialize(k: dict, counts: Optional[dict] = None,
         "jadwal_status": _pendaftaran_jadwal_status(k),
         "token": token,
         "link": f"{base}/daftar/{token}" if (base and token) else None,
+        "kegiatan_id": k.get("kegiatan_id"),
+        "kegiatan_dibuat_pada": k.get("kegiatan_dibuat_pada"),
         "total": c.get("total", 0),
         "ikut": c.get("ikut", 0),
         "tidak_ikut": c.get("tidak_ikut", 0),
@@ -11205,6 +11207,89 @@ async def pendaftaran_status(kegiatan_id: str, body: PendaftaranStatusInput,
                        f"Status pendaftaran '{k.get('nama')}' → {body.status}", kegiatan_id)
     counts = await _pendaftaran_hitung([kegiatan_id])
     return _pendaftaran_serialize(k, counts.get(kegiatan_id), resolve_base_url(request))
+
+
+@api_router.post("/staff/pendaftaran/{kegiatan_id}/buat-kegiatan")
+async def pendaftaran_buat_kegiatan(kegiatan_id: str, request: Request,
+                                    staff: dict = Depends(require_staff)):
+    """Buat (atau hubungkan) satu kegiatan berabsen dari pendaftar 'Ikut'.
+
+    Idempoten: satu pendaftaran hanya menghasilkan satu kegiatan.
+    """
+    p = await db.pendaftaran_kegiatan.find_one({"_id": kegiatan_id})
+    if not p:
+        raise HTTPException(status_code=404, detail="Kegiatan pendaftaran tidak ditemukan")
+
+    # Sudah pernah dibuat → kembalikan yang sama (tanpa duplikat).
+    if p.get("kegiatan_id"):
+        ada = await db.kegiatans.find_one({"_id": p["kegiatan_id"]})
+        if ada:
+            return {"kegiatan_id": ada["_id"], "nama": ada.get("name"),
+                    "dibuat": False, "peserta": 0, "tamu": 0}
+
+    rows = await _pendaftaran_rows(kegiatan_id)
+    ikut = [r for r in rows if r.get("kehadiran") == "hadir"]
+    if not ikut:
+        raise HTTPException(status_code=400,
+                            detail="Belum ada pendaftar yang memilih ikut.")
+
+    jam = p.get("jam") or {}
+    kid = str(uuid.uuid4())
+    doc = {
+        "_id": kid, "name": p.get("nama"), "type": "rutin",
+        "date": p.get("tanggal"),
+        "start_time": jam.get("mulai") or "08:00",
+        "end_time": jam.get("selesai") or "10:00",
+        "location": p.get("lokasi"), "audience": "publik",
+        "gender_filter": "semua", "status": "open",
+        "created_at": now_wita().isoformat(),
+        "dari_pendaftaran": kegiatan_id,
+    }
+    await db.kegiatans.insert_one(doc)
+
+    # Peserta yang nomor HP-nya cocok dipasangkan; sisanya dicatat sebagai tamu.
+    peserta_ids, tamu = [], []
+    for r in ikut:
+        nomor = r.get("nomor_hp")
+        u = None
+        if nomor:
+            varian = {nomor}
+            if nomor.startswith("62"):
+                varian.add("0" + nomor[2:])
+                varian.add("+" + nomor)
+            u = await db.users.find_one(
+                {"$or": [{"phone": {"$in": list(varian)}},
+                         {"whatsapp": {"$in": list(varian)}}],
+                 "roles": "peserta"}, {"name": 1})
+        if u:
+            peserta_ids.append(str(u["_id"]))
+        else:
+            tamu.append(r.get("nama") or "Tamu")
+
+    sekarang = now_wita().isoformat()
+    for pid in peserta_ids:
+        await db.absensis.update_one(
+            {"kegiatan_id": kid, "user_id": pid},
+            {"$set": {"kegiatan_id": kid, "user_id": pid, "status": "hadir",
+                      "arrival_time": sekarang,
+                      "marked_by": f"Dari pendaftaran: {staff.get('name')}",
+                      "marked_by_id": str(staff["_id"]), "updated_at": sekarang}},
+            upsert=True)
+    for nama in tamu:
+        await db.guest_absens.insert_one({
+            "_id": str(uuid.uuid4()), "kegiatan_id": kid, "name": nama,
+            "arrival_time": sekarang,
+            "added_by": f"Dari pendaftaran: {staff.get('name')}",
+            "created_at": sekarang})
+
+    await db.pendaftaran_kegiatan.update_one(
+        {"_id": kegiatan_id},
+        {"$set": {"kegiatan_id": kid, "kegiatan_dibuat_pada": sekarang}})
+    await log_activity(staff, "pendaftaran_buat_kegiatan",
+                       f"Membuat kegiatan berabsen '{p.get('nama')}' dari pendaftaran "
+                       f"({len(peserta_ids)} peserta, {len(tamu)} tamu)", kegiatan_id)
+    return {"kegiatan_id": kid, "nama": p.get("nama"), "dibuat": True,
+            "peserta": len(peserta_ids), "tamu": len(tamu)}
 
 
 @api_router.post("/staff/pendaftaran/{kegiatan_id}/tautan")
