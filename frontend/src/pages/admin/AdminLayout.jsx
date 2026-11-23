@@ -8,7 +8,7 @@ import {
   ClipboardList, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
   Calendar1,
   PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle, BarChart3, LayoutGrid, Home,
-  Activity, Link2, CalendarPlus,
+  Activity, Link2, CalendarPlus, DatabaseBackup,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { K1Mark, K1Wordmark } from "@/components/Logo";
@@ -44,6 +44,7 @@ const RekapBulananView = lazy(() => import("./RekapBulananView"));
 const RekapHarianView = lazy(() => import("./RekapHarianView"));
 const MaintenanceSettings = lazy(() => import("./MaintenanceSettings"));
 const PeriksaAplikasiView = lazy(() => import("./PeriksaAplikasiView"));
+const CadanganDataView = lazy(() => import("./CadanganDataView"));
 const PendataanView = lazy(() => import("./PendataanView"));
 const PendaftaranKegiatanView = lazy(() => import("./PendaftaranKegiatanView"));
 
@@ -104,6 +105,7 @@ const MENU = [
     group: "grup-pengaturan", label: "Pengaturan", icon: ShieldCheck, roles: ["admin"],
     items: [
       { key: "pemeliharaan", label: "Pemeliharaan", icon: Wrench, roles: ["admin"] },
+      { key: "cadangan", label: "Cadangan data", icon: DatabaseBackup, roles: ["admin"] },
       { key: "periksa-aplikasi", label: "Periksa aplikasi", icon: Activity, roles: ["admin"] },
       { key: "pantau-login", label: "Aktivitas Login", icon: MonitorSmartphone, roles: ["admin"] },
       { key: "log", label: "Log Aktivitas", icon: ScrollText, roles: ["admin"] },
@@ -145,6 +147,7 @@ const TRAIL_LABEL = {
   bantuan: "Pusat Bantuan",
   "tutorial-video": "Tutorial video",
   pemeliharaan: "Pemeliharaan",
+  cadangan: "Cadangan data",
   "periksa-aplikasi": "Periksa aplikasi",
   "pantau-login": "Aktivitas Login",
   log: "Log Aktivitas",
@@ -552,6 +555,7 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "bantuan" && <BantuanView role={role} />}
           {active === "tutorial-video" && <TutorialVideoView role={role} />}
           {active === "pemeliharaan" && role === "admin" && <MaintenanceSettings />}
+          {active === "cadangan" && role === "admin" && <CadanganDataView />}
           {active === "periksa-aplikasi" && role === "admin" && <PeriksaAplikasiView />}
           {active === "kode-akses" && <KodeAksesView onLeave={leaveGuard} />}
           {active === "scan-presensi" && <ScanPresensiView />}

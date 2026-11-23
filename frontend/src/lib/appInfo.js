@@ -19,6 +19,24 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-cadangan-data",
+    date: "2026-11-23",
+    jenis: "fitur",
+    tujuan: "/area/admin/cadangan",
+    title: "Cadangan data",
+    keterangan: "Unduh salinan data peserta, kegiatan, absensi, dan pendaftaran dari menu Pengaturan.",
+    items: ["Unduh salinan data peserta, kegiatan, absensi, dan pendaftaran dari menu Pengaturan."],
+  },
+  {
+    id: "2026-11-23-rekap-bulanan-info",
+    date: "2026-11-23",
+    jenis: "fitur",
+    tujuan: "/area/admin/rekap-bulanan",
+    title: "Rekap bulanan lebih informatif",
+    keterangan: "Tooltip rincian kehadiran, nama peserta bisa diklik untuk riwayat, tombol sembunyikan berfungsi.",
+    items: ["Tooltip rincian kehadiran, nama peserta bisa diklik untuk riwayat, tombol sembunyikan berfungsi."],
+  },
+  {
     id: "2026-11-23-modal-daftar",
     date: "2026-11-23",
     jenis: "perbaikan",

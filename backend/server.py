@@ -1762,6 +1762,127 @@ async def admin_bulk_create(body: BulkCreateInput, admin: dict = Depends(require
     await log_activity(admin, "tambah_bulk", f"Menambah {len(created)} peserta (bulk)")
     return {"count": len(created), "flagged": flagged, "invalid_dates": invalid_dates}
 
+class CadanganInput(BaseModel):
+    password: str
+    kelompok: str = "peserta"          # peserta | kegiatan | absensi | pendaftaran
+
+
+CADANGAN_KELOMPOK = ("peserta", "kegiatan", "absensi", "pendaftaran")
+CADANGAN_BARIS_MAKS = 4000             # per berkas, agar aman di bawah 4,5 MB
+
+
+def _cadangan_peserta() -> list:
+    rows = []
+    for u in db.users.find({"roles": "peserta"}).sort("name", 1):
+        rows.append({
+            "nama": u.get("name"), "username": u.get("username"),
+            "email": u.get("email"), "telepon": u.get("phone"),
+            "jenis_kelamin": u.get("gender"), "tempat_lahir": u.get("birthplace"),
+            "tanggal_lahir": u.get("dob"), "alamat": u.get("address"),
+            "pendidikan": u.get("education"), "status_pernikahan": u.get("marital"),
+            "kategori": u.get("kategori"), "jenjang": u.get("jenjang"),
+            "kelompok": u.get("kelompok_id"), "status": u.get("status"),
+            "peran": ", ".join(u.get("roles") or []),
+        })
+    return rows
+
+
+def _cadangan_kegiatan() -> list:
+    rows = []
+    for k in db.kegiatans.find({}).sort("date", 1):
+        rows.append({
+            "tanggal": k.get("date"), "nama": k.get("name"), "jenis": k.get("type"),
+            "mulai": k.get("start_time"), "selesai": k.get("end_time"),
+            "lokasi": k.get("location"), "pengajar": k.get("teacher"),
+            "materi": k.get("material"), "status": k.get("status"),
+        })
+    return rows
+
+
+def _cadangan_absensi() -> list:
+    rows = []
+    for a in db.absensis.find({}).sort("updated_at", 1):
+        rows.append({
+            "kegiatan_id": a.get("kegiatan_id"), "peserta_id": a.get("user_id"),
+            "status": a.get("status"), "waktu_hadir": a.get("arrival_time"),
+            "dicatat_oleh": a.get("marked_by"), "diperbarui": a.get("updated_at"),
+        })
+    return rows
+
+
+def _cadangan_pendaftaran() -> list:
+    rows = []
+    for r in db.pendaftaran_konfirmasi.find({}).sort("dibuat_pada", 1):
+        rows.append({
+            "kegiatan_id": r.get("kegiatan_id"), "nama": r.get("nama"),
+            "nomor_hp": r.get("nomor_hp"), "jawaban": r.get("kehadiran"),
+            "alasan": r.get("alasan"), "alasan_lain": r.get("alasan_lain"),
+            "keterangan": r.get("keterangan"), "dibuat": r.get("dibuat_pada"),
+        })
+    return rows
+
+
+@api_router.get("/admin/cadangan/info")
+async def cadangan_info(admin: dict = Depends(require_admin)):
+    """Ringkasan jumlah baris per kelompok + waktu cadangan terakhir."""
+    doc = await db.app_settings.find_one({"_id": "cadangan_terakhir"}) or {}
+    return {
+        "jumlah": {
+            "peserta": await db.users.count_documents({"roles": "peserta"}),
+            "kegiatan": await db.kegiatans.count_documents({}),
+            "absensi": await db.absensis.count_documents({}),
+            "pendaftaran": await db.pendaftaran_konfirmasi.count_documents({}),
+        },
+        "terakhir": doc.get("at"),
+        "terakhir_oleh": doc.get("oleh"),
+    }
+
+
+@api_router.post("/admin/cadangan")
+async def cadangan_unduh(body: CadanganInput, admin: dict = Depends(require_admin)):
+    """Unduh cadangan satu kelompok data (xlsx). Butuh konfirmasi password."""
+    if not verify_password(body.password or "", admin.get("password_hash") or ""):
+        raise HTTPException(status_code=400, detail="Password Administrator salah.")
+    kelompok = (body.kelompok or "").strip().lower()
+    if kelompok not in CADANGAN_KELOMPOK:
+        raise HTTPException(status_code=400, detail="Kelompok data tidak valid.")
+
+    pengambil = {
+        "peserta": _cadangan_peserta, "kegiatan": _cadangan_kegiatan,
+        "absensi": _cadangan_absensi, "pendaftaran": _cadangan_pendaftaran,
+    }[kelompok]
+    rows = await asyncio.to_thread(pengambil)
+
+    from openpyxl import Workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = kelompok.capitalize()
+    if rows:
+        ws.append(list(rows[0].keys()))
+        for r in rows:
+            ws.append([r.get(k) for k in rows[0].keys()])
+    else:
+        ws.append(["Keterangan"])
+        ws.append(["Belum ada data"])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    ukuran = buf.getbuffer().nbytes
+
+    sekarang = now_wita().isoformat()
+    await db.app_settings.update_one(
+        {"_id": "cadangan_terakhir"},
+        {"$set": {"at": sekarang, "oleh": admin.get("name")}}, upsert=True)
+    await log_activity(admin, "cadangan_unduh",
+                       f"Mengunduh cadangan {kelompok} ({len(rows)} baris)")
+    nama = f"cadangan_{kelompok}_{now_wita().strftime('%Y%m%d_%H%M')}.xlsx"
+    return StreamingResponse(
+        buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nama}"',
+                 "X-Cadangan-Baris": str(len(rows)),
+                 "X-Cadangan-Ukuran": str(ukuran)})
+
+
 @api_router.post("/admin/users/migrasi-kategori")
 async def admin_migrasi_kategori(apply: bool = False, admin: dict = Depends(require_admin)):
     """Hitung ulang kategori peserta dari status pernikahan.
