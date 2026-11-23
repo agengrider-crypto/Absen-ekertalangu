@@ -437,6 +437,8 @@ async def get_current_user(request: Request) -> dict:
             raise HTTPException(status_code=401, detail="Sesi telah berakhir")
         allowed_setup_paths = {
             "/api/auth/me",
+            "/api/auth/logout",
+            "/api/me/ganti-sandi",
             "/api/me/complete-account",
             "/api/me/photo",
         }
@@ -5737,13 +5739,43 @@ async def update_my_profile(body: ProfileUpdate, user: dict = Depends(get_curren
     return public_user(u)
 
 
+class GantiSandiInput(BaseModel):
+    password_lama: str
+    password_baru: str
+
+
+@api_router.post("/me/ganti-sandi")
+async def ganti_sandi(body: GantiSandiInput, response: Response,
+                      user: dict = Depends(get_current_user)):
+    """Ganti kata sandi wajib (login pertama / setelah reset admin)."""
+    if not verify_password(body.password_lama or "", user.get("password_hash") or ""):
+        raise HTTPException(status_code=400, detail="Kata sandi lama salah.")
+    baru = body.password_baru or ""
+    if len(baru) < 6 or len(baru.encode("utf-8")) > 72:
+        raise HTTPException(status_code=400, detail="Kata sandi baru minimal 6 karakter.")
+    if baru == body.password_lama:
+        raise HTTPException(status_code=400, detail="Kata sandi baru tidak boleh sama dengan yang lama.")
+    dob = normalize_dob(user.get("dob"))
+    if dob:
+        y, m, d = dob.split("-")
+        if baru in (f"{d}{m}{y}", f"{d}{m}{y[2:]}"):
+            raise HTTPException(status_code=400, detail="Kata sandi baru tidak boleh sama dengan tanggal lahir.")
+    await db.users.update_one({"_id": user["_id"]}, {
+        "$set": {"password_hash": hash_password(baru), "must_change_password": False},
+        "$inc": {"token_version": 1}})
+    fresh = await db.users.find_one({"_id": user["_id"]})
+    set_auth_cookies(response, str(user["_id"]), fresh.get("token_version", 0), is_demo_ctx())
+    await log_activity(fresh, "ganti_sandi_wajib", "Mengganti kata sandi wajib saat login")
+    return public_user(fresh)
+
+
 @api_router.post("/me/complete-account")
 async def complete_account(body: CompleteAccountInput, response: Response,
                            user: dict = Depends(get_current_user)):
     if not user.get("must_change_password"):
         raise HTTPException(status_code=400, detail="Akun ini tidak memerlukan penggantian kata sandi sementara.")
-    if len(body.new_password) < 8 or len(body.new_password.encode("utf-8")) > 72:
-        raise HTTPException(status_code=400, detail="Kata sandi baru harus 8–72 byte.")
+    if len(body.new_password) < 6 or len(body.new_password.encode("utf-8")) > 72:
+        raise HTTPException(status_code=400, detail="Kata sandi baru minimal 6 karakter.")
     updates = {}
     for field in ["name", "phone", "whatsapp", "birthplace", "address", "education"]:
         value = getattr(body, field)

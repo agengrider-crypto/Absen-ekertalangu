@@ -30,6 +30,7 @@ const PublicHadir = lazy(() => import("@/pages/PublicHadir"));
 const PublicPendaftaran = lazy(() => import("@/pages/PublicPendaftaran"));
 const KodeAbsen = lazy(() => import("@/pages/KodeAbsen"));
 const CompleteProfile = lazy(() => import("@/pages/CompleteProfile"));
+const GantiSandi = lazy(() => import("@/pages/GantiSandi"));
 const Maintenance = lazy(() => import("@/pages/Maintenance"));
 
 /** Indikator muat sederhana (token tema, tanpa animasi berat). */
@@ -62,6 +63,7 @@ const MAINTENANCE_EXEMPT = [
   "/register",
   "/activate",
   "/lengkapi-akun",
+  "/ganti-sandi",
   "/rekap",
   "/rekap-gabungan",
   "/rekap-bulanan",
@@ -113,7 +115,8 @@ function Protected({ children }) {
     const next = `${location.pathname}${location.search}`;
     return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
   }
-  if (user.profile_complete === false || user.must_change_password) return <Navigate to="/lengkapi-akun" replace />;
+  if (user.profile_complete === false) return <Navigate to="/lengkapi-akun" replace />;
+  if (user.must_change_password) return <Navigate to="/ganti-sandi" replace />;
   return children;
 }
 
@@ -125,12 +128,21 @@ function ProfileGate() {
   return <CompleteProfile />;
 }
 
+function GantiSandiGate() {
+  const { user } = useAuth();
+  if (user === null) return <CheckingSession />;
+  if (user === false) return <Navigate to="/login" replace />;
+  if (!user.must_change_password) return <Navigate to="/roles" replace />;
+  return <GantiSandi />;
+}
+
 function PublicOnly({ children }) {
   const { user } = useAuth();
   const [params] = useSearchParams();
   if (user === null) return <CheckingSession />;
   if (user) {
-    if (user.profile_complete === false || user.must_change_password) return <Navigate to="/lengkapi-akun" replace />;
+    if (user.profile_complete === false) return <Navigate to="/lengkapi-akun" replace />;
+    if (user.must_change_password) return <Navigate to="/ganti-sandi" replace />;
     // Hormati ?next= (mis. dari halaman absen: /login?next=/absen/<token>)
     const raw = params.get("next") || "";
     const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/roles";
@@ -147,6 +159,7 @@ function AppRoutes() {
         <Route path="/register" element={<Register />} />
         <Route path="/activate" element={<Activate />} />
         <Route path="/lengkapi-akun" element={<ProfileGate />} />
+        <Route path="/ganti-sandi" element={<GantiSandiGate />} />
         <Route path="/rekap/:token" element={<PublicRekap />} />
         <Route path="/rekap-gabungan/:token" element={<PublicRekapGabungan />} />
         <Route path="/rekap-bulanan/:token" element={<PublicRekapBulanan />} />

@@ -19,6 +19,14 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-ganti-password",
+    date: "2026-11-23",
+    jenis: "fitur",
+    title: "Ganti password saat login pertama",
+    keterangan: "Password awal wajib diganti agar akun lebih aman.",
+    items: ["Password awal wajib diganti agar akun lebih aman."],
+  },
+  {
     id: "2026-11-23-cadangan-data",
     date: "2026-11-23",
     jenis: "fitur",
