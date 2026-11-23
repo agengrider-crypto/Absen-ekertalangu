@@ -19,8 +19,18 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-modal-daftar",
+    date: "2026-11-23",
+    jenis: "perbaikan",
+    title: "Modal pembaruan berbentuk daftar",
+    keterangan: "Ada label, tanggal, dan tombol Coba sekarang.",
+    items: ["Ada label, tanggal, dan tombol Coba sekarang."],
+  },
+  {
     id: "2026-11-23-scan-pesan",
     date: "2026-11-23",
+    jenis: "perbaikan",
+    tujuan: "/area/admin/kegiatan",
     title: "Pesan penolakan Scan Presensi lebih jelas",
     keterangan: "Scan Presensi: pesan penolakan lebih jelas, misalnya di luar jam kegiatan.",
     items: ["Scan Presensi: pesan penolakan lebih jelas, misalnya di luar jam kegiatan."],
@@ -28,6 +38,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-23-kategori-generus",
     date: "2026-11-23",
+    jenis: "perbaikan",
+    tujuan: "/area/admin/peserta",
     title: "Tab Generus/Dewasa mengikuti status pernikahan",
     keterangan: "Tab Generus/Dewasa langsung mengikuti status pernikahan; jenjang hanya untuk Generus.",
     items: ["Perbaikan: tab Generus/Dewasa langsung mengikuti status pernikahan; jenjang hanya untuk Generus."],
@@ -42,6 +54,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-23-kalender-lebar",
     date: "2026-11-23",
+    jenis: "fitur",
+    tujuan: "/area/admin/kalender",
     title: "Kalender kegiatan lebih lebar",
     keterangan: "Kalender kegiatan lebih lebar; klik tanggal langsung ke Absensi atau jendela sesi.",
     items: ["Kalender kegiatan lebih lebar; klik tanggal langsung ke Absensi atau jendela sesi."],
@@ -49,6 +63,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-23-dashboard-ringkas",
     date: "2026-11-23",
+    jenis: "fitur",
+    tujuan: "/area/admin",
     title: "Dashboard lebih sederhana",
     keterangan: "Dashboard lebih sederhana dan ringkas.",
     items: ["Dashboard lebih sederhana dan ringkas."],
@@ -56,6 +72,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-23-halaman-user",
     date: "2026-11-23",
+    jenis: "fitur",
+    tujuan: "/area/admin/peserta",
     title: "Halaman User lebih sederhana",
     keterangan: "Daftar nama, filter status, mode Pilih, dan kategori otomatis dari status pernikahan.",
     items: [
@@ -65,6 +83,7 @@ export const CHANGELOG = [
   {
     id: "2026-11-23-perbaikan-notifikasi",
     date: "2026-11-23",
+    jenis: "perbaikan",
     title: "Perbaikan notifikasi dan tanggal lahir",
     keterangan: "Notifikasi, undangan, dan pemeriksa maintenance tidak lagi error; tanggal lahir bisa dipilih lewat kalender.",
     items: [
@@ -74,6 +93,7 @@ export const CHANGELOG = [
   {
     id: "2026-11-19-masuk-akun",
     date: "2026-11-19",
+    jenis: "fitur",
     title: "Masuk akun lebih ringkas",
     keterangan: "Bisa masuk dengan nomor HP, email, username, atau nama.",
     items: [
@@ -102,6 +122,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-18-rekap-rapi",
     date: "2026-11-18",
+    jenis: "fitur",
+    tujuan: "/area/admin/rekap-bulanan",
     title: "Rekap lebih rapi, tautan lebih aman",
     keterangan: "Tiap tautan rekap kini menampilkan satu kegiatan saja.",
     peran: ["admin", "pengurus"],
@@ -116,6 +138,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-18-pendataan",
     date: "2026-11-18",
+    jenis: "fitur",
+    tujuan: "/area/admin/pendataan",
     title: "Pendataan peserta",
     keterangan: "Pengurus bisa membuat tautan agar peserta melengkapi datanya sendiri.",
     peran: ["admin", "pengurus"],
@@ -127,6 +151,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-18-kartu-kategori",
     date: "2026-11-18",
+    jenis: "fitur",
+    tujuan: "/area/admin/kartu-nama",
     title: "Kartu Nama dengan kategori",
     keterangan: "Kartu menampilkan kategori dan kode QR tetap untuk presensi.",
     peran: ["admin", "pengurus"],
@@ -147,6 +173,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-16-kartu-nama",
     date: "2026-11-16",
+    jenis: "fitur",
+    tujuan: "/area/admin/kartu-nama",
     title: "Kartu nama diperbarui",
     keterangan: "Tombol cetak menempel di bawah saat daftar digulir.",
     tujuan: "kartu-nama",
@@ -156,6 +184,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-16-presensi-kartu",
     date: "2026-11-16",
+    jenis: "fitur",
+    tujuan: "/area/admin/scan-presensi",
     title: "Presensi dengan kartu",
     keterangan: "Peserta cukup menunjukkan kartu ke kamera di kegiatan yang berlangsung. Kamera dibuat lebih besar dan hasilnya tampil jelas.",
     tujuan: "kegiatan",
@@ -165,6 +195,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-16-rekap-bulanan",
     date: "2026-11-16",
+    jenis: "fitur",
+    tujuan: "/area/admin/rekap-bulanan",
     title: "Rekap bulanan baru",
     keterangan: "Hanya kegiatan yang sudah berlangsung yang dihitung.",
     tujuan: "rekap-bulanan",
@@ -174,6 +206,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-16-laporan-masuk",
     date: "2026-11-16",
+    jenis: "fitur",
+    tujuan: "/area/admin/pengaduan",
     title: "Laporan masuk",
     keterangan: "Ada status dan catatan pengurus.",
     tujuan: "pengaduan",
@@ -183,6 +217,8 @@ export const CHANGELOG = [
   {
     id: "2026-11-16-peserta",
     date: "2026-11-16",
+    jenis: "fitur",
+    tujuan: "/area/admin/peserta",
     title: "Jenjang dan nomor WA wali",
     keterangan: "Ada di data peserta.",
     tujuan: "peserta",
@@ -385,4 +421,21 @@ export function formatChangelogDate(iso) {
   } catch {
     return iso;
   }
+}
+
+/** Tanggal ringkas "23 Nov 2026" (WITA). */
+export function formatChangelogDateShort(iso) {
+  try {
+    return new Date(`${iso}T00:00:00+08:00`).toLocaleDateString("id-ID", {
+      timeZone: "Asia/Makassar", day: "numeric", month: "short", year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+/** Jenis entri: "fitur" atau "perbaikan" (entri lama ditebak dari judul). */
+export function jenisEntri(u) {
+  if (u?.jenis === "fitur" || u?.jenis === "perbaikan") return u.jenis;
+  return /^perbaikan\b/i.test(String(u?.title || "")) ? "perbaikan" : "fitur";
 }

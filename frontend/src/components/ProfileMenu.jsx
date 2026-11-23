@@ -227,10 +227,12 @@ export default function ProfileMenu({ role }) {
           user={user}
           role={activeRole}
           onClose={() => { setShowUpdates(false); setUnreadUpdate(hasUnreadUpdate(user?.id, role)); }}
-          onNavigate={(key) => {
+          onNavigate={(rute) => {
             setShowUpdates(false);
             setUnreadUpdate(hasUnreadUpdate(user?.id, role));
-            if (key) navigate(`/area/admin?tab=${key}`);
+            if (!rute) return;
+            const key = String(rute).replace(/^\/area\/(admin|pengurus)\/?/, "").replace(/\/+$/, "");
+            navigate(`/area/admin?tab=${key || "dashboard"}`);
           }}
         />
       )}

@@ -407,8 +407,13 @@ export default function AdminLayout({ user, role = "admin" }) {
     setDrawer(false);
   };
 
-  const doLogout = async () => {
-    await logout();
+  /** Rute halaman (mis. "/area/admin/kalender") → kunci menu. */
+  const goRute = (rute) => {
+    const key = String(rute || "").replace(/^\/area\/(admin|pengurus)\/?/, "").replace(/\/+$/, "");
+    go(key || "dashboard");
+  };
+
+  const doLogout = async () => {    await logout();
     navigate("/login");
   };
 
@@ -429,7 +434,7 @@ export default function AdminLayout({ user, role = "admin" }) {
 
   return (
     <div className="min-h-screen bg-[#F6F4EE]">
-      <UpdateModal onNavigate={go} user={user} role={role} />
+      <UpdateModal onNavigate={goRute} user={user} role={role} />
       {/* Sidebar desktop */}
       <aside className={`hidden lg:flex fixed inset-y-0 left-0 ${collapsed ? "w-[76px]" : "w-[264px]"} bg-white border-r border-[#E7E3D8] flex-col z-30 transition-[width] duration-200`}>
         <SidebarInner active={active} onNav={go} onLogout={doLogout} role={role} menu={menu} collapsed={collapsed} onToggleCollapse={() => setCollapsed((value) => !value)} />
