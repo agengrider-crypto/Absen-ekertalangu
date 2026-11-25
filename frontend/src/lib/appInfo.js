@@ -19,6 +19,15 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-23-pendataan-massal",
+    date: "2026-11-23",
+    jenis: "fitur",
+    tujuan: "/area/admin/pendataan",
+    title: "Setujui pendataan sekaligus",
+    keterangan: "Centang beberapa pengajuan lalu setujui atau tolak sekaligus.",
+    items: ["Centang beberapa pengajuan lalu setujui atau tolak sekaligus."],
+  },
+  {
     id: "2026-11-23-pendaftaran-kegiatan",
     date: "2026-11-23",
     jenis: "fitur",

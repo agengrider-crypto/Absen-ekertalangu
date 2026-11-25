@@ -10297,6 +10297,35 @@ async def pendataan_putuskan(isian_id: str, body: PendataanPutusanInput,
     return {"ok": True, "status": "disetujui", "peserta_id": baru_id}
 
 
+class PendataanMassalPutusanInput(BaseModel):
+    ids: List[str] = []
+    aksi: str = "setujui"             # setujui | tolak
+
+
+@api_router.post("/staff/pendataan/isian/massal")
+async def pendataan_putuskan_massal(body: PendataanMassalPutusanInput,
+                                    staff: dict = Depends(require_staff)):
+    """Setujui/tolak banyak isian sekaligus (maks 50). Satu gagal tidak membatalkan semua."""
+    aksi = body.aksi if body.aksi in ("setujui", "tolak") else "setujui"
+    ids = [i for i in dict.fromkeys(body.ids or []) if i][:50]
+    if not ids:
+        raise HTTPException(status_code=400, detail="Pilih minimal satu pengajuan.")
+    hasil = []
+    for isian_id in ids:
+        try:
+            await pendataan_putuskan(isian_id, PendataanPutusanInput(aksi=aksi), staff)
+            hasil.append({"id": isian_id, "ok": True})
+        except HTTPException as exc:
+            hasil.append({"id": isian_id, "ok": False, "alasan": str(exc.detail)})
+        except Exception as exc:  # pragma: no cover
+            logger.exception("Putusan massal gagal (%s): %s", isian_id, exc)
+            hasil.append({"id": isian_id, "ok": False,
+                          "alasan": "Gagal diproses. Coba lagi."})
+    berhasil = sum(1 for h in hasil if h["ok"])
+    return {"aksi": aksi, "berhasil": berhasil,
+            "gagal": len(hasil) - berhasil, "hasil": hasil}
+
+
 # ---------------------------------------------------------------------------
 # KARTU NAMA — catatan alasan & tanggal cetak kartu fisik.
 # Setiap pencetakan menambah satu catatan (tidak menimpa).

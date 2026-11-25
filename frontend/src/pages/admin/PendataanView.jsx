@@ -43,6 +43,9 @@ export default function PendataanView() {
   const [berlaku, setBerlaku] = useState(7);
   const [tautan, setTautan] = useState([]);
   const [isian, setIsian] = useState([]);
+  const [dipilihIsian, setDipilihIsian] = useState(new Set());
+  const [tanyaMassal, setTanyaMassal] = useState(null);
+  const [sibukMassal, setSibukMassal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sibuk, setSibuk] = useState(false);
   const [hasilOrang, setHasilOrang] = useState(null);
@@ -173,6 +176,42 @@ export default function PendataanView() {
       await muat();
     } catch (e) {
       toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    }
+  };
+
+  /** Pengajuan yang aman untuk "Pilih semua" (bukan pengubahan nama). */
+  const amanDipilih = (row) => {
+    const data = row.data || {};
+    const lama = row.peserta || {};
+    const namaBerubah = row.jenis === "pembaruan" && data.nama
+      && data.nama.trim().toLowerCase() !== String(lama.nama || "").trim().toLowerCase();
+    return !namaBerubah;
+  };
+
+  const pilihSemua = () => {
+    const aman = isian.filter(amanDipilih).map((r) => r.id);
+    setDipilihIsian(new Set(aman));
+  };
+
+  const putuskanMassal = async (aksi) => {
+    const ids = Array.from(dipilihIsian);
+    if (!ids.length) return;
+    setSibukMassal(true);
+    try {
+      const { data } = await api.post("/staff/pendataan/isian/massal", { ids, aksi });
+      const kata = aksi === "tolak" ? "ditolak" : "disetujui";
+      toast.success(`${data.berhasil} ${kata}${data.gagal ? `, ${data.gagal} gagal` : ""}`);
+      if (data.gagal) {
+        const gagal = (data.hasil || []).filter((h) => !h.ok);
+        gagal.slice(0, 3).forEach((h) => toast.error(h.alasan || "Gagal diproses."));
+      }
+      setDipilihIsian(new Set());
+      setTanyaMassal(null);
+      await muat();
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    } finally {
+      setSibukMassal(false);
     }
   };
 
@@ -340,10 +379,36 @@ export default function PendataanView() {
       <section className="rounded-2xl border border-[#E7E3D8] bg-white">
         <div className="flex items-center justify-between border-b border-[#E7E3D8] px-4 py-3">
           <h2 className="text-sm font-bold text-[#14201A]">Menunggu tinjauan</h2>
-          <button type="button" onClick={muat} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0E4E31]">
-            <RefreshCw size={13} /> Muat ulang
-          </button>
+          <div className="flex items-center gap-3">
+            {isian.length > 0 && (
+              <button type="button" onClick={pilihSemua}
+                className="text-xs font-semibold text-[#0E4E31] hover:underline">
+                Pilih semua
+              </button>
+            )}
+            <button type="button" onClick={muat} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0E4E31]">
+              <RefreshCw size={13} /> Muat ulang
+            </button>
+          </div>
         </div>
+
+        {dipilihIsian.size > 0 && (
+          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 border-b border-[#E7E3D8] bg-[#F6F4EE] px-4 py-2.5">
+            <span className="text-xs font-semibold text-[#14201A]">{dipilihIsian.size} dipilih</span>
+            <button type="button" onClick={() => setTanyaMassal("setujui")} disabled={sibukMassal}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#14633F] px-3 text-sm font-semibold text-white disabled:opacity-60">
+              <Check size={15} /> Setujui ({dipilihIsian.size})
+            </button>
+            <button type="button" onClick={() => setTanyaMassal("tolak")} disabled={sibukMassal}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-[#A32A2A] bg-white px-3 text-sm font-semibold text-[#A32A2A] disabled:opacity-60">
+              <X size={15} /> Tolak ({dipilihIsian.size})
+            </button>
+            <button type="button" onClick={() => setDipilihIsian(new Set())}
+              className="min-h-10 rounded-lg px-2 text-sm font-semibold text-[#5F6B63] hover:bg-[#F0EEE6]">
+              Batal pilih
+            </button>
+          </div>
+        )}
         {loading ? (
           <p className="flex items-center justify-center gap-2 p-6 text-sm text-[#5F6B63]">
             <Loader2 size={16} className="animate-spin motion-reduce:animate-none" /> Memuat…
@@ -363,8 +428,26 @@ export default function PendataanView() {
               return (
                 <div key={row.id} className="space-y-2 p-4">
                   <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="checkbox"
+                      aria-label={`Pilih pengajuan ${nama || ""}`}
+                      checked={dipilihIsian.has(row.id)}
+                      onChange={() => {
+                        setDipilihIsian((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(row.id)) next.delete(row.id); else next.add(row.id);
+                          return next;
+                        });
+                      }}
+                      className="h-4 w-4 shrink-0 accent-[#14633F]"
+                    />
                     <span className="rounded-full bg-[#F0EEE6] px-2 py-0.5 text-[11px] font-bold text-[#4A5650]">{label}</span>
                     <span className="text-sm font-semibold text-[#14201A]">{nama || "(tanpa nama)"}</span>
+                    {!amanDipilih(row) && (
+                      <span className="rounded-full bg-[#FBF1D6] px-2 py-0.5 text-[11px] font-bold text-[#6B4500]">
+                        Perlu dicek
+                      </span>
+                    )}
                   </div>
                   <ul className="space-y-0.5 text-[13px] text-[#5F6B63]">
                     {namaBerubah && <li>Nama: {lama.nama || "kosong"} menjadi {data.nama}</li>}
@@ -420,8 +503,34 @@ export default function PendataanView() {
         )}
       </section>
 
-      {/* (c) Tautan aktif */}
-      <section className="rounded-2xl border border-[#E7E3D8] bg-white">
+      {tanyaMassal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-4">
+            <p className="text-base font-semibold text-[#14201A]">
+              {tanyaMassal === "tolak" ? "Tolak" : "Setujui"} {dipilihIsian.size} pengajuan?
+            </p>
+            <p className="mt-1 text-sm text-[#5F6B63]">
+              {tanyaMassal === "tolak"
+                ? "Pengajuan yang ditolak tidak mengubah data peserta."
+                : "Data peserta langsung diperbarui untuk pengajuan yang disetujui."}
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setTanyaMassal(null)} disabled={sibukMassal}
+                className="min-h-11 rounded-xl border border-[#E7E3D8] bg-white px-4 text-sm font-semibold text-[#14201A]">
+                Batal
+              </button>
+              <button type="button" onClick={() => putuskanMassal(tanyaMassal)} disabled={sibukMassal}
+                className={`min-h-11 rounded-xl px-4 text-sm font-semibold text-white disabled:opacity-60 ${
+                  tanyaMassal === "tolak" ? "bg-[#A32A2A]" : "bg-[#14633F]"
+                }`}>
+                Ya
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* (c) Tautan aktif */}      <section className="rounded-2xl border border-[#E7E3D8] bg-white">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E7E3D8] px-4 py-3">
           <h2 className="text-sm font-bold text-[#14201A]">Tautan aktif</h2>
           {tautan.length > 0 && (
