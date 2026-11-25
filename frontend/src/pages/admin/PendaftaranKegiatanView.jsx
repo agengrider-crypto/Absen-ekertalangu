@@ -1,11 +1,9 @@
-// Pendaftaran Kegiatan — satu halaman dengan dua tab:
-// "Kegiatan Aktif" dan "Rekap dan Arsip" (chip Rekap / Arsip).
-// Rute lama (pendaftaran-aktif / -rekap / -arsip) tetap membuka tab yang sesuai.
+// Pendaftaran Kegiatan — satu daftar kegiatan (tanpa tab Rekap/Arsip).
+// Kegiatan berjalan di atas, yang selesai di bawahnya; arsip lewat tautan kecil.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarPlus, Loader2, Copy, MapPin, CalendarDays, Users,
-  CheckCircle2, XCircle, Archive, FileSpreadsheet, FileText,
-  Printer, Filter, RefreshCw, RotateCcw,
+  CheckCircle2, Archive, RefreshCw, RotateCcw, Share2, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -14,26 +12,20 @@ import { PENDAFTARAN } from "@/constants/testIds";
 import PendaftaranFormModal from "./PendaftaranFormModal";
 import PendaftaranDetailModal from "./PendaftaranDetailModal";
 import {
-  StatusBadge, JadwalBadge, JenisBadge, Statistik, AlasanRingkas,
-  TabelPeserta, TombolMaps,
+  StatusKegiatanBadge, JenisBadge, teksRekapWhatsApp, waHref,
 } from "./pendaftaranBagian";
 
-const inp =
-  "h-11 w-full rounded-xl border border-[#8A948D] bg-white px-3 text-sm text-[#14201A] outline-none focus:border-[#14633F]";
-
-const IKON = { Users, CheckCircle2, XCircle };
-
-async function salin(teks) {
+async function salin(teks, pesan = "Link disalin") {
   try {
     await navigator.clipboard.writeText(teks);
-    toast.success("Link disalin");
+    toast.success(pesan);
   } catch {
     toast.error("Tidak bisa menyalin");
   }
 }
 
-/** Teks WhatsApp siap kirim berisi tautan pendaftaran kegiatan. */
-function pesanWhatsApp(item) {
+/** Teks ajakan singkat berisi tautan pendaftaran kegiatan. */
+function pesanAjakan(item) {
   return [
     "Assalamualaikum, Bapak/Ibu.",
     "Mohon isi pendaftaran pada kegiatan:",
@@ -46,92 +38,111 @@ function pesanWhatsApp(item) {
   ].filter(Boolean).join("\n");
 }
 
-function KartuKegiatan({ item, onOpen, onCopy }) {
-  const wajib = item.wajib_konfirmasi !== false;
+function KartuKegiatan({ item, onOpen, onShare, onAjakan }) {
   return (
     <article
       data-testid={`${PENDAFTARAN.cardPrefix}-${item.id}`}
       className="rounded-2xl border border-[#E7E3D8] bg-white p-4"
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 className="min-w-0 flex-1 text-base font-bold text-[#14201A]">{item.nama}</h3>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <JenisBadge wajib={item.wajib_konfirmasi} />
-          <StatusBadge status={item.status_tampil} />
-          <JadwalBadge status={item.jadwal_status} />
-        </div>
-      </div>
-
-      <dl className="mt-3 space-y-1.5 text-sm text-[#5F6B63]">
-        <div className="flex items-center gap-2">
-          <CalendarDays size={15} className="shrink-0 text-[#0E4E31]" />
-          <span>{tanggalIndonesia(item.tanggal)}</span>
-        </div>
-        {item.lokasi && (
-          <div className="flex flex-wrap items-center gap-2">
-            <MapPin size={15} className="shrink-0 text-[#0E4E31]" />
-            <span className="truncate">{item.lokasi}</span>
-            <TombolMaps item={item} />
+      <button type="button" onClick={() => onOpen(item)} className="block w-full text-left">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h3 className="min-w-0 flex-1 text-base font-bold text-[#14201A]">{item.nama}</h3>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <JenisBadge wajib={item.wajib_konfirmasi} />
+            <StatusKegiatanBadge item={item} />
           </div>
-        )}
-        <div className="flex items-center gap-2">
-          <CalendarDays size={15} className="shrink-0 text-[#0E4E31]" />
-          <span>Tutup {item.pendaftaran_tutup ? tanggalIndonesia(item.pendaftaran_tutup) : "-"}</span>
         </div>
-      </dl>
 
-      <p className="mt-3 text-sm text-[#14201A]">
-        <b className={wajib ? "text-lg text-[#8A5A00]" : ""}>{item.ikut}</b> ikut
-        {" · "}
-        <b>{item.tidak_ikut}</b> tidak ikut
-      </p>
+        <dl className="mt-3 space-y-1.5 text-sm text-[#5F6B63]">
+          <div className="flex items-center gap-2">
+            <CalendarDays size={15} className="shrink-0 text-[#0E4E31]" />
+            <span>{tanggalIndonesia(item.tanggal)}</span>
+          </div>
+          {item.lokasi && (
+            <div className="flex items-center gap-2">
+              <MapPin size={15} className="shrink-0 text-[#0E4E31]" />
+              <span className="truncate">{item.lokasi}</span>
+            </div>
+          )}
+        </dl>
+
+        <p className="mt-3 text-sm text-[#14201A]">
+          Ikut <b className="text-[#0E4E31]">{item.ikut}</b>
+          {" · "}
+          Tidak ikut <b className="text-[#A32A2A]">{item.tidak_ikut}</b>
+        </p>
+      </button>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          type="button"
-          data-testid={`${PENDAFTARAN.cardOpenPrefix}-${item.id}`}
-          onClick={() => onOpen(item)}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]"
-        >
+        <button type="button" onClick={() => onOpen(item)}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
           <Users size={16} /> Lihat peserta
         </button>
-        <button
-          type="button"
-          data-testid={`${PENDAFTARAN.cardCopyPrefix}-${item.id}`}
-          onClick={() => onCopy(item)}
-          disabled={!item.link}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-50"
-        >
-          <Copy size={16} /> Salin link WhatsApp
+        <button type="button" onClick={() => onShare(item)}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F]">
+          <Share2 size={16} /> Bagikan rekap
+        </button>
+        <button type="button" data-testid={`${PENDAFTARAN.cardCopyPrefix}-${item.id}`}
+          onClick={() => onAjakan(item)} disabled={!item.link}
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-50">
+          <Send size={16} /> Bagikan ajakan
         </button>
       </div>
     </article>
   );
 }
 
-export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGotoKegiatan }) {
-  const tabAwal = mode === "aktif" ? "aktif" : "rekap";
-  const [tab, setTab] = useState(tabAwal);
-  const [chip, setChip] = useState(mode === "arsip" ? "arsip" : "rekap");
+/** Pratinjau pesan rekap WhatsApp dengan pilihan sertakan daftar nama. */
+function BagikanRekapModal({ item, onClose }) {
+  const [sertakanNama, setSertakanNama] = useState(true);
+  const teks = teksRekapWhatsApp(item, { sertakanNama });
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 sm:items-center sm:p-4">
+      <div className="w-full max-w-md rounded-t-2xl bg-white p-4 sm:rounded-2xl">
+        <p className="text-base font-semibold text-[#14201A]">Bagikan rekap ke WhatsApp</p>
+        <p className="mt-1 text-sm text-[#5F6B63]">
+          Nomor HP peserta tidak pernah dimasukkan ke pesan.
+        </p>
+        <label className="mt-3 flex items-center gap-2 text-sm text-[#14201A]">
+          <input type="checkbox" checked={sertakanNama}
+            onChange={(e) => setSertakanNama(e.target.checked)}
+            className="h-4 w-4 accent-[#14633F]" />
+          Sertakan daftar nama yang ikut
+        </label>
+        <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap rounded-xl bg-[#F6F4EE] p-3 text-xs text-[#14201A]">
+          {teks}
+        </pre>
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <button type="button" onClick={onClose}
+            className="min-h-11 rounded-xl border border-[#E7E3D8] bg-white px-4 text-sm font-semibold text-[#14201A]">
+            Batal
+          </button>
+          <button type="button" onClick={() => salin(teks, "Teks rekap disalin")}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
+            <Copy size={16} /> Salin teks
+          </button>
+          <a href={waHref(teks)} target="_blank" rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
+            <Send size={16} /> Buka WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function PendaftaranKegiatanView({ mode = "aktif", onGotoKegiatan }) {
   const [items, setItems] = useState(null);
-  const [rekap, setRekap] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [jadwalItem, setJadwalItem] = useState(null);
   const [detail, setDetail] = useState(null);
   const [sibuk, setSibuk] = useState(false);
-  const [ekspor, setEkspor] = useState("");
   const [tanyaKegiatan, setTanyaKegiatan] = useState(null);
   const [tanyaRegu, setTanyaRegu] = useState(null);
+  const [bagikan, setBagikan] = useState(null);
+  const [lihatArsip, setLihatArsip] = useState(mode === "arsip");
 
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [kegiatanId, setKegiatanId] = useState("");
-  const [kehadiran, setKehadiran] = useState("");
-
-  useEffect(() => {
-    setTab(mode === "aktif" ? "aktif" : "rekap");
-    setChip(mode === "arsip" ? "arsip" : "rekap");
-  }, [mode]);
+  useEffect(() => { setLihatArsip(mode === "arsip"); }, [mode]);
 
   const muat = useCallback(async () => {
     setItems(null);
@@ -144,36 +155,17 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGoto
     }
   }, []);
 
-  const muatRekap = useCallback(async () => {
-    setRekap(null);
-    try {
-      const params = new URLSearchParams();
-      if (dateFrom) params.set("date_from", dateFrom);
-      if (dateTo) params.set("date_to", dateTo);
-      if (kegiatanId) params.set("kegiatan_id", kegiatanId);
-      if (kehadiran) params.set("kehadiran", kehadiran);
-      const { data } = await api.get(`/staff/pendaftaran/rekap?${params.toString()}`);
-      setRekap(data);
-    } catch (e) {
-      setRekap(false);
-      toast.error(formatApiErrorDetail(e.response?.data?.detail));
-    }
-  }, [dateFrom, dateTo, kegiatanId, kehadiran]);
-
   useEffect(() => { muat(); }, [muat]);
-  useEffect(() => { if (tab === "rekap") muatRekap(); }, [tab, muatRekap]);
 
   const semua = useMemo(() => items || [], [items]);
-  const aktif = useMemo(
+  const berjalan = useMemo(
     () => semua.filter((i) => i.status_tampil === "aktif" || i.status_tampil === "berlangsung"),
     [semua],
   );
-  const arsip = useMemo(
-    () => semua.filter((i) => i.status_tampil === "arsip" || i.status_tampil === "selesai"),
+  const selesai = useMemo(
+    () => semua.filter((i) => i.status_tampil === "selesai" || i.status_tampil === "arsip"),
     [semua],
   );
-
-  const salinLink = (item) => salin(pesanWhatsApp(item));
 
   const bukaDetail = useCallback(async (item) => {
     setDetail({ loading: true, item });
@@ -191,6 +183,17 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGoto
     }
   }, [muat]);
 
+  /** Bagikan rekap butuh daftar peserta, jadi detail dimuat lebih dulu. */
+  const bukaBagikan = useCallback(async (item) => {
+    if (Array.isArray(item?.peserta)) { setBagikan(item); return; }
+    try {
+      const { data } = await api.get(`/staff/pendaftaran/${item.id}`);
+      setBagikan(data);
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+    }
+  }, []);
+
   const ubahStatus = async (item, status) => {
     setSibuk(true);
     try {
@@ -199,7 +202,6 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGoto
         : status === "aktif" ? "Kegiatan dipulihkan." : "Kegiatan ditutup.");
       setDetail(null);
       await muat();
-      if (tab === "rekap") await muatRekap();
       // Tutup pendaftaran → tawarkan membuat kegiatan berabsen.
       if (status === "selesai") setTanyaKegiatan(item);
     } catch (e) {
@@ -227,47 +229,6 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGoto
     }
   };
 
-  const eksporKegiatan = async (item, format) => {
-    setEkspor(`${item.id}-${format}`);
-    try {
-      const res = await api.get(`/staff/pendaftaran/${item.id}/export?format=${format}`,
-        { responseType: "blob" });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `pendaftaran_${item.id}.${format === "pdf" ? "pdf" : "xlsx"}`;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast.error("Gagal mengekspor data");
-    } finally {
-      setEkspor("");
-    }
-  };
-
-  const eksporRekap = async (format) => {
-    setEkspor(`rekap-${format}`);
-    try {
-      const params = new URLSearchParams({ format });
-      if (dateFrom) params.set("date_from", dateFrom);
-      if (dateTo) params.set("date_to", dateTo);
-      if (kegiatanId) params.set("kegiatan_id", kegiatanId);
-      if (kehadiran) params.set("kehadiran", kehadiran);
-      const res = await api.get(`/staff/pendaftaran/rekap/export?${params.toString()}`,
-        { responseType: "blob" });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `rekap_pendaftaran.${format === "pdf" ? "pdf" : "xlsx"}`;
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast.error("Gagal mengekspor rekap");
-    } finally {
-      setEkspor("");
-    }
-  };
-
   const kepala = (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -292,25 +253,6 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGoto
     </div>
   );
 
-  const tabBar = (
-    <div className="flex gap-1.5 rounded-xl border border-[#E7E3D8] bg-white p-1">
-      <button type="button" data-testid={PENDAFTARAN.tabAktif}
-        onClick={() => setTab("aktif")} aria-pressed={tab === "aktif"}
-        className={`min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold ${
-          tab === "aktif" ? "bg-[#E3F3EA] text-[#0E4E31]" : "text-[#5F6B63]"
-        }`}>
-        Kegiatan Aktif
-      </button>
-      <button type="button" data-testid={PENDAFTARAN.tabRekap}
-        onClick={() => setTab("rekap")} aria-pressed={tab === "rekap"}
-        className={`min-h-10 flex-1 rounded-lg px-3 text-sm font-semibold ${
-          tab === "rekap" ? "bg-[#E3F3EA] text-[#0E4E31]" : "text-[#5F6B63]"
-        }`}>
-        Rekap dan Arsip
-      </button>
-    </div>
-  );
-
   const memuat = (
     <div className="flex justify-center p-16">
       <Loader2 className="animate-spin text-[#0E4E31] motion-reduce:animate-none" size={30} />
@@ -324,6 +266,16 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGoto
         className="mt-3 min-h-11 rounded-xl bg-[#14633F] px-4 font-semibold text-white">
         Coba lagi
       </button>
+    </div>
+  );
+
+  const kartu = (daftar) => (
+    <div className="grid gap-3 sm:grid-cols-2">
+      {daftar.map((item) => (
+        <KartuKegiatan key={item.id} item={item} onOpen={bukaDetail}
+          onShare={bukaBagikan}
+          onAjakan={(i) => salin(pesanAjakan(i), "Teks ajakan disalin")} />
+      ))}
     </div>
   );
 
@@ -352,10 +304,9 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGoto
         <PendaftaranDetailModal
           data={detail}
           sibuk={sibuk}
-          ekspor={ekspor}
           onClose={() => setDetail(null)}
-          onCopy={salinLink}
-          onExport={eksporKegiatan}
+          onCopy={(item) => salin(pesanAjakan(item), "Link disalin")}
+          onShare={bukaBagikan}
           onStatus={ubahStatus}
           onUbahJadwal={(item) => setJadwalItem(item)}
           onBuatKegiatan={(item) => buatKegiatan(item)}
@@ -365,6 +316,8 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGoto
           }}
         />
       )}
+
+      {bagikan && <BagikanRekapModal item={bagikan} onClose={() => setBagikan(null)} />}
 
       {tanyaKegiatan && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
@@ -414,52 +367,37 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGoto
     </>
   );
 
-  // ------------------------------------------------------- TAB AKTIF
-  if (tab === "aktif") {
-    const semuaSelesai = semua.length > 0 && aktif.length === 0;
+  if (lihatArsip) {
     return (
       <div className="space-y-5" data-testid={PENDAFTARAN.view}>
         {kepala}
-        {tabBar}
-
-        {items === null ? memuat : items === false ? gagal : aktif.length === 0 ? (
+        <button type="button" onClick={() => setLihatArsip(false)}
+          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F]">
+          <RotateCcw size={15} /> Kembali ke daftar
+        </button>
+        <h2 className="inline-flex items-center gap-2 text-base font-bold text-[#14201A]">
+          <Archive size={18} className="text-[#0E4E31]" /> Arsip Pendaftaran
+        </h2>
+        {items === null ? memuat : items === false ? gagal : selesai.length === 0 ? (
           <div className="rounded-2xl border border-[#E7E3D8] bg-white p-10 text-center">
-            {semuaSelesai ? (
-              <>
-                <CheckCircle2 className="mx-auto text-[#0E4E31]" size={30} />
-                <p className="mt-3 text-base font-semibold text-[#14201A]">
-                  Tidak Ada Pendaftaran Aktif
-                </p>
-                <p className="mt-1 text-sm text-[#5F6B63]">
-                  Semua kegiatan telah selesai atau dipindahkan ke arsip.
-                </p>
-                <button type="button" data-testid={PENDAFTARAN.emptyArchiveButton}
-                  onClick={() => { setTab("rekap"); setChip("arsip"); }}
-                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#14633F] bg-white px-4 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
-                  <Archive size={16} /> Lihat Arsip
-                </button>
-              </>
-            ) : (
-              <>
-                <CalendarPlus className="mx-auto text-[#5F6B63]" size={30} />
-                <p className="mt-3 text-base font-semibold text-[#14201A]">
-                  Belum Ada Pendaftaran Kegiatan Aktif
-                </p>
-                <p className="mt-1 text-sm text-[#5F6B63]">
-                  Belum ada kegiatan yang membutuhkan konfirmasi peserta.
-                </p>
-                <button type="button" data-testid={PENDAFTARAN.emptyAddButton}
-                  onClick={() => setFormOpen(true)}
-                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
-                  <CalendarPlus size={16} /> Tambah Kegiatan
-                </button>
-              </>
-            )}
+            <Archive className="mx-auto text-[#5F6B63]" size={30} />
+            <p className="mt-3 text-base font-semibold text-[#14201A]">Arsip Pendaftaran Kosong</p>
+            <p className="mt-1 text-sm text-[#5F6B63]">
+              Belum ada kegiatan yang selesai atau dipindahkan ke arsip.
+            </p>
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            {aktif.map((item) => (
-              <KartuKegiatan key={item.id} item={item} onOpen={bukaDetail} onCopy={salinLink} />
+            {selesai.map((item) => (
+              <div key={item.id} className="space-y-2">
+                <KartuKegiatan item={item} onOpen={bukaDetail}
+                  onShare={bukaBagikan}
+                  onAjakan={(i) => salin(pesanAjakan(i), "Teks ajakan disalin")} />
+                <button type="button" onClick={() => ubahStatus(item, "aktif")} disabled={sibuk}
+                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA] disabled:opacity-60">
+                  <RotateCcw size={15} /> Pulihkan
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -468,164 +406,66 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGoto, onGoto
     );
   }
 
-  // ------------------------------------------------- TAB REKAP & ARSIP
-  const daftarArsip = arsip;
+  const semuaSelesai = semua.length > 0 && berjalan.length === 0;
   return (
-    <div className="space-y-5" data-testid={PENDAFTARAN.rekapView}>
+    <div className="space-y-5" data-testid={PENDAFTARAN.view}>
       {kepala}
-      {tabBar}
 
-      <div className="flex flex-wrap gap-1.5">
-        {[
-          { key: "rekap", label: "Rekap" },
-          { key: "arsip", label: "Arsip" },
-        ].map((c) => (
-          <button key={c.key} type="button" onClick={() => setChip(c.key)}
-            aria-pressed={chip === c.key}
-            className={`min-h-9 rounded-full border px-3 text-xs font-semibold ${
-              chip === c.key
-                ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]"
-                : "border-[#E7E3D8] bg-white text-[#5F6B63]"
-            }`}>
-            {c.label}
-          </button>
-        ))}
-      </div>
-
-      {chip === "arsip" ? (
-        items === null ? memuat : items === false ? gagal : daftarArsip.length === 0 ? (
-          <div className="rounded-2xl border border-[#E7E3D8] bg-white p-10 text-center">
-            <Archive className="mx-auto text-[#5F6B63]" size={30} />
-            <p className="mt-3 text-base font-semibold text-[#14201A]">Arsip Pendaftaran Kosong</p>
-            <p className="mt-1 text-sm text-[#5F6B63]">
-              Belum ada kegiatan yang dipindahkan ke arsip.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {daftarArsip.map((item) => (
-              <div key={item.id} className="space-y-2">
-                <KartuKegiatan item={item} onOpen={bukaDetail} onCopy={salinLink} />
-                <button type="button" onClick={() => ubahStatus(item, "aktif")} disabled={sibuk}
-                  className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA] disabled:opacity-60">
-                  <RotateCcw size={15} /> Pulihkan
-                </button>
-              </div>
-            ))}
-          </div>
-        )
+      {items === null ? memuat : items === false ? gagal : berjalan.length === 0 ? (
+        <div className="rounded-2xl border border-[#E7E3D8] bg-white p-10 text-center">
+          {semuaSelesai ? (
+            <>
+              <CheckCircle2 className="mx-auto text-[#0E4E31]" size={30} />
+              <p className="mt-3 text-base font-semibold text-[#14201A]">
+                Tidak Ada Pendaftaran Aktif
+              </p>
+              <p className="mt-1 text-sm text-[#5F6B63]">
+                Semua kegiatan telah selesai atau dipindahkan ke arsip.
+              </p>
+              <button type="button" data-testid={PENDAFTARAN.emptyArchiveButton}
+                onClick={() => setLihatArsip(true)}
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#14633F] bg-white px-4 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
+                <Archive size={16} /> Lihat Arsip
+              </button>
+            </>
+          ) : (
+            <>
+              <CalendarPlus className="mx-auto text-[#5F6B63]" size={30} />
+              <p className="mt-3 text-base font-semibold text-[#14201A]">
+                Belum Ada Pendaftaran Kegiatan Aktif
+              </p>
+              <p className="mt-1 text-sm text-[#5F6B63]">
+                Belum ada kegiatan yang membutuhkan konfirmasi peserta.
+              </p>
+              <button type="button" data-testid={PENDAFTARAN.emptyAddButton}
+                onClick={() => setFormOpen(true)}
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
+                <CalendarPlus size={16} /> Tambah Kegiatan
+              </button>
+            </>
+          )}
+        </div>
       ) : (
         <>
-          <section className="rounded-2xl border border-[#E7E3D8] bg-white p-4">
-            <h2 className="inline-flex items-center gap-2 text-sm font-bold text-[#14201A]">
-              <Filter size={16} /> Filter
-            </h2>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold text-[#5F6B63]">Dari tanggal</span>
-                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-                  data-testid={PENDAFTARAN.rekapDateFrom} className={inp} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold text-[#5F6B63]">Sampai tanggal</span>
-                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-                  data-testid={PENDAFTARAN.rekapDateTo} className={inp} />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold text-[#5F6B63]">Kegiatan</span>
-                <select value={kegiatanId} onChange={(e) => setKegiatanId(e.target.value)}
-                  data-testid={PENDAFTARAN.rekapKegiatan} className={inp}>
-                  <option value="">Semua kegiatan</option>
-                  {semua.map((i) => <option key={i.id} value={i.id}>{i.nama}</option>)}
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold text-[#5F6B63]">Jawaban</span>
-                <select value={kehadiran} onChange={(e) => setKehadiran(e.target.value)}
-                  data-testid={PENDAFTARAN.rekapKehadiran} className={inp}>
-                  <option value="">Semua</option>
-                  <option value="hadir">Ikut</option>
-                  <option value="tidak_hadir">Tidak ikut</option>
-                </select>
-              </label>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button type="button" onClick={muatRekap}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
-                <Filter size={16} /> Terapkan
-              </button>
-              <button type="button" data-testid={PENDAFTARAN.rekapExportExcel}
-                onClick={() => eksporRekap("excel")} disabled={ekspor === "rekap-excel"}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-60">
-                <FileSpreadsheet size={16} /> Excel
-              </button>
-              <button type="button" data-testid={PENDAFTARAN.rekapExportPdf}
-                onClick={() => eksporRekap("pdf")} disabled={ekspor === "rekap-pdf"}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-60">
-                <FileText size={16} /> PDF
-              </button>
-              <button type="button" data-testid={PENDAFTARAN.rekapPrint}
-                onClick={() => window.print()}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F]">
-                <Printer size={16} /> Cetak laporan
-              </button>
-            </div>
-          </section>
-
-          {rekap === null ? memuat : rekap === false ? gagal : rekap.items.length === 0 ? (
-            <div className="rounded-2xl border border-[#E7E3D8] bg-white p-10 text-center">
-              <p className="text-base font-semibold text-[#14201A]">Belum Ada Data Rekap</p>
-              <p className="mt-1 text-sm text-[#5F6B63]">
-                Belum ada kegiatan pendaftaran pada periode atau filter ini.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {rekap.items.map((item) => (
-                <section key={item.id} className="rounded-2xl border border-[#E7E3D8] bg-white p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="text-base font-bold text-[#14201A]">{item.nama}</h3>
-                      <p className="mt-0.5 text-sm text-[#5F6B63]">
-                        {tanggalIndonesia(item.tanggal)} · {item.lokasi || "Lokasi belum diisi"}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <JenisBadge wajib={item.wajib_konfirmasi} />
-                      <StatusBadge status={item.status_tampil} />
-                      <JadwalBadge status={item.jadwal_status} />
-                    </div>
-                  </div>
-
-                  <div className="mt-3">
-                    <Statistik item={item} ikon={IKON} wajib={item.wajib_konfirmasi !== false} />
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-[#F6F4EE] px-3 py-2.5">
-                    <span className="text-sm font-semibold text-[#14201A]">
-                      Persentase ikut: {item.persentase_ikut}%
-                    </span>
-                    <span className="text-xs text-[#5F6B63]">
-                      {item.ikut} dari {item.total} yang mengisi
-                    </span>
-                  </div>
-
-                  <div className="mt-3">
-                    <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#5F6B63]">
-                      Alasan tidak ikut
-                    </p>
-                    <AlasanRingkas ringkas={item.alasan_ringkas} />
-                  </div>
-
-                  <div className="mt-3">
-                    <TabelPeserta rows={item.peserta} />
-                  </div>
-                </section>
-              ))}
+          {kartu(berjalan)}
+          {selesai.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#5F6B63]">Selesai</p>
+              {kartu(selesai)}
             </div>
           )}
         </>
       )}
+
+      {items && semua.length > 0 && (
+        <div className="pt-1 text-center">
+          <button type="button" onClick={() => setLihatArsip(true)}
+            className="text-xs font-semibold text-[#0E4E31] underline-offset-2 hover:underline">
+            Lihat arsip
+          </button>
+        </div>
+      )}
+
       {modal}
     </div>
   );

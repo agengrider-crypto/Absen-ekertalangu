@@ -1,10 +1,9 @@
-// Detail satu kegiatan pendaftaran: angka, chip alasan, filter, daftar peserta.
-// Link publik & buat ulang tautan ada di menu titik tiga.
+// Detail satu kegiatan pendaftaran: angka, chip alasan, tab peserta, aksi.
+// Ekspor Excel/PDF dihapus; rekap dibagikan lewat WhatsApp.
 import { useMemo, useState } from "react";
 import {
-  Loader2, Copy, FileSpreadsheet, FileText, Archive, Trash2, RefreshCw,
-  MoreVertical, CalendarClock, Link2, MapPin, CalendarDays,
-  Users, CheckCircle2, XCircle,
+  Loader2, Copy, Archive, Trash2, RefreshCw, MoreVertical, CalendarClock,
+  Link2, MapPin, CalendarDays, Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -13,14 +12,11 @@ import { PENDAFTARAN } from "@/constants/testIds";
 import { useAuth } from "@/context/AuthContext";
 import Modal from "@/components/Modal";
 import {
-  Statistik, AlasanRingkas, TabelPeserta, JenisBadge, StatusBadge,
-  JadwalBadge, TombolMaps,
+  AlasanRingkas, DaftarPeserta, JenisBadge, StatusKegiatanBadge, TombolMaps,
 } from "./pendaftaranBagian";
 
-const IKON = { Users, CheckCircle2, XCircle };
-
 export default function PendaftaranDetailModal({
-  data, sibuk, ekspor, onClose, onCopy, onExport, onStatus, onReload, onUbahJadwal, onBuatKegiatan,
+  data, sibuk, onClose, onCopy, onShare, onStatus, onReload, onUbahJadwal, onBuatKegiatan,
 }) {
   const { user } = useAuth();
   const isAdmin = (user?.roles || []).includes("admin");
@@ -38,6 +34,11 @@ export default function PendaftaranDetailModal({
     if (filter === "tidak") return peserta.filter((p) => p.kehadiran === "tidak_hadir");
     return peserta;
   }, [peserta, filter]);
+
+  const alasanAda = useMemo(
+    () => Object.values(item?.alasan_ringkas || {}).some((n) => n > 0),
+    [item],
+  );
 
   const buatUlangTautan = async () => {
     setMembuatUlang(true);
@@ -75,56 +76,65 @@ export default function PendaftaranDetailModal({
       testid={PENDAFTARAN.detailModal}
       maxWidth={720}
       footer={item ? (
-        <div className="space-y-2">
-          <div className="flex flex-wrap gap-2">
-            <button type="button" data-testid={PENDAFTARAN.detailCopyLink}
-              onClick={() => onCopy?.(item)} disabled={!item.link}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31] disabled:opacity-50">
-              <Copy size={16} /> Salin link
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => onShare?.(item)}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
+            <Share2 size={16} /> Bagikan ke WhatsApp
+          </button>
+          <button type="button" data-testid={PENDAFTARAN.detailCopyLink}
+            onClick={() => onCopy?.(item)} disabled={!item.link}
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-50">
+            <Copy size={16} /> Salin link
+          </button>
+          {item.kegiatan_id ? (
+            <a href={`/absensi/${item.kegiatan_id}`} data-testid="pendaftaran-buka-kegiatan"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
+              <CalendarDays size={16} /> Buka kegiatan
+            </a>
+          ) : (
+            <button type="button" data-testid="pendaftaran-buat-kegiatan"
+              onClick={() => onBuatKegiatan?.(item)} disabled={sibuk}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA] disabled:opacity-60">
+              <CalendarDays size={16} /> Buat kegiatan berabsen
             </button>
-            <button type="button" data-testid={PENDAFTARAN.detailExportExcel}
-              onClick={() => onExport?.(item, "excel")} disabled={ekspor === `${item.id}-excel`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-60">
-              <FileSpreadsheet size={16} /> Excel
+          )}
+          <div className="relative ml-auto">
+            <button type="button" onClick={() => setMenu((v) => !v)}
+              aria-label="Aksi lainnya" aria-expanded={menu}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#E7E3D8] bg-white text-[#14201A] hover:border-[#14633F]">
+              <MoreVertical size={16} />
             </button>
-            <button type="button" data-testid={PENDAFTARAN.detailExportPdf}
-              onClick={() => onExport?.(item, "pdf")} disabled={ekspor === `${item.id}-pdf`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-60">
-              <FileText size={16} /> PDF
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {item.kegiatan_id ? (
-              <a href={`/absensi/${item.kegiatan_id}`}
-                data-testid="pendaftaran-buka-kegiatan"
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
-                <CalendarDays size={16} /> Buka kegiatan
-              </a>
-            ) : (
-              <button type="button" data-testid="pendaftaran-buat-kegiatan"
-                onClick={() => onBuatKegiatan?.(item)} disabled={sibuk}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA] disabled:opacity-60">
-                <CalendarDays size={16} /> Buat kegiatan berabsen
-              </button>
-            )}
-            {item.status_tampil !== "arsip" ? (
-              <button type="button" data-testid={PENDAFTARAN.detailArchive}
-                onClick={() => onStatus?.(item, "arsip")} disabled={sibuk}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#E7E3D8] bg-white px-3 text-sm font-semibold text-[#14201A] hover:border-[#14633F] disabled:opacity-60">
-                <Archive size={16} /> Arsipkan
-              </button>
-            ) : (
-              <button type="button" onClick={() => onStatus?.(item, "aktif")} disabled={sibuk}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA] disabled:opacity-60">
-                <RefreshCw size={16} /> Pulihkan
-              </button>
-            )}
-            {isAdmin && (
-              <button type="button" data-testid={PENDAFTARAN.detailDelete}
-                onClick={() => setKonfirmasiHapus(true)}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#A32A2A] bg-white px-3 text-sm font-semibold text-[#A32A2A] hover:bg-[#FBE5E3]">
-                <Trash2 size={16} /> Hapus permanen
-              </button>
+            {menu && (
+              <div className="absolute bottom-full right-0 z-20 mb-1 w-60 rounded-xl border border-[#E7E3D8] bg-white p-1 shadow-lg">
+                <button type="button" onClick={() => { setMenu(false); onUbahJadwal?.(item); }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#14201A] hover:bg-[#F6F4EE]">
+                  <CalendarClock size={15} /> Ubah jadwal pendaftaran
+                </button>
+                <button type="button" onClick={() => { setMenu(false); setKonfirmasiTautan(true); }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#14201A] hover:bg-[#F6F4EE]">
+                  <Link2 size={15} /> Buat ulang tautan
+                </button>
+                {item.status_tampil !== "arsip" ? (
+                  <button type="button" data-testid={PENDAFTARAN.detailArchive}
+                    onClick={() => { setMenu(false); onStatus?.(item, "arsip"); }} disabled={sibuk}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#14201A] hover:bg-[#F6F4EE] disabled:opacity-60">
+                    <Archive size={15} /> Arsipkan
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => { setMenu(false); onStatus?.(item, "aktif"); }}
+                    disabled={sibuk}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#14201A] hover:bg-[#F6F4EE] disabled:opacity-60">
+                    <RefreshCw size={15} /> Pulihkan
+                  </button>
+                )}
+                {isAdmin && (
+                  <button type="button" data-testid={PENDAFTARAN.detailDelete}
+                    onClick={() => { setMenu(false); setKonfirmasiHapus(true); }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#A32A2A] hover:bg-[#FBE5E3]">
+                    <Trash2 size={15} /> Hapus permanen
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -140,32 +150,7 @@ export default function PendaftaranDetailModal({
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-1.5">
             <JenisBadge wajib={item.wajib_konfirmasi} />
-            <StatusBadge status={item.status_tampil} />
-            <JadwalBadge status={item.jadwal_status} />
-            <div className="relative ml-auto">
-              <button type="button" onClick={() => setMenu((v) => !v)}
-                aria-label="Aksi lainnya"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#E7E3D8] bg-white text-[#14201A] hover:border-[#14633F]">
-                <MoreVertical size={16} />
-              </button>
-              {menu && (
-                <div className="absolute right-0 z-20 mt-1 w-60 rounded-xl border border-[#E7E3D8] bg-white p-1 shadow-lg">
-                  <button type="button" onClick={() => { onCopy?.(item); setMenu(false); }}
-                    disabled={!item.link}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#14201A] hover:bg-[#F6F4EE] disabled:opacity-50">
-                    <Copy size={15} /> Salin link
-                  </button>
-                  <button type="button" onClick={() => { setMenu(false); onUbahJadwal?.(item); }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#14201A] hover:bg-[#F6F4EE]">
-                    <CalendarClock size={15} /> Ubah jadwal pendaftaran
-                  </button>
-                  <button type="button" onClick={() => { setMenu(false); setKonfirmasiTautan(true); }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[#14201A] hover:bg-[#F6F4EE]">
-                    <Link2 size={15} /> Buat ulang tautan
-                  </button>
-                </div>
-              )}
-            </div>
+            <StatusKegiatanBadge item={item} />
           </div>
 
           <div className="space-y-1 rounded-xl bg-[#F6F4EE] px-3 py-2.5 text-sm text-[#5F6B63]">
@@ -178,6 +163,9 @@ export default function PendaftaranDetailModal({
                 <TombolMaps item={item} />
               </p>
             )}
+            {item.penyelenggara && (
+              <p className="text-xs">Penyelenggara: {item.penyelenggara}</p>
+            )}
             <p className="text-xs">
               Pendaftaran: {item.pendaftaran_buka ? tanggalIndonesia(item.pendaftaran_buka) : "langsung dibuka"}
               {" — "}
@@ -185,14 +173,27 @@ export default function PendaftaranDetailModal({
             </p>
           </div>
 
-          <Statistik item={item} ikon={IKON} wajib={item.wajib_konfirmasi !== false} />
-
-          <div>
-            <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#5F6B63]">
-              Alasan tidak ikut
-            </p>
-            <AlasanRingkas ringkas={item.alasan_ringkas} />
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: "Total", value: item.total, color: "#14201A" },
+              { label: "Ikut", value: item.ikut, color: "#0E4E31" },
+              { label: "Tidak ikut", value: item.tidak_ikut, color: "#A32A2A" },
+            ].map((k) => (
+              <div key={k.label} className="rounded-xl border border-[#E7E3D8] bg-white p-3">
+                <p className="text-xs font-semibold text-[#5F6B63]">{k.label}</p>
+                <p className="mt-1 text-xl font-bold" style={{ color: k.color }}>{k.value}</p>
+              </div>
+            ))}
           </div>
+
+          {item.wajib_konfirmasi !== false && alasanAda && (
+            <div>
+              <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-[#5F6B63]">
+                Alasan tidak ikut
+              </p>
+              <AlasanRingkas ringkas={item.alasan_ringkas} />
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-1.5">
             {[
@@ -212,16 +213,17 @@ export default function PendaftaranDetailModal({
             ))}
           </div>
 
-          <TabelPeserta rows={tampil} denganKeterangan />
+          <DaftarPeserta rows={tampil} />
         </div>
       )}
 
       {konfirmasiHapus && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-4">
             <p className="text-base font-semibold text-[#14201A]">Hapus permanen kegiatan?</p>
             <p className="mt-1 text-sm text-[#5F6B63]">
-              Jawaban peserta ikut terhapus dan tidak bisa dikembalikan.
+              Jawaban peserta ikut terhapus dan tidak bisa dikembalikan. Tindakan ini
+              tidak bisa dibatalkan.
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button type="button" onClick={() => setKonfirmasiHapus(false)}
@@ -231,7 +233,7 @@ export default function PendaftaranDetailModal({
               <button type="button" data-testid={PENDAFTARAN.detailDeleteConfirm}
                 onClick={hapus}
                 className="min-h-11 rounded-xl bg-[#A32A2A] px-4 text-sm font-semibold text-white">
-                Ya
+                Ya, hapus permanen
               </button>
             </div>
           </div>
@@ -239,7 +241,7 @@ export default function PendaftaranDetailModal({
       )}
 
       {konfirmasiTautan && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-4">
             <p className="text-base font-semibold text-[#14201A]">Buat ulang tautan?</p>
             <p className="mt-1 text-sm text-[#5F6B63]">Tautan lama tidak berlaku lagi.</p>

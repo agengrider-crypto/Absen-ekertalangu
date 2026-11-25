@@ -1,46 +1,11 @@
-// Bagian bersama halaman Pendaftaran Kegiatan (badge, statistik, tabel).
+// Bagian bersama halaman Pendaftaran Kegiatan (badge, statistik, daftar).
 // Dipakai PendaftaranKegiatanView dan PendaftaranDetailModal agar tidak ada
 // duplikasi markup.
-
-export const STATUS_META = {
-  aktif: { label: "Aktif", bg: "#E3F3EA", text: "#0E4E31" },
-  berlangsung: { label: "Berlangsung", bg: "#E3EEFB", text: "#1D4F91" },
-  selesai: { label: "Selesai", bg: "#E7E3D8", text: "#4A5650" },
-  arsip: { label: "Arsip", bg: "#F0EEE6", text: "#5F6B63" },
-};
-
-export const JADWAL_META = {
-  belum: { label: "Belum dibuka", bg: "#F0EEE6", text: "#5F6B63" },
-  dibuka: { label: "Dibuka", bg: "#E3F3EA", text: "#0E4E31" },
-  ditutup: { label: "Ditutup", bg: "#FBE5E3", text: "#A32A2A" },
-};
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { tanggalIndonesia } from "@/lib/wa";
 
 export const ALASAN_KEYS = ["Kerja", "Sakit", "Keperluan keluarga", "Luar kota", "Lainnya"];
-
-export function StatusBadge({ status }) {
-  const meta = STATUS_META[status] || STATUS_META.aktif;
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-      style={{ backgroundColor: meta.bg, color: meta.text }}
-    >
-      {meta.label}
-    </span>
-  );
-}
-
-/** Badge jadwal pendaftaran: Belum dibuka / Dibuka / Ditutup. */
-export function JadwalBadge({ status }) {
-  const meta = JADWAL_META[status] || JADWAL_META.dibuka;
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-      style={{ backgroundColor: meta.bg, color: meta.text }}
-    >
-      {meta.label}
-    </span>
-  );
-}
 
 /** Badge jenis kegiatan: Wajib ikut atau Biasa. */
 export function JenisBadge({ wajib }) {
@@ -53,6 +18,27 @@ export function JenisBadge({ wajib }) {
         : { backgroundColor: "#F0EEE6", color: "#5F6B63" }}
     >
       {on ? "Wajib ikut" : "Biasa"}
+    </span>
+  );
+}
+
+/** Badge status kegiatan pendaftaran: Dibuka / Ditutup / Selesai. */
+export function StatusKegiatanBadge({ item }) {
+  const selesai = item?.status_tampil === "selesai" || item?.status_tampil === "arsip";
+  const jadwal = item?.jadwal_status || "dibuka";
+  const meta = selesai
+    ? { label: "Selesai", bg: "#E7E3D8", text: "#4A5650" }
+    : jadwal === "dibuka"
+      ? { label: "Dibuka", bg: "#E3F3EA", text: "#0E4E31" }
+      : jadwal === "belum"
+        ? { label: "Belum dibuka", bg: "#F0EEE6", text: "#5F6B63" }
+        : { label: "Ditutup", bg: "#FBE5E3", text: "#A32A2A" };
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+      style={{ backgroundColor: meta.bg, color: meta.text }}
+    >
+      {meta.label}
     </span>
   );
 }
@@ -94,37 +80,6 @@ export function TombolMaps({ item, className = "" }) {
   );
 }
 
-/** Angka utama: Total mengisi, Ikut, Tidak ikut. */
-export function Statistik({ item, ikon, wajib }) {
-  const kotak = [
-    { label: "Total mengisi", value: item.total, Icon: ikon.Users, color: "#14201A" },
-    { label: "Ikut", value: item.ikut, Icon: ikon.CheckCircle2, color: "#0E4E31" },
-    { label: "Tidak ikut", value: item.tidak_ikut, Icon: ikon.XCircle, color: "#A32A2A" },
-  ];
-  return (
-    <div className="space-y-2">
-      {wajib && (
-        <div className="rounded-xl border border-[#F0D9A8] bg-[#FFF9EC] p-3">
-          <p className="text-xs font-semibold text-[#8A5A00]">Ikut</p>
-          <p className="text-3xl font-bold leading-tight text-[#8A5A00]">
-            {item.ikut} <span className="text-sm font-semibold">orang ikut</span>
-          </p>
-        </div>
-      )}
-      <div className="grid grid-cols-3 gap-2">
-        {kotak.map(({ label, value, Icon, color }) => (
-          <div key={label} className="rounded-xl border border-[#E7E3D8] bg-white p-3">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#5F6B63]">
-              <Icon size={14} style={{ color }} /> {label}
-            </div>
-            <p className="mt-1 text-xl font-bold" style={{ color }}>{value}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /** Rincian jumlah alasan tidak ikut. */
 export function AlasanRingkas({ ringkas }) {
   return (
@@ -140,8 +95,10 @@ export function AlasanRingkas({ ringkas }) {
   );
 }
 
-/** Tabel peserta: nama, nomor HP, jawaban, alasan, keterangan. */
-export function TabelPeserta({ rows, denganKeterangan = false }) {
+/** Daftar peserta ringkas: Nama + status Ikut/Tidak ikut.
+ * Nomor HP, alasan, dan keterangan muncul saat baris diklik. */
+export function DaftarPeserta({ rows }) {
+  const [buka, setBuka] = useState({});
   if (!rows?.length) {
     return (
       <p className="rounded-xl border border-[#E7E3D8] bg-white p-6 text-center text-sm text-[#5F6B63]">
@@ -150,33 +107,79 @@ export function TabelPeserta({ rows, denganKeterangan = false }) {
     );
   }
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#E7E3D8] bg-white">
-      <table className="w-full min-w-[520px] text-left text-sm">
-        <thead className="bg-[#F6F4EE] text-xs uppercase tracking-wide text-[#5F6B63]">
-          <tr>
-            <th className="px-3 py-2.5 font-semibold">Nama</th>
-            <th className="px-3 py-2.5 font-semibold">Nomor HP</th>
-            <th className="px-3 py-2.5 font-semibold">Jawaban</th>
-            <th className="px-3 py-2.5 font-semibold">Alasan</th>
-            {denganKeterangan && <th className="px-3 py-2.5 font-semibold">Keterangan</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id} className="border-t border-[#E7E3D8]">
-              <td className="px-3 py-2.5 font-medium text-[#14201A]">{r.nama}</td>
-              <td className="px-3 py-2.5 text-[#5F6B63]">{r.nomor_hp || "-"}</td>
-              <td className="px-3 py-2.5"><BadgeKehadiran kehadiran={r.kehadiran} /></td>
-              <td className="px-3 py-2.5 text-[#5F6B63]">
-                {r.kehadiran === "hadir" ? "-" : (r.alasan_lain || r.alasan || "-")}
-              </td>
-              {denganKeterangan && (
-                <td className="px-3 py-2.5 text-[#5F6B63]">{r.keterangan || "-"}</td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ul className="divide-y divide-[#E7E3D8] overflow-hidden rounded-xl border border-[#E7E3D8] bg-white">
+      {rows.map((r) => {
+        const terbuka = !!buka[r.id];
+        const alasan = r.kehadiran === "hadir" ? "-" : (r.alasan_lain || r.alasan || "-");
+        return (
+          <li key={r.id}>
+            <button
+              type="button"
+              onClick={() => setBuka((b) => ({ ...b, [r.id]: !b[r.id] }))}
+              aria-expanded={terbuka}
+              className="flex min-h-12 w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-[#F6F4EE]"
+            >
+              <span className="min-w-0 flex-1 truncate text-sm font-medium text-[#14201A]">
+                {r.nama}
+              </span>
+              <BadgeKehadiran kehadiran={r.kehadiran} />
+              <ChevronDown
+                size={15}
+                className={`shrink-0 text-[#5F6B63] transition-transform motion-reduce:transition-none ${
+                  terbuka ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {terbuka && (
+              <dl className="space-y-1 bg-[#F6F4EE] px-3 py-2.5 text-xs text-[#5F6B63]">
+                <div className="flex gap-2">
+                  <dt className="w-20 shrink-0 font-semibold">Nomor HP</dt>
+                  <dd className="min-w-0 break-all">{r.nomor_hp || "-"}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="w-20 shrink-0 font-semibold">Alasan</dt>
+                  <dd className="min-w-0">{alasan}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="w-20 shrink-0 font-semibold">Keterangan</dt>
+                  <dd className="min-w-0">{r.keterangan || "-"}</dd>
+                </div>
+              </dl>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
+
+/** Teks rekap untuk WhatsApp. Nomor HP tidak pernah dimasukkan. */
+export function teksRekapWhatsApp(item, { sertakanNama = true, maksNama = 60 } = {}) {
+  const ikut = (item?.peserta || []).filter((p) => p.kehadiran === "hadir");
+  const baris = [];
+  baris.push(`*${item?.nama || "Kegiatan"}*`);
+  if (item?.penyelenggara) baris.push(item.penyelenggara);
+  baris.push(`${tanggalIndonesia(item?.tanggal)}${item?.lokasi ? ` · ${item.lokasi}` : ""}`);
+  baris.push("");
+  baris.push(`Ikut: ${item?.ikut ?? 0} · Tidak ikut: ${item?.tidak_ikut ?? 0} · Total: ${item?.total ?? 0}`);
+  if (sertakanNama && ikut.length) {
+    baris.push("");
+    baris.push("*Yang ikut:*");
+    const tampil = ikut.slice(0, maksNama);
+    tampil.forEach((p, i) => baris.push(`${i + 1}. ${p.nama}`));
+    if (ikut.length > tampil.length) {
+      baris.push(`dan ${ikut.length - tampil.length} lainnya`);
+    }
+  }
+  if (item?.link) {
+    baris.push("");
+    baris.push(`Pendaftaran: ${item.link}`);
+  }
+  return baris.join("\n");
+}
+
+/** Tautan wa.me dari teks (di-encode benar). */
+export function waHref(teks) {
+  return `https://wa.me/?text=${encodeURIComponent(teks)}`;
+}
+

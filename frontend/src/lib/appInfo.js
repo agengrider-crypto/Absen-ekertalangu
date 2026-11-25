@@ -19,6 +19,18 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-25-pendaftaran-sederhana",
+    date: "2026-11-25",
+    jenis: "fitur",
+    tujuan: "/area/admin/pendaftaran-aktif",
+    title: "Pendaftaran kegiatan lebih sederhana dan fleksibel",
+    keterangan:
+      "Satu daftar, bagikan rekap ke WhatsApp, nomor HP opsional, dan formulir bisa tanpa logo.",
+    items: [
+      "Satu daftar, bagikan rekap ke WhatsApp, nomor HP opsional, dan formulir bisa tanpa logo.",
+    ],
+  },
+  {
     id: "2026-11-25-login",
     date: "2026-11-25",
     jenis: "perbaikan",

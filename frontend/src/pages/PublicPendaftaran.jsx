@@ -60,6 +60,37 @@ export default function PublicPendaftaran() {
       .finally(() => setLoading(false));
   }, [token]);
 
+  // Judul halaman + pratinjau tautan mengikuti kegiatan (bukan logo aplikasi).
+  useEffect(() => {
+    if (!info) return undefined;
+    const judul = info.penyelenggara
+      ? `${info.nama} — ${info.penyelenggara}`
+      : `${info.nama} — Pendaftaran Kegiatan`;
+    const deskripsi = [
+      info.penyelenggara ? `Pendaftaran ${info.nama} oleh ${info.penyelenggara}.` : `Pendaftaran ${info.nama}.`,
+      tanggalIndonesia(info.tanggal),
+      info.lokasi ? `Lokasi: ${info.lokasi}.` : null,
+      "Isi konfirmasi kehadiran lewat tautan ini.",
+    ].filter(Boolean).join(" ");
+    const lama = { judul: document.title };
+    document.title = judul;
+    const dibuat = [];
+    const pasang = (attr, key, isi) => {
+      const el = document.createElement("meta");
+      el.setAttribute(attr, key);
+      el.content = isi;
+      document.head.appendChild(el);
+      dibuat.push(el);
+    };
+    pasang("property", "og:title", judul);
+    pasang("property", "og:description", deskripsi);
+    pasang("name", "description", deskripsi);
+    return () => {
+      document.title = lama.judul;
+      dibuat.forEach((el) => document.head.removeChild(el));
+    };
+  }, [info]);
+
   const set = (key, value) => {
     setForm((f) => ({ ...f, [key]: value }));
     setPesan("");
@@ -68,7 +99,10 @@ export default function PublicPendaftaran() {
   const kirim = async (e) => {
     e.preventDefault();
     if (form.nama.trim().length < 3) { setPesan("Isi nama lengkap dulu."); return; }
-    if (!form.nomor_hp.trim()) { setPesan("Isi nomor HP dulu."); return; }
+    if (info?.hp_wajib !== false && !form.nomor_hp.trim()) {
+      setPesan("Isi nomor HP dulu.");
+      return;
+    }
     if (!form.kehadiran) { setPesan("Pilih jawaban dulu."); return; }
     const wajib = info?.wajib_konfirmasi !== false;
     if (form.kehadiran === "tidak_hadir" && wajib && !form.alasan) {
@@ -122,11 +156,19 @@ export default function PublicPendaftaran() {
 
   const jadwal = info?.jadwal_status || "dibuka";
   const href = mapsHref(info);
+  const pakaiLogo = info?.tampilkan_logo !== false;
 
   const kepalaInfo = (
     <div className="flex flex-col items-center text-center">
-      <Logo size={44} />
-      <h1 className="mt-4 text-xl font-bold text-[#14201A]">Pendaftaran Kegiatan</h1>
+      {pakaiLogo && <Logo size={44} />}
+      {info?.penyelenggara && (
+        <p className={`text-sm font-semibold text-[#5F6B63] ${pakaiLogo ? "mt-3" : ""}`}>
+          {info.penyelenggara}
+        </p>
+      )}
+      <h1 className={`text-xl font-bold text-[#14201A] ${pakaiLogo || info?.penyelenggara ? "mt-2" : ""}`}>
+        Pendaftaran Kegiatan
+      </h1>
       <p className="mt-1 text-base font-semibold text-[#0E4E31]">{info?.nama}</p>
       <div className="mt-2 space-y-1 text-sm text-[#5F6B63]">
         <p className="inline-flex items-center gap-1.5">
@@ -184,8 +226,8 @@ export default function PublicPendaftaran() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-[#F6F4EE] px-4 text-center"
         data-testid={PENDAFTARAN.publicResult}>
-        <Logo size={48} />
-        <CheckCircle2 className="mt-6 text-[#0E4E31]" size={34} />
+        {pakaiLogo && <Logo size={48} />}
+        <CheckCircle2 className={`text-[#0E4E31] ${pakaiLogo ? "mt-6" : ""}`} size={34} />
         <p className="mt-3 max-w-sm text-base font-semibold text-[#14201A]">
           Terima kasih, jawaban Anda sudah tersimpan.
         </p>
@@ -217,7 +259,9 @@ export default function PublicPendaftaran() {
           </label>
 
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-[#14201A]">Nomor HP *</span>
+            <span className="mb-1 block text-sm font-semibold text-[#14201A]">
+              Nomor HP {info?.hp_wajib === false ? "(opsional)" : "*"}
+            </span>
             <input value={form.nomor_hp} onChange={(e) => set("nomor_hp", e.target.value)}
               data-testid={PENDAFTARAN.publicPhone} inputMode="tel" maxLength={20}
               placeholder="Contoh: 081234567890" className={inputCls} />

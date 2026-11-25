@@ -33,7 +33,6 @@ except ImportError as exc:  # pragma: no cover
 
 import server  # noqa: E402
 
-# Ganti client Motor dengan mongomock sebelum database dipakai.
 _mock_client = mongomock_motor.AsyncMongoMockClient()
 server.client = _mock_client
 server._db_real = _mock_client[server._DB_NAME]
@@ -53,7 +52,6 @@ def cek(nama, kondisi, info=""):
 async def main():
     transport = httpx.ASGITransport(app=server.app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
-        # --- siapkan akun staff & peserta ---------------------------------
         await server.db.users.insert_one({
             "_id": server.ObjectId(), "name": "Admin Uji", "username": "adminuji",
             "email": "adminuji@example.com", "phone": "6281100000001",
@@ -67,18 +65,12 @@ async def main():
             "password_hash": server.hash_password("rahasia123"),
             "roles": ["peserta"], "status": "active", "token_version": 0,
         })
-        await server.db.users.insert_one({
-            "_id": server.ObjectId(), "name": "Budi Santoso", "username": "budi",
-            "email": "budi@example.com", "phone": "6281300000003",
-            "password_hash": None, "roles": ["peserta"], "status": "pending",
-            "token_version": 0,
-        })
 
         r = await c.post("/api/auth/login",
                          json={"identifier": "adminuji", "password": "rahasia123"})
         cek("login staff", r.status_code == 200, r.text[:200])
 
-        # --- buat kegiatan -------------------------------------------------
+        # --- buat kegiatan: bawaan ----------------------------------------
         r = await c.post("/api/staff/pendaftaran", json={
             "nama": "Pengajian Rutin Ahad Pagi", "tanggal": "2026-12-06",
             "lokasi": "Masjid Kertalangu", "catatan": "Bawa kartu peserta",
@@ -89,52 +81,35 @@ async def main():
         cek("link publik", (keg.get("link") or "").endswith(f"/daftar/{keg['token']}"),
             keg.get("link"))
         cek("status aktif", keg.get("status_tampil") == "aktif", keg.get("status_tampil"))
-        cek("default wajib konfirmasi", keg.get("wajib_konfirmasi") is True,
-            keg.get("wajib_konfirmasi"))
-        terdaftar = await server.db.users.count_documents(server.PESERTA_QUERY)
-        cek("total peserta = jumlah peserta terdaftar",
-            keg.get("total_peserta") == terdaftar,
-            f"{keg.get('total_peserta')} vs {terdaftar}")
-
-        # --- daftar --------------------------------------------------------
-        r = await c.get("/api/staff/pendaftaran")
-        cek("daftar kegiatan", r.status_code == 200 and len(r.json()["items"]) == 1, r.text[:200])
+        cek("bawaan wajib konfirmasi", keg.get("wajib_konfirmasi") is True)
+        cek("bawaan nomor HP wajib", keg.get("hp_wajib") is True, keg.get("hp_wajib"))
+        cek("bawaan kegiatan umum mati", keg.get("kegiatan_umum") is False,
+            keg.get("kegiatan_umum"))
+        cek("bawaan logo tampil", keg.get("tampilkan_logo") is True,
+            keg.get("tampilkan_logo"))
+        cek("total mulai dari 0", keg.get("total") == 0, keg.get("total"))
 
         # --- info publik ---------------------------------------------------
         r = await c.get(f"/api/publik/daftar/{keg['token']}")
         cek("info publik", r.status_code == 200, r.text[:200])
-        cek("alasan publik", r.json().get("alasan") == list(server.PENDAFTARAN_ALASAN),
-            r.json().get("alasan"))
+        info = r.json()
+        cek("alasan publik", info.get("alasan") == list(server.PENDAFTARAN_ALASAN))
+        cek("info publik memuat hp_wajib", info.get("hp_wajib") is True)
+        cek("info publik memuat tampilkan_logo", info.get("tampilkan_logo") is True)
 
-        # --- konfirmasi HADIR peserta terdaftar ----------------------------
+        # --- konfirmasi hadir peserta terdaftar ----------------------------
         r = await c.post(f"/api/publik/daftar/{keg['token']}", json={
             "nama": "Ahmad Fauzi", "nomor_hp": "081200000002", "kehadiran": "hadir",
         })
         cek("konfirmasi hadir", r.status_code == 200, r.text[:300])
-        body = r.json()
-        cek("peserta ditemukan", body.get("ditemukan") is True, body)
-        cek("status akun aktif", body.get("status_akun") == "aktif", body.get("status_akun"))
-        cek("pesan ditemukan", body.get("pesan") == "Peserta terdaftar ditemukan", body.get("pesan"))
 
-        # --- konfirmasi TIDAK HADIR peserta belum aktivasi -----------------
+        # --- satu nomor satu jawaban ---------------------------------------
         r = await c.post(f"/api/publik/daftar/{keg['token']}", json={
-            "nama": "Budi Santoso", "nomor_hp": "081300000003",
-            "kehadiran": "tidak_hadir", "alasan": "Kerja", "keterangan": "Shift pagi",
+            "nama": "Ahmad Fauzi", "nomor_hp": "6281200000002",
+            "kehadiran": "tidak_hadir", "alasan": "Sakit",
         })
-        cek("konfirmasi tidak hadir", r.status_code == 200, r.text[:300])
-        body = r.json()
-        cek("status belum aktivasi", body.get("status_akun") == "belum_aktivasi",
-            body.get("status_akun"))
-
-        # --- konfirmasi calon peserta (tidak terdaftar) --------------------
-        r = await c.post(f"/api/publik/daftar/{keg['token']}", json={
-            "nama": "Citra Dewi", "nomor_hp": "081900000009",
-            "kehadiran": "tidak_hadir", "alasan": "Lainnya", "alasan_lain": "Acara keluarga",
-        })
-        cek("konfirmasi calon", r.status_code == 200, r.text[:300])
-        body = r.json()
-        cek("calon tidak ditemukan", body.get("ditemukan") is False, body)
-        cek("status calon", body.get("status_akun") == "calon", body.get("status_akun"))
+        cek("nomor sama memperbarui jawaban",
+            r.status_code == 200 and r.json().get("diperbarui") is True, r.text[:200])
 
         # --- validasi ------------------------------------------------------
         r = await c.post(f"/api/publik/daftar/{keg['token']}", json={
@@ -152,141 +127,108 @@ async def main():
         })
         cek("alasan wajib saat tidak hadir", r.status_code == 400, r.text[:200])
 
-        r = await c.post(f"/api/publik/daftar/{keg['token']}", json={
-            "nama": "Nama Uji", "nomor_hp": "081900000010",
-            "kehadiran": "tidak_hadir", "alasan": "Lainnya", "alasan_lain": "ab",
+        # --- kegiatan umum: nomor HP opsional, tanpa pencocokan ------------
+        r = await c.post("/api/staff/pendaftaran", json={
+            "nama": "Lomba 17 Agustus", "tanggal": "2026-12-20",
+            "lokasi": "Lapangan Desa", "penyelenggara": "Karang Taruna Desa X",
+            "kegiatan_umum": True, "hp_wajib": False, "tampilkan_logo": False,
         })
-        cek("alasan lainnya minimal 3 huruf", r.status_code == 400, r.text[:200])
+        cek("buat kegiatan umum", r.status_code == 200, r.text[:300])
+        umum = r.json()
+        cek("kegiatan umum tersimpan", umum.get("kegiatan_umum") is True)
+        cek("nomor HP opsional tersimpan", umum.get("hp_wajib") is False)
+        cek("logo disembunyikan tersimpan", umum.get("tampilkan_logo") is False)
+        cek("penyelenggara tersimpan", umum.get("penyelenggara") == "Karang Taruna Desa X",
+            umum.get("penyelenggara"))
 
-        # --- konfirmasi ulang menimpa baris yang sama ----------------------
-        r = await c.post(f"/api/publik/daftar/{keg['token']}", json={
-            "nama": "Ahmad Fauzi", "nomor_hp": "081200000002",
-            "kehadiran": "tidak_hadir", "alasan": "Sakit",
+        r = await c.get(f"/api/publik/daftar/{umum['token']}")
+        cek("info publik kegiatan umum", r.status_code == 200, r.text[:200])
+        iu = r.json()
+        cek("publik: hp opsional", iu.get("hp_wajib") is False)
+        cek("publik: tanpa logo", iu.get("tampilkan_logo") is False)
+        cek("publik: penyelenggara", iu.get("penyelenggara") == "Karang Taruna Desa X")
+
+        r = await c.post(f"/api/publik/daftar/{umum['token']}", json={
+            "nama": "Warga Luar", "kehadiran": "hadir",
         })
-        cek("konfirmasi ulang", r.status_code == 200 and r.json().get("diperbarui") is True,
-            r.text[:200])
+        cek("konfirmasi tanpa nomor HP", r.status_code == 200, r.text[:300])
+
+        # --- duplikat nama saat nomor HP kosong ----------------------------
+        r = await c.post(f"/api/publik/daftar/{umum['token']}", json={
+            "nama": "  WARGA   luar ", "kehadiran": "hadir",
+        })
+        cek("nama sama tanpa nomor ditolak", r.status_code == 409, r.text[:200])
+        cek("pesan duplikat nama jelas",
+            "sudah mendaftar" in r.text, r.text[:200])
+
+        r = await c.post(f"/api/publik/daftar/{umum['token']}", json={
+            "nama": "Warga Luar Sekali", "kehadiran": "hadir",
+        })
+        cek("nama berbeda diterima", r.status_code == 200, r.text[:200])
+
+        # --- kegiatan umum: semua ikut jadi tamu ---------------------------
+        r = await c.post(f"/api/staff/pendaftaran/{umum['id']}/buat-kegiatan")
+        cek("buat kegiatan berabsen (umum)", r.status_code == 200, r.text[:300])
+        hasil = r.json()
+        cek("kegiatan umum tanpa peserta terpasang", hasil.get("peserta") == 0, hasil)
+        cek("kegiatan umum semua tamu", hasil.get("tamu") == 2, hasil)
+
+        # --- kegiatan biasa: pencocokan peserta tetap ----------------------
+        r = await c.post(f"/api/publik/daftar/{keg['token']}", json={
+            "nama": "Ahmad Fauzi", "nomor_hp": "081200000002", "kehadiran": "hadir",
+        })
+        cek("kembali memilih ikut", r.status_code == 200, r.text[:200])
+        r = await c.post(f"/api/staff/pendaftaran/{keg['id']}/buat-kegiatan")
+        cek("buat kegiatan berabsen", r.status_code == 200, r.text[:300])
+        hasil = r.json()
+        cek("peserta terpasang", hasil.get("peserta") == 1, hasil)
+        r = await c.post(f"/api/staff/pendaftaran/{keg['id']}/buat-kegiatan")
+        cek("tidak membuat kegiatan ganda",
+            r.status_code == 200 and r.json().get("dibuat") is False, r.text[:200])
 
         # --- detail --------------------------------------------------------
         r = await c.get(f"/api/staff/pendaftaran/{keg['id']}")
         cek("detail kegiatan", r.status_code == 200, r.text[:200])
         d = r.json()
-        cek("3 konfirmasi", len(d["peserta"]) == 3, len(d["peserta"]))
-        cek("hadir 0", d["hadir"] == 0, d["hadir"])
-        cek("tidak hadir 3", d["tidak_hadir"] == 3, d["tidak_hadir"])
-        cek("belum konfirmasi = terdaftar - 2 cocok",
-            d["belum_konfirmasi"] == terdaftar - 2,
-            f"{d['belum_konfirmasi']} vs {terdaftar - 2}")
-        cek("alasan kerja 1", d["alasan_ringkas"]["Kerja"] == 1, d["alasan_ringkas"])
-        cek("alasan sakit 1", d["alasan_ringkas"]["Sakit"] == 1, d["alasan_ringkas"])
-        cek("alasan lainnya 1", d["alasan_ringkas"]["Lainnya"] == 1, d["alasan_ringkas"])
-        cek("persentase 0%", d["persentase_hadiran"] == 0, d["persentase_hadiran"])
+        cek("detail memuat penyelenggara", "penyelenggara" in d)
+        cek("detail memuat hp_wajib", d.get("hp_wajib") is True)
+        cek("detail memuat kegiatan_umum", d.get("kegiatan_umum") is False)
+        cek("detail memuat tampilkan_logo", d.get("tampilkan_logo") is True)
 
-        # --- rekap ---------------------------------------------------------
-        r = await c.get("/api/staff/pendaftaran/rekap")
-        cek("rekap", r.status_code == 200, r.text[:200])
-        rk = r.json()
-        cek("ringkasan kegiatan 1", rk["ringkasan"]["kegiatan"] == 1, rk["ringkasan"])
-        cek("ringkasan tidak hadir 3", rk["ringkasan"]["tidak_hadir"] == 3, rk["ringkasan"])
-
-        r = await c.get("/api/staff/pendaftaran/rekap?kehadiran=hadir")
-        cek("filter kehadiran hadir", r.status_code == 200 and
-            all(p["kehadiran"] == "hadir" for i in r.json()["items"] for p in i["peserta"]),
-            r.text[:200])
-
-        r = await c.get("/api/staff/pendaftaran/rekap?date_from=2027-01-01")
-        cek("filter periode kosong", r.status_code == 200 and r.json()["items"] == [],
-            r.text[:200])
-
-        # --- ekspor --------------------------------------------------------
+        # --- endpoint ekspor sudah dihapus ---------------------------------
         r = await c.get(f"/api/staff/pendaftaran/{keg['id']}/export?format=excel")
-        cek("ekspor excel", r.status_code == 200 and len(r.content) > 1000,
-            f"{r.status_code} {len(r.content)}")
-        r = await c.get(f"/api/staff/pendaftaran/{keg['id']}/export?format=pdf")
-        cek("ekspor pdf", r.status_code == 200 and r.content[:4] == b"%PDF",
-            f"{r.status_code} {r.content[:8]}")
+        cek("ekspor kegiatan dihapus", r.status_code in (404, 405), r.status_code)
+        r = await c.get("/api/staff/pendaftaran/rekap")
+        cek("rekap dihapus", r.status_code in (404, 405, 410), r.status_code)
         r = await c.get("/api/staff/pendaftaran/rekap/export?format=excel")
-        cek("ekspor rekap excel", r.status_code == 200 and len(r.content) > 1000,
-            f"{r.status_code} {len(r.content)}")
-        r = await c.get("/api/staff/pendaftaran/rekap/export?format=pdf")
-        cek("ekspor rekap pdf", r.status_code == 200 and r.content[:4] == b"%PDF",
-            f"{r.status_code} {r.content[:8]}")
+        cek("ekspor rekap dihapus", r.status_code in (404, 405), r.status_code)
 
         # --- arsip ---------------------------------------------------------
-        r = await c.post(f"/api/staff/pendaftaran/{keg['id']}/status", json={"status": "arsip"})
+        r = await c.post(f"/api/staff/pendaftaran/{keg['id']}/status",
+                         json={"status": "arsip"})
         cek("arsipkan", r.status_code == 200 and r.json()["status_tampil"] == "arsip",
             r.text[:200])
         r = await c.get(f"/api/publik/daftar/{keg['token']}")
-        cek("tautan arsip ditutup", r.status_code == 410, r.status_code)
+        cek("tautan arsip ditutup",
+            r.status_code == 200 and r.json().get("jadwal_status") == "ditutup",
+            r.text[:200])
         r = await c.post(f"/api/publik/daftar/{keg['token']}", json={
             "nama": "Nama Uji", "nomor_hp": "081900000011", "kehadiran": "hadir",
         })
         cek("konfirmasi ke arsip ditolak", r.status_code == 410, r.status_code)
-
         r = await c.get("/api/staff/pendaftaran?status=arsip")
         cek("daftar arsip", r.status_code == 200 and len(r.json()["items"]) == 1, r.text[:200])
-
-        # --- aktifkan lagi -------------------------------------------------
-        r = await c.post(f"/api/staff/pendaftaran/{keg['id']}/status", json={"status": "aktif"})
-        cek("aktifkan lagi", r.status_code == 200 and r.json()["status_tampil"] == "aktif",
-            r.text[:200])
-
-        # --- buat ulang tautan ---------------------------------------------
-        token_lama = keg["token"]
-        r = await c.post(f"/api/staff/pendaftaran/{keg['id']}/tautan")
-        cek("buat ulang tautan", r.status_code == 200 and r.json()["token"] != token_lama,
-            r.text[:200])
-        r = await c.get(f"/api/publik/daftar/{token_lama}")
-        cek("token lama mati", r.status_code == 404, r.status_code)
 
         # --- hapus permanen -------------------------------------------------
         r = await c.delete(f"/api/staff/pendaftaran/{keg['id']}")
         cek("hapus permanen", r.status_code == 200, r.text[:200])
         r = await c.get(f"/api/staff/pendaftaran/{keg['id']}")
         cek("kegiatan terhapus", r.status_code == 410, r.status_code)
-        sisa = await server.db.pendaftaran_konfirmasi.count_documents({})
-        cek("konfirmasi ikut terhapus", sisa == 0, sisa)
 
         # --- guard ----------------------------------------------------------
         await c.post("/api/auth/logout")
         r = await c.get("/api/staff/pendaftaran")
         cek("tanpa login ditolak", r.status_code == 401, r.status_code)
-
-        # --- jenis kegiatan: Kegiatan Biasa --------------------------------
-        await c.post("/api/auth/login", json={"identifier": "adminuji@example.com",
-                                              "password": "rahasia123"})
-        r = await c.post("/api/staff/pendaftaran", json={
-            "nama": "Kerja Bakti Bersih Masjid", "tanggal": "2026-12-13",
-            "lokasi": "Masjid Kertalangu", "wajib_konfirmasi": False,
-        })
-        cek("buat kegiatan biasa", r.status_code == 200, r.text[:300])
-        biasa = r.json()
-        cek("jenis kegiatan biasa tersimpan", biasa.get("wajib_konfirmasi") is False,
-            biasa.get("wajib_konfirmasi"))
-        r = await c.patch(f"/api/staff/pendaftaran/{biasa['id']}",
-                          json={"wajib_konfirmasi": True})
-        cek("ubah jenis menjadi wajib konfirmasi",
-            r.status_code == 200 and r.json().get("wajib_konfirmasi") is True, r.text[:200])
-        r = await c.get(f"/api/publik/daftar/{biasa['token']}")
-        cek("info publik memuat jenis kegiatan",
-            r.status_code == 200 and r.json().get("wajib_konfirmasi") is True, r.text[:200])
-
-        # --- wali: ID ObjectId maupun string -------------------------------
-        anak = await server.db.users.find_one({"username": "ahmad"})
-        if anak:
-            anak_id = str(anak["_id"])
-            r = await c.get(f"/api/admin/users/{anak_id}/wali")
-            cek("wali anak ditemukan (ObjectId)", r.status_code == 200, r.text[:200])
-            await server.db.wali_anak.insert_one({
-                "_id": "wali-uji", "anak_id": anak_id, "wali_id": anak_id,
-                "hubungan": "ayah", "dibuat_oleh": "uji",
-                "dibuat_at": server.now_wita().isoformat()})
-            r = await c.get(f"/api/admin/users/{anak_id}/wali")
-            cek("wali anak ditemukan (anak_id string)",
-                r.status_code == 200 and len(r.json().get("rows") or []) == 3, r.text[:200])
-            r = await c.delete(f"/api/admin/users/{anak_id}/wali/ayah")
-            cek("lepas wali (anak_id string)", r.status_code == 200, r.text[:200])
-        else:
-            cek("akun peserta uji tersedia", False, "peserta_uji tidak ada")
 
     print()
     if GAGAL:

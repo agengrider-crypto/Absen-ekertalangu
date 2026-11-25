@@ -138,9 +138,9 @@ const TRAIL_LABEL = {
   "laporan-peserta": "Laporan per Peserta",
   "rekap-bulanan": "Rekap Bulanan",
   "rekap-harian": "Rekap Harian",
-  "pendaftaran-aktif": "Kegiatan Aktif",
-  "pendaftaran-rekap": "Rekap dan Arsip",
-  "pendaftaran-arsip": "Rekap dan Arsip",
+  "pendaftaran-aktif": "Pendaftaran Kegiatan",
+  "pendaftaran-rekap": "Pendaftaran Kegiatan",
+  "pendaftaran-arsip": "Arsip Pendaftaran",
   pendaftaran: "Pendaftaran Kegiatan",
   musyawarah: "Musyawarah",
   pengaduan: "Laporan Masuk",
@@ -569,13 +569,13 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "pengumuman" && <PengumumanView />}
           {active === "pengaduan" && <RuangTeduhView />}
           {active === "pendaftaran-aktif" && (
-            <PendaftaranKegiatanView mode="aktif" onGoto={go} onGotoKegiatan={bukaKegiatan} />
+            <PendaftaranKegiatanView mode="aktif" onGotoKegiatan={bukaKegiatan} />
           )}
           {active === "pendaftaran-rekap" && (
-            <PendaftaranKegiatanView mode="rekap" onGoto={go} onGotoKegiatan={bukaKegiatan} />
+            <PendaftaranKegiatanView mode="aktif" onGotoKegiatan={bukaKegiatan} />
           )}
           {active === "pendaftaran-arsip" && (
-            <PendaftaranKegiatanView mode="arsip" onGoto={go} onGotoKegiatan={bukaKegiatan} />
+            <PendaftaranKegiatanView mode="arsip" onGotoKegiatan={bukaKegiatan} />
           )}
           {active === "laporan-peserta" && <LaporanPesertaView />}
           {active === "rekap-bulanan" && (

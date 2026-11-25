@@ -26,6 +26,40 @@ function besokYmd(ymd) {
 
 const MAPS_POLA = /(google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)/i;
 
+/** Saklar berjajar untuk opsi formulir publik. */
+function Saklar({ label, hint, aktif, onChange, testid }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={aktif}
+      data-testid={testid}
+      onClick={() => onChange(!aktif)}
+      className={`flex min-h-12 w-full items-start gap-2.5 rounded-xl border-2 px-3 py-2 text-left ${
+        aktif ? "border-[#14633F] bg-[#E3F3EA]" : "border-[#E7E3D8] bg-white"
+      }`}
+    >
+      <span
+        className={`mt-0.5 flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors motion-reduce:transition-none ${
+          aktif ? "bg-[#14633F]" : "bg-[#D9D4C5]"
+        }`}
+      >
+        <span
+          className={`h-4 w-4 rounded-full bg-white transition-transform motion-reduce:transition-none ${
+            aktif ? "translate-x-4" : "translate-x-0"
+          }`}
+        />
+      </span>
+      <span className="min-w-0">
+        <span className={`block text-[13px] font-semibold ${aktif ? "text-[#0E4E31]" : "text-[#14201A]"}`}>
+          {label}
+        </span>
+        {hint && <span className="mt-0.5 block text-xs text-[#5F6B63]">{hint}</span>}
+      </span>
+    </button>
+  );
+}
+
 export default function PendaftaranFormModal({ onClose, onSaved, jadwalOnly = false, item = null }) {
   const [form, setForm] = useState({
     nama: item?.nama || "",
@@ -33,7 +67,11 @@ export default function PendaftaranFormModal({ onClose, onSaved, jadwalOnly = fa
     lokasi: item?.lokasi || "",
     maps_url: item?.maps_url || "",
     catatan: item?.catatan || "",
+    penyelenggara: item?.penyelenggara || "",
     wajib_konfirmasi: item ? item.wajib_konfirmasi !== false : true,
+    hp_wajib: item ? item.hp_wajib !== false : true,
+    kegiatan_umum: item ? item.kegiatan_umum === true : false,
+    tampilkan_logo: item ? item.tampilkan_logo !== false : true,
     pendaftaran_buka: item?.pendaftaran_buka || "",
     pendaftaran_tutup: item?.pendaftaran_tutup || "",
   });
@@ -41,12 +79,36 @@ export default function PendaftaranFormModal({ onClose, onSaved, jadwalOnly = fa
   const [pesan, setPesan] = useState("");
   const [kotor, setKotor] = useState(false);
   const [tanyaTutup, setTanyaTutup] = useState(false);
+  const [tanyaSaklar, setTanyaSaklar] = useState(null);
 
   const set = (key, value) => {
     setForm((f) => {
       const next = { ...f, [key]: value };
       if (key === "tanggal" && !f.pendaftaran_tutup) {
         next.pendaftaran_tutup = besokYmd(value);
+      }
+      return next;
+    });
+    setKotor(true);
+    setPesan("");
+  };
+
+  /** Saklar yang mengubah perilaku formulir publik setelah ada pendaftar. */
+  const ubahSaklar = (key, value) => {
+    const adaPendaftar = (item?.total || 0) > 0;
+    if (adaPendaftar) {
+      setTanyaSaklar({ key, value });
+      return;
+    }
+    terapkanSaklar(key, value);
+  };
+
+  const terapkanSaklar = (key, value) => {
+    setForm((f) => {
+      const next = { ...f, [key]: value };
+      if (key === "kegiatan_umum" && value) {
+        next.hp_wajib = false;
+        next.tampilkan_logo = false;
       }
       return next;
     });
@@ -93,7 +155,11 @@ export default function PendaftaranFormModal({ onClose, onSaved, jadwalOnly = fa
           lokasi: form.lokasi.trim() || null,
           maps_url: maps || null,
           catatan: form.catatan.trim() || null,
+          penyelenggara: form.penyelenggara.trim() || null,
           wajib_konfirmasi: form.wajib_konfirmasi,
+          hp_wajib: form.hp_wajib,
+          kegiatan_umum: form.kegiatan_umum,
+          tampilkan_logo: form.tampilkan_logo,
         });
       }
       if (jadwalOnly && item?.id) {
@@ -197,6 +263,41 @@ export default function PendaftaranFormModal({ onClose, onSaved, jadwalOnly = fa
                 </button>
               </div>
             </div>
+
+            <div>
+              <span className={lbl}>Opsi formulir publik</span>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Saklar
+                  testid={PENDAFTARAN.formHpWajib}
+                  label="Nomor HP wajib diisi"
+                  hint="Bila mati, nomor HP boleh kosong."
+                  aktif={form.hp_wajib}
+                  onChange={(v) => ubahSaklar("hp_wajib", v)}
+                />
+                <Saklar
+                  testid={PENDAFTARAN.formKegiatanUmum}
+                  label="Kegiatan umum"
+                  hint="Pendaftar dari luar Kertalangu."
+                  aktif={form.kegiatan_umum}
+                  onChange={(v) => ubahSaklar("kegiatan_umum", v)}
+                />
+                <Saklar
+                  testid={PENDAFTARAN.formTampilkanLogo}
+                  label="Tampilkan logo"
+                  hint="Logo E-Kertalangu di formulir publik."
+                  aktif={form.tampilkan_logo}
+                  onChange={(v) => ubahSaklar("tampilkan_logo", v)}
+                />
+              </div>
+            </div>
+
+            <label className="block">
+              <span className={lbl}>Penyelenggara (opsional)</span>
+              <input value={form.penyelenggara}
+                onChange={(e) => set("penyelenggara", e.target.value)}
+                data-testid={PENDAFTARAN.formPenyelenggara} maxLength={120}
+                placeholder="Contoh: Karang Taruna Desa X" className={fld} />
+            </label>
           </>
         )}
 
@@ -233,6 +334,33 @@ export default function PendaftaranFormModal({ onClose, onSaved, jadwalOnly = fa
           <p className="rounded-xl bg-[#FBE5E3] p-2.5 text-sm text-[#A32A2A]">{pesan}</p>
         )}
       </form>
+
+      {tanyaSaklar && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-4">
+            <p className="text-base font-semibold text-[#14201A]">Ubah opsi formulir?</p>
+            <p className="mt-1 text-sm text-[#5F6B63]">
+              Kegiatan ini sudah punya {item?.total || 0} pendaftar. Perubahan hanya
+              berlaku untuk pengisian berikutnya; jawaban yang sudah masuk tidak dihapus.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setTanyaSaklar(null)}
+                className="min-h-11 rounded-xl border border-[#E7E3D8] bg-white px-4 text-sm font-semibold text-[#14201A]">
+                Batal
+              </button>
+              <button type="button"
+                onClick={() => {
+                  const { key, value } = tanyaSaklar;
+                  setTanyaSaklar(null);
+                  terapkanSaklar(key, value);
+                }}
+                className="min-h-11 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white">
+                Ya
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {tanyaTutup && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">

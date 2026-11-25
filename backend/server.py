@@ -10839,7 +10839,11 @@ def _pendaftaran_serialize(k: dict, counts: Optional[dict] = None,
         "lokasi": k.get("lokasi"),
         "maps_url": k.get("maps_url"),
         "catatan": k.get("catatan"),
+        "penyelenggara": k.get("penyelenggara"),
         "wajib_konfirmasi": k.get("wajib_konfirmasi", True),
+        "hp_wajib": k.get("hp_wajib", True),
+        "kegiatan_umum": k.get("kegiatan_umum", False),
+        "tampilkan_logo": k.get("tampilkan_logo", True),
         "status": k.get("status") or "aktif",
         "status_tampil": _pendaftaran_status_tampil(k),
         "pendaftaran_buka": jadwal["buka"],
@@ -10945,7 +10949,11 @@ class PendaftaranInput(BaseModel):
     lokasi: Optional[str] = None
     maps_url: Optional[str] = None
     catatan: Optional[str] = None
+    penyelenggara: Optional[str] = None
     wajib_konfirmasi: bool = True      # True = Wajib ikut, False = Biasa
+    hp_wajib: bool = True              # False = nomor HP opsional di formulir publik
+    kegiatan_umum: bool = False        # True = pendaftar luar, tanpa pencocokan peserta
+    tampilkan_logo: bool = True        # False = sembunyikan logo E-Kertalangu
     pendaftaran_buka: Optional[str] = None
     pendaftaran_tutup: Optional[str] = None
 
@@ -10956,7 +10964,11 @@ class PendaftaranUpdate(BaseModel):
     lokasi: Optional[str] = None
     maps_url: Optional[str] = None
     catatan: Optional[str] = None
+    penyelenggara: Optional[str] = None
     wajib_konfirmasi: Optional[bool] = None
+    hp_wajib: Optional[bool] = None
+    kegiatan_umum: Optional[bool] = None
+    tampilkan_logo: Optional[bool] = None
     pendaftaran_buka: Optional[str] = None
     pendaftaran_tutup: Optional[str] = None
 
@@ -11018,8 +11030,16 @@ def _pendaftaran_validasi(body, parsial: bool = False) -> dict:
         data["maps_url"] = maps
     if not parsial or body.catatan is not None:
         data["catatan"] = _bersih_teks(body.catatan, 300) or None
+    if not parsial or body.penyelenggara is not None:
+        data["penyelenggara"] = _bersih_teks(body.penyelenggara, 120) or None
     if not parsial or body.wajib_konfirmasi is not None:
         data["wajib_konfirmasi"] = bool(body.wajib_konfirmasi)
+    if not parsial or body.hp_wajib is not None:
+        data["hp_wajib"] = bool(body.hp_wajib)
+    if not parsial or body.kegiatan_umum is not None:
+        data["kegiatan_umum"] = bool(body.kegiatan_umum)
+    if not parsial or body.tampilkan_logo is not None:
+        data["tampilkan_logo"] = bool(body.tampilkan_logo)
     if not parsial or body.pendaftaran_buka is not None:
         data["pendaftaran_buka"] = _pendaftaran_tanggal(
             body.pendaftaran_buka, "Tanggal buka pendaftaran")
@@ -11049,46 +11069,6 @@ def _pendaftaran_cek_jadwal(data: dict, lama: Optional[dict] = None) -> None:
         raise HTTPException(
             status_code=400,
             detail="Tanggal tutup harus setelah tanggal buka dan tidak melewati tanggal acara.")
-
-
-@api_router.get("/staff/pendaftaran/rekap")
-async def pendaftaran_rekap(request: Request, date_from: str = "", date_to: str = "",
-                            kegiatan_id: str = "", kehadiran: str = "",
-                            staff: dict = Depends(require_staff)):
-    """Rekap pendaftaran lintas kegiatan (filter periode/kegiatan/kehadiran)."""
-    q: dict = {}
-    if kegiatan_id:
-        q["_id"] = kegiatan_id
-    rows = await db.pendaftaran_kegiatan.find(q).sort("tanggal", -1).to_list(1000)
-    if date_from:
-        rows = [r for r in rows if str(r.get("tanggal") or "") >= date_from]
-    if date_to:
-        rows = [r for r in rows if str(r.get("tanggal") or "") <= date_to]
-    base = resolve_base_url(request)
-    counts = await _pendaftaran_hitung([r["_id"] for r in rows])
-    items = []
-    for r in rows:
-        c = counts.get(r["_id"], {})
-        semua = await _pendaftaran_rows(r["_id"])
-        detail = semua
-        if kehadiran in ("hadir", "tidak_hadir"):
-            detail = [d for d in semua if d.get("kehadiran") == kehadiran]
-        elif kehadiran == "belum":
-            detail = []
-        items.append({
-            **_pendaftaran_serialize(r, c, base),
-            "alasan_ringkas": _pendaftaran_ringkas_alasan(semua),
-            "peserta": detail,
-        })
-    total = {
-        "kegiatan": len(items),
-        "ikut": sum(i["ikut"] for i in items),
-        "tidak_ikut": sum(i["tidak_ikut"] for i in items),
-        "total": sum(i["total"] for i in items),
-    }
-    return {"items": items, "ringkasan": total,
-            "filter": {"date_from": date_from, "date_to": date_to,
-                       "kegiatan_id": kegiatan_id, "kehadiran": kehadiran}}
 
 
 @api_router.get("/staff/pendaftaran")
@@ -11131,98 +11111,6 @@ async def pendaftaran_buat(body: PendaftaranInput, request: Request,
                        f"Membuat pendaftaran kegiatan '{data['nama']}'", doc["_id"])
     counts = await _pendaftaran_hitung([doc["_id"]])
     return _pendaftaran_serialize(doc, counts.get(doc["_id"]), resolve_base_url(request))
-
-
-@api_router.get("/staff/pendaftaran/rekap/export")
-async def pendaftaran_rekap_export(request: Request, format: str = "excel",
-                                   date_from: str = "", date_to: str = "",
-                                   kegiatan_id: str = "", kehadiran: str = "",
-                                   staff: dict = Depends(require_staff)):
-    """Ekspor rekap pendaftaran lintas kegiatan (Excel/PDF)."""
-    data = await pendaftaran_rekap(request, date_from, date_to, kegiatan_id,
-                                   kehadiran, staff)
-    items = data["items"]
-    ringkasan = data["ringkasan"]
-    fname_base = f"rekap_pendaftaran_{date_from or 'awal'}_sd_{date_to or 'akhir'}"
-
-    if format == "pdf":
-        from reportlab.lib.pagesizes import A4, landscape
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.platypus import (SimpleDocTemplate, Table, TableStyle,
-                                        Paragraph, Spacer)
-        from reportlab.lib.styles import getSampleStyleSheet
-        buf = io.BytesIO()
-        doc = SimpleDocTemplate(buf, pagesize=landscape(A4), topMargin=1.2 * cm,
-                                bottomMargin=1.5 * cm)
-        styles = getSampleStyleSheet()
-        elems = [
-            Paragraph("Rekap Pendaftaran Kegiatan — E-KERTALANGU", styles["Title"]),
-            Paragraph(f"Periode: {date_from or 'awal'} s/d {date_to or 'akhir'}",
-                      styles["Normal"]),
-            Paragraph(
-                f"Kegiatan: {ringkasan['kegiatan']} · Ikut: {ringkasan['ikut']} · "
-                f"Tidak ikut: {ringkasan['tidak_ikut']} · "
-                f"Total mengisi: {ringkasan['total']}",
-                styles["Normal"]),
-            Spacer(1, 12),
-        ]
-        tdata = [["Kegiatan", "Tanggal", "Lokasi", "Status", "Total",
-                  "Ikut", "Tidak Ikut", "%"]]
-        for i in items:
-            tdata.append([
-                i.get("nama") or "-", i.get("tanggal") or "-", i.get("lokasi") or "-",
-                i.get("status_tampil") or "-", i.get("total", 0),
-                i.get("ikut", 0), i.get("tidak_ikut", 0),
-                f"{i.get('persentase_ikut', 0)}%",
-            ])
-        t = Table(tdata, repeatRows=1)
-        t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#14633F")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F2F5F2")]),
-        ]))
-        elems.append(t)
-        doc.build(elems)
-        buf.seek(0)
-        return StreamingResponse(buf, media_type="application/pdf",
-                                 headers={"Content-Disposition":
-                                          f'attachment; filename="{fname_base}.pdf"'})
-
-    from openpyxl import Workbook
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Rekap Kegiatan"
-    ws.append(["Kegiatan", "Tanggal", "Lokasi", "Status", "Total Mengisi",
-               "Ikut", "Tidak Ikut", "Persentase Ikut %"])
-    for i in items:
-        ws.append([i.get("nama"), i.get("tanggal"), i.get("lokasi"),
-                   i.get("status_tampil"), i.get("total", 0),
-                   i.get("ikut", 0), i.get("tidak_ikut", 0),
-                   i.get("persentase_ikut", 0)])
-    ws2 = wb.create_sheet("Peserta")
-    ws2.append(["Kegiatan", "Tanggal", "Nama", "Nomor HP", "Jawaban",
-                "Alasan", "Keterangan"])
-    for i in items:
-        for p in i.get("peserta") or []:
-            ws2.append([i.get("nama"), i.get("tanggal"), p.get("nama"),
-                        p.get("nomor_hp"),
-                        "Ikut" if p.get("kehadiran") == "hadir" else "Tidak ikut",
-                        p.get("alasan_lain") or p.get("alasan"), p.get("keterangan")])
-    ws3 = wb.create_sheet("Ringkasan")
-    ws3.append(["Periode", f"{date_from or 'awal'} s/d {date_to or 'akhir'}"])
-    ws3.append(["Jumlah Kegiatan", ringkasan["kegiatan"]])
-    ws3.append(["Ikut", ringkasan["ikut"]])
-    ws3.append(["Tidak Ikut", ringkasan["tidak_ikut"]])
-    ws3.append(["Total Mengisi", ringkasan["total"]])
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return StreamingResponse(
-        buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{fname_base}.xlsx"'})
 
 
 @api_router.get("/staff/pendaftaran/{kegiatan_id}")
@@ -11325,11 +11213,13 @@ async def pendaftaran_buat_kegiatan(kegiatan_id: str, request: Request,
     await db.kegiatans.insert_one(doc)
 
     # Peserta yang nomor HP-nya cocok dipasangkan; sisanya dicatat sebagai tamu.
+    # Kegiatan umum: semua yang ikut dicatat sebagai tamu (tanpa pencocokan).
+    umum = bool(p.get("kegiatan_umum", False))
     peserta_ids, tamu = [], []
     for r in ikut:
         nomor = r.get("nomor_hp")
         u = None
-        if nomor:
+        if nomor and not umum:
             varian = {nomor}
             if nomor.startswith("62"):
                 varian.add("0" + nomor[2:])
@@ -11397,101 +11287,6 @@ async def pendaftaran_hapus(kegiatan_id: str, staff: dict = Depends(require_admi
     return {"ok": True}
 
 
-@api_router.get("/staff/pendaftaran/{kegiatan_id}/export")
-async def pendaftaran_export(kegiatan_id: str, format: str = "excel",
-                             staff: dict = Depends(require_staff)):
-    """Ekspor daftar konfirmasi satu kegiatan (Excel/PDF)."""
-    k = await db.pendaftaran_kegiatan.find_one({"_id": kegiatan_id})
-    if not k:
-        raise HTTPException(status_code=404, detail="Kegiatan pendaftaran tidak ditemukan")
-    rows = await _pendaftaran_rows(kegiatan_id)
-    counts = (await _pendaftaran_hitung([kegiatan_id])).get(kegiatan_id, {})
-    nama_file = re.sub(r"[^A-Za-z0-9]+", "_", k.get("nama") or "kegiatan").strip("_")
-    fname_base = f"pendaftaran_{nama_file}_{k.get('tanggal') or ''}".strip("_")
-
-    if format == "pdf":
-        from reportlab.lib.pagesizes import A4
-        from reportlab.lib import colors
-        from reportlab.lib.units import cm
-        from reportlab.platypus import (SimpleDocTemplate, Table, TableStyle,
-                                        Paragraph, Spacer)
-        from reportlab.lib.styles import getSampleStyleSheet
-        buf = io.BytesIO()
-        doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.2 * cm,
-                                bottomMargin=1.5 * cm)
-        styles = getSampleStyleSheet()
-        elems = [
-            Paragraph("Pendaftaran Kegiatan — E-KERTALANGU", styles["Title"]),
-            Paragraph(f"Kegiatan: {k.get('nama') or '-'}", styles["Normal"]),
-            Paragraph(
-                f"Jenis: {'Wajib ikut' if k.get('wajib_konfirmasi', True) else 'Biasa'}",
-                styles["Normal"]),
-            Paragraph(f"Tanggal: {k.get('tanggal') or '-'} · Lokasi: {k.get('lokasi') or '-'}",
-                      styles["Normal"]),
-            Paragraph(
-                f"Total mengisi: {counts.get('total', 0)} · "
-                f"Ikut: {counts.get('ikut', 0)} · "
-                f"Tidak ikut: {counts.get('tidak_ikut', 0)} · "
-                f"Persentase ikut: {counts.get('persentase_ikut', 0)}%",
-                styles["Normal"]),
-            Spacer(1, 12),
-        ]
-        tdata = [["Nama", "Nomor HP", "Jawaban", "Alasan", "Keterangan"]]
-        for r in rows:
-            tdata.append([
-                r.get("nama") or "-",
-                r.get("nomor_hp") or "-",
-                "Ikut" if r.get("kehadiran") == "hadir" else "Tidak ikut",
-                r.get("alasan_lain") or r.get("alasan") or "-",
-                r.get("keterangan") or "-",
-            ])
-        t = Table(tdata, repeatRows=1, colWidths=[4.2 * cm, 3.0 * cm, 2.6 * cm, 3.4 * cm, 4.0 * cm])
-        t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#14633F")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("FONTSIZE", (0, 0), (-1, -1), 8),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CCCCCC")),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F2F5F2")]),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ]))
-        elems.append(t)
-        doc.build(elems)
-        buf.seek(0)
-        return StreamingResponse(buf, media_type="application/pdf",
-                                 headers={"Content-Disposition":
-                                          f'attachment; filename="{fname_base}.pdf"'})
-
-    from openpyxl import Workbook
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Peserta"
-    ws.append(["Nama", "Nomor HP", "Jawaban", "Alasan",
-               "Alasan Lain", "Keterangan", "Waktu Jawab"])
-    for r in rows:
-        ws.append([
-            r.get("nama"), r.get("nomor_hp"),
-            "Ikut" if r.get("kehadiran") == "hadir" else "Tidak ikut",
-            r.get("alasan"), r.get("alasan_lain"), r.get("keterangan"),
-            r.get("dibuat_pada"),
-        ])
-    ws2 = wb.create_sheet("Ringkasan")
-    ws2.append(["Kegiatan", k.get("nama")])
-    ws2.append(["Jenis Kegiatan",
-                "Wajib ikut" if k.get("wajib_konfirmasi", True) else "Biasa"])
-    ws2.append(["Tanggal", k.get("tanggal")])
-    ws2.append(["Lokasi", k.get("lokasi")])
-    ws2.append(["Total Mengisi", counts.get("total", 0)])
-    ws2.append(["Ikut", counts.get("ikut", 0)])
-    ws2.append(["Tidak Ikut", counts.get("tidak_ikut", 0)])
-    ws2.append(["Persentase Ikut", f"{counts.get('persentase_ikut', 0)}%"])
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return StreamingResponse(
-        buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{fname_base}.xlsx"'})
-
-
 @api_router.get("/publik/daftar/{token}")
 async def publik_pendaftaran_info(token: str):
     """Info kegiatan untuk halaman konfirmasi publik (tanpa login)."""
@@ -11508,7 +11303,11 @@ async def publik_pendaftaran_info(token: str):
         "lokasi": k.get("lokasi"),
         "maps_url": k.get("maps_url"),
         "catatan": k.get("catatan"),
+        "penyelenggara": k.get("penyelenggara"),
         "wajib_konfirmasi": k.get("wajib_konfirmasi", True),
+        "hp_wajib": k.get("hp_wajib", True),
+        "kegiatan_umum": k.get("kegiatan_umum", False),
+        "tampilkan_logo": k.get("tampilkan_logo", True),
         "pendaftaran_buka": jadwal["buka"],
         "pendaftaran_tutup": jadwal["tutup"],
         "jadwal_status": jadwal_status,
@@ -11535,8 +11334,11 @@ async def publik_pendaftaran_kirim(token: str, body: dict, request: Request):
     if not _nama_valid(nama):
         raise HTTPException(status_code=400, detail="Nama hanya boleh berisi huruf.")
 
+    hp_wajib = bool(k.get("hp_wajib", True))
     nomor = normalize_wa_wali(body.get("nomor_hp"))
-    if not nomor or not nomor.startswith("62") or not (10 <= len(nomor) <= 15):
+    if nomor and (not nomor.startswith("62") or not (10 <= len(nomor) <= 15)):
+        raise HTTPException(status_code=400, detail="Nomor HP tidak valid.")
+    if not nomor and hp_wajib:
         raise HTTPException(status_code=400, detail="Nomor HP tidak valid.")
 
     kehadiran = str(body.get("kehadiran") or "").strip()
@@ -11558,11 +11360,32 @@ async def publik_pendaftaran_kirim(token: str, body: dict, request: Request):
                 raise HTTPException(status_code=400, detail="Tulis alasannya.")
 
     keterangan = _bersih_teks(body.get("keterangan"), 200) or None
-    peserta_id, status_akun = await _pendaftaran_cocok(nama, nomor)
+    umum = bool(k.get("kegiatan_umum", False))
+    if umum:
+        # Kegiatan umum: pendaftar dari luar, tidak dicocokkan ke data peserta.
+        peserta_id, status_akun = None, "calon"
+    elif nomor:
+        peserta_id, status_akun = await _pendaftaran_cocok(nama, nomor)
+    else:
+        peserta_id, status_akun = None, "calon"
     sekarang = now_wita().isoformat()
 
-    ada = await db.pendaftaran_konfirmasi.find_one(
-        {"kegiatan_id": k["_id"], "nomor_hp": nomor})
+    # Satu nomor satu jawaban. Tanpa nomor HP, cegah duplikat berdasarkan nama.
+    if nomor:
+        ada = await db.pendaftaran_konfirmasi.find_one(
+            {"kegiatan_id": k["_id"], "nomor_hp": nomor})
+    else:
+        kunci = _norm_nama(nama)
+        ada = None
+        async for r in db.pendaftaran_konfirmasi.find({"kegiatan_id": k["_id"]}):
+            if _norm_nama(r.get("nama")) == kunci:
+                ada = r
+                break
+        if ada is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="Nama ini sudah mendaftar. Jika berbeda orang, tambahkan "
+                       "nama belakang atau isi nomor HP.")
     data = {
         "nama": nama, "nomor_hp": nomor, "kehadiran": kehadiran,
         "alasan": alasan, "alasan_lain": alasan_lain, "keterangan": keterangan,
@@ -11732,8 +11555,16 @@ async def _run_init():
     # Pendaftaran kegiatan — konfirmasi peserta lewat tautan publik WhatsApp.
     await db.pendaftaran_kegiatan.create_index("token", unique=True)
     await db.pendaftaran_kegiatan.create_index([("status", 1), ("tanggal", -1)])
+    # Satu nomor satu jawaban. Indeks parsial: hanya berlaku bila nomor HP ada,
+    # karena pendaftar tanpa nomor HP boleh lebih dari satu (dicek lewat nama).
+    try:
+        await db.pendaftaran_konfirmasi.drop_index("kegiatan_id_1_nomor_hp_1")
+    except Exception:
+        pass
     await db.pendaftaran_konfirmasi.create_index(
-        [("kegiatan_id", 1), ("nomor_hp", 1)], unique=True)
+        [("kegiatan_id", 1), ("nomor_hp", 1)], unique=True,
+        name="pendaftaran_nomor_unik",
+        partialFilterExpression={"nomor_hp": {"$type": "string"}})
     await db.pendaftaran_konfirmasi.create_index([("kegiatan_id", 1), ("kehadiran", 1)])
     await db.pendaftaran_laju.create_index("at")
     # Penanda pengajar pada peserta (idempoten, tidak menimpa nilai yang sudah ada).
