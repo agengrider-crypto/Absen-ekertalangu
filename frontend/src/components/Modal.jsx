@@ -26,6 +26,8 @@ export default function Modal({
   header,
   bodyClassName = "",
   className = "",
+  maxHeight = "90vh",
+  mobileInset = false,
 }) {
   const panelRef = useRef(null);
   const restoreRef = useRef(null);
@@ -78,7 +80,9 @@ export default function Modal({
 
   const content = (
     <div
-      className="fixed inset-0 flex items-end justify-center sm:items-center sm:p-4"
+      className={`fixed inset-0 flex justify-center ${
+        mobileInset ? "items-center p-4" : "items-end sm:items-center sm:p-4"
+      }`}
       style={{ zIndex }}
       data-testid={`${testid}-overlay`}
     >
@@ -97,14 +101,18 @@ export default function Modal({
         aria-labelledby={title ? `${testid}-title` : undefined}
         tabIndex={-1}
         data-testid={testid}
-        className={`relative flex w-full flex-col overflow-hidden bg-white shadow-[0_24px_64px_-16px_rgba(17,17,17,0.35)] outline-none rounded-t-[24px] sm:rounded-[24px] ${className}`}
+        className={`relative flex w-full flex-col overflow-hidden bg-white shadow-[0_24px_64px_-16px_rgba(17,17,17,0.35)] outline-none ${
+          mobileInset ? "rounded-[24px]" : "rounded-t-[24px] sm:rounded-[24px]"
+        } ${className}`}
         style={{
           maxWidth: `min(${maxWidth}px, 100%)`,
-          maxHeight: "90vh",
+          maxHeight,
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        <div className="mx-auto mt-2 h-1.5 w-11 shrink-0 rounded-full bg-[#E7E3D8] sm:hidden" aria-hidden="true" />
+        {!mobileInset && (
+          <div className="mx-auto mt-2 h-1.5 w-11 shrink-0 rounded-full bg-[#E7E3D8] sm:hidden" aria-hidden="true" />
+        )}
 
         {header ? (
           <div className="shrink-0 border-b border-[#E7E3D8] bg-white">{header}</div>
