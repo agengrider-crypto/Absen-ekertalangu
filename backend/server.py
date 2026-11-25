@@ -11761,16 +11761,17 @@ async def _run_init():
     # kegiatan yang saklarnya pernah dinyalakan.
     await db.pendaftaran_kegiatan.create_index(
         "rekap_token", unique=True, sparse=True, name="pendaftaran_rekap_token")
-    # Satu nomor satu jawaban. Indeks parsial: hanya berlaku bila nomor HP ada,
-    # karena pendaftar tanpa nomor HP boleh lebih dari satu (dicek lewat nama).
+    # Satu nomor satu jawaban. Indeks unik (kegiatan_id, nomor_hp) yang sudah ada
+    # di produksi TIDAK diubah/dihapus (menunggu persetujuan). Pendaftar tanpa
+    # nomor HP memakai penanda unik di `_pendaftaran_nomor_simpan` agar tidak
+    # bentrok dengan indeks tersebut. Indeks parsial di bawah hanya tambahan.
     try:
-        await db.pendaftaran_konfirmasi.drop_index("kegiatan_id_1_nomor_hp_1")
-    except Exception:
-        pass
-    await db.pendaftaran_konfirmasi.create_index(
-        [("kegiatan_id", 1), ("nomor_hp", 1)], unique=True,
-        name="pendaftaran_nomor_unik",
-        partialFilterExpression={"nomor_hp": {"$type": "string"}})
+        await db.pendaftaran_konfirmasi.create_index(
+            [("kegiatan_id", 1), ("nomor_hp", 1)], unique=True,
+            name="pendaftaran_nomor_unik",
+            partialFilterExpression={"nomor_hp": {"$type": "string"}})
+    except Exception as exc:  # pragma: no cover
+        logger.warning("Indeks pendaftaran_nomor_unik dilewati: %s", exc)
     await db.pendaftaran_konfirmasi.create_index([("kegiatan_id", 1), ("kehadiran", 1)])
     await db.pendaftaran_laju.create_index("at")
     await db.pendaftaran_cari_laju.create_index("at")
