@@ -19,6 +19,17 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-25-login",
+    date: "2026-11-25",
+    jenis: "perbaikan",
+    title: "Login lebih lancar untuk semua akun",
+    keterangan:
+      "Kata sandi awal menerima DDMMYY atau DDMMYYYY, reset tersimpan, dan pesan gagal lebih jelas.",
+    items: [
+      "Kata sandi awal menerima DDMMYY atau DDMMYYYY, reset tersimpan, dan pesan gagal lebih jelas.",
+    ],
+  },
+  {
     id: "2026-11-23-pendataan-massal",
     date: "2026-11-23",
     jenis: "fitur",

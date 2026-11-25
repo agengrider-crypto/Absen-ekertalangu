@@ -81,6 +81,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
   const [actionsOpen, setActionsOpen] = useState(false);
   const [hapusConfirm, setHapusConfirm] = useState(false);
   const [gagal, setGagal] = useState(false);
+  const [statusLogin, setStatusLogin] = useState(null);
   const [resetConfirm, setResetConfirm] = useState(false);
   const [resetResult, setResetResult] = useState(null);
   const [moveTarget, setMoveTarget] = useState(undefined);
@@ -146,6 +147,13 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
   useEffect(() => {
     api.get("/program/jenjang").then(({ data }) => setJenjangList(data.items || [])).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!canDelete) return;
+    api.get(`/admin/users/${userId}/status-login`)
+      .then(({ data }) => setStatusLogin(data))
+      .catch(() => setStatusLogin(false));
+  }, [userId, canDelete]);
 
   const load = () =>
     api.get(`/admin/users/${userId}`, { timeout: 15000 })
@@ -249,7 +257,7 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
     setBusy("reset");
     try {
       const { data } = await api.post(`/admin/users/${userId}/reset-password`);
-      setResetResult({ password: data.password, username: data.username });
+      setResetResult({ password: data.sandi_sementara, username: data.username });
       onChanged?.();
       load();
     } catch (e) {
@@ -565,6 +573,18 @@ export default function PesertaDetailModal({ userId, initialTab = "profil", kelo
                         </div>
                       </div>
                     </div>
+
+                    {canDelete && statusLogin && (
+                      <div className={`${card} p-4`} data-testid="detail-status-login">
+                        <div className="mb-2 text-sm font-semibold text-[#14201A]">Status login</div>
+                        <ul className="space-y-1 text-[13px] text-[#5F6B63]">
+                          <li>Tanggal lahir: <b className="text-[#14201A]">{statusLogin.tanggal_lahir_terisi ? "terisi" : "kosong"}</b></li>
+                          <li>Kata sandi: <b className="text-[#14201A]">{statusLogin.sandi_masih_default ? "masih default (tanggal lahir)" : "sudah diganti"}</b></li>
+                          <li>Wajib ganti: <b className="text-[#14201A]">{statusLogin.wajib_ganti ? "aktif" : "tidak"}</b></li>
+                          <li>Gagal login 15 menit terakhir: <b className="text-[#14201A]">{statusLogin.gagal_login_15_menit}</b>{statusLogin.terkunci ? " (terkunci sementara)" : ""}</li>
+                        </ul>
+                      </div>
+                    )}
 
                     <div className={`${card} p-4`}>
                       <div className="mb-2 text-sm font-semibold text-[#14201A]">Status peserta</div>

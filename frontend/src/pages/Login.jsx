@@ -1,11 +1,18 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, LogIn, Loader2 } from "lucide-react";
+import { Eye, EyeOff, LogIn, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { K1Mark, K1Wordmark } from "@/components/Logo";
 import Modal from "@/components/Modal";
+import { ADMIN_WA_NUMBER } from "@/components/UpdateModal";
+
+const WA_LOGIN_TEXT = "Halo admin E-Kertalangu, saya tidak bisa masuk. Nomor HP saya: ";
+
+function waAdminLink() {
+  return `https://wa.me/${ADMIN_WA_NUMBER}?text=${encodeURIComponent(WA_LOGIN_TEXT)}`;
+}
 
 function fmtWaktu(iso) {
   if (!iso) return "-";
@@ -56,6 +63,7 @@ export default function Login() {  const navigate = useNavigate();
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [gagalBerturut, setGagalBerturut] = useState(0);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
   const [resetMsg, setResetMsg] = useState("");
@@ -81,6 +89,7 @@ export default function Login() {  const navigate = useNavigate();
       navigate(next || autoRoleTarget(data.roles), { replace: true });
     } catch (err) {
       setError(formatApiErrorDetail(err.response?.data?.detail) || err.message);
+      setGagalBerturut((n) => n + 1);
     } finally {
       setLoading(false);
     }
@@ -169,12 +178,29 @@ export default function Login() {  const navigate = useNavigate();
                   {showPw ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
+              <p className="mt-1.5 text-[12px] leading-relaxed text-[#5F6B63]">
+                Belum pernah mengganti kata sandi? Pakai tanggal lahir (DDMMYY atau DDMMYYYY).
+                Sudah pernah mengganti? Pakai kata sandimu sendiri.
+              </p>
             </div>
 
             {error && (
-              <p data-testid="login-error" role="alert" className="text-[13px] font-semibold text-[#A32A2A]">
-                {error}
-              </p>
+              <div>
+                <p data-testid="login-error" role="alert" className="text-[13px] font-semibold text-[#A32A2A]">
+                  {error}
+                </p>
+                {gagalBerturut >= 3 && (
+                  <a
+                    href={waAdminLink()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="login-wa-admin"
+                    className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#14633F] bg-white px-3 text-[13px] font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]"
+                  >
+                    <MessageCircle size={15} /> Hubungi admin
+                  </a>
+                )}
+              </div>
             )}
 
             <button
