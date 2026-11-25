@@ -32,6 +32,7 @@ from fastapi.responses import StreamingResponse, Response as FastResponse, JSONR
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
 from pymongo import UpdateOne
+from pymongo.errors import DuplicateKeyError
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -10535,15 +10536,17 @@ async def izin_putuskan(izin_id: str, body: IzinPutusanInput,
 
 @api_router.get("/publik/izin/{token}")
 async def publik_izin_info(token: str):
-    """Info tautan izin: nama kegiatan + daftar nama peserta (nama saja)."""
+    """Info tautan izin: nama kegiatan + daftar alasan.
+
+    Daftar peserta TIDAK dikirim lagi; nama dicari lewat
+    `/publik/peserta/cari` agar tidak ada endpoint yang membuka seluruh daftar.
+    """
     k = await db.kegiatans.find_one({"izin_token": token})
     if not k or not _izin_tautan_aktif(k):
         raise HTTPException(status_code=410, detail="Tautan sudah tidak berlaku")
-    peserta = await peserta_for_kegiatan(k)
     return JSONResponse(content={
         "kegiatan": k.get("name"),
         "tanggal": k.get("date"),
-        "peserta": [{"id": str(p["_id"]), "nama": p.get("name")} for p in peserta],
         "alasan": list(IZIN_ALASAN),
     }, headers={"X-Robots-Tag": "noindex, nofollow",
                 "Referrer-Policy": "no-referrer", "Cache-Control": "no-store"})
@@ -10733,6 +10736,16 @@ PENDAFTARAN_KEHADIRAN = ("hadir", "tidak_hadir")
 PENDAFTARAN_ALASAN = ("Kerja", "Sakit", "Keperluan keluarga", "Luar kota", "Lainnya")
 PENDAFTARAN_LAJU_MAKS = 20          # maksimal konfirmasi per IP & per token
 PENDAFTARAN_LAJU_JENDELA = 600      # detik (10 menit)
+# Indeks unik (kegiatan_id, nomor_hp) di produksi BELUM parsial, sehingga
+# pendaftar tanpa nomor HP memakai penanda unik agar tidak bentrok. Penanda
+# tidak pernah ditampilkan ke pengguna (lihat `_pendaftaran_rows`).
+PENDAFTARAN_TANPA_HP = "tanpa-hp:"
+PENDAFTARAN_CARI_MIN = 2            # huruf minimal untuk pencarian nama
+PENDAFTARAN_CARI_MAKS = 5           # hasil maksimal
+PENDAFTARAN_CARI_LAJU = 60          # pencarian per IP per 10 menit
+PENDAFTARAN_CARI_JENDELA = 600
+PENDAFTARAN_REKAP_LAJU = 120        # buka rekap publik per IP per 10 menit
+PENDAFTARAN_REKAP_JENDELA = 600
 PENDAFTARAN_AKUN_LABEL = {
     "aktif": "Aktif",
     "belum_aktivasi": "Belum Aktivasi",
@@ -10851,6 +10864,11 @@ def _pendaftaran_serialize(k: dict, counts: Optional[dict] = None,
         "jadwal_status": _pendaftaran_jadwal_status(k),
         "token": token,
         "link": f"{base}/daftar/{token}" if (base and token) else None,
+        "rekap_publik": bool(k.get("rekap_publik")),
+        "rekap_token": k.get("rekap_token") if k.get("rekap_publik") else None,
+        "rekap_link": (f"{base}/rekap-pendaftaran/{k.get('rekap_token')}"
+                       if (base and k.get("rekap_publik") and k.get("rekap_token"))
+                       else None),
         "kegiatan_id": k.get("kegiatan_id"),
         "kegiatan_dibuat_pada": k.get("kegiatan_dibuat_pada"),
         "total": c.get("total", 0),
@@ -10869,10 +10887,13 @@ async def _pendaftaran_rows(kegiatan_id: str) -> list:
     items = []
     for r in rows:
         akun = r.get("status_akun") or "calon"
+        nomor = r.get("nomor_hp")
+        if isinstance(nomor, str) and nomor.startswith(PENDAFTARAN_TANPA_HP):
+            nomor = None
         items.append({
             "id": r["_id"],
             "nama": r.get("nama"),
-            "nomor_hp": r.get("nomor_hp"),
+            "nomor_hp": nomor,
             "kehadiran": r.get("kehadiran"),
             "alasan": r.get("alasan"),
             "alasan_lain": r.get("alasan_lain"),
@@ -10941,6 +10962,57 @@ async def _pendaftaran_laju_ok(ip: Optional[str], token: str) -> bool:
     await db.pendaftaran_laju.insert_one(
         {"ip": ip, "token": token, "at": now_wita().isoformat()})
     return True
+
+
+async def _pendaftaran_cari_laju_ok(ip: Optional[str]) -> bool:
+    """Pembatas laju pencarian nama publik (per IP)."""
+    if not ip:
+        return True
+    batas = (now_wita() - timedelta(seconds=PENDAFTARAN_CARI_JENDELA)).isoformat()
+    jumlah = await db.pendaftaran_cari_laju.count_documents(
+        {"ip": ip, "at": {"$gte": batas}})
+    if jumlah >= PENDAFTARAN_CARI_LAJU:
+        return False
+    await db.pendaftaran_cari_laju.insert_one({"ip": ip, "at": now_wita().isoformat()})
+    return True
+
+
+async def _pendaftaran_rekap_laju_ok(ip: Optional[str]) -> bool:
+    """Pembatas laju rekap publik (longgar, per IP)."""
+    if not ip:
+        return True
+    batas = (now_wita() - timedelta(seconds=PENDAFTARAN_REKAP_JENDELA)).isoformat()
+    jumlah = await db.pendaftaran_rekap_laju.count_documents(
+        {"ip": ip, "at": {"$gte": batas}})
+    if jumlah >= PENDAFTARAN_REKAP_LAJU:
+        return False
+    await db.pendaftaran_rekap_laju.insert_one({"ip": ip, "at": now_wita().isoformat()})
+    return True
+
+
+async def _cari_peserta_publik(q: str) -> list:
+    """Cari peserta aktif berdasarkan nama. Hanya id dan nama (whitelist)."""
+    teks = _bersih_teks(q, 60)
+    if len(teks) < PENDAFTARAN_CARI_MIN:
+        return []
+    pola = re.escape(teks).replace(r"\ ", r"\s+")
+    rows = await db.users.find(
+        {"roles": "peserta", "status": "active", "is_system": {"$ne": True},
+         "name": {"$regex": pola, "$options": "i"}},
+        {"name": 1}).sort("name", 1).to_list(PENDAFTARAN_CARI_MAKS)
+    return [{"id": str(r["_id"]), "nama": r.get("name")} for r in rows]
+
+
+def _pendaftaran_nomor_simpan(nomor: Optional[str], kegiatan_id: str) -> str:
+    """Nilai `nomor_hp` yang disimpan.
+
+    Indeks unik (kegiatan_id, nomor_hp) di produksi belum parsial, jadi pendaftar
+    tanpa nomor HP diberi penanda unik per baris agar tidak bentrok. Penanda
+    tidak pernah dikembalikan ke pengguna.
+    """
+    if nomor:
+        return nomor
+    return f"{PENDAFTARAN_TANPA_HP}{uuid.uuid4().hex}"
 
 
 class PendaftaranInput(BaseModel):
@@ -11287,6 +11359,21 @@ async def pendaftaran_hapus(kegiatan_id: str, staff: dict = Depends(require_admi
     return {"ok": True}
 
 
+@api_router.get("/publik/peserta/cari")
+async def publik_peserta_cari(q: str = "", request: Request = None):
+    """Cari peserta aktif berdasarkan nama (untuk pendaftaran & izin publik).
+
+    Hanya mengembalikan id dan nama. Minimal 2 huruf, maksimal 5 hasil.
+    """
+    if not await _pendaftaran_cari_laju_ok(client_ip(request)):
+        raise HTTPException(status_code=429,
+                            detail="Terlalu banyak pencarian. Coba lagi nanti.")
+    hasil = await _cari_peserta_publik(q)
+    return JSONResponse(content={"items": hasil},
+                        headers={"X-Robots-Tag": "noindex, nofollow",
+                                 "Cache-Control": "no-store"})
+
+
 @api_router.get("/publik/daftar/{token}")
 async def publik_pendaftaran_info(token: str):
     """Info kegiatan untuk halaman konfirmasi publik (tanpa login)."""
@@ -11319,6 +11406,21 @@ async def publik_pendaftaran_info(token: str):
 @api_router.post("/publik/daftar/{token}")
 async def publik_pendaftaran_kirim(token: str, body: dict, request: Request):
     """Simpan jawaban peserta. Hanya menulis ke `pendaftaran_konfirmasi`."""
+    try:
+        return await _pendaftaran_simpan(token, body, request)
+    except HTTPException:
+        raise
+    except DuplicateKeyError:
+        raise HTTPException(status_code=409,
+                            detail="Anda sudah terdaftar di kegiatan ini.")
+    except Exception:
+        logger.exception("Gagal menyimpan pendaftaran publik")
+        raise HTTPException(
+            status_code=400,
+            detail="Pendaftaran gagal disimpan. Coba lagi sebentar lagi.")
+
+
+async def _pendaftaran_simpan(token: str, body: dict, request: Request):
     k = await db.pendaftaran_kegiatan.find_one({"token": token})
     if not k:
         raise HTTPException(status_code=404, detail="Tautan tidak berlaku")
@@ -11360,14 +11462,26 @@ async def publik_pendaftaran_kirim(token: str, body: dict, request: Request):
                 raise HTTPException(status_code=400, detail="Tulis alasannya.")
 
     keterangan = _bersih_teks(body.get("keterangan"), 200) or None
-    umum = bool(k.get("kegiatan_umum", False))
-    if umum:
-        # Kegiatan umum: pendaftar dari luar, tidak dicocokkan ke data peserta.
+
+    # Peserta lama yang dipilih lewat pencarian nama (id saja, tanpa ubah data).
+    peserta_id = None
+    status_akun = "calon"
+    pilih_id = str(body.get("peserta_id") or "").strip()
+    if pilih_id:
+        if not ObjectId.is_valid(pilih_id):
+            raise HTTPException(status_code=400, detail="Peserta tidak ditemukan.")
+        p = await db.users.find_one(
+            {"_id": ObjectId(pilih_id), "roles": "peserta", "status": "active",
+             "is_system": {"$ne": True}}, {"name": 1})
+        if not p:
+            raise HTTPException(status_code=400, detail="Peserta tidak ditemukan.")
+        peserta_id, status_akun = pilih_id, "aktif"
+        nama = p.get("name") or nama
+    elif bool(k.get("kegiatan_umum", False)):
+        # Kegiatan umum tanpa pilih nama: pendaftar luar, tidak dicocokkan.
         peserta_id, status_akun = None, "calon"
     elif nomor:
         peserta_id, status_akun = await _pendaftaran_cocok(nama, nomor)
-    else:
-        peserta_id, status_akun = None, "calon"
     sekarang = now_wita().isoformat()
 
     # Satu nomor satu jawaban. Tanpa nomor HP, cegah duplikat berdasarkan nama.
@@ -11387,17 +11501,19 @@ async def publik_pendaftaran_kirim(token: str, body: dict, request: Request):
                 detail="Nama ini sudah mendaftar. Jika berbeda orang, tambahkan "
                        "nama belakang atau isi nomor HP.")
     data = {
-        "nama": nama, "nomor_hp": nomor, "kehadiran": kehadiran,
+        "nama": nama, "kehadiran": kehadiran,
         "alasan": alasan, "alasan_lain": alasan_lain, "keterangan": keterangan,
         "peserta_id": peserta_id, "status_akun": status_akun,
         "diperbarui_pada": sekarang,
     }
     if ada:
-        await db.pendaftaran_konfirmasi.update_one({"_id": ada["_id"]}, {"$set": data})
+        await db.pendaftaran_konfirmasi.update_one(
+            {"_id": ada["_id"]}, {"$set": {**data, "nomor_hp": ada.get("nomor_hp")}})
     else:
         await db.pendaftaran_konfirmasi.insert_one({
             "_id": str(uuid.uuid4()), "kegiatan_id": k["_id"],
-            **data, "dibuat_pada": sekarang,
+            **data, "nomor_hp": _pendaftaran_nomor_simpan(nomor, k["_id"]),
+            "dibuat_pada": sekarang,
         })
 
     return {
@@ -11405,6 +11521,92 @@ async def publik_pendaftaran_kirim(token: str, body: dict, request: Request):
         "diperbarui": bool(ada),
         "pesan": "Jawaban Anda sudah tersimpan.",
         "kehadiran": kehadiran,
+    }
+
+
+# ---------------------------------------------------------------------------
+# REKAP PUBLIK PENDAFTARAN — token terpisah, hanya baca, tanpa data pribadi.
+# ---------------------------------------------------------------------------
+def _rekap_tidak_tersedia():
+    """Pesan SAMA untuk semua penyebab (mati / arsip / dihapus / token salah)."""
+    return HTTPException(status_code=404, detail="Tautan tidak tersedia")
+
+
+async def _pendaftaran_rekap_aktif(token: str) -> dict:
+    """Kegiatan yang tautan rekapnya boleh dibuka, atau 404 yang seragam."""
+    if not token:
+        raise _rekap_tidak_tersedia()
+    k = await db.pendaftaran_kegiatan.find_one({"rekap_token": token})
+    if not k or not k.get("rekap_publik"):
+        raise _rekap_tidak_tersedia()
+    if _pendaftaran_status_tampil(k) == "arsip":
+        raise _rekap_tidak_tersedia()
+    return k
+
+
+@api_router.get("/publik/rekap-pendaftaran/{token}")
+async def publik_rekap_pendaftaran(token: str, request: Request):
+    """Rekap publik satu kegiatan pendaftaran (tanpa login, hanya baca)."""
+    if not await _pendaftaran_rekap_laju_ok(client_ip(request)):
+        raise HTTPException(status_code=429,
+                            detail="Terlalu banyak permintaan. Coba lagi nanti.")
+    k = await _pendaftaran_rekap_aktif(token)
+    rows = await db.pendaftaran_konfirmasi.find(
+        {"kegiatan_id": k["_id"]}, {"nama": 1, "kehadiran": 1, "diperbarui_pada": 1,
+                                    "dibuat_pada": 1}).to_list(20000)
+    ikut, tidak_ikut = [], 0
+    terbaru = None
+    for r in rows:
+        if r.get("kehadiran") == "hadir":
+            ikut.append(str(r.get("nama") or ""))
+        elif r.get("kehadiran") == "tidak_hadir":
+            tidak_ikut += 1
+        cap = r.get("diperbarui_pada") or r.get("dibuat_pada")
+        if cap and (terbaru is None or str(cap) > str(terbaru)):
+            terbaru = cap
+    ikut.sort(key=lambda n: n.lower())
+    return JSONResponse(content={
+        "judul": k.get("nama"),
+        "tanggal": k.get("tanggal"),
+        "lokasi": k.get("lokasi"),
+        "penyelenggara": k.get("penyelenggara"),
+        "tampilkan_logo": k.get("tampilkan_logo", True),
+        "total": len(ikut) + tidak_ikut,
+        "ikut": len(ikut),
+        "tidak_ikut": tidak_ikut,
+        "nama_ikut": ikut,
+        "diperbarui_pada": terbaru,
+    }, headers={"X-Robots-Tag": "noindex, nofollow",
+                "Referrer-Policy": "no-referrer", "Cache-Control": "no-store"})
+
+
+class RekapSaklarInput(BaseModel):
+    aktif: bool = False
+
+
+@api_router.post("/staff/pendaftaran/{kegiatan_id}/rekap-publik")
+async def pendaftaran_rekap_saklar(kegiatan_id: str, body: RekapSaklarInput,
+                                   request: Request,
+                                   staff: dict = Depends(require_staff)):
+    """Nyalakan/matikan tautan rekap publik. Token dibuat saat pertama dinyalakan."""
+    k = await db.pendaftaran_kegiatan.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan pendaftaran tidak ditemukan")
+    set_fields: dict = {"rekap_publik": bool(body.aktif)}
+    token = k.get("rekap_token")
+    if body.aktif and not token:
+        token = secrets.token_urlsafe(24)
+        set_fields["rekap_token"] = token
+    await db.pendaftaran_kegiatan.update_one({"_id": kegiatan_id}, {"$set": set_fields})
+    await log_activity(
+        staff, "pendaftaran_rekap_publik",
+        f"{'Menyalakan' if body.aktif else 'Mematikan'} rekap publik "
+        f"pendaftaran '{k.get('nama')}'", kegiatan_id)
+    return {
+        "rekap_publik": bool(body.aktif),
+        "rekap_token": token if body.aktif else None,
+        "link": (f"{resolve_base_url(request)}/rekap-pendaftaran/{token}"
+                 if body.aktif and token else None),
     }
 
 
@@ -11555,6 +11757,10 @@ async def _run_init():
     # Pendaftaran kegiatan — konfirmasi peserta lewat tautan publik WhatsApp.
     await db.pendaftaran_kegiatan.create_index("token", unique=True)
     await db.pendaftaran_kegiatan.create_index([("status", 1), ("tanggal", -1)])
+    # Token rekap publik (terpisah dari token pendaftaran). Sparse: hanya untuk
+    # kegiatan yang saklarnya pernah dinyalakan.
+    await db.pendaftaran_kegiatan.create_index(
+        "rekap_token", unique=True, sparse=True, name="pendaftaran_rekap_token")
     # Satu nomor satu jawaban. Indeks parsial: hanya berlaku bila nomor HP ada,
     # karena pendaftar tanpa nomor HP boleh lebih dari satu (dicek lewat nama).
     try:
@@ -11567,6 +11773,8 @@ async def _run_init():
         partialFilterExpression={"nomor_hp": {"$type": "string"}})
     await db.pendaftaran_konfirmasi.create_index([("kegiatan_id", 1), ("kehadiran", 1)])
     await db.pendaftaran_laju.create_index("at")
+    await db.pendaftaran_cari_laju.create_index("at")
+    await db.pendaftaran_rekap_laju.create_index("at")
     # Penanda pengajar pada peserta (idempoten, tidak menimpa nilai yang sudah ada).
     await db.users.update_many({"pengajar": {"$exists": False}},
                                {"$set": {"pengajar": False}})

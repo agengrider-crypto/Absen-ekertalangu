@@ -19,6 +19,18 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-26-pendaftaran-izin",
+    date: "2026-11-26",
+    jenis: "fitur",
+    tujuan: "/area/admin/pendaftaran-aktif",
+    title: "Pendaftaran dan izin lebih mudah",
+    keterangan:
+      "Peserta cukup cari nama untuk mendaftar atau mengajukan izin. Admin bisa membagikan tautan rekap pendaftaran. Perbaikan error saat mendaftar.",
+    items: [
+      "Peserta cukup cari nama untuk mendaftar atau mengajukan izin. Admin bisa membagikan tautan rekap pendaftaran. Perbaikan error saat mendaftar.",
+    ],
+  },
+  {
     id: "2026-11-25-pendaftaran-sederhana",
     date: "2026-11-25",
     jenis: "fitur",

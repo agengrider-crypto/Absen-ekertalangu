@@ -92,23 +92,62 @@ function KartuKegiatan({ item, onOpen, onShare, onAjakan }) {
   );
 }
 
-/** Pratinjau pesan rekap WhatsApp dengan pilihan sertakan daftar nama. */
-function BagikanRekapModal({ item, onClose }) {
-  const [sertakanNama, setSertakanNama] = useState(true);
-  const teks = teksRekapWhatsApp(item, { sertakanNama });
+/** Pratinjau pesan rekap WhatsApp: hanya angka dan tautan, tanpa nama. */
+function BagikanRekapModal({ item, onClose, onToggleRekap, sibuk }) {
+  const [rekap, setRekap] = useState({
+    aktif: !!item?.rekap_publik,
+    link: item?.rekap_link || null,
+  });
+  const teks = teksRekapWhatsApp(item, { rekapLink: rekap.aktif ? rekap.link : null });
+
+  const ubahSaklar = async (aktif) => {
+    const hasil = await onToggleRekap?.(item, aktif);
+    if (hasil) setRekap({ aktif: hasil.rekap_publik, link: hasil.link });
+  };
+
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 sm:items-center sm:p-4">
       <div className="w-full max-w-md rounded-t-2xl bg-white p-4 sm:rounded-2xl">
         <p className="text-base font-semibold text-[#14201A]">Bagikan rekap ke WhatsApp</p>
         <p className="mt-1 text-sm text-[#5F6B63]">
-          Nomor HP peserta tidak pernah dimasukkan ke pesan.
+          Pesan hanya berisi angka dan tautan. Nama, nomor HP, dan keterangan tidak ikut.
         </p>
-        <label className="mt-3 flex items-center gap-2 text-sm text-[#14201A]">
-          <input type="checkbox" checked={sertakanNama}
-            onChange={(e) => setSertakanNama(e.target.checked)}
-            className="h-4 w-4 accent-[#14633F]" />
-          Sertakan daftar nama yang ikut
-        </label>
+
+        <div className="mt-3 rounded-xl border border-[#E7E3D8] bg-[#F6F4EE] p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-[#14201A]">Tampilkan rekap publik</p>
+              <p className="mt-0.5 text-xs text-[#5F6B63]">
+                Mati = tautan rekap tidak muncul di pesan.
+              </p>
+            </div>
+            <button type="button" role="switch" aria-checked={rekap.aktif}
+              data-testid={PENDAFTARAN.shareRekapSwitch}
+              onClick={() => ubahSaklar(!rekap.aktif)} disabled={sibuk}
+              className={`mt-0.5 flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors motion-reduce:transition-none disabled:opacity-60 ${
+                rekap.aktif ? "bg-[#14633F]" : "bg-[#D9D4C5]"
+              }`}>
+              <span className={`h-5 w-5 rounded-full bg-white transition-transform motion-reduce:transition-none ${
+                rekap.aktif ? "translate-x-5" : "translate-x-0"
+              }`} />
+            </button>
+          </div>
+          {rekap.aktif && rekap.link && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              <a href={rekap.link} target="_blank" rel="noopener noreferrer"
+                data-testid={PENDAFTARAN.shareRekapView}
+                className="inline-flex min-h-9 items-center rounded-lg border border-[#14633F] bg-white px-2.5 text-xs font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
+                Lihat tampilan publik
+              </a>
+              <button type="button" data-testid={PENDAFTARAN.shareRekapCopy}
+                onClick={() => salin(rekap.link, "Tautan rekap disalin")}
+                className="inline-flex min-h-9 items-center rounded-lg border border-[#E7E3D8] bg-white px-2.5 text-xs font-semibold text-[#14201A] hover:border-[#14633F]">
+                Salin tautan rekap
+              </button>
+            </div>
+          )}
+        </div>
+
         <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap rounded-xl bg-[#F6F4EE] p-3 text-xs text-[#14201A]">
           {teks}
         </pre>
@@ -118,10 +157,12 @@ function BagikanRekapModal({ item, onClose }) {
             Batal
           </button>
           <button type="button" onClick={() => salin(teks, "Teks rekap disalin")}
+            data-testid={PENDAFTARAN.shareCopyText}
             className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#14633F] bg-white px-3 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">
             <Copy size={16} /> Salin teks
           </button>
           <a href={waHref(teks)} target="_blank" rel="noopener noreferrer"
+            data-testid={PENDAFTARAN.shareOpenWa}
             className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#14633F] px-4 text-sm font-semibold text-white hover:bg-[#0E4E31]">
             <Send size={16} /> Buka WhatsApp
           </a>
@@ -193,6 +234,27 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGotoKegiatan
       toast.error(formatApiErrorDetail(e.response?.data?.detail));
     }
   }, []);
+
+  /** Nyalakan/matikan tautan rekap publik (token dibuat saat pertama nyala). */
+  const ubahRekap = useCallback(async (item, aktif) => {
+    setSibuk(true);
+    try {
+      const { data } = await api.post(`/staff/pendaftaran/${item.id}/rekap-publik`,
+        { aktif });
+      toast.success(aktif ? "Tautan rekap publik dinyalakan."
+        : "Tautan rekap publik dimatikan.");
+      setBagikan((b) => (b && b.id === item.id
+        ? { ...b, rekap_publik: data.rekap_publik, rekap_link: data.link }
+        : b));
+      await muat();
+      return data;
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+      return null;
+    } finally {
+      setSibuk(false);
+    }
+  }, [muat]);
 
   const ubahStatus = async (item, status) => {
     setSibuk(true);
@@ -317,7 +379,10 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGotoKegiatan
         />
       )}
 
-      {bagikan && <BagikanRekapModal item={bagikan} onClose={() => setBagikan(null)} />}
+      {bagikan && (
+        <BagikanRekapModal item={bagikan} onClose={() => setBagikan(null)}
+          onToggleRekap={ubahRekap} sibuk={sibuk} />
+      )}
 
       {tanyaKegiatan && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">

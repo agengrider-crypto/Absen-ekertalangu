@@ -28,6 +28,7 @@ const SelfAbsen = lazy(() => import("@/pages/SelfAbsen"));
 const PublicAbsensi = lazy(() => import("@/pages/PublicAbsensi"));
 const PublicHadir = lazy(() => import("@/pages/PublicHadir"));
 const PublicPendaftaran = lazy(() => import("@/pages/PublicPendaftaran"));
+const PublicRekapPendaftaran = lazy(() => import("@/pages/PublicRekapPendaftaran"));
 const KodeAbsen = lazy(() => import("@/pages/KodeAbsen"));
 const CompleteProfile = lazy(() => import("@/pages/CompleteProfile"));
 const GantiSandi = lazy(() => import("@/pages/GantiSandi"));
@@ -79,6 +80,7 @@ const MAINTENANCE_EXEMPT = [
   "/hadir",
   "/absen-kode",
   "/daftar",
+  "/rekap-pendaftaran",
 ];
 
 function MaintenanceGate({ children }) {
@@ -178,6 +180,7 @@ function AppRoutes() {
         <Route path="/hadir/:token" element={<PublicHadir />} />
         {/* Konfirmasi peserta kegiatan lewat tautan publik WhatsApp: tanpa login */}
         <Route path="/daftar/:token" element={<PublicPendaftaran />} />
+        <Route path="/rekap-pendaftaran/:token" element={<PublicRekapPendaftaran />} />
         <Route path="/absen-kode" element={<KodeAbsen />} />
         <Route path="/roles" element={<Protected><RoleDashboard /></Protected>} />
         <Route path="/area/:role" element={<Protected><RoleArea /></Protected>} />

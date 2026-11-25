@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { api, formatApiErrorDetail } from "@/lib/api";
 import { Logo } from "@/components/Logo";
+import CariNamaPeserta from "@/components/CariNamaPeserta";
 
 const inputCls =
   "h-12 w-full rounded-xl border border-[#8A948D] bg-white px-3.5 text-base text-[#14201A] outline-none focus:border-[#14633F]";
@@ -18,6 +19,7 @@ export default function PublicIzin() {
   const [selesai, setSelesai] = useState(false);
   const [pesan, setPesan] = useState("");
   const [form, setForm] = useState({ peserta_id: "", alasan: "", alasan_lain: "" });
+  const [pilih, setPilih] = useState(null);
 
   useEffect(() => {
     const meta = document.createElement("meta");
@@ -48,7 +50,7 @@ export default function PublicIzin() {
 
   const kirim = async (e) => {
     e.preventDefault();
-    if (!form.peserta_id) { setPesan("Pilih nama Anda dulu."); return; }
+    if (!pilih?.id) { setPesan("Cari dan pilih nama Anda dulu."); return; }
     if (!form.alasan) { setPesan("Pilih alasan dulu."); return; }
     if (form.alasan === "Lainnya" && form.alasan_lain.trim().length < 3) {
       setPesan("Tulis alasannya.");
@@ -56,7 +58,7 @@ export default function PublicIzin() {
     }
     setSaving(true);
     try {
-      await api.post(`/publik/izin/${token}`, form);
+      await api.post(`/publik/izin/${token}`, { ...form, peserta_id: pilih.id });
       setSelesai(true);
     } catch (e2) {
       const status = e2.response?.status;
@@ -107,19 +109,13 @@ export default function PublicIzin() {
         </div>
 
         <form onSubmit={kirim} className="mt-6 space-y-4 rounded-2xl border border-[#E7E3D8] bg-white p-4">
-          <label className="block">
+          <div>
             <span className="mb-1 block text-sm font-semibold text-[#14201A]">Nama Anda</span>
-            <select
-              value={form.peserta_id}
-              onChange={(e) => set("peserta_id", e.target.value)}
-              className={inputCls}
-            >
-              <option value="">Pilih nama</option>
-              {(info?.peserta || []).map((p) => (
-                <option key={p.id} value={p.id}>{p.nama}</option>
-              ))}
-            </select>
-          </label>
+            <CariNamaPeserta value={pilih} onPick={setPilih} testid="izin-cari-nama" />
+            <p className="mt-1 text-xs text-[#5F6B63]">
+              Ketik minimal 2 huruf nama, lalu pilih dari hasil.
+            </p>
+          </div>
 
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-[#14201A]">Alasan</span>

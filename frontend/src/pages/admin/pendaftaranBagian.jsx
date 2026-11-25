@@ -153,27 +153,22 @@ export function DaftarPeserta({ rows }) {
   );
 }
 
-/** Teks rekap untuk WhatsApp. Nomor HP tidak pernah dimasukkan. */
-export function teksRekapWhatsApp(item, { sertakanNama = true, maksNama = 60 } = {}) {
-  const ikut = (item?.peserta || []).filter((p) => p.kehadiran === "hadir");
+/** Teks rekap untuk WhatsApp. Hanya angka dan tautan — tanpa nama, HP, keterangan. */
+export function teksRekapWhatsApp(item, { rekapLink = null } = {}) {
   const baris = [];
-  baris.push(`*${item?.nama || "Kegiatan"}*`);
-  if (item?.penyelenggara) baris.push(item.penyelenggara);
+  baris.push(`*Pendaftaran: ${item?.nama || "Kegiatan"}*`);
   baris.push(`${tanggalIndonesia(item?.tanggal)}${item?.lokasi ? ` · ${item.lokasi}` : ""}`);
   baris.push("");
   baris.push(`Ikut: ${item?.ikut ?? 0} · Tidak ikut: ${item?.tidak_ikut ?? 0} · Total: ${item?.total ?? 0}`);
-  if (sertakanNama && ikut.length) {
-    baris.push("");
-    baris.push("*Yang ikut:*");
-    const tampil = ikut.slice(0, maksNama);
-    tampil.forEach((p, i) => baris.push(`${i + 1}. ${p.nama}`));
-    if (ikut.length > tampil.length) {
-      baris.push(`dan ${ikut.length - tampil.length} lainnya`);
-    }
-  }
   if (item?.link) {
     baris.push("");
-    baris.push(`Pendaftaran: ${item.link}`);
+    baris.push("Daftar di sini:");
+    baris.push(item.link);
+  }
+  if (rekapLink) {
+    baris.push("");
+    baris.push("Lihat siapa saja yang sudah daftar:");
+    baris.push(rekapLink);
   }
   return baris.join("\n");
 }

@@ -9,6 +9,7 @@ import { api, formatApiErrorDetail } from "@/lib/api";
 import { tanggalIndonesia } from "@/lib/wa";
 import { PENDAFTARAN } from "@/constants/testIds";
 import { Logo } from "@/components/Logo";
+import CariNamaPeserta from "@/components/CariNamaPeserta";
 
 const inputCls =
   "h-12 w-full rounded-xl border border-[#8A948D] bg-white px-3.5 text-base text-[#14201A] outline-none focus:border-[#14633F]";
@@ -32,6 +33,7 @@ export default function PublicPendaftaran() {
   const [form, setForm] = useState({
     nama: "", nomor_hp: "", kehadiran: "", alasan: "", alasan_lain: "", keterangan: "",
   });
+  const [pilih, setPilih] = useState(null);
 
   useEffect(() => {
     const meta = document.createElement("meta");
@@ -98,7 +100,7 @@ export default function PublicPendaftaran() {
 
   const kirim = async (e) => {
     e.preventDefault();
-    if (form.nama.trim().length < 3) { setPesan("Isi nama lengkap dulu."); return; }
+    if (!pilih && form.nama.trim().length < 3) { setPesan("Isi nama lengkap dulu."); return; }
     if (info?.hp_wajib !== false && !form.nomor_hp.trim()) {
       setPesan("Isi nomor HP dulu.");
       return;
@@ -117,7 +119,8 @@ export default function PublicPendaftaran() {
     setSaving(true);
     try {
       const { data } = await api.post(`/publik/daftar/${token}`, {
-        nama: form.nama.trim(),
+        nama: pilih ? pilih.nama : form.nama.trim(),
+        peserta_id: pilih?.id || null,
         nomor_hp: form.nomor_hp.trim(),
         kehadiran: form.kehadiran,
         alasan: form.kehadiran === "tidak_hadir" ? (form.alasan || null) : null,
@@ -251,12 +254,27 @@ export default function PublicPendaftaran() {
 
         <form onSubmit={kirim}
           className="mt-6 space-y-4 rounded-2xl border border-[#E7E3D8] bg-white p-4">
-          <label className="block">
-            <span className="mb-1 block text-sm font-semibold text-[#14201A]">Nama Lengkap *</span>
-            <input value={form.nama} onChange={(e) => set("nama", e.target.value)}
-              data-testid={PENDAFTARAN.publicName} maxLength={100}
-              placeholder="Tulis nama lengkap" className={inputCls} />
-          </label>
+          <div>
+            <span className="mb-1 block text-sm font-semibold text-[#14201A]">
+              Cari nama Anda
+            </span>
+            <CariNamaPeserta value={pilih} onPick={setPilih}
+              testid={PENDAFTARAN.publicCariNama} />
+            <p className="mt-1 text-xs text-[#5F6B63]">
+              Sudah terdaftar sebagai peserta? Cari nama agar tidak perlu mengisi ulang.
+            </p>
+          </div>
+
+          {!pilih && (
+            <label className="block">
+              <span className="mb-1 block text-sm font-semibold text-[#14201A]">
+                Nama Lengkap *
+              </span>
+              <input value={form.nama} onChange={(e) => set("nama", e.target.value)}
+                data-testid={PENDAFTARAN.publicName} maxLength={100}
+                placeholder="Tulis nama lengkap" className={inputCls} />
+            </label>
+          )}
 
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-[#14201A]">
