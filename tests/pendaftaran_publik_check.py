@@ -275,6 +275,98 @@ async def main():
                 for p in det.get("peserta") or []),
             [p.get("nomor_hp") for p in det.get("peserta") or []])
 
+        # ============ UJI 11: alasan tidak ikut di rekap publik ==========
+        # Saklar alasan bawaan MATI.
+        cek("saklar alasan bawaan mati", det.get("rekap_alasan_publik") is False,
+            det.get("rekap_alasan_publik"))
+        r = await c.get(f"/api/publik/rekap-pendaftaran/{rk['rekap_token']}")
+        d = r.json()
+        cek("rekap: nama_tidak_ikut ada", isinstance(d.get("nama_tidak_ikut"), list),
+            d.get("nama_tidak_ikut"))
+        cek("rekap: field alasan tidak ada sama sekali", "alasan" not in r.text,
+            r.text[:300])
+        cek("rekap: nama tidak ikut urut abjad",
+            [x["nama"] for x in d.get("nama_tidak_ikut") or []]
+            == sorted([x["nama"] for x in d.get("nama_tidak_ikut") or []], key=str.lower),
+            d.get("nama_tidak_ikut"))
+
+        # Nyalakan saklar alasan.
+        r = await c.post(f"/api/staff/pendaftaran/{umum['id']}/rekap-alasan",
+                         json={"aktif": True})
+        cek("nyalakan saklar alasan", r.status_code == 200 and
+            r.json().get("rekap_alasan_publik") is True, r.text[:300])
+        r = await c.get(f"/api/publik/rekap-pendaftaran/{rk['rekap_token']}")
+        d = r.json()
+        cek("rekap: alasan muncul", "alasan" in r.text, r.text[:300])
+        cek("rekap: alasan terisi", all(x.get("alasan") for x in
+                                        d.get("nama_tidak_ikut") or []),
+            d.get("nama_tidak_ikut"))
+        cek("rekap: tetap tanpa nomor HP", "nomor_hp" not in r.text)
+        cek("rekap: tetap tanpa _id", "_id" not in r.text)
+        cek("rekap: tetap tanpa keterangan", "keterangan" not in r.text)
+
+        # Log aktivitas tercatat.
+        log = await server.db.activity_logs.find_one(
+            {"action": "pendaftaran_rekap_alasan"})
+        cek("log aktivitas saklar alasan", bool(log), log)
+
+        # Matikan lagi → alasan hilang dari respons.
+        r = await c.post(f"/api/staff/pendaftaran/{umum['id']}/rekap-alasan",
+                         json={"aktif": False})
+        cek("matikan saklar alasan", r.status_code == 200 and
+            r.json().get("rekap_alasan_publik") is False, r.text[:200])
+        r = await c.get(f"/api/publik/rekap-pendaftaran/{rk['rekap_token']}")
+        cek("alasan hilang dari respons", "alasan" not in r.text, r.text[:300])
+
+        # Saklar alasan tidak bisa dinyalakan bila rekap publik mati.
+        await c.post(f"/api/staff/pendaftaran/{umum['id']}/rekap-publik",
+                     json={"aktif": False})
+        r = await c.post(f"/api/staff/pendaftaran/{umum['id']}/rekap-alasan",
+                         json={"aktif": True})
+        cek("alasan ditolak bila rekap publik mati", r.status_code == 400,
+            r.status_code)
+
+        # Nyalakan rekap lagi + alasan, lalu matikan rekap → alasan ikut mati.
+        await c.post(f"/api/staff/pendaftaran/{umum['id']}/rekap-publik",
+                     json={"aktif": True})
+        await c.post(f"/api/staff/pendaftaran/{umum['id']}/rekap-alasan",
+                     json={"aktif": True})
+        r = await c.post(f"/api/staff/pendaftaran/{umum['id']}/rekap-publik",
+                         json={"aktif": False})
+        cek("matikan rekap ikut mematikan alasan",
+            r.json().get("rekap_alasan_publik") is False, r.text[:200])
+        kdoc = await server.db.pendaftaran_kegiatan.find_one({"_id": umum["id"]})
+        cek("alasan tersimpan mati di database",
+            kdoc.get("rekap_alasan_publik") is False,
+            kdoc.get("rekap_alasan_publik"))
+
+        # ============ UJI 12: admin melihat alasan selalu ================
+        r = await c.get(f"/api/staff/pendaftaran/{umum['id']}")
+        det = r.json()
+        tidak = [p for p in det.get("peserta") or []
+                 if p.get("kehadiran") == "tidak_hadir"]
+        cek("admin: daftar tidak ikut ada", len(tidak) >= 1, len(tidak))
+        cek("admin: alasan selalu terlihat walau saklar mati",
+            all("alasan" in p for p in tidak), tidak[:1])
+
+        # ============ UJI 13: peran tanpa hak ditolak ====================
+        await c.post("/api/auth/logout")
+        r = await c.get(f"/api/staff/pendaftaran/{umum['id']}")
+        cek("tanpa login ditolak", r.status_code in (401, 403), r.status_code)
+        r = await c.post(f"/api/staff/pendaftaran/{umum['id']}/rekap-alasan",
+                         json={"aktif": True})
+        cek("saklar alasan tanpa login ditolak", r.status_code in (401, 403),
+            r.status_code)
+
+        # Peserta biasa (bukan staf) juga ditolak.
+        await c.post("/api/auth/login",
+                     json={"identifier": "budi", "password": "rahasia123"})
+        r = await c.get(f"/api/staff/pendaftaran/{umum['id']}")
+        cek("peserta ditolak endpoint admin", r.status_code == 403, r.status_code)
+        r = await c.post(f"/api/staff/pendaftaran/{umum['id']}/rekap-alasan",
+                         json={"aktif": True})
+        cek("peserta ditolak saklar alasan", r.status_code == 403, r.status_code)
+
     print()
     if GAGAL:
         print(f"GAGAL: {len(GAGAL)} pemeriksaan -> {GAGAL}")

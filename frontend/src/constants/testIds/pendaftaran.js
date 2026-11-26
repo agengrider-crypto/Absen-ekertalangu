@@ -39,6 +39,8 @@ export const PENDAFTARAN = {
   shareRekapSwitch: "pendaftaran-share-rekap-switch",
   shareRekapView: "pendaftaran-share-rekap-view",
   shareRekapCopy: "pendaftaran-share-rekap-copy",
+  shareAlasanSwitch: "pendaftaran-share-alasan-switch",
+  shareAlasanWarning: "pendaftaran-share-alasan-warning",
   shareOpenWa: "pendaftaran-share-open-wa",
   shareCopyText: "pendaftaran-share-copy-text",
   publicView: "pendaftaran-public-view",

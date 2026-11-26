@@ -19,6 +19,18 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-26-rekap-pendaftaran-lengkap",
+    date: "2026-11-26",
+    jenis: "perbaikan",
+    tujuan: "/area/admin/pendaftaran-aktif",
+    title: "Rekap pendaftaran lebih lengkap",
+    keterangan:
+      "Rekap kini menampilkan yang tidak ikut. Alasan bisa ditampilkan di tautan rekap bila diaktifkan admin.",
+    items: [
+      "Rekap kini menampilkan yang tidak ikut. Alasan bisa ditampilkan di tautan rekap bila diaktifkan admin.",
+    ],
+  },
+  {
     id: "2026-11-26-penjaga-rapi",
     date: "2026-11-26",
     jenis: "fitur",

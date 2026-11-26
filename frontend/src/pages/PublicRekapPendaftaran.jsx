@@ -26,6 +26,7 @@ export default function PublicRekapPendaftaran() {
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("ikut");
 
   useEffect(() => {
     const meta = document.createElement("meta");
@@ -74,6 +75,10 @@ export default function PublicRekapPendaftaran() {
     { label: "Ikut", value: data?.ikut ?? 0, color: "#0E4E31" },
     { label: "Tidak ikut", value: data?.tidak_ikut ?? 0, color: "#A32A2A" },
   ];
+  const namaIkut = data?.nama_ikut || [];
+  const namaTidakIkut = data?.nama_tidak_ikut || [];
+  // Alasan hanya ada di respons bila saklarnya menyala (whitelist di server).
+  const tampilAlasan = namaTidakIkut.some((r) => "alasan" in r);
 
   return (
     <div className="min-h-screen bg-[#F6F4EE] px-4 py-8">
@@ -111,15 +116,57 @@ export default function PublicRekapPendaftaran() {
         </div>
 
         <section className="mt-4 rounded-2xl border border-[#E7E3D8] bg-white p-4">
-          <h2 className="text-sm font-bold text-[#14201A]">Yang ikut</h2>
-          {(data?.nama_ikut || []).length === 0 ? (
-            <p className="mt-2 text-sm text-[#5F6B63]">Belum ada yang memilih ikut.</p>
+          <div className="flex gap-1.5" role="tablist" aria-label="Rekap pendaftaran">
+            {[
+              { key: "ikut", label: `Ikut (${namaIkut.length})` },
+              { key: "tidak", label: `Tidak ikut (${namaTidakIkut.length})` },
+            ].map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.key}
+                data-testid={`rekap-publik-tab-${t.key}`}
+                onClick={() => setTab(t.key)}
+                className={`min-h-10 flex-1 rounded-xl border px-3 text-sm font-semibold transition-colors ${
+                  tab === t.key
+                    ? "border-[#14633F] bg-[#E3F3EA] text-[#0E4E31]"
+                    : "border-[#E7E3D8] bg-white text-[#5F6B63] hover:border-[#14633F]"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {tab === "ikut" ? (
+            namaIkut.length === 0 ? (
+              <p className="mt-3 text-sm text-[#5F6B63]">Belum ada yang memilih ikut.</p>
+            ) : (
+              <ol className="mt-3 space-y-1.5 text-sm text-[#14201A]">
+                {namaIkut.map((nama, i) => (
+                  <li key={`${nama}-${i}`} className="flex gap-2">
+                    <span className="w-5 shrink-0 text-right text-[#5F6B63]">{i + 1}.</span>
+                    <span className="min-w-0 break-words">{nama}</span>
+                  </li>
+                ))}
+              </ol>
+            )
+          ) : namaTidakIkut.length === 0 ? (
+            <p className="mt-3 text-sm text-[#5F6B63]">Belum ada yang tidak ikut.</p>
           ) : (
-            <ol className="mt-2 space-y-1.5 text-sm text-[#14201A]">
-              {data.nama_ikut.map((nama, i) => (
-                <li key={`${nama}-${i}`} className="flex gap-2">
+            <ol className="mt-3 space-y-1.5 text-sm text-[#14201A]">
+              {namaTidakIkut.map((r, i) => (
+                <li key={`${r.nama}-${i}`} className="flex gap-2">
                   <span className="w-5 shrink-0 text-right text-[#5F6B63]">{i + 1}.</span>
-                  <span className="min-w-0 break-words">{nama}</span>
+                  <span className="min-w-0">
+                    <span className="block break-words">{r.nama}</span>
+                    {tampilAlasan && r.alasan && (
+                      <span className="mt-0.5 block break-words text-xs text-[#5F6B63]">
+                        {r.alasan}
+                      </span>
+                    )}
+                  </span>
                 </li>
               ))}
             </ol>

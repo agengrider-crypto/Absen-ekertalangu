@@ -10656,6 +10656,9 @@ def _pendaftaran_serialize(k: dict, counts: Optional[dict] = None,
         "rekap_link": (f"{base}/rekap-pendaftaran/{k.get('rekap_token')}"
                        if (base and k.get("rekap_publik") and k.get("rekap_token"))
                        else None),
+        # Saklar alasan tidak ikut di rekap publik — hanya berlaku bila rekap nyala.
+        "rekap_alasan_publik": bool(k.get("rekap_alasan_publik")
+                                    and k.get("rekap_publik")),
         "kegiatan_id": k.get("kegiatan_id"),
         "kegiatan_dibuat_pada": k.get("kegiatan_dibuat_pada"),
         "total": c.get("total", 0),
@@ -11338,30 +11341,43 @@ async def publik_rekap_pendaftaran(token: str, request: Request):
         raise HTTPException(status_code=429,
                             detail="Terlalu banyak permintaan. Coba lagi nanti.")
     k = await _pendaftaran_rekap_aktif(token)
+    # Alasan hanya diambil dari database bila saklarnya menyala (whitelist field).
+    tampil_alasan = bool(k.get("rekap_alasan_publik"))
+    proyeksi = {"nama": 1, "kehadiran": 1, "diperbarui_pada": 1, "dibuat_pada": 1}
+    if tampil_alasan:
+        proyeksi["alasan"] = 1
+        proyeksi["alasan_lain"] = 1
     rows = await db.pendaftaran_konfirmasi.find(
-        {"kegiatan_id": k["_id"]}, {"nama": 1, "kehadiran": 1, "diperbarui_pada": 1,
-                                    "dibuat_pada": 1}).to_list(20000)
-    ikut, tidak_ikut = [], 0
+        {"kegiatan_id": k["_id"]}, proyeksi).to_list(20000)
+    ikut, tidak_ikut = [], []
     terbaru = None
     for r in rows:
+        nama = str(r.get("nama") or "")
         if r.get("kehadiran") == "hadir":
-            ikut.append(str(r.get("nama") or ""))
+            ikut.append(nama)
         elif r.get("kehadiran") == "tidak_hadir":
-            tidak_ikut += 1
+            item = {"nama": nama}
+            if tampil_alasan:
+                # "Lainnya" memakai teks bebasnya; kosong → "Tanpa alasan".
+                teks = (r.get("alasan_lain") or r.get("alasan") or "").strip()
+                item["alasan"] = teks or "Tanpa alasan"
+            tidak_ikut.append(item)
         cap = r.get("diperbarui_pada") or r.get("dibuat_pada")
         if cap and (terbaru is None or str(cap) > str(terbaru)):
             terbaru = cap
     ikut.sort(key=lambda n: n.lower())
+    tidak_ikut.sort(key=lambda r: (r.get("nama") or "").lower())
     return JSONResponse(content={
         "judul": k.get("nama"),
         "tanggal": k.get("tanggal"),
         "lokasi": k.get("lokasi"),
         "penyelenggara": k.get("penyelenggara"),
         "tampilkan_logo": k.get("tampilkan_logo", True),
-        "total": len(ikut) + tidak_ikut,
+        "total": len(ikut) + len(tidak_ikut),
         "ikut": len(ikut),
-        "tidak_ikut": tidak_ikut,
+        "tidak_ikut": len(tidak_ikut),
         "nama_ikut": ikut,
+        "nama_tidak_ikut": tidak_ikut,
         "diperbarui_pada": terbaru,
     }, headers={"X-Robots-Tag": "noindex, nofollow",
                 "Referrer-Policy": "no-referrer", "Cache-Control": "no-store"})
@@ -11369,6 +11385,33 @@ async def publik_rekap_pendaftaran(token: str, request: Request):
 
 class RekapSaklarInput(BaseModel):
     aktif: bool = False
+
+
+class RekapAlasanInput(BaseModel):
+    aktif: bool = False
+
+
+@api_router.post("/staff/pendaftaran/{kegiatan_id}/rekap-alasan")
+async def pendaftaran_rekap_alasan(kegiatan_id: str, body: RekapAlasanInput,
+                                   staff: dict = Depends(require_staff)):
+    """Nyalakan/matikan tampilan alasan tidak ikut di rekap publik.
+
+    Hanya bisa dinyalakan bila tautan rekap publik sudah menyala.
+    """
+    k = await db.pendaftaran_kegiatan.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan pendaftaran tidak ditemukan")
+    if body.aktif and not k.get("rekap_publik"):
+        raise HTTPException(
+            status_code=400,
+            detail="Nyalakan dulu tautan rekap publik sebelum menampilkan alasan.")
+    await db.pendaftaran_kegiatan.update_one(
+        {"_id": kegiatan_id}, {"$set": {"rekap_alasan_publik": bool(body.aktif)}})
+    await log_activity(
+        staff, "pendaftaran_rekap_alasan",
+        f"{'Menampilkan' if body.aktif else 'Menyembunyikan'} alasan tidak ikut "
+        f"di rekap publik pendaftaran '{k.get('nama')}'", kegiatan_id)
+    return {"rekap_alasan_publik": bool(body.aktif)}
 
 
 @api_router.post("/staff/pendaftaran/{kegiatan_id}/rekap-publik")
@@ -11384,6 +11427,9 @@ async def pendaftaran_rekap_saklar(kegiatan_id: str, body: RekapSaklarInput,
     if body.aktif and not token:
         token = secrets.token_urlsafe(24)
         set_fields["rekap_token"] = token
+    if not body.aktif:
+        # Rekap publik mati → saklar alasan ikut mati (tidak bisa dipakai).
+        set_fields["rekap_alasan_publik"] = False
     await db.pendaftaran_kegiatan.update_one({"_id": kegiatan_id}, {"$set": set_fields})
     await log_activity(
         staff, "pendaftaran_rekap_publik",
@@ -11392,6 +11438,7 @@ async def pendaftaran_rekap_saklar(kegiatan_id: str, body: RekapSaklarInput,
     return {
         "rekap_publik": bool(body.aktif),
         "rekap_token": token if body.aktif else None,
+        "rekap_alasan_publik": bool(body.aktif and k.get("rekap_alasan_publik")),
         "link": (f"{resolve_base_url(request)}/rekap-pendaftaran/{token}"
                  if body.aktif and token else None),
     }

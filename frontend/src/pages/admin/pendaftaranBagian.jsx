@@ -153,6 +153,60 @@ export function DaftarPeserta({ rows }) {
   );
 }
 
+/** Alasan tidak ikut satu baris (teks sekunder di bawah nama). */
+function alasanTidakIkut(r) {
+  return (r?.alasan_lain || r?.alasan || "").trim() || "Tanpa alasan";
+}
+
+/**
+ * Rekap dua bagian untuk admin/pengurus: "Ikut (n)" dan "Tidak ikut (n)".
+ * Nama diurutkan abjad; alasan selalu terlihat (tidak bergantung saklar publik).
+ */
+export function RekapIkutTidakIkut({ rows }) {
+  const ikut = (rows || [])
+    .filter((r) => r.kehadiran === "hadir")
+    .sort((a, b) => (a.nama || "").toLowerCase().localeCompare((b.nama || "").toLowerCase()));
+  const tidak = (rows || [])
+    .filter((r) => r.kehadiran === "tidak_hadir")
+    .sort((a, b) => (a.nama || "").toLowerCase().localeCompare((b.nama || "").toLowerCase()));
+
+  const Bagian = ({ judul, daftar, denganAlasan, kosong }) => (
+    <section className="rounded-xl border border-[#E7E3D8] bg-white">
+      <h3 className="border-b border-[#E7E3D8] px-3 py-2 text-sm font-bold text-[#14201A]">
+        {judul} ({daftar.length})
+      </h3>
+      {daftar.length === 0 ? (
+        <p className="px-3 py-4 text-center text-sm text-[#5F6B63]">{kosong}</p>
+      ) : (
+        <ol className="divide-y divide-[#E7E3D8]">
+          {daftar.map((r, i) => (
+            <li key={r.id || `${r.nama}-${i}`} className="flex gap-2 px-3 py-2">
+              <span className="w-5 shrink-0 text-right text-sm text-[#5F6B63]">{i + 1}.</span>
+              <span className="min-w-0">
+                <span className="block break-words text-sm font-medium text-[#14201A]">{r.nama}</span>
+                {denganAlasan && (
+                  <span className="mt-0.5 block break-words text-xs text-[#5F6B63]">
+                    {alasanTidakIkut(r)}
+                  </span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+
+  return (
+    <div className="space-y-3" data-testid="rekap-ikut-tidak-ikut">
+      <Bagian judul="Ikut" daftar={ikut} denganAlasan={false}
+        kosong="Belum ada yang memilih ikut." />
+      <Bagian judul="Tidak ikut" daftar={tidak} denganAlasan
+        kosong="Belum ada yang tidak ikut." />
+    </div>
+  );
+}
+
 /** Teks rekap untuk WhatsApp. Hanya angka dan tautan — tanpa nama, HP, keterangan. */
 export function teksRekapWhatsApp(item, { rekapLink = null } = {}) {
   const baris = [];

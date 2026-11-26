@@ -94,16 +94,28 @@ function KartuKegiatan({ item, onOpen, onShare, onAjakan }) {
 }
 
 /** Pratinjau pesan rekap WhatsApp: hanya angka dan tautan, tanpa nama. */
-function BagikanRekapModal({ item, onClose, onToggleRekap, sibuk }) {
+function BagikanRekapModal({ item, onClose, onToggleRekap, onToggleAlasan, sibuk }) {
   const [rekap, setRekap] = useState({
     aktif: !!item?.rekap_publik,
     link: item?.rekap_link || null,
+    alasan: !!item?.rekap_alasan_publik,
   });
   const teks = teksRekapWhatsApp(item, { rekapLink: rekap.aktif ? rekap.link : null });
 
   const ubahSaklar = async (aktif) => {
     const hasil = await onToggleRekap?.(item, aktif);
-    if (hasil) setRekap({ aktif: hasil.rekap_publik, link: hasil.link });
+    if (hasil) {
+      setRekap({
+        aktif: hasil.rekap_publik,
+        link: hasil.link,
+        alasan: !!hasil.rekap_alasan_publik,
+      });
+    }
+  };
+
+  const ubahAlasan = async (aktif) => {
+    const hasil = await onToggleAlasan?.(item, aktif);
+    if (hasil) setRekap((r) => ({ ...r, alasan: !!hasil.rekap_alasan_publik }));
   };
 
   return (
@@ -173,6 +185,38 @@ function BagikanRekapModal({ item, onClose, onToggleRekap, sibuk }) {
             </button>
           </div>
         )}
+
+        {/* Saklar alasan tidak ikut — hanya bisa dipakai bila rekap publik nyala. */}
+        <div className={`mt-3 border-t border-[#E7E3D8] pt-3 ${rekap.aktif ? "" : "opacity-50"}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-[#14201A]">
+                Tampilkan alasan tidak ikut di rekap publik
+              </p>
+              <p className="mt-0.5 text-xs text-[#5F6B63]">
+                Mati = rekap publik hanya menampilkan nama.
+              </p>
+            </div>
+            <button type="button" role="switch" aria-checked={rekap.alasan}
+              aria-label="Tampilkan alasan tidak ikut di rekap publik"
+              data-testid={PENDAFTARAN.shareAlasanSwitch}
+              onClick={() => ubahAlasan(!rekap.alasan)}
+              disabled={sibuk || !rekap.aktif}
+              className={`mt-0.5 flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors motion-reduce:transition-none disabled:cursor-not-allowed ${
+                rekap.alasan ? "bg-[#14633F]" : "bg-[#D9D4C5]"
+              }`}>
+              <span className={`h-5 w-5 rounded-full bg-white transition-transform motion-reduce:transition-none ${
+                rekap.alasan ? "translate-x-5" : "translate-x-0"
+              }`} />
+            </button>
+          </div>
+          {rekap.alasan && (
+            <p className="mt-2 rounded-lg bg-[#FBF1D6] px-2.5 py-1.5 text-xs text-[#6B4500]"
+              data-testid={PENDAFTARAN.shareAlasanWarning}>
+              Alasan bisa bersifat pribadi. Aktifkan hanya bila perlu.
+            </p>
+          )}
+        </div>
       </div>
 
       <p className="mb-1.5 mt-4 text-xs font-bold uppercase tracking-wide text-[#5F6B63]">
@@ -258,6 +302,27 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGotoKegiatan
         : "Tautan rekap publik dimatikan.");
       setBagikan((b) => (b && b.id === item.id
         ? { ...b, rekap_publik: data.rekap_publik, rekap_link: data.link }
+        : b));
+      await muat();
+      return data;
+    } catch (e) {
+      toast.error(formatApiErrorDetail(e.response?.data?.detail));
+      return null;
+    } finally {
+      setSibuk(false);
+    }
+  }, [muat]);
+
+  /** Nyalakan/matikan tampilan alasan tidak ikut di rekap publik. */
+  const ubahAlasan = useCallback(async (item, aktif) => {
+    setSibuk(true);
+    try {
+      const { data } = await api.post(`/staff/pendaftaran/${item.id}/rekap-alasan`,
+        { aktif });
+      toast.success(aktif ? "Alasan tidak ikut ditampilkan di rekap publik."
+        : "Alasan tidak ikut disembunyikan dari rekap publik.");
+      setBagikan((b) => (b && b.id === item.id
+        ? { ...b, rekap_alasan_publik: data.rekap_alasan_publik }
         : b));
       await muat();
       return data;
@@ -394,7 +459,7 @@ export default function PendaftaranKegiatanView({ mode = "aktif", onGotoKegiatan
 
       {bagikan && (
         <BagikanRekapModal item={bagikan} onClose={() => setBagikan(null)}
-          onToggleRekap={ubahRekap} sibuk={sibuk} />
+          onToggleRekap={ubahRekap} onToggleAlasan={ubahAlasan} sibuk={sibuk} />
       )}
 
       {tanyaKegiatan && (

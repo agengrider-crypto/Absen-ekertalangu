@@ -221,6 +221,8 @@ export const ACTION_LABELS = {
   buat_kode_akses: "Buat Kode Akses",
   atur_tautan_rekap: "Atur Tautan Rekap",
   hapus_tautan_rekap: "Hapus Tautan Rekap",
+  pendaftaran_rekap_publik: "Atur Rekap Publik Pendaftaran",
+  pendaftaran_rekap_alasan: "Atur Alasan di Rekap Publik",
   atur_tautan_harian: "Atur Tautan Rekap Harian",
   hapus_tautan_harian: "Hapus Tautan Rekap Harian",
 };

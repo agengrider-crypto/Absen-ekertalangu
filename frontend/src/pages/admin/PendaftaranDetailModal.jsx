@@ -12,7 +12,8 @@ import { PENDAFTARAN } from "@/constants/testIds";
 import { useAuth } from "@/context/AuthContext";
 import Modal from "@/components/Modal";
 import {
-  AlasanRingkas, DaftarPeserta, JenisBadge, StatusKegiatanBadge, TombolMaps,
+  AlasanRingkas, DaftarPeserta, JenisBadge, RekapIkutTidakIkut, StatusKegiatanBadge,
+  TombolMaps,
 } from "./pendaftaranBagian";
 
 export default function PendaftaranDetailModal({
@@ -213,7 +214,11 @@ export default function PendaftaranDetailModal({
             ))}
           </div>
 
-          <DaftarPeserta rows={tampil} />
+          {filter === "semua" ? (
+            <RekapIkutTidakIkut rows={peserta} />
+          ) : (
+            <DaftarPeserta rows={tampil} />
+          )}
         </div>
       )}
 
