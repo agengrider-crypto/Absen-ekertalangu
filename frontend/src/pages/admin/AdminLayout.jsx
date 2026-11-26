@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, CalendarDays, FileBarChart2, ScrollText,
   ShieldCheck, X, LogOut, MessagesSquare, Megaphone, UserCog, Layers,
-  MonitorSmartphone, ListPlus, CopyCheck, KeyRound, ScanLine,
+  MonitorSmartphone, ListPlus, CopyCheck, ScanLine,
   ClipboardList, HeartHandshake, LifeBuoy, CalendarClock, QrCode,
   Calendar1,
   PanelLeftClose, PanelLeftOpen, Wrench, PlayCircle, BarChart3, LayoutGrid, Home,
@@ -30,7 +30,6 @@ const KartuNamaView = lazy(() => import("./KartuNamaView"));
 const PesertaBulkView = lazy(() => import("./PesertaBulkView"));
 const PesertaDuplikat = lazy(() => import("./PesertaDuplikat"));
 const KegiatanView = lazy(() => import("./KegiatanView"));
-const KodeAksesView = lazy(() => import("./KodeAksesView"));
 const ScanPresensiView = lazy(() => import("./ScanPresensiView"));
 const LaporanPesertaView = lazy(() => import("./LaporanPesertaView"));
 const LogAktivitas = lazy(() => import("./LogAktivitas"));
@@ -75,7 +74,6 @@ const MENU = [
     items: [
       { key: "kegiatan", label: "Daftar Kegiatan", icon: ClipboardList, roles: ["admin", "pengurus"] },
       { key: "kalender", label: "Kalender Kegiatan", icon: CalendarClock, roles: ["admin", "pengurus"] },
-      { key: "kode-akses", label: "Kode Akses", icon: KeyRound, roles: ["admin", "pengurus"] },
       { key: "scan-presensi", label: "Scan Presensi", icon: ScanLine, roles: ["admin", "pengurus"] },
       { key: "pengumuman", label: "Pengumuman", icon: Megaphone, roles: ["admin", "pengurus"] },
     ],
@@ -132,7 +130,6 @@ const TRAIL_LABEL = {
   kelompok: "Kelompok Sambung",
   kegiatan: "Kegiatan",
   kalender: "Kalender Kegiatan",
-  "kode-akses": "Kode Akses",
   "scan-presensi": "Scan Presensi",
   pengumuman: "Pengumuman",
   "laporan-peserta": "Laporan per Peserta",
@@ -157,7 +154,6 @@ const TRAIL_LABEL = {
 /** Menu induk untuk jejak tiga tingkat (mis. Kegiatan / Tambah Kegiatan). */
 const TRAIL_PARENT = {
   kalender: "kegiatan",
-  "kode-akses": "kegiatan",
   "scan-presensi": "kegiatan",
   pengumuman: "kegiatan",
   "kartu-nama": "peserta",
@@ -308,7 +304,7 @@ function MobileBottomNav({ active, menuOpen, onNavigate, onOpenMenu }) {
   const sections = {
     dashboard: ["dashboard"],
     peserta: ["peserta", "kartu-nama", "peserta-bulk", "peserta-duplikat", "pendataan", "kelompok"],
-    kegiatan: ["kegiatan", "kalender", "kode-akses", "scan-presensi", "pengumuman"],
+    kegiatan: ["kegiatan", "kalender", "scan-presensi", "pengumuman"],
     rekap: ["laporan-peserta", "rekap-bulanan", "rekap-harian", "musyawarah", "pengaduan"],
   };
   const activeSection = Object.keys(sections).find((key) => sections[key].includes(active));
@@ -374,7 +370,6 @@ export default function AdminLayout({ user, role = "admin" }) {
   const [monthlyRecapFilter, setMonthlyRecapFilter] = useState("semua");
   const [rekapHarianDate, setRekapHarianDate] = useState(null);
   const [kegiatanSubPage, setKegiatanSubPage] = useState(null);
-  const leaveGuard = useRef(null);
 
   const allKeys = menu.flatMap((m) => (m.items ? m.items.map((i) => i.key) : [m.key]));
 
@@ -394,17 +389,6 @@ export default function AdminLayout({ user, role = "admin" }) {
 
   const go = (key, filter = "semua") => {
     if (!allKeys.includes(key)) return;
-    // Cegah keluar dari Kode Akses tanpa konfirmasi tutup absen.
-    if (active === "kode-akses" && key !== "kode-akses" && leaveGuard.current) {
-      const allowed = leaveGuard.current();
-      if (!allowed) {
-        leaveGuard.current.proceed = () => {
-          leaveGuard.current = null;
-          go(key, filter);
-        };
-        return;
-      }
-    }
     if (key === "rekap-bulanan") setMonthlyRecapFilter(filter);
     if (key === "rekap-harian") setRekapHarianDate(null);
     setActive(key);
@@ -563,7 +547,6 @@ export default function AdminLayout({ user, role = "admin" }) {
           {active === "pemeliharaan" && role === "admin" && <MaintenanceSettings />}
           {active === "cadangan" && role === "admin" && <CadanganDataView />}
           {active === "periksa-aplikasi" && role === "admin" && <PeriksaAplikasiView />}
-          {active === "kode-akses" && <KodeAksesView onLeave={leaveGuard} />}
           {active === "scan-presensi" && <ScanPresensiView />}
           {active === "musyawarah" && <MusyawarahView />}
           {active === "pengumuman" && <PengumumanView />}

@@ -65,8 +65,8 @@ export default function KalenderView({ onOpenKegiatan }) {
   const klikTanggal = (ymd) => {
     const list = byDate[ymd] || [];
     if (list.length === 1) {
-      // Tunggal: langsung ke halaman Absensi kegiatan itu.
-      window.location.assign(`/absensi/${list[0].akses_token || ""}`);
+      // Tunggal: langsung ke detail kegiatan (absensi ada di dalamnya).
+      onOpenKegiatan?.(list[0].id);
       return;
     }
     setPick(ymd);
@@ -200,12 +200,12 @@ export default function KalenderView({ onOpenKegiatan }) {
                       {k.teacher && <span className="inline-flex items-center gap-1"><User size={12} /> {k.teacher}</span>}
                     </div>
                     <div className="mt-2.5 flex flex-wrap gap-2">
-                      <a
-                        href={`/absensi/${k.akses_token || ""}`}
+                      <button type="button"
+                        onClick={() => { setPick(null); onOpenKegiatan?.(k.id); }}
                         className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#0B6B52] px-3.5 text-sm font-semibold text-white hover:brightness-110"
                       >
                         <ClipboardList size={15} /> Absensi
-                      </a>
+                      </button>
                       <button type="button"
                         onClick={() => { setPick(null); onOpenKegiatan?.(k.id); }}
                         className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border-2 border-[#14633F] px-3.5 text-sm font-semibold text-[#0E4E31] hover:bg-[#E3F3EA]">

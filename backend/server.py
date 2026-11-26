@@ -2317,8 +2317,6 @@ FOLLOWUP_STATUSES = ["belum_dihubungi", "sudah_dihubungi", "akan_hadir", "tidak_
 SHARE_EXPIRE_DAYS = 7
 # Fase 7: barcode/QR absen per kegiatan berlaku 1 bulan (30 hari).
 KEGIATAN_BARCODE_DAYS = 30
-# Fase 7: panjang kode akses absensi kegiatan.
-ACCESS_CODE_LEN = 6
 
 
 def now_wita() -> datetime:
@@ -2336,11 +2334,6 @@ def valid_kegiatan_schedule(date_str: str, start_time: str, end_time: str) -> bo
     start = kegiatan_end_dt(date_str, start_time)
     end = kegiatan_end_dt(date_str, end_time)
     return bool(start and end and end > start)
-
-
-def gen_access_code() -> str:
-    """Kode akses absensi kegiatan — 6 digit angka."""
-    return "".join(secrets.choice("0123456789") for _ in range(ACCESS_CODE_LEN))
 
 
 def wa_template_laporan(judul: str, link: str) -> str:
@@ -2484,17 +2477,7 @@ class AbsenBatchInput(BaseModel):
     items: List[AbsenBatchItem] = []
 
 
-class AbsensiBatchInput(BaseModel):
-    access: str
-    items: List[AbsenBatchItem] = []
-
-
 class GuestInput(BaseModel):
-    name: str
-
-
-class AbsensiGuestInput(BaseModel):
-    access: str
     name: str
 
 
@@ -2529,9 +2512,6 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None,
         "susulan": bool(k.get("susulan", False)),
         "share_token": k.get("share_token"),
         "share_expires_at": k.get("share_expires_at"),
-        # Fase 7 — kode akses absensi + masa berlaku barcode kegiatan (1 bulan)
-        "access_code": k.get("access_code"),
-        "akses_token": k.get("akses_token"),
         "absen_expires_at": k.get("absen_expires_at"),
         # FASE 8 — tipe peserta, filter jenis kelamin & fase waktu kegiatan
         "audience": k.get("audience", "reguler"),
@@ -2541,6 +2521,8 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None,
         "age_filter": normalize_age_filter(k.get("age_filter")),
         "participant_ids": list(k.get("participant_ids") or []),
         "filter_labels": kegiatan_filter_labels(k),
+        # Sasaran peserta untuk kartu penjaga absen (kosong = semua peserta).
+        "sasaran": " · ".join(kegiatan_filter_labels(k)) or "Semua peserta",
         "base_name": k.get("base_name") or k.get("name"),
         "session_label": k.get("session_label"),
         "session_group_id": k.get("session_group_id"),
@@ -3186,11 +3168,6 @@ async def create_kegiatan(body: KegiatanInput, admin: dict = Depends(require_sta
                     if str(pid).strip())),
                 "share_token": None,
                 "share_expires_at": None,
-                # Fase 7: setiap kegiatan baru langsung punya kode akses absensi 6 digit
-                # (berlaku sampai kegiatan ditutup/selesai) + token halaman absensi.
-                "akses_token": secrets.token_urlsafe(9),
-                "access_code": gen_access_code(),
-                "access_code_at": now_iso,
                 "absen_token": None,
                 "absen_expires_at": None,
                 "created_at": now_iso,
@@ -4028,9 +4005,6 @@ async def salin_jadwal_kegiatan(kegiatan_id: str, body: SalinJadwalInput,
                 "auto_closed": False,
                 "share_token": None,
                 "share_expires_at": None,
-                "akses_token": secrets.token_urlsafe(9),
-                "access_code": gen_access_code(),
-                "access_code_at": now_iso,
                 "absen_token": None,
                 "absen_expires_at": None,
                 "copied_from": d["_id"],
@@ -4677,150 +4651,11 @@ async def admin_kegiatan_feedback(kegiatan_id: str, admin: dict = Depends(requir
              "created_at": f.get("created_at")} for f in items]
 
 
-# ===========================================================================
-# FASE 7 — Share Kegiatan + Kode Akses Absensi (6 digit)
-# ===========================================================================
-# Pengurus/admin membagikan TAUTAN + KODE AKSES 6 digit milik sebuah kegiatan.
-# Penerima tautan (mis. petugas absen di lokasi) memasukkan kode, lalu langsung
-# melihat DAFTAR PESERTA — baik yang sudah aktif maupun yang BELUM aktivasi —
-# untuk diabsen MANUAL atau lewat SCAN BARCODE (QR pribadi peserta).
-# Kode akses berlaku SAMPAI kegiatan ditutup/selesai.
-ABSENSI_SCOPE = "absensi_kegiatan"
-
-
-class AccessCodeInput(BaseModel):
-    code: str
-
-
-class AbsensiMarkInput(BaseModel):
-    access: str
-    user_id: str
-    status: str  # hadir | izin | alpha
-
-
-class AbsensiAccessInput(BaseModel):
-    access: str
-
-
-class AbsensiScanInput(BaseModel):
-    access: str
-    content: str
-
-
-async def ensure_kegiatan_access(kegiatan_id: str, request: Optional[Request] = None,
-                                 regenerate: bool = False) -> dict:
-    """Pastikan kegiatan punya token halaman absensi + kode akses 6 digit."""
-    k = await db.kegiatans.find_one({"_id": kegiatan_id})
-    if not k:
-        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
-    token = k.get("akses_token")
-    code = k.get("access_code")
-    if regenerate or not token or not code or len(str(code)) != ACCESS_CODE_LEN:
-        token = token or secrets.token_urlsafe(9)
-        code = gen_access_code()
-        await db.kegiatans.update_one(
-            {"_id": kegiatan_id},
-            {"$set": {"akses_token": token, "access_code": code,
-                      "access_code_at": now_wita().isoformat()}})
-        k["akses_token"] = token
-        k["access_code"] = code
-    link = f"{resolve_base_url(request)}/absensi/{token}"
-    end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
-    return {
-        "token": token,
-        "code": code,
-        "link": link,
-        "image": make_qr_data_url(link),
-        "kegiatan_name": k.get("name"),
-        "kegiatan_status": k.get("status", "open"),
-        "valid_until": end.isoformat() if end else None,
-        "wa_text": (
-            f"Tautan absensi {k.get('name')}: {link}\n"
-            f"Kode akses: {code}"
-        ),
-    }
-
-
-def make_absensi_access(kegiatan_id: str, token: str, k: dict) -> str:
-    end = kegiatan_end_dt(k.get("date"), k.get("end_time")) or now_wita()
-    exp = max(end, now_wita()) + timedelta(hours=6)
-    payload = {"sub": kegiatan_id, "tok": token, "type": ABSENSI_SCOPE, "exp": exp}
-    return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
-
-
-def verify_absensi_access(access: str, kegiatan_id: str, token: str) -> None:
-    if not access:
-        raise HTTPException(status_code=401, detail="Kode akses belum diverifikasi.")
-    try:
-        payload = jwt.decode(access, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
-    except Exception:
-        raise HTTPException(status_code=401,
-                            detail="Sesi absensi sudah berakhir. Silakan masukkan kode akses lagi.")
-    if (payload.get("type") != ABSENSI_SCOPE or payload.get("sub") != kegiatan_id
-            or payload.get("tok") != token):
-        raise HTTPException(status_code=401, detail="Kode akses tidak sah untuk kegiatan ini.")
-
-
-async def kegiatan_by_akses_token(token: str) -> dict:
-    k = await db.kegiatans.find_one({"akses_token": token})
-    if not k:
-        raise HTTPException(
-            status_code=404,
-            detail="Mohon maaf, tautan absensi ini tidak dikenali. "
-                   "Silakan minta tautan baru kepada pengurus.")
-    return k
-
-
 def assert_kegiatan_open(k: dict) -> None:
     if k.get("status", "open") != "open":
         raise HTTPException(
             status_code=403,
-            detail="Kegiatan ini sudah selesai/ditutup, sehingga kode akses "
-                   "absensi tidak berlaku lagi.")
-
-
-async def build_absensi_rows(kegiatan) -> dict:
-    """Daftar peserta (sesuai tipe & filter kegiatan) beserta status absensinya."""
-    k = kegiatan
-    if isinstance(kegiatan, str):
-        k = await db.kegiatans.find_one({"_id": kegiatan}) or {"_id": kegiatan}
-    kegiatan_id = k["_id"]
-    peserta = await peserta_for_kegiatan(k)
-    kmap = {}
-    async for km in db.kelompoks.find():
-        kmap[km["_id"]] = km.get("name")
-    absens = await db.absensis.find({"kegiatan_id": kegiatan_id}).to_list(10000)
-    amap = {a["user_id"]: a for a in absens}
-    guests = await db.guest_absens.find({"kegiatan_id": kegiatan_id}).sort("created_at", 1).to_list(2000)
-    other = await attended_other_sessions(k)
-    rows = []
-    for p in peserta:
-        pid = str(p["_id"])
-        a = amap.get(pid)
-        status = a.get("status") if a else None
-        required = session_requires_participant(k, pid)
-        ot = other.get(pid)
-        rows.append({
-            "user_id": pid,
-            "name": p.get("name"),
-            "gender": _derive_gender(p),
-            "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
-            "account_status": p.get("status", "active"),
-            "status": status,
-            "required_for_session": required,
-            "arrival_time": a.get("arrival_time") if a else (
-                (ot or {}).get("arrival_time") if ot and not required else None),
-            "marked_by": a.get("marked_by") if a else None,
-            "is_guest": False,
-            "attended_other": bool(ot and not required),
-            "attended_other_label": (ot or {}).get("label") if not required else None,
-        })
-    counts = compute_counts(peserta, absens, len(guests), set(other), k)
-    return {
-        "counts": counts,
-        "rows": rows,
-        "guests": [serialize_guest(g) for g in guests],
-    }
+            detail="Kegiatan ini sudah selesai/ditutup, sehingga absen tidak berlaku lagi.")
 
 
 def public_kegiatan_info(k: dict) -> dict:
@@ -4840,251 +4675,6 @@ def public_kegiatan_info(k: dict) -> dict:
         "filter_labels": kegiatan_filter_labels(k),
         "session_label": k.get("session_label"),
     }
-
-
-@api_router.get("/admin/kegiatan/{kegiatan_id}/access")
-async def get_kegiatan_access(kegiatan_id: str, request: Request,
-                              staff: dict = Depends(require_staff)):
-    """Tautan + kode akses 6 digit untuk absensi kegiatan."""
-    return await ensure_kegiatan_access(kegiatan_id, request)
-
-
-@api_router.post("/admin/kegiatan/{kegiatan_id}/access/regenerate")
-async def regenerate_kegiatan_access(kegiatan_id: str, request: Request,
-                                     staff: dict = Depends(require_staff)):
-    """Perbarui (kadaluarsakan) kode akses lama dan buat kode 6 digit baru."""
-    info = await ensure_kegiatan_access(kegiatan_id, request, regenerate=True)
-    await log_activity(staff, "perbarui_kode_akses",
-                       f"Memperbarui kode akses absensi kegiatan '{info['kegiatan_name']}'")
-    return info
-
-
-@api_router.post("/absensi/{token}/verify")
-async def verify_kegiatan_access(token: str, body: AccessCodeInput):
-    """Verifikasi kode akses 6 digit → dapat sesi absensi (tanpa perlu login)."""
-    k = await kegiatan_by_akses_token(token)
-    assert_kegiatan_open(k)
-    code = re.sub(r"\D", "", body.code or "")
-    if not code or code != str(k.get("access_code") or ""):
-        raise HTTPException(status_code=401,
-                            detail="Kode akses salah. Mohon periksa kembali 6 digit kodenya.")
-    data = await build_absensi_rows(k)
-    return {
-        "access": make_absensi_access(k["_id"], token, k),
-        "kegiatan": public_kegiatan_info(k),
-        **data,
-    }
-
-
-@api_router.post("/absensi/verify-code")
-async def verify_code_only(body: AccessCodeInput, request: Request):
-    """FASE 7 — Absen dengan Kode: cari kegiatan hanya dari 6 digit kode akses.
-
-    Dipakai halaman 'Absen dengan Kode' pada layar masuk, sehingga petugas tidak
-    perlu tautan — cukup mengetik kode. Dibatasi 10 percobaan per 15 menit per IP
-    untuk mencegah percobaan kode secara acak.
-    """
-    ip = (request.client.host if request.client else "") or "unknown"
-    lock_key = f"absen_code:{ip}"
-    since = datetime.now(timezone.utc) - timedelta(minutes=15)
-    tries = await db.login_attempts.count_documents(
-        {"identifier": lock_key, "at": {"$gte": since.isoformat()}})
-    if tries >= 10:
-        raise HTTPException(status_code=429,
-                            detail="Terlalu banyak percobaan kode. Mohon coba lagi dalam 15 menit.")
-
-    code = re.sub(r"\D", "", body.code or "")
-    if len(code) != ACCESS_CODE_LEN:
-        raise HTTPException(status_code=400, detail="Kode akses harus 6 digit angka.")
-
-    k = await db.kegiatans.find_one({"access_code": code, "status": "open"})
-    if not k:
-        await db.login_attempts.insert_one(
-            {"identifier": lock_key, "email": lock_key,
-             "at": datetime.now(timezone.utc).isoformat()})
-        raise HTTPException(
-            status_code=404,
-            detail="Kode akses tidak ditemukan atau kegiatannya sudah ditutup. "
-                   "Mohon periksa kembali kode dari pengurus.")
-
-    await db.login_attempts.delete_many({"identifier": lock_key})
-    token = k.get("akses_token")
-    if not token:
-        info = await ensure_kegiatan_access(k["_id"], request)
-        token = info["token"]
-        k = await db.kegiatans.find_one({"_id": k["_id"]})
-    data = await build_absensi_rows(k)
-    return {
-        "token": token,
-        "access": make_absensi_access(k["_id"], token, k),
-        "link": f"{resolve_base_url(request)}/absensi/{token}",
-        "kegiatan": public_kegiatan_info(k),
-        **data,
-    }
-
-
-@api_router.get("/absensi/{token}")
-async def get_absensi_page(token: str, access: str = ""):
-    k = await kegiatan_by_akses_token(token)
-    verify_absensi_access(access, k["_id"], token)
-    data = await build_absensi_rows(k)
-    return {"kegiatan": public_kegiatan_info(k), **data}
-
-
-@api_router.post("/absensi/{token}/share-rekap")
-async def share_absensi_rekap(token: str, body: AbsensiAccessInput, request: Request):
-    """Share link is available to holders of a verified, time-limited attendance session."""
-    k = await kegiatan_by_akses_token(token)
-    verify_absensi_access(body.access, k["_id"], token)
-    info = await ensure_share(k["_id"], request)
-    return {
-        "link": info["link"],
-        "expires_at": info["expires_at"],
-        "wa_text": wa_template_laporan(k.get("name") or "kegiatan", info["link"]),
-    }
-
-
-@api_router.post("/absensi/{token}/close")
-async def close_absensi_by_code(token: str, body: AbsensiAccessInput):
-    """Tutup absensi dari halaman /absensi/[token]: sisa 'belum diabsen' jadi Alpha."""
-    k = await kegiatan_by_akses_token(token)
-    verify_absensi_access(body.access, k["_id"], token)
-    if (k.get("status") or "open") != "open":
-        return {"status": "closed", "already_closed": True,
-                "message": "Absensi sudah ditutup sebelumnya."}
-    now = now_wita().isoformat()
-    result = await db.kegiatans.update_one(
-        {"_id": k["_id"], "status": "open"},
-        {"$set": {"status": "closed", "closed_at": now, "auto_closed": False}})
-    if result.modified_count:
-        await mark_missing_alpha(k, now)
-        await revoke_delegations_for_kegiatan(k["_id"], "Kegiatan diselesaikan")
-    k = await db.kegiatans.find_one({"_id": k["_id"]})
-    return {"status": "closed", "already_closed": False,
-            "kegiatan": public_kegiatan_info(k),
-            "message": "Absensi ditutup. Peserta yang belum diabsen ditandai Alpha."}
-
-
-@api_router.post("/absensi/{token}/mark")
-async def mark_absensi_by_code(token: str, body: AbsensiMarkInput):
-    """Absen MANUAL oleh pemegang kode akses. Notifikasi hanya untuk 'hadir'."""
-    k = await kegiatan_by_akses_token(token)
-    verify_absensi_access(body.access, k["_id"], token)
-    assert_kegiatan_open(k)
-    validate_absen_status(k, body.status)
-    u = await db.users.find_one({"_id": ObjectId(body.user_id)}) if ObjectId.is_valid(body.user_id) else None
-    if not u or "peserta" not in (u.get("roles") or []) or u.get("is_system"):
-        raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
-    if not match_gender_filter(k, u):
-        labels = kegiatan_filter_labels(k) or ["khusus kelompok tertentu"]
-        raise HTTPException(
-            status_code=400,
-            detail=f"Kegiatan ini {' · '.join(labels).lower()}, "
-                   "peserta ini tidak termasuk dalam daftar.")
-    await assert_not_attended_other_session(k, body.user_id, u.get("name") or "Peserta")
-    arrival = now_wita().isoformat() if body.status == "hadir" else None
-    await db.absensis.update_one(
-        {"kegiatan_id": k["_id"], "user_id": body.user_id},
-        {"$set": {"kegiatan_id": k["_id"], "user_id": body.user_id, "status": body.status,
-                  "arrival_time": arrival, "marked_by": "Petugas (Kode Akses)",
-                  "marked_by_id": None, "updated_at": now_wita().isoformat()}},
-        upsert=True)
-    message = ("Absen berhasil, alhamdulillah jazakumullahu khoiro."
-               if body.status == "hadir" else None)
-    return {"user_id": body.user_id, "name": u.get("name"), "status": body.status,
-            "arrival_time": arrival, "message": message}
-
-
-@api_router.post("/absensi/{token}/mark-batch")
-async def mark_absensi_batch_by_code(token: str, body: AbsensiBatchInput):
-    """FASE 8 — Sinkronisasi antrean absen OFFLINE dari halaman kode akses."""
-    k = await kegiatan_by_akses_token(token)
-    verify_absensi_access(body.access, k["_id"], token)
-    assert_kegiatan_open(k)
-    applied, failed = 0, []
-    for item in body.items[:500]:
-        if item.status not in ABSEN_STATUS or not ObjectId.is_valid(item.user_id):
-            failed.append(item.user_id)
-            continue
-        if item.status == "alpha" and not alpha_allowed(k):
-            failed.append(item.user_id)
-            continue
-        u = await db.users.find_one({"_id": ObjectId(item.user_id)})
-        if not u or "peserta" not in (u.get("roles") or []) or u.get("is_system"):
-            failed.append(item.user_id)
-            continue
-        if not match_gender_filter(k, u):
-            failed.append(item.user_id)
-            continue
-        arrival = to_wita_iso(item.marked_at) if item.status == "hadir" else None
-        await db.absensis.update_one(
-            {"kegiatan_id": k["_id"], "user_id": item.user_id},
-            {"$set": {"kegiatan_id": k["_id"], "user_id": item.user_id,
-                      "status": item.status, "arrival_time": arrival,
-                      "marked_by": "Petugas (sinkron offline)", "marked_by_id": None,
-                      "updated_at": now_wita().isoformat()}},
-            upsert=True)
-        applied += 1
-    return {"applied": applied, "failed": failed,
-            "message": f"{applied} absen offline berhasil disinkronkan."}
-
-
-@api_router.post("/absensi/{token}/guest")
-async def add_guest_by_code(token: str, body: AbsensiGuestInput):
-    """FASE 8 — Tambah TAMU (belum aktivasi / tanpa akun) pada kegiatan publik."""
-    k = await kegiatan_by_akses_token(token)
-    verify_absensi_access(body.access, k["_id"], token)
-    assert_kegiatan_open(k)
-    guest = await add_guest_doc(k, body.name, "Petugas (Kode Akses)")
-    return {**guest, "message": f"Tamu {guest['name']} tercatat hadir. Jazakumullahu khoiro."}
-
-
-@api_router.delete("/absensi/{token}/guest/{guest_id}")
-async def delete_guest_by_code(token: str, guest_id: str, access: str = ""):
-    k = await kegiatan_by_akses_token(token)
-    verify_absensi_access(access, k["_id"], token)
-    res = await db.guest_absens.delete_one({"_id": guest_id, "kegiatan_id": k["_id"]})
-    if not res.deleted_count:
-        raise HTTPException(status_code=404, detail="Data tamu tidak ditemukan")
-    return {"message": "Data tamu dihapus"}
-
-
-@api_router.post("/absensi/{token}/scan-personal")
-async def scan_absensi_by_code(token: str, body: AbsensiScanInput):
-    """Absen lewat SCAN BARCODE / QR pribadi peserta oleh pemegang kode akses."""
-    k = await kegiatan_by_akses_token(token)
-    verify_absensi_access(body.access, k["_id"], token)
-    assert_kegiatan_open(k)
-    content = (body.content or "").strip()
-    if content.startswith("EKP:"):
-        content = content[4:]
-    target_id = verify_personal_token(content)
-    if not target_id:
-        raise HTTPException(
-            status_code=400,
-            detail="Mohon maaf, QR pribadi ini tidak dikenali atau sudah kadaluarsa. "
-                   "Mohon peserta menampilkan ulang QR-nya.")
-    u = await db.users.find_one({"_id": ObjectId(target_id)}) if ObjectId.is_valid(target_id) else None
-    if not u or "peserta" not in (u.get("roles") or []) or u.get("is_system"):
-        raise HTTPException(status_code=404,
-                            detail="Mohon maaf, data peserta untuk QR ini tidak ditemukan.")
-    assert_gender_eligible(k, u)
-    await assert_not_attended_other_session(k, target_id, u.get("name") or "Peserta")
-    existing = await db.absensis.find_one({"kegiatan_id": k["_id"], "user_id": target_id})
-    if existing and existing.get("status") == "hadir":
-        return {"user_id": target_id, "name": u.get("name"), "status": "hadir",
-                "arrival_time": existing.get("arrival_time"), "already": True,
-                "message": f"{u.get('name')} sudah tercatat hadir sebelumnya. Terima kasih."}
-    arrival = now_wita().isoformat()
-    await db.absensis.update_one(
-        {"kegiatan_id": k["_id"], "user_id": target_id},
-        {"$set": {"kegiatan_id": k["_id"], "user_id": target_id, "status": "hadir",
-                  "arrival_time": arrival, "marked_by": "Petugas (Scan Kode Akses)",
-                  "marked_by_id": None, "updated_at": arrival}},
-        upsert=True)
-    return {"user_id": target_id, "name": u.get("name"), "status": "hadir",
-            "arrival_time": arrival, "already": False,
-            "message": "Absen berhasil, alhamdulillah jazakumullahu khoiro."}
 
 
 
@@ -5718,6 +5308,7 @@ async def delegate_kegiatan_info(kegiatan_id: str, user: dict = Depends(get_curr
         pid = str(p["_id"])
         a = amap.get(pid)
         rows.append({"id": pid, "name": p.get("name"),
+                     "gender": _derive_gender(p),
                      "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
                      "status": a.get("status") if a else None,
                      "account_status": p.get("status", "active"),
@@ -7636,38 +7227,8 @@ async def cron_auto_close(request: Request):
 
 
 # ===========================================================================
-# FASE 15 — Halaman Kode Akses, Scan Presensi & Pengaduan/Curhat Peserta
+# FASE 15 — Scan Presensi & Pengaduan/Curhat Peserta
 # ===========================================================================
-@api_router.get("/staff/kode-akses")
-async def staff_kode_akses(request: Request, staff: dict = Depends(require_staff),
-                           month: str = ""):
-    """Daftar kegiatan + kode akses 6 digit. Kode dibuat OTOMATIS bila belum ada."""
-    month = month.strip() or now_wita().strftime("%Y-%m")
-    kegiatans = await db.kegiatans.find(
-        {"date": {"$regex": f"^{re.escape(month)}"}}
-    ).sort([("date", -1), ("start_time", 1)]).to_list(500)
-    rows, created = [], 0
-    for k in kegiatans:
-        punya = len(str(k.get("access_code") or "")) == ACCESS_CODE_LEN and bool(k.get("akses_token"))
-        info = await ensure_kegiatan_access(k["_id"], request)
-        if not punya:
-            created += 1
-        rows.append({
-            "id": k["_id"], "name": k.get("name"),
-            "base_name": k.get("base_name") or k.get("name"),
-            "session_label": k.get("session_label"), "date": k.get("date"),
-            "start_time": k.get("start_time"), "end_time": k.get("end_time"),
-            "status": k.get("status", "open"), "code": info["code"],
-            "link": info["link"], "token": info["token"],
-            "image": info["image"], "wa_text": info["wa_text"],
-            "valid_until": info["valid_until"],
-        })
-    if created:
-        await log_activity(staff, "buat_kode_akses",
-                           f"Kode akses dibuat otomatis untuk {created} kegiatan bulan {month}")
-    return {"month": month, "total": len(rows), "created": created, "rows": rows}
-
-
 @api_router.get("/staff/scan-presensi")
 async def staff_scan_presensi(request: Request, staff: dict = Depends(require_staff),
                               date: str = ""):
@@ -7975,7 +7536,9 @@ async def send_kesan_pesan(body: KesanPesanInput, user: dict = Depends(get_curre
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
     hadir = await db.absensis.find_one({"kegiatan_id": body.kegiatan_id,
                                         "user_id": uid, "status": "hadir"})
-    if not hadir:
+    # Penjaga absen kegiatan ini juga boleh mengirim kesan & pesan.
+    penjaga = None if hadir else await _active_delegation(body.kegiatan_id, uid)
+    if not hadir and not penjaga:
         raise HTTPException(status_code=403,
                             detail="Kesan & pesan hanya untuk kegiatan yang Anda hadiri.")
     msg = (body.message or "").strip()
@@ -7986,8 +7549,13 @@ async def send_kesan_pesan(body: KesanPesanInput, user: dict = Depends(get_curre
         {"kegiatan_id": body.kegiatan_id, "user_id": uid},
         {"$set": {"kegiatan_id": body.kegiatan_id, "user_id": uid,
                   "name": user.get("name") or "Peserta", "sentiment": sentiment,
-                  "message": msg[:3000], "created_at": now_wita().isoformat()}},
+                  "message": msg[:3000],
+                  **({"sumber": "penjaga"} if penjaga else {}),
+                  "created_at": now_wita().isoformat()}},
         upsert=True)
+    if penjaga:
+        await log_activity(user, "penjaga_kesan",
+                           f"Mengirim kesan & pesan untuk '{k.get('name')}'", body.kegiatan_id)
     return {"message": "Alhamdulillah, jazakumullahu khoiro. Kesan & pesan Anda sudah terkirim."}
 
 
@@ -8728,9 +8296,6 @@ async def ensure_pertemuan(jadwal_id: Optional[str] = None, weeks: int = 2) -> i
                 "susulan": False,
                 "share_token": None,
                 "share_expires_at": None,
-                "akses_token": secrets.token_urlsafe(9),
-                "access_code": gen_access_code(),
-                "access_code_at": datetime.now(timezone.utc).isoformat(),
                 "absen_token": None,
                 "absen_expires_at": None,
                 "created_at": datetime.now(timezone.utc).isoformat(),

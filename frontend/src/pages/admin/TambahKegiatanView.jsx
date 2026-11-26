@@ -17,7 +17,7 @@ const MENU = [
   { key: "multi", label: "Kegiatan multi-sesi", desc: "Beberapa sesi dalam satu hari (mis. Pagi & Malam).", icon: CalendarClock, testId: "add-menu-multi-sesi" },
 ];
 
-export default function TambahKegiatanView({ onBack, onDone }) {
+export default function TambahKegiatanView({ onBack, onDone, onOpenKegiatan }) {
   const [items, setItems] = useState(null);
   const [quickMode, setQuickMode] = useState(null); // null | "cepat"
   const [sebelumnyaOpen, setSebelumnyaOpen] = useState(false);
@@ -106,6 +106,7 @@ export default function TambahKegiatanView({ onBack, onDone }) {
         <KegiatanQuickAddModal
           mode={quickMode}
           onClose={onBack}
+          onOpenKegiatan={onOpenKegiatan}
           onFullForm={(initial) => { setQuickMode(null); setFormInitial(initial); setOpenForm(true); }}
         />
       )}
@@ -113,6 +114,7 @@ export default function TambahKegiatanView({ onBack, onDone }) {
         <AbsenSebelumnyaModal
           items={Array.isArray(items) ? items : []}
           onClose={onBack}
+          onOpenKegiatan={(id) => { setSebelumnyaOpen(false); onOpenKegiatan?.(id); }}
           onSalin={(k) => {
             setSebelumnyaOpen(false);
             setFormInitial({ salin_dari: k, salin_dari_nama: k.name });

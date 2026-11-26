@@ -2,7 +2,6 @@
 // Desktop = modal di tengah, HP = panel naik dari bawah (komponen Modal bersama).
 // Hanya mengisi nilai default lalu memanggil endpoint simpan yang sudah ada.
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Loader2, Users, ArrowRight, Zap, History, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -52,8 +51,7 @@ function Chip({ on, children, ...rest }) {
  * @param {function} onClose
  * @param {function} onFullForm  buka formulir lengkap dengan nilai awal
  */
-export default function KegiatanQuickAddModal({ source = null, mode = "cepat", initialDate = null, onClose, onFullForm }) {
-  const navigate = useNavigate();
+export default function KegiatanQuickAddModal({ source = null, mode = "cepat", initialDate = null, onClose, onFullForm, onOpenKegiatan }) {
   const susulan = mode === "sebelumnya";
   const now = useMemo(() => nowWita(), []);
   const [name, setName] = useState("");
@@ -203,15 +201,7 @@ export default function KegiatanQuickAddModal({ source = null, mode = "cepat", i
       // Sesi yang jamnya sedang berjalan dibuka; jika tidak ada, sesi pertama.
       const nowTime = nowWita().time;
       const aktif = created.find((k) => k?.start_time <= nowTime && nowTime < k?.end_time) || created[0];
-      if (aktif?.akses_token) {
-        try {
-          const { data: v } = await api.post(`/absensi/${aktif.akses_token}/verify`, {
-            code: aktif.access_code,
-          });
-          sessionStorage.setItem(`absensi_access_${aktif.akses_token}`, v.access);
-        } catch { /* biarkan pengguna memasukkan kode manual */ }
-        navigate(`/absensi/${aktif.akses_token}`);
-      }
+      if (aktif?.id) onOpenKegiatan?.(aktif.id);
     } catch (e) {
       toast.error(formatApiErrorDetail(e.response?.data?.detail));
     } finally {

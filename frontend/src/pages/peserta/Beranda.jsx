@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Pin, AlertCircle, CalendarDays, Clock, MapPin, ShieldCheck, Search, QrCode, ScanLine, ChevronRight, UserCog } from "lucide-react";
+import { Loader2, Pin, AlertCircle, CalendarDays, Clock, MapPin, ClipboardList, Search, QrCode, ScanLine, ChevronRight, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import Modal from "@/components/Modal";
 import ReportHeader from "@/components/ReportHeader";
@@ -265,7 +265,7 @@ export default function Beranda({ user, onGoto }) {
       {/* Delegation banner */}
       {delegs.map((d) => (
         <div key={d.id} className="bg-[#E3EEFB] border border-[#E3EEFB] rounded-2xl p-4" data-testid={`deleg-banner-${d.id}`}>
-          <div className="flex items-center gap-2 text-[#1D4F91] font-semibold text-sm"><ShieldCheck size={18} /> Anda penjaga absen hari ini</div>
+          <div className="flex items-center gap-2 text-[#1D4F91] font-semibold text-sm"><ClipboardList size={18} /> Anda penjaga absen hari ini</div>
           <p className="text-sm text-[#1D4F91] mt-1">{d.kegiatan_name}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button data-testid={`deleg-open-${d.id}`} onClick={() => onGoto?.("penjaga")} className="h-11 px-4 rounded-xl bg-[#14633F] text-white font-semibold text-sm hover:bg-[#0E4E31]">Mulai jaga absen</button>

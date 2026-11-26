@@ -19,6 +19,18 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-26-penjaga-rapi",
+    date: "2026-11-26",
+    jenis: "fitur",
+    tujuan: "/area/peserta",
+    title: "Penjaga absen lebih rapi",
+    keterangan:
+      "Absensi dan scan QR kini punya jalur sendiri langsung dari kartu kegiatan. Kode akses dihapus.",
+    items: [
+      "Absensi dan scan QR kini punya jalur sendiri langsung dari kartu kegiatan. Kode akses dihapus.",
+    ],
+  },
+  {
     id: "2026-11-26-penjaga-absen",
     date: "2026-11-26",
     jenis: "fitur",

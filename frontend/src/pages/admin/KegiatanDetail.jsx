@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, CalendarDays, Clock, MapPin, User, BookOpen, Loader2, Search,
-  ListChecks, ScanLine, KeyRound, MessageSquareText, UserPlus, PhoneCall,
+  ListChecks, ScanLine, MessageSquareText, UserPlus, PhoneCall,
   Copy, RefreshCw, Download, Send, Trash2, CheckCircle2, AlertTriangle,
   Users, PhoneOff, ClipboardList, MoreHorizontal, Pencil,
   Share2, RotateCcw, Layers, FileBarChart2, CheckCheck, ChevronLeft, ChevronRight,
@@ -229,7 +229,6 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
         {tab === "izin" && <IzinPanel kegiatanId={kegiatanId} />}
         {tab === "rekap" && <KegiatanRekapPanel kegiatanId={kegiatanId} />}
         {tab === "tindak" && <TindakLanjut kegiatanId={kegiatanId} />}
-        {tab === "kode" && <KodeAksesPanel kegiatanId={kegiatanId} />}
         {tab === "pesan" && <PesanPanel kegiatanId={kegiatanId} />}
       </div>
 
@@ -1344,76 +1343,6 @@ function TindakLanjut({ kegiatanId }) {
           })}
         </div>
       )}
-    </div>
-  );
-}
-
-/* ------------------------- Kode akses ------------------------- */
-function KodeAksesPanel({ kegiatanId }) {
-  const [info, setInfo] = useState(null);
-  const [busy, setBusy] = useState(false);
-
-  const load = useCallback(() => {
-    api.get(`/admin/kegiatan/${kegiatanId}/access`)
-      .then(({ data }) => setInfo(data))
-      .catch((e) => toast.error(formatApiErrorDetail(e.response?.data?.detail)));
-  }, [kegiatanId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  if (!info) return <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-[#0E4E31]" size={28} /></div>;
-
-  const regenerate = async () => {
-    setBusy(true);
-    try {
-      const { data } = await api.post(`/admin/kegiatan/${kegiatanId}/access/regenerate`);
-      setInfo(data);
-      toast.success("Kode akses baru dibuat. Kode lama sudah tidak berlaku.");
-    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); } finally { setBusy(false); }
-  };
-  const download = () => {
-    const a = document.createElement("a");
-    a.href = info.image;
-    a.download = `absensi_${(info.kegiatan_name || "kegiatan").replace(/\s+/g, "_")}.png`;
-    document.body.appendChild(a); a.click(); a.remove();
-  };
-
-  return (
-    <div className="bg-white rounded-2xl border border-[#E7E3D8] p-5 text-center" data-testid="detail-kode-panel">
-      <img src={info.image} alt="QR Absensi Kegiatan" className="mx-auto w-48 h-48 rounded-xl border border-[#E7E3D8] p-2" data-testid="detail-akses-qr" />
-      <div className="mt-4 rounded-2xl border-2 border-dashed border-[#14633F] bg-[#F6F4EE] p-4">
-        <div className="text-xs font-semibold text-[#0E4E31] flex items-center justify-center gap-1.5"><KeyRound size={14} /> KODE AKSES ABSENSI</div>
-        <div className="mt-1 text-3xl font-bold tracking-[0.35em] text-[#0E4E31]" data-testid="detail-akses-code">{info.code}</div>
-        <div className="text-xs text-[#5F6B63] mt-1">Berlaku sampai kegiatan ditutup/selesai</div>
-      </div>
-      <p className="text-xs text-[#5F6B63] mt-3 break-all px-2">{info.link}</p>
-      <div className="grid sm:grid-cols-2 gap-2 mt-3">
-        <button onClick={() => { navigator.clipboard.writeText(info.code); toast.success("Kode akses disalin"); }}
-          data-testid="detail-copy-code"
-          className="h-11 rounded-xl border-2 border-[#14633F] text-[#0E4E31] font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#E3F3EA]">
-          <Copy size={16} /> Salin Kode
-        </button>
-        <button onClick={() => { navigator.clipboard.writeText(info.link); toast.success("Tautan absensi disalin"); }}
-          data-testid="detail-copy-link"
-          className="h-11 rounded-xl border-2 border-[#E7E3D8] text-[#5F6B63] font-semibold inline-flex items-center justify-center gap-2 hover:border-[#14633F] hover:text-[#0E4E31]">
-          <Copy size={16} /> Salin Tautan
-        </button>
-        <button onClick={download} data-testid="detail-download-qr"
-          className="h-11 rounded-xl border-2 border-[#E7E3D8] text-[#5F6B63] font-semibold inline-flex items-center justify-center gap-2 hover:border-[#14633F] hover:text-[#0E4E31]">
-          <Download size={16} /> Unduh QR
-        </button>
-        <button onClick={regenerate} disabled={busy} data-testid="detail-regenerate-code"
-          className="h-11 rounded-xl bg-[#14633F] text-white font-semibold inline-flex items-center justify-center gap-2 hover:bg-[#0E4E31] disabled:opacity-60">
-          {busy ? <Loader2 className="animate-spin" size={16} /> : <RefreshCw size={16} />} Perbarui Kode
-        </button>
-      </div>
-      <button
-        onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(info.wa_text || info.link)}`, "_blank")}
-        data-testid="detail-share-wa"
-        className="mt-2 w-full h-11 rounded-xl bg-[#14633F] text-white font-semibold inline-flex items-center justify-center gap-2 hover:brightness-95"
-      >
-        <Send size={16} /> Bagikan lewat WhatsApp
-      </button>
     </div>
   );
 }

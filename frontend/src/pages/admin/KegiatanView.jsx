@@ -235,6 +235,7 @@ export default function KegiatanView({
       <TambahKegiatanView
         onBack={() => setShowAddPage(false)}
         onDone={() => { setShowAddPage(false); load(); }}
+        onOpenKegiatan={(id) => { setShowAddPage(false); setDetailId(id); }}
       />
     );
   }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, lazy, Suspense } from "react";
-import { useNavigate } from "react-router-dom";
-import { Home, CalendarDays, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, HeartHandshake, LifeBuoy, MailWarning, MessagesSquare, CheckCircle2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Home, CalendarDays, ScanLine, User, ArrowLeftRight, LogOut, Bell, ClipboardList, Megaphone, X, HeartHandshake, LifeBuoy, MailWarning, MessagesSquare, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import RoleSwitcher from "@/components/RoleSwitcher";
@@ -34,7 +34,7 @@ const BASE_TABS = [
   { key: "profil", label: "Profil", icon: User },
 ];
 
-const PENJAGA_TAB = { key: "penjaga", label: "Penjaga", icon: ShieldCheck };
+const PENJAGA_TAB = { key: "penjaga", label: "Penjaga", icon: ClipboardList };
 
 export default function PesertaArea({ user }) {
   const navigate = useNavigate();
@@ -46,7 +46,11 @@ export default function PesertaArea({ user }) {
   const [panel, setPanel] = useState(false);
   const [switcher, setSwitcher] = useState(false);
   const [penjaga, setPenjaga] = useState(false);
+  const [params] = useSearchParams();
   const multiRole = (user?.roles?.length || 0) > 1;
+
+  // Layar Absensi/Scan penjaga punya bar navigasi sendiri → sembunyikan bar peserta.
+  const penjagaSubLayar = tab === "penjaga" && Boolean(params.get("jaga")) && Boolean(params.get("layar"));
 
   // Tab "Penjaga Absen" hanya muncul bila pengurus menunjuk akun ini sebagai
   // penjaga absen pada kegiatan yang masih berjalan.
@@ -217,7 +221,7 @@ export default function PesertaArea({ user }) {
       </main>
 
       {/* Bottom navigation — 5 tab, Scan bulat menonjol di tengah */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-[#E7E3D8] bg-white pb-[env(safe-area-inset-bottom)]">
+      <nav className={`fixed bottom-0 inset-x-0 z-40 border-t border-[#E7E3D8] bg-white pb-[env(safe-area-inset-bottom)] ${penjagaSubLayar ? "hidden" : ""}`}>
         <div className="max-w-lg mx-auto grid items-end" style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}>
           {TABS.map((t) => {
             const Icon = t.icon;

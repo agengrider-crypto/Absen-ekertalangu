@@ -1,7 +1,6 @@
 // Daftar kegiatan lama untuk "Absen sebelumnya".
 // Setiap baris: "Isi absen" (buka absensi menyusul) dan "Salin" (form Tambah Kegiatan terisi).
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Loader2, Search, ChevronRight, History, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -17,8 +16,7 @@ function sudahLewat(k, today) {
   return (k.status || "open") !== "open";
 }
 
-export default function AbsenSebelumnyaModal({ items, onClose, onSalin, onBuatBaru }) {
-  const navigate = useNavigate();
+export default function AbsenSebelumnyaModal({ items, onClose, onSalin, onBuatBaru, onOpenKegiatan }) {
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(PAGE);
   const [busy, setBusy] = useState(null);
@@ -36,24 +34,14 @@ export default function AbsenSebelumnyaModal({ items, onClose, onSalin, onBuatBa
   const tampil = daftar.slice(0, limit);
 
   const isiAbsen = async (k) => {
-    if (!k.akses_token) {
-      toast.error("Kegiatan ini belum punya tautan absensi.");
-      return;
-    }
     setBusy(k.id);
     try {
       // Kegiatan yang sudah ditutup dibuka kembali agar absen susulan bisa diisi.
       if ((k.status || "open") !== "open") {
         await api.post(`/admin/kegiatan/${k.id}/reopen`);
       }
-      try {
-        const { data: v } = await api.post(`/absensi/${k.akses_token}/verify`, {
-          code: k.access_code,
-        });
-        sessionStorage.setItem(`absensi_access_${k.akses_token}`, v.access);
-      } catch { /* biarkan pengguna memasukkan kode manual */ }
       onClose?.();
-      navigate(`/absensi/${k.akses_token}`);
+      onOpenKegiatan?.(k.id);
     } catch (e) {
       toast.error(formatApiErrorDetail(e.response?.data?.detail));
     } finally {

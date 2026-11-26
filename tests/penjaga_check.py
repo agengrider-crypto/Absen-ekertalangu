@@ -279,12 +279,54 @@ async def main():
             {"kegiatan_id": lewat_id, "status": "alpha"})
         cek("tidak ada alpha ganda", alpha1 == alpha2, f"{alpha1} vs {alpha2}")
 
-        # ---------------- K. Kode Akses lama tetap jalan ----------------
+        # ---------------- K. Kode Akses sudah dicabut ----------------
         r = await c.get(f"/api/admin/kegiatan/{kid}")
-        kode = r.json().get("access_code")
-        cek("kode akses masih dibuat", bool(kode), kode)
-        r = await c.post("/api/absensi/verify-code", json={"code": kode})
-        cek("kode akses masih bisa dipakai", r.status_code == 200, r.text[:200])
+        cek("access_code tidak lagi dikirim", "access_code" not in r.json(), list(r.json())[:5])
+        cek("akses_token tidak lagi dikirim", "akses_token" not in r.json())
+        r = await c.post("/api/absensi/verify-code", json={"code": "123456"})
+        cek("endpoint kode akses sudah hilang", r.status_code in (404, 405), r.status_code)
+        r = await c.get("/api/staff/kode-akses")
+        cek("endpoint daftar kode akses hilang", r.status_code in (404, 405), r.status_code)
+
+        # ---------------- L. Penjaga mengirim kesan & pesan ----------------
+        # Delegasi dicabut di bagian I → berikan ulang untuk menguji kesan & pesan.
+        await c.post("/api/auth/login",
+                     json={"identifier": "adminuji", "password": "rahasia123"})
+        await c.post(f"/api/staff/kegiatan/{kid}/delegate",
+                     json={"grantee_id": penjaga_id, "reason": "Uji kesan & pesan"})
+        await c.post("/api/auth/login",
+                     json={"identifier": "ahmad", "password": "rahasia123"})
+        r = await c.post("/api/me/kesan-pesan", json={
+            "kegiatan_id": kid, "sentiment": "suka",
+            "message": "Kegiatan berjalan lancar dan tertib."})
+        cek("penjaga bisa kirim kesan & pesan", r.status_code == 200, r.text[:300])
+        f = await server.db.feedbacks.find_one({"kegiatan_id": kid})
+        cek("kesan tersimpan ke kegiatan yang benar", bool(f), f)
+        cek("kesan ditandai sumber penjaga", (f or {}).get("sumber") == "penjaga",
+            (f or {}).get("sumber"))
+        log = await server.db.activity_logs.find_one({"action": "penjaga_kesan"})
+        cek("log aktivitas penjaga_kesan", bool(log))
+
+        # Peserta lain yang TIDAK hadir dan BUKAN penjaga tetap ditolak.
+        oid = server.ObjectId()
+        await server.db.users.insert_one({
+            "_id": oid, "name": "Peserta Luar", "username": "luar",
+            "email": "luar@example.com", "phone": "6281999999999",
+            "password_hash": server.hash_password("rahasia123"),
+            "roles": ["peserta"], "status": "active", "token_version": 0,
+        })
+        await c.post("/api/auth/login",
+                     json={"identifier": "luar", "password": "rahasia123"})
+        r = await c.post("/api/me/kesan-pesan", json={
+            "kegiatan_id": kid, "sentiment": "suka", "message": "Pesan dari bukan peserta."})
+        cek("bukan penjaga/hadir tetap ditolak 403", r.status_code == 403, r.status_code)
+
+        # ---------------- M. Sasaran peserta di kartu penjaga ----------------
+        await c.post("/api/auth/login",
+                     json={"identifier": "ahmad", "password": "rahasia123"})
+        r = await c.get("/api/me/delegations")
+        cek("kartu penjaga memuat sasaran",
+            "sasaran" in (r.json()[0].get("kegiatan") or {}), r.text[:200])
 
     print()
     if GAGAL:
