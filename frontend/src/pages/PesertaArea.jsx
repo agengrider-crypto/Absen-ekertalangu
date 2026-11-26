@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home, CalendarDays, ScanLine, User, ArrowLeftRight, LogOut, Bell, ShieldCheck, Megaphone, X, HeartHandshake, LifeBuoy, MailWarning, MessagesSquare, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -16,6 +16,7 @@ const ScanTab = lazy(() => import("./peserta/ScanTab"));
 const QrSaya = lazy(() => import("./peserta/QrSaya"));
 const ProfilTab = lazy(() => import("./peserta/ProfilTab"));
 const RuangTeduh = lazy(() => import("./peserta/RuangTeduh"));
+const PenjagaAbsen = lazy(() => import("./peserta/PenjagaAbsen"));
 
 function TabLoading() {
   return (
@@ -44,10 +45,23 @@ export default function PesertaArea({ user }) {
   const [unread, setUnread] = useState(0);
   const [panel, setPanel] = useState(false);
   const [switcher, setSwitcher] = useState(false);
+  const [penjaga, setPenjaga] = useState(false);
   const multiRole = (user?.roles?.length || 0) > 1;
 
-  // Tab "Penjaga Absen" dinonaktifkan (absensi memakai kode akses kegiatan).
-  const TABS = BASE_TABS;
+  // Tab "Penjaga Absen" hanya muncul bila pengurus menunjuk akun ini sebagai
+  // penjaga absen pada kegiatan yang masih berjalan.
+  const TABS = useMemo(
+    () => (penjaga ? [...BASE_TABS.slice(0, 4), PENJAGA_TAB, BASE_TABS[4]] : BASE_TABS),
+    [penjaga],
+  );
+
+  useEffect(() => {
+    let alive = true;
+    api.get("/me/delegations")
+      .then(({ data }) => { if (alive) setPenjaga((data || []).length > 0); })
+      .catch(() => { if (alive) setPenjaga(false); });
+    return () => { alive = false; };
+  }, []);
 
   // FASE 18 — lonceng notifikasi: semua fitur (kegiatan, pengumuman, undangan penting)
   const loadUpdates = () => api.get("/notifications").then(({ data }) => {
@@ -196,6 +210,7 @@ export default function PesertaArea({ user }) {
           </div>
         )}
         {tab === "curhat" && <RuangTeduh />}
+        {tab === "penjaga" && <PenjagaAbsen />}
         {tab === "bantuan" && <BantuanView />}
         {tab === "profil" && <ProfilTab user={user} />}
         </Suspense>
@@ -225,8 +240,7 @@ export default function PesertaArea({ user }) {
                   </span>
                   <span className={`text-[11px] ${on ? "font-semibold text-[#0E4E31]" : "font-medium text-[#5F6B63]"}`}>
                     {t.label}
-                  </span>
-                </button>
+                  </span>                </button>
               );
             }
             return (
@@ -237,7 +251,7 @@ export default function PesertaArea({ user }) {
                 className={`flex flex-col items-center justify-center gap-0.5 py-2.5 ${on ? "text-[#0E4E31]" : "text-[#5F6B63]"}`}
               >
                 <Icon size={22} strokeWidth={on ? 2.4 : 2} />
-                <span className={`text-[11px] ${on ? "font-semibold" : "font-medium"}`}>{t.label}</span>
+                <span className={`${TABS.length > 5 ? "text-[10px]" : "text-[11px]"} ${on ? "font-semibold" : "font-medium"}`}>{t.label}</span>
                 <span className={`h-1 w-1 rounded-full ${on ? "bg-[#14633F]" : "bg-transparent"}`} />
               </button>
             );

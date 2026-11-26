@@ -209,6 +209,20 @@ export const ACTION_LABELS = {
   selesaikan_kegiatan: "Selesaikan Kegiatan",
   buka_kegiatan: "Buka Kegiatan",
   selesai_kegiatan: "Selesaikan Kegiatan",
+  delegasi_absen: "Tunjuk Penjaga Absen",
+  cabut_delegasi: "Cabut Penjaga Absen",
+  penjaga_hadir: "Penjaga: Hadir",
+  penjaga_izin: "Penjaga: Izin/Sakit",
+  penjaga_scan: "Penjaga: Scan QR",
+  penjaga_tamu: "Penjaga: Tamu",
+  penjaga_batal: "Penjaga: Batalkan Absen",
+  penjaga_bagikan: "Penjaga: Bagikan Rekap",
+  perbarui_kode_akses: "Perbarui Kode Akses",
+  buat_kode_akses: "Buat Kode Akses",
+  atur_tautan_rekap: "Atur Tautan Rekap",
+  hapus_tautan_rekap: "Hapus Tautan Rekap",
+  atur_tautan_harian: "Atur Tautan Rekap Harian",
+  hapus_tautan_harian: "Hapus Tautan Rekap Harian",
 };
 
 export function todayIndo() {

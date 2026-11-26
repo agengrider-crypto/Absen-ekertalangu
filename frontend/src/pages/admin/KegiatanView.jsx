@@ -3,7 +3,7 @@ import {
   CalendarDays, List, Grid3x3, ChevronLeft, ChevronRight, Loader2, X,
   CheckCircle2, Trash2, Search, Copy, Download,
   Clock, MapPin, Lock, ChevronDown, AlertTriangle,
-  KeyRound, RefreshCw, Send, Layers, Play, SlidersHorizontal, Plus,
+  KeyRound, RefreshCw, Send, Layers, Play, SlidersHorizontal, Plus, ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, formatApiErrorDetail } from "@/lib/api";
@@ -680,6 +680,15 @@ function KegiatanCard({ k, selected, onSelect, onOpen }) {
           <JenisChip type={k.type} />
           <FilterBadges k={k} />
           {k.auto_closed && <span className="shrink-0 text-[10px] text-[#5F6B63]">(auto)</span>}
+          {(k.penjaga || []).length > 0 && (
+            <span
+              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#E3EEFB] px-2 py-0.5 text-[11px] font-semibold text-[#1D4F91]"
+              title={`Penjaga absen: ${(k.penjaga || []).join(", ")}`}
+              data-testid={`kegiatan-penjaga-${k.id}`}
+            >
+              <ShieldCheck size={11} /> Penjaga {(k.penjaga || []).length}
+            </span>
+          )}
         </div>
         <div className="mt-1 truncate text-[15px] font-bold text-[#14201A]">{k.name}</div>
         <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#5F6B63]">

@@ -6,6 +6,7 @@ import {
   Users, PhoneOff, ClipboardList, MoreHorizontal, Pencil,
   Share2, RotateCcw, Layers, FileBarChart2, CheckCheck, ChevronLeft, ChevronRight,
   Maximize2, Minimize2, MonitorSmartphone, X, Link2, ClipboardCheck, Check, Shuffle,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ACTIVITIES } from "@/constants/testIds";
@@ -24,6 +25,7 @@ import {
 } from "./kegiatanUtils";
 import { pesanPenolakanScan } from "./adminUtils";
 import AcakKegiatanModal from "./AcakKegiatanModal";
+import { DelegasiModal } from "./KegiatanExtras";
 
 /**
  * FASE 8 — HALAMAN DETAIL ABSEN KEGIATAN.
@@ -56,6 +58,7 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
   const [tab, setTab] = useState("manual");
   const [showActions, setShowActions] = useState(false);
   const [acakOpen, setAcakOpen] = useState(false);
+  const [delegasiOpen, setDelegasiOpen] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [posOpen, setPosOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -274,6 +277,11 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
               onClick: () => onEdit && onEdit(k),
             },
             {
+              key: "penjaga", testid: "detail-opsi-penjaga", label: "Penjaga absen",
+              desc: "Tunjuk peserta yang mengisi absen saat Anda tidak di lokasi", icon: ShieldCheck,
+              onClick: () => { setShowActions(false); setDelegasiOpen(true); },
+            },
+            {
               key: "acak", testid: "detail-opsi-acak", label: "Acak regu & nomor undian",
               desc: "Bagi peserta ke regu dan beri nomor undian", icon: Shuffle,
               onClick: () => { setShowActions(false); setAcakOpen(true); },
@@ -288,6 +296,9 @@ export default function KegiatanDetail({ kegiatanId, onBack, onChanged, onEdit,
       )}
       {acakOpen && (
         <AcakKegiatanModal kegiatan={k} onClose={() => setAcakOpen(false)} />
+      )}
+      {delegasiOpen && (
+        <DelegasiModal kegiatan={k} onClose={() => { setDelegasiOpen(false); load(true); }} />
       )}
     </div>
   );
@@ -549,6 +560,11 @@ function AbsenManual({ kegiatanId, rows, closed, alphaAllowed, onReload }) {
                     </span>
                   )}
                   {r.queued && <span className="text-[11px] font-semibold text-[#8A5A00]">menunggu dikirim</span>}
+                  {r.marked_by && (
+                    <span className="text-[11px] text-[#8A948D]" data-testid={`detail-marked-by-${r.user_id}`}>
+                      dicatat oleh {r.marked_by}
+                    </span>
+                  )}
                 </div>
                 {(r.reason || r.note) && (
                   <div className="mt-1 text-[11px] text-[#5F6B63] leading-snug">

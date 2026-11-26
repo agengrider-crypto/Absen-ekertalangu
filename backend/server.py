@@ -2504,7 +2504,8 @@ class FollowUpInput(BaseModel):
     note: Optional[str] = None
 
 
-def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
+def serialize_kegiatan(k: dict, counts: Optional[dict] = None,
+                       penjaga: Optional[list] = None) -> dict:
     d = {
         "id": k["_id"],
         "name": k.get("name"),
@@ -2559,6 +2560,8 @@ def serialize_kegiatan(k: dict, counts: Optional[dict] = None) -> dict:
     }
     if counts is not None:
         d["counts"] = counts
+    if penjaga is not None:
+        d["penjaga"] = penjaga
     return d
 
 
@@ -2950,6 +2953,38 @@ async def kirim_notif_alpha(k: dict) -> None:
         logger.exception("Gagal mengirim notifikasi alpha")
 
 
+async def selesaikan_kegiatan_bila_lewat(k: Optional[dict]) -> Optional[dict]:
+    """Idempoten: selesaikan kegiatan bila waktu selesai (WITA) sudah lewat.
+
+    Dipanggil "lazy" dari endpoint yang sering dibuka (delegasi, rekap, detail)
+    supaya Alpha otomatis tidak bergantung pada cron harian Vercel Hobby.
+    Hanya satu pemanggil yang berhasil menutup (guard `status: "open"`),
+    sehingga Alpha tidak pernah tercatat ganda dan status lama tidak tertimpa.
+    """
+    if not k or (k.get("status") or "open") != "open":
+        return k
+    if k.get("susulan"):
+        return k
+    end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
+    if not end or now_wita() < end:
+        return k
+    now = now_wita()
+    res = await db.kegiatans.update_one(
+        {"_id": k["_id"], "status": "open"},
+        {"$set": {"status": "closed", "closed_at": now.isoformat(), "auto_closed": True}})
+    if not res.modified_count:
+        return await db.kegiatans.find_one({"_id": k["_id"]}) or k
+    await mark_missing_alpha(k, now.isoformat())
+    await revoke_delegations_for_kegiatan(k["_id"], "Kegiatan selesai")
+    await log_activity(
+        None, "selesaikan_kegiatan",
+        f"Kegiatan '{k.get('name')}' selesai otomatis; peserta yang belum absen "
+        "tercatat Alpha dan penjaga absen dicabut", k["_id"])
+    await kirim_notif_alpha(k)
+    _rekap_cache_buang(k["_id"])
+    return await db.kegiatans.find_one({"_id": k["_id"]}) or k
+
+
 async def auto_close_kegiatan():
     """Tutup otomatis kegiatan (per-kegiatan) saat jam selesai WITA sudah lewat."""
     now = now_wita()
@@ -2960,13 +2995,9 @@ async def auto_close_kegiatan():
             continue
         end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
         if end and now >= end:
-            result = await db.kegiatans.update_one(
-                {"_id": k["_id"], "status": "open"},
-                {"$set": {"status": "closed", "closed_at": now.isoformat(), "auto_closed": True}})
-            if result.modified_count:
-                await mark_missing_alpha(k, now.isoformat())
-                await revoke_delegations_for_kegiatan(k["_id"], "Kegiatan ditutup otomatis")
-                await kirim_notif_alpha(k)
+            # Pakai fungsi bersama agar Alpha, pencabutan delegasi, dan log
+            # konsisten dengan jalur "lazy" (tanpa Alpha ganda).
+            await selesaikan_kegiatan_bila_lewat(k)
 
 
 async def auto_close_loop():
@@ -3197,6 +3228,15 @@ async def list_kegiatan(admin: dict = Depends(require_staff),
     if not kegiatans:
         return []
 
+    # Lazy: selesaikan kegiatan yang waktunya sudah lewat (tanpa cron).
+    # Hanya kegiatan yang benar-benar perlu diproses agar daftar tetap ringan.
+    for idx, k in enumerate(kegiatans):
+        if (k.get("status") or "open") != "open" or k.get("susulan"):
+            continue
+        end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
+        if end and now_wita() >= end:
+            kegiatans[idx] = await selesaikan_kegiatan_bila_lewat(k)
+
     # FASE 8 — optimasi: 3 query saja (bukan 3 query per kegiatan) agar halaman
     # kegiatan tetap ringan walau dijalankan di serverless (Vercel).
     ids = [k["_id"] for k in kegiatans]
@@ -3209,13 +3249,19 @@ async def list_kegiatan(admin: dict = Depends(require_staff),
     guest_by_keg: dict = {}
     for g in guests:
         guest_by_keg[g["kegiatan_id"]] = guest_by_keg.get(g["kegiatan_id"], 0) + 1
+    # Penjaga absen aktif per kegiatan (untuk lencana di kartu kegiatan).
+    delegs = await db.delegations.find(
+        {"kegiatan_id": {"$in": ids}, "active": True}).to_list(2000)
+    penjaga_by_keg: dict = {}
+    for d in delegs:
+        penjaga_by_keg.setdefault(d["kegiatan_id"], []).append(d.get("grantee_name"))
 
     out = []
     for k in kegiatans:
         peserta = filter_peserta_for_kegiatan(k, all_users)
         counts = compute_counts(
             peserta, abs_by_keg.get(k["_id"], []), guest_by_keg.get(k["_id"], 0), kegiatan=k)
-        out.append(serialize_kegiatan(k, counts))
+        out.append(serialize_kegiatan(k, counts, penjaga_by_keg.get(k["_id"], [])))
     return out
 
 
@@ -3224,8 +3270,12 @@ async def get_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff)):
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    k = await selesaikan_kegiatan_bila_lewat(k)
     total = await count_peserta_total()
-    return serialize_kegiatan(k, await kegiatan_counts(k))
+    delegs = await db.delegations.find(
+        {"kegiatan_id": kegiatan_id, "active": True}).to_list(200)
+    return serialize_kegiatan(k, await kegiatan_counts(k),
+                              [d.get("grantee_name") for d in delegs])
 
 
 @api_router.patch("/admin/kegiatan/{kegiatan_id}")
@@ -3517,6 +3567,7 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
         raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    k = await selesaikan_kegiatan_bila_lewat(k)
     peserta = await peserta_for_kegiatan(k)
     absens = await db.absensis.find({"kegiatan_id": kegiatan_id}).to_list(10000)
     guests = await db.guest_absens.find({"kegiatan_id": kegiatan_id}).sort("created_at", 1).to_list(2000)
@@ -3597,6 +3648,37 @@ async def rekap_kegiatan(kegiatan_id: str, admin: dict = Depends(require_staff))
         "pengajar_tidak_wajib": bool(k.get("pengajar_tidak_wajib", False)),
         "pengajar_dikecualikan": len(pengajar_excluded),
     }
+
+
+@api_router.get("/admin/kegiatan/{kegiatan_id}/ringkasan")
+async def ringkasan_kegiatan(kegiatan_id: str, request: Request,
+                             admin: dict = Depends(require_admin)):
+    """Ringkasan angka ringan untuk pembaruan otomatis (khusus admin).
+
+    Hanya angka + status, tanpa nama/nomor HP. Mendukung ETag sehingga polling
+    tidak mengirim ulang data yang sama.
+    """
+    k = await db.kegiatans.find_one({"_id": kegiatan_id})
+    if not k:
+        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
+    k = await selesaikan_kegiatan_bila_lewat(k)
+    counts = await kegiatan_counts(k)
+    guests = await db.guest_absens.count_documents({"kegiatan_id": kegiatan_id})
+    end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
+    payload = {
+        "id": kegiatan_id,
+        "status": k.get("status", "open"),
+        "phase": kegiatan_phase(k),
+        "counts": counts,
+        "guests": guests,
+        "berakhir_pada": end.isoformat() if end else None,
+        "diperbarui": now_wita().isoformat(),
+    }
+    etag = 'W/"%s"' % hashlib.sha1(
+        f"{payload['status']}|{payload['counts']}|{guests}".encode()).hexdigest()[:16]
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers={"ETag": etag})
+    return JSONResponse(payload, headers={"ETag": etag, "Cache-Control": "no-store"})
 
 
 # ------------------- FASE 10: Rekap kehadiran per sesi -------------------
@@ -5583,7 +5665,11 @@ async def my_delegations(user: dict = Depends(get_current_user)):
     result = []
     for d in items:
         k = await db.kegiatans.find_one({"_id": d.get("kegiatan_id")})
-        if not k or k.get("status", "open") != "open":
+        if not k:
+            continue
+        # Lazy: selesaikan kegiatan bila waktunya sudah lewat (tanpa cron).
+        k = await selesaikan_kegiatan_bila_lewat(k)
+        if (k.get("status") or "open") != "open":
             continue
         out = serialize_delegation(d)
         out["kegiatan"] = serialize_kegiatan(k)
@@ -5591,18 +5677,42 @@ async def my_delegations(user: dict = Depends(get_current_user)):
     return result
 
 
-@api_router.get("/delegate/kegiatan/{kegiatan_id}")
-async def delegate_kegiatan_info(kegiatan_id: str, user: dict = Depends(get_current_user)):
+async def _delegate_guard(kegiatan_id: str, user: dict):
+    """Validasi hak penjaga absen + kegiatan masih berjalan.
+
+    Mengembalikan (delegation, kegiatan). Melempar 403/404 dengan pesan sopan.
+    Kegiatan yang waktunya sudah lewat diselesaikan lebih dulu (lazy), sehingga
+    penjaga tidak bisa mengabsen setelah kegiatan berakhir.
+    """
     deleg = await _active_delegation(kegiatan_id, str(user["_id"]))
     if not deleg:
-        raise HTTPException(status_code=403, detail="Anda tidak memiliki hak delegasi untuk kegiatan ini")
+        raise HTTPException(
+            status_code=403,
+            detail="Mohon maaf, Anda bukan penjaga absen untuk kegiatan ini.")
     k = await db.kegiatans.find_one({"_id": kegiatan_id})
     if not k:
-        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
-    peserta = await db.users.find(PESERTA_QUERY).sort("name", 1).to_list(5000)
+        raise HTTPException(status_code=404, detail="Mohon maaf, kegiatan tidak ditemukan.")
+    k = await selesaikan_kegiatan_bila_lewat(k)
+    if (k.get("status") or "open") != "open":
+        raise HTTPException(
+            status_code=403,
+            detail="Mohon maaf, kegiatan ini sudah selesai sehingga absen tidak dapat diproses.")
+    end = kegiatan_end_dt(k.get("date"), k.get("end_time"))
+    if end and now_wita() >= end:
+        raise HTTPException(
+            status_code=403,
+            detail="Mohon maaf, waktu kegiatan sudah berakhir sehingga absen tidak dapat diproses.")
+    return deleg, k
+
+
+@api_router.get("/delegate/kegiatan/{kegiatan_id}")
+async def delegate_kegiatan_info(kegiatan_id: str, user: dict = Depends(get_current_user)):
+    deleg, k = await _delegate_guard(kegiatan_id, user)
+    peserta = await peserta_for_kegiatan(k)
     kmap = {km["_id"]: km.get("name") async for km in db.kelompoks.find()}
     absens = await db.absensis.find({"kegiatan_id": kegiatan_id}).to_list(10000)
     amap = {a["user_id"]: a for a in absens}
+    uid = str(user["_id"])
     rows = []
     for p in peserta:
         pid = str(p["_id"])
@@ -5611,34 +5721,135 @@ async def delegate_kegiatan_info(kegiatan_id: str, user: dict = Depends(get_curr
                      "kelompok_name": kmap.get(p.get("kelompok_id")) if p.get("kelompok_id") else None,
                      "status": a.get("status") if a else None,
                      "account_status": p.get("status", "active"),
-                     "arrival_time": a.get("arrival_time") if a else None})
+                     "arrival_time": a.get("arrival_time") if a else None,
+                     "reason": a.get("reason") if a else None,
+                     "note": a.get("note") if a else None,
+                     "marked_by": a.get("marked_by") if a else None,
+                     # Penjaga hanya boleh membatalkan catatan yang ia buat sendiri.
+                     "can_cancel": bool(a and a.get("marked_by_id") == uid)})
+    guests = await db.guest_absens.find({"kegiatan_id": kegiatan_id}) \
+        .sort("created_at", 1).to_list(2000)
     return {"kegiatan": serialize_kegiatan(k), "peserta": rows,
+            "guests": [serialize_guest(g) for g in guests],
+            "counts": await kegiatan_counts(k),
             "delegation": serialize_delegation(deleg)}
 
 
 @api_router.post("/delegate/kegiatan/{kegiatan_id}/absen")
 async def delegate_mark_absen(kegiatan_id: str, body: AbsenInput, user: dict = Depends(get_current_user)):
-    deleg = await _active_delegation(kegiatan_id, str(user["_id"]))
-    if not deleg:
-        raise HTTPException(status_code=403, detail="Anda tidak memiliki hak delegasi untuk kegiatan ini")
-    k = await db.kegiatans.find_one({"_id": kegiatan_id})
-    if not k:
-        raise HTTPException(status_code=404, detail="Kegiatan tidak ditemukan")
-    if k.get("status", "open") != "open":
-        raise HTTPException(status_code=403, detail="Kegiatan sudah ditutup")
+    deleg, k = await _delegate_guard(kegiatan_id, user)
     validate_absen_status(k, body.status)
     u = await db.users.find_one({"_id": ObjectId(body.user_id)}) if ObjectId.is_valid(body.user_id) else None
     if not u:
         raise HTTPException(status_code=404, detail="Peserta tidak ditemukan")
     assert_gender_eligible(k, u)
+    await assert_not_attended_other_session(k, body.user_id, u.get("name") or "Peserta")
     arrival = now_wita().isoformat() if body.status == "hadir" else None
+    reason = (body.reason or "").strip() or None
+    note = (body.note or "").strip() or None
     await db.absensis.update_one(
         {"kegiatan_id": kegiatan_id, "user_id": body.user_id},
         {"$set": {"kegiatan_id": kegiatan_id, "user_id": body.user_id, "status": body.status,
-                  "arrival_time": arrival, "marked_by": f"Delegasi: {user.get('name')}",
+                  "arrival_time": arrival, "reason": reason, "note": note,
+                  "marked_by": f"Penjaga Absen: {user.get('name')}",
                   "marked_by_id": str(user["_id"]), "updated_at": now_wita().isoformat()}},
         upsert=True)
-    return {"user_id": body.user_id, "status": body.status, "arrival_time": arrival}
+    await notif_kehadiran_dari_status(body.user_id, body.status, k)
+    _rekap_cache_buang(kegiatan_id)
+    label = {"hadir": "hadir", "izin": "izin", "sakit": "sakit", "alpha": "alpha"}.get(body.status, body.status)
+    await log_activity(user, "penjaga_hadir" if body.status == "hadir" else "penjaga_izin",
+                       f"Menandai {u.get('name')} {label} pada '{k.get('name')}'"
+                       + (f" — alasan: {reason}" if reason else ""),
+                       body.user_id)
+    return {"user_id": body.user_id, "status": body.status, "arrival_time": arrival,
+            "marked_by": f"Penjaga Absen: {user.get('name')}"}
+
+
+@api_router.delete("/delegate/kegiatan/{kegiatan_id}/absen/{user_id}")
+async def delegate_cancel_absen(kegiatan_id: str, user_id: str,
+                                user: dict = Depends(get_current_user)):
+    """Batalkan catatan absen yang dibuat penjaga ini sendiri."""
+    deleg, k = await _delegate_guard(kegiatan_id, user)
+    row = await db.absensis.find_one({"kegiatan_id": kegiatan_id, "user_id": user_id})
+    if not row:
+        raise HTTPException(status_code=404, detail="Catatan absen tidak ditemukan")
+    if row.get("marked_by_id") != str(user["_id"]):
+        raise HTTPException(
+            status_code=403,
+            detail="Mohon maaf, catatan ini dibuat oleh petugas lain sehingga tidak bisa dibatalkan.")
+    await db.absensis.delete_one({"_id": row["_id"]})
+    u = await db.users.find_one({"_id": ObjectId(user_id)}) if ObjectId.is_valid(user_id) else None
+    nama = (u or {}).get("name") or "Peserta"
+    await notif_kehadiran_dari_status(user_id, None, k)
+    _rekap_cache_buang(kegiatan_id)
+    await log_activity(user, "penjaga_batal",
+                       f"Membatalkan catatan absen {nama} pada '{k.get('name')}'", user_id)
+    return {"ok": True, "message": f"Catatan absen {nama} dibatalkan."}
+
+
+@api_router.post("/delegate/kegiatan/{kegiatan_id}/guest")
+async def delegate_add_guest(kegiatan_id: str, body: GuestInput,
+                             user: dict = Depends(get_current_user)):
+    deleg, k = await _delegate_guard(kegiatan_id, user)
+    guest = await add_guest_doc(k, body.name, f"Penjaga Absen: {user.get('name')}")
+    _rekap_cache_buang(kegiatan_id)
+    await log_activity(user, "penjaga_tamu",
+                       f"Menambah tamu {guest['name']} pada '{k.get('name')}'", guest["id"])
+    return {**guest, "message": f"Tamu {guest['name']} tercatat hadir."}
+
+
+@api_router.delete("/delegate/kegiatan/{kegiatan_id}/guest/{guest_id}")
+async def delegate_delete_guest(kegiatan_id: str, guest_id: str,
+                                user: dict = Depends(get_current_user)):
+    deleg, k = await _delegate_guard(kegiatan_id, user)
+    g = await db.guest_absens.find_one({"_id": guest_id, "kegiatan_id": kegiatan_id})
+    if not g:
+        raise HTTPException(status_code=404, detail="Data tamu tidak ditemukan")
+    await db.guest_absens.delete_one({"_id": guest_id})
+    _rekap_cache_buang(kegiatan_id)
+    await log_activity(user, "penjaga_tamu",
+                       f"Menghapus tamu {g.get('name')} pada '{k.get('name')}'", guest_id)
+    return {"ok": True, "message": "Data tamu dihapus"}
+
+
+@api_router.get("/delegate/kegiatan/{kegiatan_id}/rekap")
+async def delegate_rekap(kegiatan_id: str, user: dict = Depends(get_current_user)):
+    """Laporan ringkas untuk penjaga absen — tanpa nomor HP."""
+    deleg, k = await _delegate_guard(kegiatan_id, user)
+    peserta = await peserta_for_kegiatan(k)
+    absens = await db.absensis.find({"kegiatan_id": kegiatan_id}).to_list(10000)
+    amap = {a["user_id"]: a for a in absens}
+    groups = {"hadir": [], "izin": [], "sakit": [], "alpha": [], "belum": []}
+    for p in peserta:
+        pid = str(p["_id"])
+        a = amap.get(pid)
+        st = (a or {}).get("status")
+        key = st if st in ("hadir", "izin", "sakit", "alpha") else "belum"
+        groups[key].append({"id": pid, "name": p.get("name"),
+                            "reason": (a or {}).get("reason"),
+                            "note": (a or {}).get("note"),
+                            "arrival_time": (a or {}).get("arrival_time")})
+    for key in groups:
+        groups[key].sort(key=lambda r: (r.get("name") or "").lower())
+    guests = await db.guest_absens.find({"kegiatan_id": kegiatan_id}) \
+        .sort("created_at", 1).to_list(2000)
+    counts = await kegiatan_counts(k)
+    return {"kegiatan": serialize_kegiatan(k), "counts": counts,
+            "groups": groups,
+            "guests": [{"id": g["_id"], "name": g.get("name"),
+                        "arrival_time": g.get("arrival_time")} for g in guests],
+            "diperbarui": now_wita().isoformat()}
+
+
+@api_router.post("/delegate/kegiatan/{kegiatan_id}/share")
+async def delegate_share(kegiatan_id: str, request: Request,
+                         user: dict = Depends(get_current_user)):
+    deleg, k = await _delegate_guard(kegiatan_id, user)
+    info = await ensure_share(kegiatan_id, request)
+    await log_activity(user, "penjaga_bagikan",
+                       f"Membagikan tautan rekap '{k.get('name')}'", kegiatan_id)
+    return {"link": info["link"], "expires_at": info["expires_at"],
+            "wa_text": wa_template_laporan(k.get("name") or "kegiatan", info["link"])}
 
 
 class ScanPersonalInput(BaseModel):
@@ -5651,18 +5862,7 @@ class ScanPersonalInput(BaseModel):
 async def delegate_scan_personal(kegiatan_id: str, body: ScanPersonalInput,
                                  user: dict = Depends(get_current_user)):
     """Penjaga absen (penerima delegasi) menandai hadir via scan QR pribadi peserta."""
-    deleg = await _active_delegation(kegiatan_id, str(user["_id"]))
-    if not deleg:
-        raise HTTPException(
-            status_code=403,
-            detail="Mohon maaf, Anda tidak memiliki hak penjaga absen untuk kegiatan ini.")
-    k = await db.kegiatans.find_one({"_id": kegiatan_id})
-    if not k:
-        raise HTTPException(status_code=404, detail="Mohon maaf, kegiatan tidak ditemukan.")
-    if k.get("status", "open") != "open":
-        raise HTTPException(
-            status_code=403,
-            detail="Mohon maaf, kegiatan ini sudah ditutup sehingga absen tidak dapat diproses.")
+    deleg, k = await _delegate_guard(kegiatan_id, user)
     content = (body.content or "").strip()
     if content.startswith("EKP:"):
         content = content[4:]
@@ -5690,6 +5890,10 @@ async def delegate_scan_personal(kegiatan_id: str, body: ScanPersonalInput,
                   "arrival_time": arrival, "marked_by": f"Penjaga Absen: {user.get('name')}",
                   "marked_by_id": str(user["_id"]), "updated_at": arrival}},
         upsert=True)
+    await notif_kehadiran_dari_status(target_id, "hadir", k)
+    _rekap_cache_buang(kegiatan_id)
+    await log_activity(user, "penjaga_scan",
+                       f"Scan QR: {u.get('name')} hadir pada '{k.get('name')}'", target_id)
     return {"name": u.get("name"), "status": "hadir", "arrival_time": arrival, "already": False,
             "message": f"Alhamdulillah, kehadiran {u.get('name')} berhasil dicatat."}
 # ------------------------- Peserta: QR pribadi rotating -------------------------
@@ -7872,6 +8076,7 @@ NOTIF_SOURCE_LABEL = {
     "undangan": "Undangan penting",
     "izin": "Izin guru",
     "kehadiran": "Kehadiran",
+    "penjaga": "Penjaga absen",
 }
 
 # Notifikasi kehadiran peserta: satu baris per peserta per kegiatan.
@@ -8032,6 +8237,23 @@ async def _notif_items_for(user: dict, staff: bool) -> list:
             })
     except Exception:
         logger.exception("Notifikasi gagal pada sumber 'kehadiran'")
+
+    # Penjaga absen: pemberitahuan penunjukan untuk kegiatan yang masih berjalan.
+    try:
+        for d in await db.delegations.find({"grantee_id": uid, "active": True}) \
+                .sort("created_at", -1).to_list(20):
+            k = await db.kegiatans.find_one({"_id": d.get("kegiatan_id")}) or {}
+            if (k.get("status") or "open") != "open":
+                continue
+            items.append({
+                "type": "penjaga", "id": str(d.get("kegiatan_id") or ""),
+                "title": f"Anda penjaga absen: {k.get('name') or 'Kegiatan'}",
+                "subtitle": f"{_tanggal_indo(k.get('date'))} · "
+                            f"{k.get('start_time')}–{k.get('end_time')} WITA",
+                "at": to_utc_iso(d.get("created_at")), "target": "penjaga",
+            })
+    except Exception:
+        logger.exception("Notifikasi gagal pada sumber 'penjaga'")
 
     items = [i for i in items if i.get("at") and i.get("id")]
     items.sort(key=lambda x: x["at"], reverse=True)

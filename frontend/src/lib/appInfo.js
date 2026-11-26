@@ -19,6 +19,18 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    id: "2026-11-26-penjaga-absen",
+    date: "2026-11-26",
+    jenis: "fitur",
+    tujuan: "/area/admin/kegiatan",
+    title: "Penjaga absen",
+    keterangan:
+      "Pengurus bisa menunjuk penjaga absen per kegiatan. Penjaga menandai hadir atau izin, membatalkan catatannya sendiri, menambah tamu, dan membagikan rekap. Kegiatan otomatis selesai saat waktunya habis.",
+    items: [
+      "Pengurus bisa menunjuk penjaga absen per kegiatan. Penjaga menandai hadir atau izin, membatalkan catatannya sendiri, menambah tamu, dan membagikan rekap. Kegiatan otomatis selesai saat waktunya habis.",
+    ],
+  },
+  {
     id: "2026-11-26-pendaftaran-izin",
     date: "2026-11-26",
     jenis: "fitur",
